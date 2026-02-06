@@ -4,6 +4,7 @@ import type { User, PatientData, FinalReport, PatientQueueItem, AnalysisRecord, 
 import { useTranslation } from '../hooks/useTranslation';
 import * as aiService from '../services/aiCouncilService';
 import * as authService from '../services/apiAuthService';
+import * as localAuthService from '../services/authService';
 import * as queueService from '../services/queueService';
 import * as settingsService from '../services/settingsService'; 
 import * as tvLinkService from '../services/tvLinkService'; 
@@ -422,7 +423,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         });
 
         // Assistant
-        const existingAssistant = authService.getAssistant(user.phone);
+        const existingAssistant = localAuthService.getAssistant(user.phone);
         if (existingAssistant) {
             setAssistantData({ name: existingAssistant.name, phone: existingAssistant.phone, password: '' });
         }
@@ -617,12 +618,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             setAssistantMsg("Ism va telefon raqam majburiy.");
             return;
         }
-        const res = authService.upsertAssistant(user.phone, assistantData);
+        const res = localAuthService.upsertAssistant(user.phone, assistantData);
         setAssistantMsg(res.message);
     };
 
     const handleDeleteAssistant = () => {
-        authService.deleteAssistant(user.phone);
+        localAuthService.deleteAssistant(user.phone);
         setAssistantData({ name: '', phone: '', password: '' });
         setAssistantMsg("Yordamchi o'chirildi.");
     };
