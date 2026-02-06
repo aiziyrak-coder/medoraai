@@ -30,8 +30,7 @@ import { handleError, getUserFriendlyError } from '../utils/errorHandler';
 import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
 
-// --- INITIALIZATION ---
-// API kaliti: loyiha rootida .env yoki .env.production da GEMINI_API_KEY yoki VITE_GEMINI_API_KEY o'rnating (build paytida ishlatiladi).
+// --- INITIALIZATION (lazy: brauzerda kalit bo'lmasa sahifa yopilmaydi) ---
 const getGeminiApiKey = (): string => {
   const key = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY
     || (typeof process !== 'undefined' && (process as any).env?.API_KEY)
@@ -40,10 +39,16 @@ const getGeminiApiKey = (): string => {
   return key;
 };
 const apiKey = getGeminiApiKey();
-if (!apiKey && typeof window !== 'undefined') {
-  console.error('MedoraAI: Gemini API kaliti o\'rnatilmagan. Build paytida loyiha rootida .env da GEMINI_API_KEY yoki VITE_GEMINI_API_KEY belgilang.');
+const validKey = apiKey && apiKey !== 'no-key-set';
+
+let _aiInstance: InstanceType<typeof GoogleGenAI> | null = null;
+function getAI(): InstanceType<typeof GoogleGenAI> {
+  if (!validKey) {
+    throw new Error('Gemini API kaliti o\'rnatilmagan. Serverda build paytida GEMINI_API_KEY yoki VITE_GEMINI_API_KEY belgilang (/var/www/medoraai/.env.production).');
+  }
+  if (!_aiInstance) _aiInstance = new GoogleGenAI({ apiKey: apiKey! });
+  return _aiInstance;
 }
-const ai = new GoogleGenAI({ apiKey: apiKey || 'no-key-set' });
 
 const langMap: Record<Language, string> = {
     'uz-L': 'Uzbek (Latin script)',
@@ -168,7 +173,7 @@ const callGemini = async (
 
         const finalContents = prompt;
         
-        const result: GenerateContentResponse = await ai.models.generateContent({
+        const result: GenerateContentResponse = await getAI().models.generateContent({
             model: model,
             contents: finalContents,
             config: Object.keys(config).length > 0 ? config : undefined,
