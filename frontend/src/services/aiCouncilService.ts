@@ -31,8 +31,19 @@ import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
 
 // --- INITIALIZATION ---
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// API kaliti: loyiha rootida .env yoki .env.production da GEMINI_API_KEY yoki VITE_GEMINI_API_KEY o'rnating (build paytida ishlatiladi).
+const getGeminiApiKey = (): string => {
+  const key = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY
+    || (typeof process !== 'undefined' && (process as any).env?.API_KEY)
+    || (typeof process !== 'undefined' && (process as any).env?.GEMINI_API_KEY)
+    || '';
+  return key;
+};
+const apiKey = getGeminiApiKey();
+if (!apiKey && typeof window !== 'undefined') {
+  console.error('MedoraAI: Gemini API kaliti o\'rnatilmagan. Build paytida loyiha rootida .env da GEMINI_API_KEY yoki VITE_GEMINI_API_KEY belgilang.');
+}
+const ai = new GoogleGenAI({ apiKey: apiKey || 'no-key-set' });
 
 const langMap: Record<Language, string> = {
     'uz-L': 'Uzbek (Latin script)',
