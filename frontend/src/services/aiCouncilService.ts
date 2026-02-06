@@ -1,0 +1,1013 @@
+
+import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+import type {
+    PatientData,
+    Diagnosis,
+    FinalReport,
+    ProgressUpdate,
+    ChatMessage,
+    DrugInteraction,
+    EcgReport,
+    Icd10Code,
+    GuidelineSearchResult,
+    ResearchProgressUpdate,
+    ResearchReport,
+    PatientEducationTopic,
+    AnalysisRecord,
+    CMETopic,
+    PediatricDose,
+    RiskScore,
+    CriticalFinding,
+    PrognosisReport,
+    RelatedResearch,
+} from '../types';
+import { AIModel } from "../constants/specialists";
+import { AI_SPECIALISTS } from "../constants";
+import { Language } from "../i18n/LanguageContext";
+import * as caseService from './caseService';
+import { logger } from '../utils/logger';
+import { handleError, getUserFriendlyError } from '../utils/errorHandler';
+import { retry } from '../utils/retry';
+import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
+
+// --- INITIALIZATION ---
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const langMap: Record<Language, string> = {
+    'uz-L': 'Uzbek (Latin script)',
+    'uz-C': 'Uzbek (Cyrillic script)',
+    'kaa': 'Karakalpak (Latin script)',
+    'ru': 'Russian',
+    'en': 'English'
+};
+
+// --- DYNAMIC SYSTEM INSTRUCTIONS (Kuchli va Aqlli) ---
+const getSystemInstruction = (language: Language): string => {
+    const baseInstruction = `
+    SIZ - TIBBIYOT SOHASIDAGI SUPPER-INTELLEKTUAL, AQLLI AI TIZIMISIZ.
+    Vazifangiz: shifokorga ENG ANIQ, DALILLI va XAVFSIZ yechim taqdim etish.
+    
+    AQLIYAT QOIDALARI:
+    1. Har bir xulosa uchun QADAMMA-QADAM MANTIQIY ZANJIR (chain-of-thought) yozing: "Sabab A → natija B → shuning uchun C."
+    2. Differensial tashxisda har bir variant uchun "Nega bu ehtimol?" va "Nega boshqasi kamroq?" javob bering.
+    3. Ishonch darajasini aniq bering (yuqori/o'rta/past) va qaysi ma'lumot yetishmasligi aniqlikni kamaytirishini ayting.
+    4. XAVFSIZLIK: Bemor allergiyasi, joriy dori-darmonlar va buyrak/jigar funksiyasi bo'yicha har doim o'ylab bering; xavfli aralashuvlarni darhol bildiring.
+    5. Qizil bayroqlar: keskin og'riq, nafas qisilishi, xushni yo'qotish, og'ir anemiya, septik belgilar kabi holatlarda shoshilinch tavsiya bering.
+    `;
+
+    const specificInstructions: Record<Language, string> = {
+        'uz-L': `
+        TIL: Barcha javoblaringiz qat'iy O'zbek tilida (Lotin grafikasida) bo'lishi SHART.
+        O'ZBEKISTON KONTEKSTI (MAJBURIY): Tashxis, davolash rejasi va dori-darmonlar faqat O'zbekiston Respublikasi qonunchiligi va SSV (Sog'liqni Saqlash Vazirligi) tasdiqlangan klinik protokollarga muvofiq bo'lsin. Dori-darmonlar faqat O'zbekistonda ro'yxatdan o'tgan va aptekalarda mavjud savdo nomlari bilan (Nimesil, Sumamed, Augmentin, Metformin, Enalapril, Amlodipin, Omeprazol va hokazo).
+        TERMINOLOGIYA: O'zbek tibbiyot terminologiyasi va SSV qabul qilgan atamalar.
+        `,
+        'uz-C': `
+        ТИЛ: Барча жавобларингиз қатъий Ўзбек тилида (Кирилл графикасида) бўлиши ШАРТ.
+        ЎЗБЕКИСТОН КОНТЕКСТИ (МАЖБУРИЙ): Ташхис, даволаш режаси ва дори-дармонлар фақат Ўзбекистон Республикаси қонунчилиги ва ССВ тасдиқлаган клиник протоколларга мувофиқ бўлсин. Дори-дармонлар фақат Ўзбекистонда рўйхатдан ўтган ва аптекаларда мавжуд савдо номлари билан.
+        ТЕРМИНОЛОГИЯ: Ўзбек тиббиёт терминологияси ва ССВ қабул қилган атамалар.
+        `,
+        'kaa': `
+        TIL: Barlıq juwaplarıńız qatań Qaraqalpaq tilinde (Lotin grafikasında) bolıwı SHÁRT.
+        ÓZBEKISTAN KONTEKSTI (MAJBÚRI): Tashxis, emlew rejasi hám dári-darmonlar tek Ózbekistan Respublikası qonunshılıǵı hám SSV tasdıqlagan klinikalıq protokollarga sáykes bolsın. Dári-darmonlar tek Ózbekistonda dizimnen ótken hám aptekalarda bar savdo atları menen.
+        TERMINOLOGIYA: Qaraqalpaq/O'zbek medicinalıq terminologiyası.
+        `,
+        'ru': `
+        ЯЗЫК: Все ваши ответы ДОЛЖНЫ быть строго на Русском языке.
+        КОНТЕКСТ УЗБЕКИСТАНА (ОБЯЗАТЕЛЬНО): Диагноз, план лечения и препараты – строго в соответствии с законодательством Республики Узбекистан и клиническими протоколами, утверждёнными Минздравом (ССВ). Препараты – только зарегистрированные в Узбекистане и доступные в аптеках (торговые названия: Нимисил, Сумамед, Аугментин, Метформин, Эналаприл и т.д.).
+        ТЕРМИНОЛОГИЯ: Профессиональная медицинская терминология на русском; при необходимости – термины, принятые в Узбекистане.
+        `,
+        'en': `
+        LANGUAGE: All your responses MUST be strictly in English.
+        UZBEKISTAN CONTEXT (MANDATORY): This platform is for use in Uzbekistan. All diagnoses, treatment plans and medications MUST comply with the legislation of the Republic of Uzbekistan and clinical protocols approved by the Ministry of Health (SSV). Recommend only drugs registered and available in Uzbekistan (e.g. Nimesil, Sumamed, Augmentin, Metformin, Enalapril, Amlodipine, Omeprazole).
+        TERMINOLOGY: Professional medical terminology in English; reference ICD-10 where applicable.
+        `
+    };
+
+    const uzbekistanBlock = getUzbekistanContextForAI(language);
+
+    return baseInstruction + "\n" + specificInstructions[language] + "\n\n" + uzbekistanBlock + "\n\n" + `
+    ASOSIY QOIDALAR:
+    1. Har bir xulosa uchun "NEGA?" savoliga aniq, ilmiy va dalillarga asoslangan javob bering; reasoningChain har doim to'ldirilgan bo'lsin.
+    2. Kontekstni to'liq tushuning; diktofon/suhbat bo'lsa shovqinni e'tiborsiz qoldiring, tibbiy ma'noni ajratib oling.
+    3. Gallyutsinatsiyadan saqlaning: faqat kiritilgan ma'lumot va umumiy tibbiy bilimga tayanib javob bering; taxmin qilmaslik kerak bo'lsa "Qo'shimcha tekshiruv kerak" deb yozing.
+    4. Overconfidence dan saqlaning: dalil yetarli bo'lmasa yoki shubha bo'lsa, "Qo'shimcha tekshiruv kerak" yoki "Tasdiqlash uchun laboratoriya/rentgen kerak" deb aniq yozing; taxminiy tashxisni yakuniy deb bermang.
+    5. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa, finding, implication va urgency ni aniq to'ldiring.
+    `;
+};
+
+// --- HELPER FUNCTIONS ---
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Simulated RAG: Get relevant context from past successful cases
+const getRelevantHistoryContext = (currentComplaints: string): string => {
+    try {
+        const pastCases = caseService.getAnonymizedCases();
+        if (pastCases.length === 0) return "";
+
+        // Simple keyword matching simulation for RAG
+        const keywords = currentComplaints.toLowerCase().split(' ').filter(w => w.length > 4);
+        const relevantCases = pastCases.filter(c => 
+            keywords.some(k => c.tags.some(t => t.includes(k)))
+        ).slice(0, 3); // Take top 3 relevant cases
+
+        if (relevantCases.length === 0) return "";
+
+        return `
+        \n[TIZIM XOTIRASI - O'ZINI O'QITISH MODULI]:
+        Men (Tizim) oldingi o'xshash holatlardan quyidagilarni o'rgandim:
+        ${relevantCases.map(c => `- ${c.finalDiagnosis}: ${c.outcome}`).join('\n')}
+        Ushbu tajribadan bugungi tahlilda foydalaning.
+        `;
+    } catch (e) {
+        return "";
+    }
+};
+
+interface GeminiConfig {
+    systemInstruction?: string;
+    temperature?: number;
+    responseMimeType?: string;
+    responseSchema?: unknown;
+    tools?: Array<{ googleSearch: Record<string, never> }>;
+}
+
+const callGemini = async (
+    prompt: string | { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> },
+    model: string = 'gemini-3-flash-preview',
+    responseSchema?: unknown,
+    useSearch: boolean = false,
+    systemInstruction: string = '',
+    shouldRetry: boolean = true
+) => {
+    const executeCall = async (): Promise<unknown> => {
+        const config: GeminiConfig = {
+            systemInstruction: systemInstruction,
+            temperature: 0.1, // Ultra-low temperature for medical precision
+        };
+        
+        if (responseSchema) {
+            config.responseMimeType = "application/json";
+            config.responseSchema = responseSchema;
+        }
+        if (useSearch) {
+            config.tools = [{ googleSearch: {} }];
+        }
+
+        const finalContents = prompt;
+        
+        const result: GenerateContentResponse = await ai.models.generateContent({
+            model: model,
+            contents: finalContents,
+            config: Object.keys(config).length > 0 ? config : undefined,
+        });
+
+        const text = result.text;
+        
+        if (responseSchema) {
+            const cleanedText = text.replace(/^```json\s*|```\s*$/g, '').trim();
+            try {
+                return JSON.parse(cleanedText);
+            } catch (e) {
+                logger.error("Failed to parse JSON from Gemini:", cleanedText);
+                throw new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
+            }
+        }
+        
+        if (useSearch) {
+            return result;
+        }
+
+        return text;
+    };
+    
+    // Retry logic for network errors
+    if (shouldRetry) {
+        try {
+            return await retry(executeCall, {
+                maxRetries: 2,
+                initialDelay: 1000,
+                retryableErrors: ['network', 'timeout', 'fetch', 'connection']
+            });
+        } catch (error) {
+            logger.error(`Error calling Gemini API with model ${model} (after retries):`, error);
+            const friendlyError = getUserFriendlyError(error, "AI xizmati bilan muammo yuz berdi.");
+            throw new Error(friendlyError);
+        }
+    }
+    
+    try {
+        return await executeCall();
+    } catch (error) {
+        logger.error(`Error calling Gemini API with model ${model}:`, error);
+        const friendlyError = getUserFriendlyError(error, "AI xizmati bilan muammo yuz berdi.");
+        throw new Error(friendlyError);
+    }
+};
+
+// Helper to construct multimodal prompts (Text + Images)
+const buildMultimodalPrompt = (introText: string, data: PatientData) => {
+    const { attachments, ...rest } = data;
+    const textData = JSON.stringify(rest);
+    const historyContext = getRelevantHistoryContext(data.complaints);
+    
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+        { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` }
+    ];
+
+    if (attachments && attachments.length > 0) {
+        parts[0].text += `\n\n[IMPORTANT]: The patient has attached ${attachments.length} medical file(s). Analyze these precisely.`;
+        attachments.forEach(att => {
+            parts.push({
+                inlineData: {
+                    mimeType: att.mimeType,
+                    data: att.base64Data
+                }
+            });
+        });
+    }
+    
+    return { parts };
+};
+
+
+// --- SINGLE DOCTOR MODE (ENHANCED) ---
+
+export const generateFastDoctorConsultation = async (
+    patientData: PatientData, 
+    specialties: string[], 
+    language: Language
+): Promise<FinalReport> => {
+    
+    const systemInstr = getSystemInstruction(language);
+
+    const promptText = `
+    Quyidagi bemor ma'lumotlarini AQLLI tahlil qiling. O'ZBEKISTON KONTEKSTI MAJBURIY.
+    
+    Talablar:
+    1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: SSV klinik protokoliga muvofiqlik (masalan: "SSV arterial gipertenziya / bronxial astma va h.k. protokoliga muvofiq").
+    2. rejectedHypotheses: rad etilgan differensial tashxislar va sababi.
+    3. treatmentPlan: SSV tasdiqlangan klinik protokollariga muvofiq, batafsil va tartibli.
+    4. medicationRecommendations: FAQAT O'zbekistonda ro'yxatdan o'tgan va aptekalarda mavjud savdo nomlari (Nimesil, Sumamed, Augmentin, Metformin va hokazo); allergiya va dori aralashuvini hisobga oling. localAvailability: "O'zbekistonda mavjud".
+    5. criticalFinding: hayotga xavf yoki shoshilinch bo'lsa to'ldiring.
+    6. recommendedTests: O'zbekiston LITS va standartlariga mos tekshiruvlar.
+    7. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV klinik protokollariga muvofiq" yoki qisqacha eslatma.
+
+    JAVOB TILI: ${langMap[language]}
+    Format: JSON.
+    `;
+
+    const finalReportSchema = {
+        type: Type.OBJECT,
+        properties: {
+            consensusDiagnosis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, probability: { type: Type.NUMBER }, justification: { type: Type.STRING }, evidenceLevel: { type: Type.STRING }, reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } }, uzbekProtocolMatch: { type: Type.STRING } } } },
+            rejectedHypotheses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, reason: { type: Type.STRING } }}},
+            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
+            treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
+            medicationRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, dosage: { type: Type.STRING }, notes: { type: Type.STRING }, localAvailability: { type: Type.STRING }, priceEstimate: { type: Type.STRING } }}},
+            unexpectedFindings: { type: Type.STRING },
+            uzbekistanLegislativeNote: { type: Type.STRING },
+            criticalFinding: {
+                type: Type.OBJECT,
+                properties: { finding: { type: Type.STRING }, implication: { type: Type.STRING }, urgency: { type: Type.STRING } },
+            },
+        },
+        required: ['consensusDiagnosis', 'treatmentPlan', 'medicationRecommendations']
+    };
+
+    const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
+    
+    return callGemini(multimodalPrompt, 'gemini-3-pro-preview', finalReportSchema, false, systemInstr) as Promise<FinalReport>;
+};
+
+
+// --- EXISTING SERVICE IMPLEMENTATIONS ---
+
+export const structureDictatedNotes = async (notes: string, language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Take the following unstructured clinical notes and organize them into clear, standard medical sections (Complaints, History, Objective, etc.). Correct any obvious transcription errors but preserve the original medical meaning. Notes: "${notes}". Output MUST be in ${langMap[language]}.`;
+    return callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const getDynamicSuggestions = async (complaintText: string, language: Language): Promise<{ relatedSymptoms: string[], diagnosticQuestions: string[] }> => {
+    if (complaintText.trim().length < 15) {
+        return { relatedSymptoms: [], diagnosticQuestions: [] };
+    }
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Based on the patient's complaints: "${complaintText}", suggest 3 related symptoms and 3 key diagnostic questions a doctor might ask. Return JSON { "relatedSymptoms": ["..."], "diagnosticQuestions": ["..."] }. Output MUST be in ${langMap[language]}.`;
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            relatedSymptoms: { type: Type.ARRAY, items: { type: Type.STRING } },
+            diagnosticQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        }
+    };
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const generateClarifyingQuestions = async (data: PatientData, language: Language): Promise<string[]> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = buildMultimodalPrompt(
+        `
+        Analyze the patient data carefully. Be AQLLI (smart) and prioritise by clinical impact.
+        
+        PRIORITY 1 (always ask if missing): Allergies, current medications, pregnancy/lactation if relevant.
+        PRIORITY 2: Vital signs (BP, HR, temp if febrile presentation), key lab values for the complaint.
+        PRIORITY 3: Duration of symptoms, previous similar episodes, family history if relevant to complaint.
+        
+        Return 3-5 SHORT, SPECIFIC questions. Do not ask for data already present.
+        Format: JSON array of strings.
+        Output Language: ${langMap[language]}.
+        `,
+        data
+    );
+    const schema = { type: Type.ARRAY, items: { type: Type.STRING } };
+    const result = await callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as string[];
+    return result.length > 0 ? result : [];
+};
+
+export const recommendSpecialists = async (data: PatientData, language: Language): Promise<{ recommendations: { model: AIModel; reason: string }[] }> => {
+    const systemInstr = getSystemInstruction(language);
+    const availableSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM).join(', ');
+    const prompt = buildMultimodalPrompt(
+        `Analyze the patient's clinical case. Select 5-6 specialists from: [${availableSpecialists}]. Provide a short reason for each. Return JSON { "recommendations": [{ "model": "SpecialistName", "reason": "Reason..." }] }. Output Language: ${langMap[language]}.`,
+        data
+    );
+    
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            recommendations: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        model: { type: Type.STRING, enum: Object.values(AIModel) },
+                        reason: { type: Type.STRING },
+                    },
+                    required: ['model', 'reason'],
+                },
+            },
+        },
+        required: ['recommendations'],
+    };
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const generateInitialDiagnoses = async (data: PatientData, language: Language): Promise<Diagnosis[]> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = buildMultimodalPrompt(
+        `Analyze the patient data. Generate 3-5 most likely differential diagnoses. O'ZBEKISTON KONTEKSTI MAJBURIY.
+        MANDATORY FIELDS:
+        1. "name": Diagnosis name in ${langMap[language]}.
+        2. "justification": Scientific reasoning.
+        3. "reasoningChain": Step-by-step logic.
+        4. "uzbekProtocolMatch": SSV klinik protokoliga muvofiqlik (masalan: "Arterial gipertenziya bo'yicha SSV klinik protokoliga muvofiq" yoki "SSV tasdiqlangan milliy klinik protokollariga muvofiq"). Agar tegishli SSV protokol yo'nalishi bo'lsa, ko'rsating.
+        Output Language: ${langMap[language]}.`,
+        data
+    );
+
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                name: { type: Type.STRING },
+                probability: { type: Type.NUMBER },
+                justification: { type: Type.STRING },
+                evidenceLevel: { type: Type.STRING },
+                reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } },
+                uzbekProtocolMatch: { type: Type.STRING }
+            },
+            required: ['name', 'probability', 'justification', 'evidenceLevel', 'reasoningChain'],
+        },
+    };
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+};
+
+const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData: PatientData, language: Language): Promise<PrognosisReport | null> => {
+    const systemInstr = getSystemInstruction(language);
+    const { attachments, ...cleanData } = patientData;
+    const prompt = `Based on patient data and debate history, update prognosis. Consider O'zbekiston SSV klinik protokollari va mahalliy davolash imkoniyatlari. Return JSON. Output Language: ${langMap[language]}. Debate: ${JSON.stringify(debateHistory.slice(-5))}. Patient: ${JSON.stringify(cleanData)}.`;
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            shortTermPrognosis: { type: Type.STRING },
+            longTermPrognosis: { type: Type.STRING },
+            keyFactors: { type: Type.ARRAY, items: { type: Type.STRING } },
+            confidenceScore: { type: Type.NUMBER }
+        }
+    };
+    try {
+        return await callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    } catch (e) {
+        return null;
+    }
+};
+
+export const runCouncilDebate = async (
+    patientData: PatientData,
+    diagnoses: Diagnosis[],
+    specialistsConfig: { role: AIModel, backEndModel: string }[],
+    orchestratorModel: string,
+    onProgress: (update: ProgressUpdate) => void,
+    getUserIntervention: () => string | null,
+    language: Language
+): Promise<void> => {
+    const systemInstr = getSystemInstruction(language);
+    const introMessages: Record<Language, string> = {
+        'uz-L': 'O\'zbekiston yetakchi tibbiyot mutaxassislari yig\'ilmoqda...',
+        'uz-C': 'Ўзбекистон етакчи тиббиёт мутахассислари йиғилмоқда...',
+        'kaa': 'Qaraqalpaqstan jetekshi medicina qaniygelari jıynalmaqta...',
+        'ru': 'Ведущие медицинские специалисты собираются...',
+        'en': 'Leading medical specialists are gathering...'
+    };
+    
+    onProgress({ type: 'status', message: introMessages[language] || introMessages['uz-C'] });
+    let debateHistory: ChatMessage[] = [];
+    
+    // History context for the debate
+    const historyContext = getRelevantHistoryContext(patientData.complaints);
+
+    // Orchestrator Intro
+    const introContentPrompt = `Generate a short intro message for the Council Chair (System) starting the medical council debate. Mention: the goal is to find the best diagnosis and treatment in accordance with Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved clinical protocols and legislation; only drugs registered and available in Uzbekistan will be recommended. Output Language: ${langMap[language]}.`;
+    const introContent = await callGemini(introContentPrompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+    
+    const orchestratorIntro: ChatMessage = { id: `sys-intro-${Date.now()}`, author: AIModel.SYSTEM, content: introContent, isSystemMessage: true };
+    onProgress({ type: 'message', message: orchestratorIntro });
+    debateHistory.push(orchestratorIntro);
+    await sleep(700);
+
+    const DEBATE_ROUNDS = 3;
+    let currentTopicPrompt = `Summarize the initial state: Patient data and initial diagnoses: ${JSON.stringify(diagnoses)}. Ask specialists for their initial evaluation and Red Flags. Output Language: ${langMap[language]}.`;
+    let currentTopic = await callGemini(currentTopicPrompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+
+    for (let round = 1; round <= DEBATE_ROUNDS; round++) {
+        const roundMessages: Record<Language, string> = {
+            'uz-L': `${round}-bosqich munozarasi boshlanmoqda...`,
+            'uz-C': `${round}-босқич мунозараси бошланмоқда...`,
+            'kaa': `${round}-basqısh munozarası baslanbaqta...`,
+            'ru': `Начинается ${round}-й раунд обсуждения...`,
+            'en': `Round ${round} of debate starting...`
+        };
+        onProgress({ type: 'status', message: roundMessages[language] });
+        
+        // Orchestrator Turn
+        if (currentTopic.includes("QUESTION FOR USER") || currentTopic.includes("FOYDALANUVCHI UCHUN SAVOL")) {
+             // Logic to handle user intervention (simplified)
+             const userQMsg = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: currentTopic, isSystemMessage: true };
+             onProgress({ type: 'message', message: userQMsg });
+             debateHistory.push(userQMsg);
+             
+             // Wait for user input simulation (in real app, use callback)
+             onProgress({ type: 'user_question', question: currentTopic });
+             let userInput = null;
+             while (!userInput) {
+                await sleep(1000); 
+                userInput = getUserIntervention();
+             }
+             const userMessage = { id: `user-${Date.now()}`, author: AIModel.SYSTEM, content: `User Answer: ${userInput}`, isUserIntervention: true, isSystemMessage: true };
+             onProgress({ type: 'message', message: userMessage });
+             debateHistory.push(userMessage);
+        } else {
+             const orchestratorMessage: ChatMessage = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: currentTopic, isSystemMessage: true };
+             onProgress({ type: 'message', message: orchestratorMessage });
+             debateHistory.push(orchestratorMessage);
+        }
+        
+        await sleep(1500);
+
+        // Specialists Turn
+        for (const spec of specialistsConfig) {
+            onProgress({ type: 'thinking', model: spec.role });
+            const specialist = AI_SPECIALISTS[spec.role];
+
+            const textPrompt = `
+                Role: ${specialist?.name || spec.role}.
+                Task: Answer the Chair's question: "${currentTopic}". Use your specialty expertise.
+                REQUIREMENTS:
+                1. Reference O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) approved clinical protocols where applicable.
+                2. Recommend only drugs registered and available in Uzbekistan (savdo nomlari: Nimesil, Sumamed, Augmentin, Metformin va hokazo).
+                3. Debate scientifically; use reasoning and evidence.
+                4. LANGUAGE: ${langMap[language]} ONLY.
+                History: ${JSON.stringify(debateHistory)}
+            `;
+            
+            const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData);
+            
+            try {
+                const responseText = await callGemini(specialistMultimodalPrompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as string;
+                const specialistMessage: ChatMessage = { id: `${spec.role}-${Date.now()}`, author: spec.role, content: responseText };
+                onProgress({ type: 'message', message: specialistMessage });
+                debateHistory.push(specialistMessage);
+                await sleep(1000);
+            } catch (e) {
+                // error handling
+            }
+        }
+        
+        const livePrognosis = await generatePrognosisUpdate(debateHistory, patientData, language);
+        if (livePrognosis) {
+            onProgress({ type: 'prognosis_update', data: livePrognosis });
+        }
+        
+        if (round < DEBATE_ROUNDS) {
+            const summarizationPrompt = `
+                Role: Council Chair.
+                Task: Summarize the round and ask a sharp, clarifying question for the next round. Keep in mind SSV clinical protocols and Uzbekistan context.
+                LANGUAGE: ${langMap[language]}.
+                History: ${JSON.stringify(debateHistory)}
+            `;
+            currentTopic = await callGemini(summarizationPrompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+        }
+    }
+
+    const finalizingMessages: Record<Language, string> = {
+        'uz-L': 'Yakuniy hisobot tayyorlanmoqda...',
+        'uz-C': 'Якуний ҳисобот тайёрланмоқда...',
+        'kaa': 'Juwmaqlawshı esabat tayarlanbaqta...',
+        'ru': 'Подготовка итогового отчета...',
+        'en': 'Preparing final report...'
+    };
+    onProgress({ type: 'status', message: finalizingMessages[language] });
+    await sleep(2000);
+
+    const finalReportSchema = {
+        type: Type.OBJECT,
+        properties: {
+            criticalFinding: {
+                type: Type.OBJECT,
+                properties: { finding: { type: Type.STRING }, implication: { type: Type.STRING }, urgency: { type: Type.STRING } },
+            },
+            consensusDiagnosis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, probability: { type: Type.NUMBER }, justification: { type: Type.STRING }, evidenceLevel: { type: Type.STRING }, reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } }, uzbekProtocolMatch: { type: Type.STRING } } } },
+            rejectedHypotheses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, reason: { type: Type.STRING } }}},
+            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
+            treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
+            medicationRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, dosage: { type: Type.STRING }, notes: { type: Type.STRING }, localAvailability: { type: Type.STRING }, priceEstimate: { type: Type.STRING } }}},
+            unexpectedFindings: { type: Type.STRING },
+            uzbekistanLegislativeNote: { type: Type.STRING }, 
+            imageAnalysis: {
+                type: Type.OBJECT,
+                properties: {
+                    findings: { type: Type.STRING },
+                    correlation: { type: Type.STRING }
+                }
+            }
+        },
+        required: ['consensusDiagnosis', 'rejectedHypotheses', 'recommendedTests', 'treatmentPlan', 'medicationRecommendations', 'unexpectedFindings']
+    };
+
+    const finalReportTextPrompt = `
+        Role: Council Chair. Create the Final Report. Be AQLLI and XAVFSIZ. O'ZBEKISTON KONTEKSTI MAJBURIY.
+        LANGUAGE: ${langMap[language]}.
+        REQUIREMENTS:
+        1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: qaysi SSV klinik protokoliga mos (masalan: "Arterial gipertenziya / Qandli diabet bo'yicha SSV klinik protokoliga muvofiq") yoki "SSV tasdiqlangan milliy klinik protokollariga muvofiq" deb yozing.
+        2. treatmentPlan: SSV protokollariga muvofiq, batafsil va tartibli; shoshilinch bo'lsa birinchi qadamlar aniq.
+        3. medicationRecommendations: FAQAT O'zbekiston Respublikasida ro'yxatdan o'tgan va aptekalarda mavjud savdo nomlari (Nimesil, Sumamed, Augmentin, Metformin, Enalapril, Amlodipin, Omeprazol, Paratsetamol, Ibuprofen va hokazo). Allergiya va dori aralashuvini hisobga oling. localAvailability: "O'zbekistonda mavjud" yoki qisqacha izoh.
+        4. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa to'ldiring; yo'q bo'lsa bo'sh qoldiring.
+        5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
+        6. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV tasdiqlangan klinik protokollariga muvofiq" yoki tegishli qisqacha eslatma.
+        Debate history: ${JSON.stringify(debateHistory)}
+    `;
+    
+    const finalReportMultimodalPrompt = buildMultimodalPrompt(finalReportTextPrompt, patientData);
+
+    try {
+        const finalReport = await callGemini(finalReportMultimodalPrompt, 'gemini-3-pro-preview', finalReportSchema, false, systemInstr) as FinalReport;
+        
+        if (finalReport.criticalFinding && finalReport.criticalFinding.finding) {
+            onProgress({ type: 'critical_finding', data: finalReport.criticalFinding });
+        }
+
+        onProgress({ type: 'report', data: finalReport, detectedMedications: [] });
+    } catch (e) {
+        onProgress({ type: 'error', message: "Report generation error: " + (e instanceof Error ? e.message : String(e)) });
+    }
+};
+
+export const checkDrugInteractions = async (drugList: string, language: Language): Promise<DrugInteraction[]> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Analyze drug interactions for: ${drugList}. Consider only drugs registered and available in Uzbekistan. If an interaction is significant, suggest an alternative available in Uzbekistan (e.g. local trade names). Return JSON array [{interaction, severity, mechanism, management}]. Output Language: ${langMap[language]}.`;
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                interaction: { type: Type.STRING },
+                severity: { type: Type.STRING },
+                mechanism: { type: Type.STRING },
+                management: { type: Type.STRING },
+            },
+            required: ['interaction', 'severity', 'mechanism', 'management'],
+        }
+    };
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+};
+
+export const analyzeEcgImage = async (image: { base64Data: string, mimeType: string }, language: Language): Promise<EcgReport> => {
+    const systemInstr = getSystemInstruction(language);
+    const textPart = { text: `Analyze ECG image. Return structured JSON report (rhythm, heartRate, etc.). Output Language: ${langMap[language]}.` };
+    const imagePart = { inlineData: { data: image.base64Data, mimeType: image.mimeType } };
+    const prompt = { parts: [textPart, imagePart] };
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            rhythm: { type: Type.STRING },
+            heartRate: { type: Type.STRING },
+            prInterval: { type: Type.STRING },
+            qrsDuration: { type: Type.STRING },
+            qtInterval: { type: Type.STRING },
+            axis: { type: Type.STRING },
+            morphology: { type: Type.STRING },
+            interpretation: { type: Type.STRING },
+        },
+        required: ['rhythm', 'heartRate', 'prInterval', 'qrsDuration', 'qtInterval', 'axis', 'morphology', 'interpretation']
+    };
+    
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const getIcd10Codes = async (diagnosis: string, language: Language): Promise<Icd10Code[]> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Provide ICD-10 codes for "${diagnosis}". ICD-10 is used in Uzbekistan (O'zbekiston) for official statistics and documentation. Return JSON array [{code, description}]. Output Language: ${langMap[language]}.`;
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                code: { type: Type.STRING },
+                description: { type: Type.STRING },
+            },
+            required: ['code', 'description'],
+        }
+    };
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
+    const result = await callGemini(prompt, 'gemini-3-flash-preview', undefined, true, systemInstr) as GenerateContentResponse;
+    
+    const sources = result.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: { uri?: string; chunk?: { text?: string } }) => ({
+        title: chunk.web.title || chunk.web.uri,
+        uri: chunk.web.uri
+    })) || [];
+    
+    return {
+        summary: result.text,
+        sources: sources,
+    };
+};
+
+export const interpretLabValue = async (labValue: string, language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Interpret lab value: "${labValue}". Explain clinical significance. Use O'zbekiston LITS (Laboratoriya-indekslar va tibbiy standartlar) va SI birliklariga mos izoh bering; agar birlik ko'rsatilmasa, O'zbekistonda qo'llaniladigan odatiy birliklarni nazarda tuting. Output Language: ${langMap[language]}.`;
+    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const generatePatientExplanation = async (clinicalText: string, language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Translate clinical text to simple patient language. Text: "${clinicalText}". Output Language: ${langMap[language]}.`;
+    return callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const expandAbbreviation = async (abbreviation: string, language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Expand medical abbreviation "${abbreviation}". Output Language: ${langMap[language]}.`;
+    return callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const generateDischargeSummary = async (patientData: PatientData, finalReport: FinalReport, language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const { attachments, ...rest } = patientData;
+    const prompt = `Generate Discharge Summary. Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
+    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const generateInsurancePreAuth = async (patientData: PatientData, finalReport: FinalReport, procedure: string, language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const { attachments, ...rest } = patientData;
+    const prompt = `Write Insurance Pre-Auth letter for "${procedure}". Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
+    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const calculatePediatricDose = async (drugName: string, weightKg: number, language: Language): Promise<PediatricDose> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Calculate pediatric dose for ${drugName}, weight ${weightKg}kg. Return JSON {drugName, dose, calculation, warnings}. Output Language: ${langMap[language]}.`;
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            drugName: { type: Type.STRING },
+            dose: { type: Type.STRING },
+            calculation: { type: Type.STRING },
+            warnings: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ['drugName', 'dose', 'calculation', 'warnings'],
+    };
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+};
+
+export const calculateRiskScore = async (scoreType: string, patientData: PatientData, language: Language): Promise<RiskScore> => {
+    const systemInstr = getSystemInstruction(language);
+    const { attachments, ...rest } = patientData;
+    const prompt = `Calculate ${scoreType} score. Patient: ${JSON.stringify(rest)}. Return JSON {name, score, interpretation}. Output Language: ${langMap[language]}.`;
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            name: { type: Type.STRING },
+            score: { type: Type.STRING },
+            interpretation: { type: Type.STRING },
+        },
+        required: ['name', 'score', 'interpretation'],
+    };
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+};
+
+export const generatePatientEducationContent = async (report: FinalReport, language: Language): Promise<PatientEducationTopic[]> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Create 3-4 patient education topics based on report. Return JSON array [{title, content}]. Output Language: ${langMap[language]}.`;
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                content: { type: Type.STRING },
+                language: { type: Type.STRING },
+            },
+            required: ['title', 'content'],
+        }
+    };
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const continueDebate = async (
+    patientData: PatientData,
+    debateHistory: ChatMessage[],
+    userIntervention: string,
+    language: Language
+): Promise<ChatMessage> => {
+    const systemInstr = getSystemInstruction(language);
+    const promptText = `
+        User intervention: "${userIntervention}".
+        Role: Council Chair.
+        Task: Respond to user and continue debate. Keep in mind SSV clinical protocols and Uzbekistan context.
+        LANGUAGE: ${langMap[language]}.
+        History: ${JSON.stringify(debateHistory)}
+    `;
+    
+    const prompt = buildMultimodalPrompt(promptText, patientData);
+    const response = await callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+    
+    return {
+        id: `sys-continue-${Date.now()}`,
+        author: AIModel.SYSTEM,
+        content: response,
+        isSystemMessage: true
+    };
+};
+
+export const runScenarioAnalysis = async (
+    patientData: PatientData,
+    debateHistory: ChatMessage[],
+    scenario: string,
+    language: Language
+): Promise<FinalReport> => {
+    const systemInstr = getSystemInstruction(language);
+    const promptText = `
+        Role: Council Chair.
+        Task: Analyze "What if" scenario: "${scenario}". Follow O'zbekiston SSV klinik protokollari. Recommend only drugs registered and available in Uzbekistan (savdo nomlari: Nimesil, Sumamed, Augmentin, Metformin va hokazo).
+        LANGUAGE: ${langMap[language]}.
+        Original Debate: ${JSON.stringify(debateHistory)}
+    `;
+    
+    const prompt = buildMultimodalPrompt(promptText, patientData);
+
+    const finalReportSchema = {
+        type: Type.OBJECT,
+        properties: {
+            consensusDiagnosis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, probability: { type: Type.NUMBER }, justification: { type: Type.STRING }, evidenceLevel: { type: Type.STRING } } } },
+            treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
+            medicationRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, dosage: { type: Type.STRING }, notes: { type: Type.STRING } } } },
+            rejectedHypotheses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, reason: { type: Type.STRING } }}},
+            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
+            unexpectedFindings: { type: Type.STRING },
+            uzbekistanLegislativeNote: { type: Type.STRING },
+        },
+    };
+
+    return callGemini(prompt, 'gemini-3-pro-preview', finalReportSchema, false, systemInstr) as Promise<FinalReport>;
+};
+
+export const explainRationale = async (message: ChatMessage, patientData: PatientData, debateHistory: ChatMessage[], language: Language): Promise<string> => {
+    const systemInstr = getSystemInstruction(language);
+    const { attachments, ...rest } = patientData;
+    const prompt = `Explain medical rationale for message: "${message.content}". Reference symptoms and protocols. LANGUAGE: ${langMap[language]}. Patient: ${JSON.stringify(rest)}.`;
+    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+};
+
+export const suggestCmeTopics = async (history: AnalysisRecord[], language: Language): Promise<CMETopic[]> => {
+    if (history.length === 0) return [];
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Suggest 2-3 CME topics based on history. Return JSON array [{topic, relevance}]. LANGUAGE: ${langMap[language]}. History: ${JSON.stringify(history.map(r => r.finalReport.consensusDiagnosis[0]?.name))}.`;
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                topic: { type: Type.STRING },
+                relevance: { type: Type.STRING },
+            },
+            required: ['topic', 'relevance'],
+        },
+    };
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const runResearchCouncilDebate = async (
+    diseaseName: string,
+    onProgress: (update: ResearchProgressUpdate) => void,
+    language: Language
+): Promise<void> => {
+    const systemInstr = getSystemInstruction(language);
+    onProgress({ type: 'status', message: `Research Topic: "${diseaseName}". Gathering data...` });
+    await sleep(2000);
+
+    const specialists = [AIModel.GPT, AIModel.LLAMA, AIModel.CLAUDE];
+    for (const model of specialists) {
+        const translatedIntro = await callGemini(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, 'gemini-3-flash-preview', undefined, false, systemInstr);
+        onProgress({ type: 'message', message: { id: `${model}-${Date.now()}`, author: model, content: translatedIntro as string, isThinking: false } });
+        await sleep(500);
+    }
+    
+    onProgress({ type: 'status', message: 'Discussing innovative strategies...' });
+    await sleep(2000);
+    
+    const prompt = `Provide detailed research report on "${diseaseName}". Use web search. Return strictly defined JSON ResearchReport. LANGUAGE: ${langMap[language]}.`;
+
+    const researchReportSchema = {
+      type: Type.OBJECT,
+      properties: {
+        diseaseName: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        epidemiology: {
+          type: Type.OBJECT,
+          properties: {
+            prevalence: { type: Type.STRING },
+            incidence: { type: Type.STRING },
+            keyRiskFactors: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+        },
+        pathophysiology: { type: Type.STRING },
+        emergingBiomarkers: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              type: { type: Type.STRING },
+              description: { type: Type.STRING },
+            },
+          },
+        },
+        clinicalGuidelines: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    guidelineTitle: { type: Type.STRING },
+                    source: { type: Type.STRING },
+                    recommendations: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                category: { type: Type.STRING },
+                                details: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        potentialStrategies: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              mechanism: { type: Type.STRING },
+              evidence: { type: Type.STRING },
+              pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+              cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+              riskBenefit: {
+                type: Type.OBJECT,
+                properties: {
+                  risk: { type: Type.STRING },
+                  benefit: { type: Type.STRING },
+                },
+              },
+              developmentRoadmap: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        stage: { type: Type.STRING },
+                        duration: { type: Type.STRING },
+                        cost: { type: Type.STRING },
+                    }
+                }
+              },
+              molecularTarget: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    pdbId: { type: Type.STRING }
+                }
+              },
+              ethicalConsiderations: { type: Type.ARRAY, items: { type: Type.STRING } },
+              requiredCollaborations: { type: Type.ARRAY, items: { type: Type.STRING } },
+              companionDiagnosticNeeded: { type: Type.STRING },
+            },
+          },
+        },
+        pharmacogenomics: {
+            type: Type.OBJECT,
+            properties: {
+                relevantGenes: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            gene: { type: Type.STRING },
+                            mutation: { type: Type.STRING },
+                            impact: { type: Type.STRING },
+                        }
+                    }
+                },
+                targetSubgroup: { type: Type.STRING },
+            }
+        },
+        patentLandscape: {
+            type: Type.OBJECT,
+            properties: {
+                competingPatents: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            patentId: { type: Type.STRING },
+                            title: { type: Type.STRING },
+                            assignee: { type: Type.STRING },
+                        }
+                    }
+                },
+                whitespaceOpportunities: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+        },
+        relatedClinicalTrials: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    trialId: { type: Type.STRING },
+                    title: { type: Type.STRING },
+                    status: { type: Type.STRING },
+                    url: { type: Type.STRING },
+                }
+            }
+        },
+        strategicConclusion: { type: Type.STRING },
+        sources: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    title: { type: Type.STRING },
+                    uri: { type: Type.STRING },
+                }
+            }
+        }
+      },
+    };
+
+    try {
+        const result = await callGemini(prompt, 'gemini-3-pro-preview', researchReportSchema, true, systemInstr) as GenerateContentResponse;
+        
+        const reportData: ResearchReport = JSON.parse(result.text.replace(/^```json\s*|```\s*$/g, '').trim());
+
+        reportData.sources = result.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: { uri?: string; chunk?: { text?: string } }) => ({
+            title: chunk.web.title || chunk.web.uri,
+            uri: chunk.web.uri
+        })).filter((v: { uri?: string }) => v.uri) || [];
+
+        onProgress({ type: 'report', data: reportData });
+    } catch (e) {
+        logger.error("Research report generation failed:", e);
+        const friendlyError = getUserFriendlyError(e, "Tadqiqot hisoboti yaratishda xatolik yuz berdi.");
+        onProgress({ type: 'error', message: friendlyError });
+    }
+};

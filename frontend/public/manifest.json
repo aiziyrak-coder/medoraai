@@ -1,0 +1,29 @@
+
+{
+  "short_name": "MedoraAi",
+  "name": "MedoraAi - Tibbiy Ekspertiza Platformasi",
+  "description": "Murakkab klinik holatlarni tahlil qilish va tashxis qo'yish uchun ilg'or raqamli texnologiyalar asosidagi tibbiy konsilium. Ekspertlar tizimi matnli ma'lumotlar va tibbiy tasvirlarni tahlil qilib, yuqori aniqlikdagi tashxisga erishish uchun munozarani shakllantiradi.",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f8fafc",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#3b82f6"
+}
