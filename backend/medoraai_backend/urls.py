@@ -5,10 +5,26 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from .health import health_check, health_detailed
+
+@require_http_methods(["GET"])
+def root_view(request):
+    """Root endpoint - redirects to API docs"""
+    return JsonResponse({
+        'message': 'MedoraAI Backend API',
+        'version': '1.0.0',
+        'endpoints': {
+            'health': '/health/',
+            'admin': '/admin/',
+            'api_docs': '/swagger/',
+            'api': '/api/'
+        }
+    })
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -24,6 +40,9 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # Root
+    path('', root_view, name='root'),
+    
     # Health checks
     path('health/', health_check, name='health_check'),
     path('health/detailed/', health_detailed, name='health_detailed'),
