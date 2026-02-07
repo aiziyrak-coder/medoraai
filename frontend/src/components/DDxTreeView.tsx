@@ -45,7 +45,7 @@ const DDxTreeView: React.FC<DDxTreeViewProps> = ({ diagnoses, onStartDebate, isD
              </div>
              {!isDebateStarted && (
                 <div className="mt-4">
-                    <button onClick={onStartDebate} className="w-full animated-gradient-button text-white font-semibold py-2 rounded-lg">
+                    <button onClick={onStartDebate} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all hover:scale-105 active:scale-95">
                         Munozarani Boshlash
                     </button>
                 </div>
