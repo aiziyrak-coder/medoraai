@@ -1,131 +1,151 @@
 import React, { useState } from 'react';
 import { checkDrugInteractions } from '../../services/aiCouncilService';
-import type { DrugInteraction } from '../../types';
 import SpinnerIcon from '../icons/SpinnerIcon';
-import { useTranslation } from '../../hooks/useTranslation';
+import AlertTriangleIcon from '../icons/AlertTriangleIcon';
+import CheckCircleIcon from '../icons/CheckCircleIcon';
+
+interface DrugInteraction {
+    severity: 'High' | 'Moderate' | 'Low' | 'None';
+    description: string;
+    clinicalSignificance: string;
+    recommendations: string[];
+}
 
 const DrugInteractionChecker: React.FC = () => {
-    const { language } = useTranslation();
-    const [drugList, setDrugList] = useState('Warfarin\nAspirin\nIbuprofen\nAtorvastatin');
-    const [interactions, setInteractions] = useState<DrugInteraction[] | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [drugs, setDrugs] = useState<string[]>(['', '']);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [result, setResult] = useState<DrugInteraction | null>(null);
 
-    const handleCheck = async () => {
-        if (!drugList.trim()) {
-            setError("Iltimos, tekshirish uchun kamida bitta dori nomini kiriting.");
-            return;
-        }
-        setIsLoading(true);
-        setError(null);
-        setInteractions(null);
-        try {
-            // FIX: Added missing 'language' argument.
-            const result = await checkDrugInteractions(drugList, language);
-            setInteractions(result);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Noma'lum xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring.");
-        } finally {
-            setIsLoading(false);
+    const handleAddDrug = () => {
+        if (drugs.length < 10) {
+            setDrugs([...drugs, '']);
         }
     };
-    
-    const getSeverityStyles = (severity: DrugInteraction['severity']) => {
-        switch (severity) {
-            case 'High':
-                return {
-                    border: 'border-red-500',
-                    bg: 'bg-red-50',
-                    text: 'text-red-800',
-                    label: 'Yuqori Xavf'
-                };
-            case 'Medium':
-                 return {
-                    border: 'border-yellow-500',
-                    bg: 'bg-yellow-50',
-                    text: 'text-yellow-800',
-                    label: 'O\'rta Xavf'
-                };
-            case 'Low':
-                 return {
-                    border: 'border-blue-500',
-                    bg: 'bg-blue-50',
-                    text: 'text-blue-800',
-                    label: 'Past Xavf'
-                };
-            default:
-                 return {
-                    border: 'border-slate-400',
-                    bg: 'bg-slate-50',
-                    text: 'text-slate-800',
-                    label: 'Noma\'lum'
-                };
+
+    const handleRemoveDrug = (index: number) => {
+        if (drugs.length > 2) {
+            setDrugs(drugs.filter((_, i) => i !== index));
         }
-    }
+    };
+
+    const handleDrugChange = (index: number, value: string) => {
+        const newDrugs = [...drugs];
+        newDrugs[index] = value;
+        setDrugs(newDrugs);
+    };
+
+    const handleCheck = async () => {
+        const validDrugs = drugs.filter(d => d.trim());
+        if (validDrugs.length < 2) {
+            alert('Kamida 2 ta dori kiriting');
+            return;
+        }
+        setIsAnalyzing(true);
+        try {
+            const interaction = await checkDrugInteractions(validDrugs, 'uz-L');
+            setResult(interaction);
+        } catch (error) {
+            alert('Xatolik yuz berdi. Qayta urinib ko\'ring.');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const getSeverityColor = (severity: string) => {
+        switch (severity) {
+            case 'High': return 'bg-red-100 text-red-800 border-red-300';
+            case 'Moderate': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            case 'Low': return 'bg-blue-100 text-blue-800 border-blue-300';
+            default: return 'bg-green-100 text-green-800 border-green-300';
+        }
+    };
+
+    const getSeverityIcon = (severity: string) => {
+        return severity === 'None' ? <CheckCircleIcon className="w-6 h-6" /> : <AlertTriangleIcon className="w-6 h-6" />;
+    };
 
     return (
-        <div className="glass-panel p-6 md:p-8">
-            <h3 className="text-xl font-bold text-text-primary">Farmakologik O'zaro Ta'sir Tekshiruvi</h3>
-            <p className="text-sm text-text-secondary mt-1 mb-6">
-                Dori vositalari ro'yxatini kiriting (har birini yangi qatordan) va potentsial o'zaro ta'sirlarni tahlil qiling.
-            </p>
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+            <div className="glass-panel p-6">
+                <h2 className="text-2xl font-bold text-text-primary mb-2">💊 Dori O'zaro Tasiri</h2>
+                <p className="text-sm text-text-secondary mb-6">Bir necha dori birgalikda ishlatilganda xavf-xatarlarni tekshiring</p>
 
-            <div className="space-y-4">
-                <textarea
-                    value={drugList}
-                    onChange={(e) => setDrugList(e.target.value)}
-                    rows={6}
-                    className="block w-full sm:text-sm common-input focus:border-accent-color-blue focus:ring focus:ring-blue-500/30 placeholder-zinc-500 transition shadow-sm px-3 py-2"
-                    placeholder="Masalan:&#10;Aspirin&#10;Ibuprofen&#10;Klopidogrel"
-                />
-                <button
-                    onClick={handleCheck}
-                    disabled={isLoading}
-                    className="w-full flex justify-center items-center gap-3 py-3 px-4 shadow-lg text-base font-bold animated-gradient-button focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg-color focus:ring-accent-color-blue disabled:opacity-70 transition-all"
-                >
-                    {isLoading ? (
-                        <>
-                            <SpinnerIcon className="w-5 h-5" />
-                            Tahlil qilinmoqda...
-                        </>
-                    ) : "O'zaro Ta'sirni Tekshirish"}
-                </button>
-            </div>
-
-            {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
-            
-            <div className="mt-8 space-y-4">
-                {interactions && interactions.length > 0 && (
-                    <h4 className="text-lg font-semibold text-text-primary">Tahlil Natijalari:</h4>
-                )}
-                {interactions?.map((item, index) => {
-                    const styles = getSeverityStyles(item.severity);
-                    return (
-                        <div key={index} className={`p-4 rounded-lg border-l-4 ${styles.border} ${styles.bg}`}>
-                             <div className="flex justify-between items-center">
-                                <h5 className="font-bold text-lg text-text-primary">{item.interaction}</h5>
-                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${styles.text} ${styles.bg} border ${styles.border}`}>{styles.label}</span>
-                            </div>
-                            <div className="mt-3 space-y-3 text-sm">
-                                <div>
-                                    <p className="font-semibold text-text-primary">Mexanizm:</p>
-                                    <p className="text-text-secondary">{item.mechanism}</p>
-                                </div>
-                                 <div>
-                                    <p className="font-semibold text-text-primary">Boshqaruv:</p>
-                                    <p className="text-text-secondary">{item.management}</p>
-                                </div>
-                            </div>
+                <div className="space-y-3">
+                    {drugs.map((drug, index) => (
+                        <div key={index} className="flex gap-2">
+                            <input
+                                type="text"
+                                value={drug}
+                                onChange={(e) => handleDrugChange(index, e.target.value)}
+                                placeholder={`Dori ${index + 1} nomi (masalan: Aspirin, Metformin...)`}
+                                className="flex-1 common-input"
+                            />
+                            {drugs.length > 2 && (
+                                <button
+                                    onClick={() => handleRemoveDrug(index)}
+                                    className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 font-bold"
+                                >
+                                    ✕
+                                </button>
+                            )}
                         </div>
-                    )
-                })}
-                {interactions && interactions.length === 0 && (
-                     <div className="text-center p-6 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="font-semibold text-green-700">Klinik ahamiyatga ega o'zaro ta'sirlar aniqlanmadi.</p>
-                        <p className="text-sm text-green-600">Doim bemorning individual holatini hisobga oling.</p>
-                    </div>
-                )}
+                    ))}
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                    {drugs.length < 10 && (
+                        <button
+                            onClick={handleAddDrug}
+                            className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold"
+                        >
+                            + Dori qo'shish
+                        </button>
+                    )}
+                    <button
+                        onClick={handleCheck}
+                        disabled={isAnalyzing || drugs.filter(d => d.trim()).length < 2}
+                        className="flex-1 animated-gradient-button text-white font-bold py-3 rounded-xl disabled:opacity-50"
+                    >
+                        {isAnalyzing ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <SpinnerIcon className="w-5 h-5" /> Tekshirilmoqda...
+                            </span>
+                        ) : 'Tekshirish'}
+                    </button>
+                </div>
             </div>
+
+            {result && (
+                <div className="glass-panel p-6 animate-fade-in-up">
+                    <div className={`p-4 rounded-xl border-2 ${getSeverityColor(result.severity)} mb-4 flex items-center gap-3`}>
+                        {getSeverityIcon(result.severity)}
+                        <div>
+                            <h3 className="font-bold text-lg">
+                                {result.severity === 'None' ? 'Xavfsiz' : `Xavf darajasi: ${result.severity}`}
+                            </h3>
+                            <p className="text-sm mt-1">{result.description}</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <h4 className="font-bold text-text-primary mb-2">🔬 Klinik ahamiyati:</h4>
+                            <p className="text-text-secondary">{result.clinicalSignificance}</p>
+                        </div>
+
+                        {result.recommendations.length > 0 && (
+                            <div>
+                                <h4 className="font-bold text-text-primary mb-2">📋 Tavsiyalar:</h4>
+                                <ul className="list-disc list-inside space-y-1 text-text-secondary">
+                                    {result.recommendations.map((rec, i) => (
+                                        <li key={i}>{rec}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

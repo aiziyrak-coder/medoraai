@@ -1099,3 +1099,130 @@ export const runResearchCouncilDebate = async (
         onProgress({ type: 'error', message: friendlyError });
     }
 };
+
+// --- DORI TOOLLAR ---
+
+export const checkDrugInteractions = async (drugs: string[], language: Language): Promise<{
+    severity: 'High' | 'Moderate' | 'Low' | 'None';
+    description: string;
+    clinicalSignificance: string;
+    recommendations: string[];
+}> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Quyidagi dorilarning o'zaro ta'sirini tahlil qiling: ${drugs.join(', ')}.
+    
+O'ZBEKISTON KONTEKSTI: Faqat O'zbekistonda mavjud dorilar va amaliyotga asoslangan javob bering.
+
+Quyidagilarni tahlil qiling:
+1. Xavf darajasi (High/Moderate/Low/None)
+2. Ta'sir tavsifi
+3. Klinik ahamiyati
+4. Tavsiyalar (agar xavf bo'lsa)
+
+JSON formatda qaytaring. Output Language: ${langMap[language]}.`;
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            severity: { type: Type.STRING, enum: ['High', 'Moderate', 'Low', 'None'] },
+            description: { type: Type.STRING },
+            clinicalSignificance: { type: Type.STRING },
+            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+    };
+
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const identifyDrugByName = async (drugName: string, language: Language): Promise<{
+    name: string;
+    activeIngredient: string;
+    dosage: string;
+    indications: string[];
+    contraindications: string[];
+    sideEffects: string[];
+    dosageInstructions: string;
+    availabilityInUzbekistan: string;
+    priceRange: string;
+}> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = `Dori: "${drugName}". O'ZBEKISTON KONTEKSTI: faqat O'zbekistonda mavjud ma'lumotlar.
+
+Quyidagilarni taqdim eting:
+1. To'liq nom va faol modda
+2. Dozasi
+3. Ko'rsatmalar (indications)
+4. Kontrendikatsiyalar
+5. Yon ta'sirlar
+6. Qabul qilish yo'riqnomasi (kuniga necha marta, ovqat bilan/oldinda/keyin)
+7. O'zbekistonda mavjudligi (qaysi aptekalarda, savdo nomlari)
+8. Narx oralig'i (so'm)
+
+JSON formatda. Output Language: ${langMap[language]}.`;
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            name: { type: Type.STRING },
+            activeIngredient: { type: Type.STRING },
+            dosage: { type: Type.STRING },
+            indications: { type: Type.ARRAY, items: { type: Type.STRING } },
+            contraindications: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sideEffects: { type: Type.ARRAY, items: { type: Type.STRING } },
+            dosageInstructions: { type: Type.STRING },
+            availabilityInUzbekistan: { type: Type.STRING },
+            priceRange: { type: Type.STRING }
+        }
+    };
+
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
+
+export const identifyDrugByImage = async (base64Image: string, mimeType: string, language: Language): Promise<{
+    name: string;
+    activeIngredient: string;
+    dosage: string;
+    indications: string[];
+    contraindications: string[];
+    sideEffects: string[];
+    dosageInstructions: string;
+    availabilityInUzbekistan: string;
+    priceRange: string;
+}> => {
+    const systemInstr = getSystemInstruction(language);
+    const prompt = {
+        parts: [
+            { text: `Rasmda ko'rsatilgan dori qadoqni aniqlang. O'ZBEKISTON KONTEKSTI.
+
+Quyidagilarni taqdim eting:
+1. Dori nomi va faol modda
+2. Dozasi
+3. Ko'rsatmalar
+4. Kontrendikatsiyalar  
+5. Yon ta'sirlar
+6. Qabul qilish yo'riqnomasi
+7. O'zbekistonda mavjudligi
+8. Narx
+
+JSON formatda. Output Language: ${langMap[language]}.` },
+            { inlineData: { mimeType, data: base64Image } }
+        ]
+    };
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            name: { type: Type.STRING },
+            activeIngredient: { type: Type.STRING },
+            dosage: { type: Type.STRING },
+            indications: { type: Type.ARRAY, items: { type: Type.STRING } },
+            contraindications: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sideEffects: { type: Type.ARRAY, items: { type: Type.STRING } },
+            dosageInstructions: { type: Type.STRING },
+            availabilityInUzbekistan: { type: Type.STRING },
+            priceRange: { type: Type.STRING }
+        }
+    };
+
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+};
