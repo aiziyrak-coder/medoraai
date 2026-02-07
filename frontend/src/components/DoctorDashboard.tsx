@@ -42,6 +42,8 @@ import DocumentReportIcon from './icons/DocumentReportIcon';
 import PatientsList from './PatientsList';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
+import DrugInteractionChecker from './tools/DrugInteractionChecker';
+import DrugIdentifier from './tools/DrugIdentifier';
 
 interface DoctorDashboardProps {
     user: User;
@@ -399,7 +401,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const { t, language, setLanguage } = useTranslation();
     
     // State
-    const [view, setView] = useState<'queue' | 'consultation' | 'assistant' | 'patients_list' | 'documents' | 'profile'>('queue');
+    const [view, setView] = useState<'queue' | 'consultation' | 'assistant' | 'patients_list' | 'documents' | 'profile' | 'drug_tools'>('queue');
     const [mode, setMode] = useState<'input' | 'processing' | 'result'>('input');
     const [activeResultTab, setActiveResultTab] = useState('diagnosis');
     
@@ -1196,6 +1198,19 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 {/* VIEW: PROFILE */}
                 {view === 'profile' && <ProfileView user={user} onLogout={onLogout} />}
 
+                {/* VIEW: DRUG TOOLS */}
+                {view === 'drug_tools' && (
+                    <div className="h-full overflow-y-auto custom-scrollbar p-4">
+                        <div className="max-w-6xl mx-auto">
+                            <h2 className="text-2xl font-bold text-white mb-6">🧪 Dori Vositalari</h2>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <DrugInteractionChecker />
+                                <DrugIdentifier />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* VIEW: CONSULTATION (FULLSCREEN LOGIC) */}
                 {view === 'consultation' && currentPatient && (
                     <div className="flex flex-col h-full relative overflow-hidden">
@@ -1404,6 +1419,10 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         <button onClick={() => setView('documents')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'documents' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
                             <DocumentTextIcon className={`w-6 h-6 ${view === 'documents' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
                             <span className="text-[9px] font-bold mt-1 tracking-widest">{t('doc_tab_docs')}</span>
+                        </button>
+                        <button onClick={() => setView('drug_tools')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'drug_tools' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
+                            <PillIcon className={`w-6 h-6 ${view === 'drug_tools' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                            <span className="text-[9px] font-bold mt-1 tracking-widest">Dorilar</span>
                         </button>
                         <button onClick={() => setView('profile')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'profile' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
                             <UserCircleIcon className={`w-6 h-6 ${view === 'profile' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
