@@ -501,8 +501,9 @@ const AppContent: React.FC = () => {
                 setRecommendedTeam(team.recommendations);
             } catch (fallbackError) {
                 setError(t('team_recommendation_auto_error'));
-                const allSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
-                setRecommendedTeam(allSpecialists.map(model => ({ model, reason: t('team_recommendation_fallback_reason') })));
+                // Minimal default: faqat umumiy mutaxassislar (6 ta)
+                const defaultSpecialists = [AIModel.INTERNAL_MEDICINE, AIModel.FAMILY_MEDICINE, AIModel.EMERGENCY, AIModel.GEMINI, AIModel.CLAUDE, AIModel.GPT];
+                setRecommendedTeam(defaultSpecialists.map(model => ({ model, reason: 'Standart jamoa' })));
             }
         } finally { setIsProcessing(false); }
     };

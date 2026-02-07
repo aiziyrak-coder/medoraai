@@ -78,9 +78,15 @@ class UserCreateSerializer(serializers.ModelSerializer):
             # Try as ID first
             if str(linked_doctor_raw).isdigit():
                 linked_doctor_obj = User.objects.filter(pk=int(linked_doctor_raw)).first()
-            # Try as phone
+            # Try as phone - NORMALIZE qilish
             if not linked_doctor_obj:
-                linked_doctor_obj = User.objects.filter(phone=str(linked_doctor_raw)).first()
+                cleaned_phone = str(linked_doctor_raw).replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+                if not cleaned_phone.startswith('+'):
+                    if cleaned_phone.startswith('998'):
+                        cleaned_phone = '+' + cleaned_phone
+                    else:
+                        cleaned_phone = '+998' + cleaned_phone
+                linked_doctor_obj = User.objects.filter(phone=cleaned_phone).first()
         validated_data['linked_doctor'] = linked_doctor_obj
         user = User.objects.create_user(password=password, **validated_data)
         # Shifokorlar uchun 7 kunlik trial

@@ -215,6 +215,10 @@ export interface FinalReport {
   medicationRecommendations: {
     name: string;
     dosage: string;
+    frequency?: string; // kuniga 3 marta, 2 marta...
+    timing?: string; // ovqatdan oldin, keyin, ovqat bilan
+    duration?: string; // 5 kun, 7 kun, 14 kun
+    instructions?: string; // qo'shimcha yo'riqnoma
     notes: string;
     localAvailability?: string; // e.g., "O'zbekistonda bor: Nimesil, Nise"
     priceEstimate?: string; // e.g., "~45,000 so'm"

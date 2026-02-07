@@ -152,16 +152,23 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
         queueService.updatePatientStatus(doctorId, id, newStatus);
     };
 
+    const handleClearCompleted = () => {
+        if (completedList.length === 0) return;
+        if (confirm(`${completedList.length} ta tugallangan bemorni tozalashni tasdiqlaysizmi?`)) {
+            completedList.forEach(p => queueService.removeFromQueue(doctorId, p.id));
+        }
+    };
+
     const openTvDisplay = () => {
         const code = tvLinkService.getOrGenerateTvCode(doctorId);
         const url = tvLinkService.getTvUrl(code);
         window.open(url, '_blank');
     };
 
-    // Derived lists
-    const waitingList = queue.filter(p => p.status === 'waiting' || p.status === 'in-progress');
-    const holdList = queue.filter(p => p.status === 'hold');
-    const completedList = queue.filter(p => p.status === 'completed');
+    // Derived lists - sorted
+    const waitingList = queue.filter(p => p.status === 'waiting' || p.status === 'in-progress').sort((a, b) => a.ticketNumber - b.ticketNumber);
+    const holdList = queue.filter(p => p.status === 'hold').sort((a, b) => a.ticketNumber - b.ticketNumber);
+    const completedList = queue.filter(p => p.status === 'completed').sort((a, b) => b.ticketNumber - a.ticketNumber);
 
     return (
         <div className="h-screen w-full medical-mesh-bg text-white flex flex-col font-sans overflow-hidden relative">
@@ -384,8 +391,21 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
 
                         {/* 3. COMPLETED */}
                         <div>
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 mt-4">{t('staff_completed')}</h3>
+                            <div className="flex justify-between items-center mb-3 mt-4">
+                                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{t('staff_completed')} ({completedList.length})</h3>
+                                {completedList.length > 0 && (
+                                    <button 
+                                        onClick={handleClearCompleted}
+                                        className="text-[10px] px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded font-bold"
+                                    >
+                                        Tozalash
+                                    </button>
+                                )}
+                            </div>
                             <div className="space-y-2">
+                                {completedList.length === 0 && (
+                                    <p className="text-center text-slate-600 text-xs py-4">Tugallangan bemorlar yo'q</p>
+                                )}
                                 {completedList.map(item => (
                                     <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 opacity-50 hover:opacity-80 transition-opacity">
                                         <span className="font-bold text-slate-400">#{item.ticketNumber} {item.lastName} {item.firstName}</span>

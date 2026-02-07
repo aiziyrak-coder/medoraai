@@ -335,8 +335,12 @@ export const generateFastDoctorConsultation = async (
         treatmentPlan: (result.treatmentPlan as string[]) || [],
         medicationRecommendations: ((result.medications as Array<Record<string, unknown>>) || []).map(med => ({
             name: String(med.name || ''),
-            dosage: `${med.dosage || ''} - ${med.frequency || ''} - ${med.duration || ''}`.trim(),
-            notes: `⏰ ${med.timing || 'Vaqt ko\'rsatilmagan'}. 📋 ${med.instructions || ''}`.trim(),
+            dosage: String(med.dosage || ''),
+            frequency: String(med.frequency || ''),
+            timing: String(med.timing || ''),
+            duration: String(med.duration || ''),
+            instructions: String(med.instructions || ''),
+            notes: '',
             localAvailability: "O'zbekistonda mavjud",
             priceEstimate: ''
         })),
@@ -521,13 +525,15 @@ export const runCouncilDebate = async (
         
         // Orchestrator Turn
         if (currentTopic.includes("QUESTION FOR USER") || currentTopic.includes("FOYDALANUVCHI UCHUN SAVOL")) {
-             // Logic to handle user intervention (simplified)
-             const userQMsg = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: currentTopic, isSystemMessage: true };
+             // Extract clean question (remove prefix)
+             const questionMatch = currentTopic.match(/FOYDALANUVCHI UCHUN SAVOL:\s*(.+)/i);
+             const cleanQuestion = questionMatch ? questionMatch[1].trim() : currentTopic;
+             
+             const userQMsg = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: cleanQuestion, isSystemMessage: true };
              onProgress({ type: 'message', message: userQMsg });
              debateHistory.push(userQMsg);
              
-             // Wait for user input simulation (in real app, use callback)
-             onProgress({ type: 'user_question', question: currentTopic });
+             onProgress({ type: 'user_question', question: cleanQuestion });
              let userInput = null;
              while (!userInput) {
                 await sleep(1000); 

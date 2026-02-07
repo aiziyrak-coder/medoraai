@@ -91,7 +91,9 @@ const VitalInputCompact: React.FC<{
 
 // --- TAB COMPONENTS ---
 
-const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => (
+const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
+    const primaryDiag = report.consensusDiagnosis[0];
+    return (
     <div className="space-y-4 animate-fade-in-up pb-24">
         {report.criticalFinding && (
             <GlassCard className="p-5 border-l-4 border-red-500 bg-red-500/10">
@@ -104,20 +106,20 @@ const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => (
             </GlassCard>
         )}
         
-        {report.consensusDiagnosis.map((diag, i) => (
-            <GlassCard key={i} className="p-6 relative overflow-hidden">
+        {primaryDiag && (
+            <GlassCard className="p-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
                 <div className="relative z-10">
                     <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-bold text-2xl text-white">{diag.name}</h3>
+                        <h3 className="font-bold text-2xl text-white">{primaryDiag.name}</h3>
                         <div className="flex flex-col items-end">
-                            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{diag.probability}%</span>
+                            <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{primaryDiag.probability}%</span>
                         </div>
                     </div>
                     
-                    {diag.reasoningChain && (
+                    {primaryDiag.reasoningChain && primaryDiag.reasoningChain.length > 0 && (
                         <div className="mt-4 pl-4 border-l-2 border-white/10 space-y-3">
-                            {diag.reasoningChain.map((step, idx) => (
+                            {primaryDiag.reasoningChain.map((step, idx) => (
                                 <p key={idx} className="text-sm text-slate-300 leading-relaxed font-light">
                                     {step}
                                 </p>
@@ -125,17 +127,18 @@ const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => (
                         </div>
                     )}
 
-                    {diag.uzbekProtocolMatch && (
+                    {primaryDiag.uzbekProtocolMatch && (
                         <div className="mt-5 inline-flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
                             <CheckCircleIcon className="w-3 h-3" />
-                            {diag.uzbekProtocolMatch}
+                            {primaryDiag.uzbekProtocolMatch}
                         </div>
                     )}
                 </div>
             </GlassCard>
-        ))}
+        )}
     </div>
-);
+    );
+};
 
 const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
     <div className="space-y-4 animate-fade-in-up pb-24">
@@ -176,30 +179,52 @@ const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
 
 const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
     <div className="space-y-4 animate-fade-in-up pb-24">
+        {report.medicationRecommendations.length === 0 && (
+            <p className="text-center text-slate-400 py-8">Dori tavsiya qilinmagan.</p>
+        )}
         {report.medicationRecommendations.map((med, i) => (
-            <GlassCard key={i} className="p-6 relative overflow-hidden group">
+            <GlassCard key={i} className="p-5 relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-black text-xl text-white tracking-tight">{med.name}</h4>
-                        {med.localAvailability && (
-                            <span className="text-[9px] font-black uppercase text-emerald-300 bg-emerald-900/40 px-2 py-1 rounded-md border border-emerald-500/30 backdrop-blur-sm">
-                                O'zbekiston
-                            </span>
+                    <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-black text-lg text-white tracking-tight">{med.name}</h4>
+                        <span className="text-[9px] font-black uppercase text-emerald-300 bg-emerald-900/40 px-2 py-1 rounded-md border border-emerald-500/30">
+                            O'zbekiston
+                        </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                        {med.dosage && (
+                            <div className="bg-blue-900/20 p-2 rounded border border-blue-500/20">
+                                <p className="text-[10px] text-blue-300 mb-0.5">💊 Dozasi</p>
+                                <p className="text-sm font-bold text-white">{med.dosage}</p>
+                            </div>
+                        )}
+                        {med.frequency && (
+                            <div className="bg-purple-900/20 p-2 rounded border border-purple-500/20">
+                                <p className="text-[10px] text-purple-300 mb-0.5">🔁 Chastota</p>
+                                <p className="text-sm font-bold text-white">{med.frequency}</p>
+                            </div>
+                        )}
+                        {med.timing && (
+                            <div className="bg-amber-900/20 p-2 rounded border border-amber-500/20">
+                                <p className="text-[10px] text-amber-300 mb-0.5">⏰ Vaqt</p>
+                                <p className="text-sm font-bold text-white">{med.timing}</p>
+                            </div>
+                        )}
+                        {med.duration && (
+                            <div className="bg-green-900/20 p-2 rounded border border-green-500/20">
+                                <p className="text-[10px] text-green-300 mb-0.5">📅 Davomiyligi</p>
+                                <p className="text-sm font-bold text-white">{med.duration}</p>
+                            </div>
                         )}
                     </div>
                     
-                    <p className="text-base font-bold text-emerald-400 mb-3 drop-shadow-sm">{med.dosage}</p>
-                    
-                    {med.localAvailability && (
-                        <p className="text-xs text-slate-400 mb-2">
-                            <span className="font-semibold text-slate-300">Savdo nomlari:</span> {med.localAvailability}
+                    {med.instructions && (
+                        <p className="text-xs text-slate-300 bg-black/30 p-3 rounded-lg border border-white/5">
+                            📋 <span className="font-semibold">Yo'riqnoma:</span> {med.instructions}
                         </p>
                     )}
-                    
-                    <p className="text-xs text-white/50 italic bg-black/20 p-3 rounded-lg border border-white/5 mt-2">
-                        Izoh: {med.notes}
-                    </p>
                 </div>
             </GlassCard>
         ))}
@@ -539,11 +564,34 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     const handleVitalChange = (key: keyof typeof vitals, value: string) => {
+        // Validatsiya
+        const numValue = parseFloat(value);
+        if (value && isNaN(numValue)) return;
+        
+        // Chegaralar
+        const limits: Record<string, [number, number]> = {
+            bpSys: [50, 300],
+            bpDia: [30, 200],
+            heartRate: [30, 250],
+            temp: [30, 45],
+            spO2: [50, 100],
+            respiration: [5, 60]
+        };
+        
+        if (value && limits[key]) {
+            const [min, max] = limits[key];
+            if (numValue < min || numValue > max) return;
+        }
+        
         setVitals(prev => ({ ...prev, [key]: value }));
     };
 
     const handleAnalyze = async () => {
-        if ((!complaints.trim() && attachments.length === 0) || !currentPatient) return;
+        if ((!complaints.trim() && attachments.length === 0) || !currentPatient) {
+            alert("Shikoyatlar yoki qo'shimcha fayllar kiritilishi kerak.");
+            return;
+        }
+        if (mode === 'processing') return; // Debouncing - takroriy bosishni oldini olish
         setMode('processing');
         
         try {
@@ -590,8 +638,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         } catch (e) {
             const { getUserFriendlyError } = await import('../utils/errorHandler');
             const errorMessage = getUserFriendlyError(e, "Tahlilda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
-            alert(errorMessage);
-            setMode('input');
+            const retry = confirm(`${errorMessage}\n\nQayta urinib ko'rasizmi?`);
+            if (retry) {
+                handleAnalyze();
+            } else {
+                setMode('input');
+            }
         }
     };
 
@@ -605,10 +657,17 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     const handleFinish = () => {
+        if (!confirm("Qabulni yakunlashni tasdiqlaysizmi? Bemor navbatdan chiqariladi.")) {
+            return;
+        }
         if (currentPatient) {
             queueService.updatePatientStatus(user.phone, currentPatient.id, 'completed');
         }
         setCurrentPatient(null);
+        setComplaints('');
+        setVitals({ bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: '' });
+        setAttachments([]);
+        setReport(null);
         setView('queue');
         setMode('input');
     };
