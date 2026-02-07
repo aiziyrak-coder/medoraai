@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     // Load env from parent directory (root) where .env.local is located
     const env = loadEnv(mode, path.resolve(__dirname, '..'), '');
+    const isProduction = mode === 'production';
+    const defaultApiUrl = isProduction ? 'https://medoraapi.cdcgroup.uz/api' : 'http://localhost:8000/api';
+    const apiBaseUrl = env.VITE_API_BASE_URL || defaultApiUrl;
     return {
       root: './',
       publicDir: './public',
@@ -17,7 +20,7 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || ''),
         'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || ''),
-        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL || 'http://localhost:8000/api'),
+        'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiBaseUrl),
       },
       resolve: {
         alias: {
