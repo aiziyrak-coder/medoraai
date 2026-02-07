@@ -5,6 +5,22 @@
 import { apiPost, apiGet, apiPatch, saveTokens, clearTokens, saveUserData, getUserData, type ApiResponse } from './api';
 import type { User } from '../types';
 
+/** Backend validatsiya xatolarini (details) bitta matnga yig'adi */
+function formatErrorDetails(details: unknown): string {
+  if (details == null) return '';
+  if (typeof details === 'string') return details;
+  if (Array.isArray(details)) return details.join('. ');
+  if (typeof details === 'object') {
+    const parts: string[] = [];
+    for (const [key, val] of Object.entries(details)) {
+      const msg = Array.isArray(val) ? val.join('. ') : String(val);
+      if (msg) parts.push(msg);
+    }
+    return parts.join('. ');
+  }
+  return '';
+}
+
 /** API dan kelgan user (snake_case) ni frontend User (camelCase) ga o'giradi */
 function normalizeUser(apiUser: Record<string, unknown>): User {
   return {
@@ -76,8 +92,10 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
       };
     }
 
-    if (response.error?.message) {
-      return { success: false, message: response.error.message };
+    if (response.error) {
+      const detailsMsg = formatErrorDetails((response.error as { details?: unknown }).details);
+      const message = detailsMsg || response.error.message || "Ma'lumotlar noto'g'ri.";
+      return { success: false, message };
     }
     
     // Fallback to local storage if API fails
@@ -127,8 +145,10 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
       };
     }
 
-    if (response.error?.message) {
-      return { success: false, message: response.error.message };
+    if (response.error) {
+      const detailsMsg = formatErrorDetails((response.error as { details?: unknown }).details);
+      const message = detailsMsg || response.error.message || "Telefon raqami yoki parol noto'g'ri.";
+      return { success: false, message };
     }
     
     // Fallback to local storage if API fails
