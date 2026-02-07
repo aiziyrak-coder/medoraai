@@ -1,20 +1,26 @@
 """
 AI Services Views
 """
+import json
+import logging
+import warnings
+
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.conf import settings
-import google.generativeai as genai
-import json
-import logging
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini AI
-if settings.GEMINI_API_KEY:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+# Configure Gemini AI (deprecated package – kelajakda google.genai ga o'tkazish mumkin)
+with warnings.catch_warnings(action="ignore", category=FutureWarning):
+    try:
+        import google.generativeai as genai
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
+    except ImportError:
+        genai = None
 
 
 @api_view(['POST'])
