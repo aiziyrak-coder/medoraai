@@ -9,7 +9,9 @@ import * as queueService from '../services/queueService';
 import * as settingsService from '../services/settingsService'; 
 import * as tvLinkService from '../services/tvLinkService'; 
 import * as caseService from '../services/caseService';
-import { useSpeechToText } from '../hooks/useSpeechToText'; 
+import { useSpeechToText } from '../hooks/useSpeechToText';
+import { logger } from '../utils/logger';
+import { LIMITS } from '../constants/timeouts'; 
 
 // Icons
 import PlusCircleIcon from './icons/PlusCircleIcon';
@@ -568,18 +570,18 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         const numValue = parseFloat(value);
         if (value && isNaN(numValue)) return;
         
-        // Chegaralar
-        const limits: Record<string, [number, number]> = {
-            bpSys: [50, 300],
-            bpDia: [30, 200],
-            heartRate: [30, 250],
-            temp: [30, 45],
-            spO2: [50, 100],
-            respiration: [5, 60]
+        // Chegaralar (LIMITS.VITALS dan)
+        const vitalLimits: Record<string, { min: number; max: number }> = {
+            bpSys: LIMITS.VITALS.BP_SYS,
+            bpDia: LIMITS.VITALS.BP_DIA,
+            heartRate: LIMITS.VITALS.HEART_RATE,
+            temp: LIMITS.VITALS.TEMPERATURE,
+            spO2: LIMITS.VITALS.SPO2,
+            respiration: LIMITS.VITALS.RESPIRATION,
         };
         
-        if (value && limits[key]) {
-            const [min, max] = limits[key];
+        if (value && vitalLimits[key]) {
+            const { min, max } = vitalLimits[key];
             if (numValue < min || numValue > max) return;
         }
         
@@ -708,11 +710,11 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                     ? result.message 
                     : JSON.stringify(result.message || result);
                 setAssistantMsg(`Xatolik: ${errorMsg}`);
-                console.error("Assistant register error:", result);
+                logger.error("Assistant register error:", result);
             }
         } catch (error) {
             setAssistantMsg(`Xatolik: ${error instanceof Error ? error.message : String(error)}`);
-            console.error("Assistant register exception:", error);
+            logger.error("Assistant register exception:", error);
         }
     };
 

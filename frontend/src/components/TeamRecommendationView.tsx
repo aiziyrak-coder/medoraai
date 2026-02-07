@@ -8,6 +8,7 @@ import CheckCircleIcon from './icons/CheckCircleIcon';
 import UsersIcon from './icons/UsersIcon';
 import SearchIcon from './icons/SearchIcon';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
+import { LIMITS } from '../constants/timeouts';
 
 interface TeamRecommendationViewProps {
     recommendations: { model: AIModel; reason: string }[] | null;
@@ -40,8 +41,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
         if (newSelection.has(model)) {
             newSelection.delete(model);
         } else {
-            if (newSelection.size >= 10) {
-                alert("Maksimal 10 ta mutaxassis tanlash mumkin.");
+            if (newSelection.size >= LIMITS.MAX_SPECIALISTS) {
+                alert(`Maksimal ${LIMITS.MAX_SPECIALISTS} ta mutaxassis tanlash mumkin.`);
                 return;
             }
             newSelection.add(model);
@@ -50,8 +51,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     };
 
     const handleConfirm = () => {
-        if (selectedSpecialists.size < 4) {
-            alert("Iltimos, kamida 4 ta mutaxassis tanlang.");
+        if (selectedSpecialists.size < LIMITS.MIN_SPECIALISTS) {
+            alert(`Iltimos, kamida ${LIMITS.MIN_SPECIALISTS} ta mutaxassis tanlang.`);
             return;
         }
         // Automatically assign the best model to all selected roles
@@ -199,11 +200,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             <div className="flex-shrink-0 pt-4 mt-4 border-t border-border-color">
                 <button
                     onClick={handleConfirm}
-                    disabled={selectedSpecialists.size < 4 || selectedSpecialists.size > 10}
+                    disabled={selectedSpecialists.size < LIMITS.MIN_SPECIALISTS || selectedSpecialists.size > LIMITS.MAX_SPECIALISTS}
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {selectedSpecialists.size < 4 
-                        ? `Kamida 4 ta tanlang (${selectedSpecialists.size}/4)`
+                    {selectedSpecialists.size < LIMITS.MIN_SPECIALISTS 
+                        ? `Kamida ${LIMITS.MIN_SPECIALISTS} ta tanlang (${selectedSpecialists.size}/${LIMITS.MIN_SPECIALISTS})`
                         : `Konsiliumni Boshlash (${selectedSpecialists.size} mutaxassis)`
                     }
                 </button>

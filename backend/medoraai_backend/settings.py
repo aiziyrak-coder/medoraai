@@ -337,6 +337,13 @@ LOGGING = {
     },
 }
 
+# Business Logic Settings
+DOCTOR_TRIAL_DAYS = config('DOCTOR_TRIAL_DAYS', default=7, cast=int)
+LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=5, cast=int)
+LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=int)  # 15 min
+MAX_FILE_UPLOAD_SIZE = config('MAX_FILE_UPLOAD_SIZE_MB', default=5, cast=int) * 1024 * 1024
+ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf']
+
 # Security Settings (Production)
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nginx orqada SSL

@@ -89,10 +89,12 @@ class UserCreateSerializer(serializers.ModelSerializer):
                 linked_doctor_obj = User.objects.filter(phone=cleaned_phone).first()
         validated_data['linked_doctor'] = linked_doctor_obj
         user = User.objects.create_user(password=password, **validated_data)
-        # Shifokorlar uchun 7 kunlik trial
+        # Shifokorlar uchun trial period
         if user.role == 'doctor':
+            from django.conf import settings
+            trial_days = getattr(settings, 'DOCTOR_TRIAL_DAYS', 7)
             user.subscription_status = 'active'
-            user.trial_ends_at = timezone.now() + timedelta(days=7)
+            user.trial_ends_at = timezone.now() + timedelta(days=trial_days)
             user.save(update_fields=['subscription_status', 'trial_ends_at'])
         return user
 

@@ -25,10 +25,10 @@ from .models import User, SubscriptionPlan, SubscriptionPayment, ActiveSession
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-# Login rate limit: 5 urinish / 15 daqiqa per telefon
+# Login rate limit
 LOGIN_RATE_LIMIT_KEY = "login_attempts:{phone}"
-LOGIN_RATE_LIMIT_MAX = 5
-LOGIN_RATE_LIMIT_WINDOW = 60 * 15  # 15 min in seconds
+LOGIN_RATE_LIMIT_MAX = getattr(settings, 'LOGIN_RATE_LIMIT_MAX', 5)
+LOGIN_RATE_LIMIT_WINDOW = getattr(settings, 'LOGIN_RATE_LIMIT_WINDOW', 60 * 15)
 
 
 def _revoke_oldest_sessions(user, keep_count):
@@ -78,12 +78,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except drf_serializers.ValidationError as e:
             cache.set(cache_key, attempts + 1, LOGIN_RATE_LIMIT_WINDOW)
             error_message = e.detail[0] if isinstance(e.detail, list) and len(e.detail) > 0 else str(e.detail) if hasattr(e, 'detail') else 'Telefon raqami yoki parol noto\'g\'ri'
+            logger.warning(f"Login validation error for {phone}: {error_message}")
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': error_message},
             }, status=400)
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             cache.set(cache_key, attempts + 1, LOGIN_RATE_LIMIT_WINDOW)
+            logger.error(f"Login error for {phone}: {e}")
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': 'Telefon raqami yoki parol noto\'g\'ri'},
@@ -116,6 +118,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         # Muvaffaqiyatli login - rate limit hisobini tozalash
         cache.delete(cache_key)
 
+        # Select related data for serializer to avoid N+1
+        user = User.objects.select_related('subscription_plan', 'linked_doctor').get(pk=user.pk)
         return Response({
             'success': True,
             'data': {
@@ -339,7 +343,7 @@ class UserListAPIView(generics.ListAPIView):
     
     def get_queryset(self):
         user = self.request.user
-        queryset = User.objects.select_related('subscription_plan', 'linked_doctor')
+        queryset = User.objects.select_related('subscription_plan', 'linked_doctor').prefetch_related('assistants')
         if user.is_clinic or user.is_superuser:
             return queryset.all()
         elif user.is_doctor:
@@ -411,7 +415,7 @@ def send_payment_receipt(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     # File validation
-    max_size = 5 * 1024 * 1024  # 5MB
+    max_size = getattr(settings, 'MAX_FILE_UPLOAD_SIZE', 5 * 1024 * 1024)
     if file.size > max_size:
         return Response({
             'success': False,
@@ -421,7 +425,7 @@ def send_payment_receipt(request):
             }
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    allowed_types = ['image/jpeg', 'image/png', 'image/jpg']
+    allowed_types = getattr(settings, 'ALLOWED_UPLOAD_TYPES', ['image/jpeg', 'image/png', 'image/jpg'])
     if file.content_type not in allowed_types:
         return Response({
             'success': False,

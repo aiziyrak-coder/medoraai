@@ -75,7 +75,18 @@ def _call_gemini(prompt, model_name=GEMINI_FLASH, response_mime_type=None):
 
 
 def generate_clarifying_questions(patient_data):
-    """Return list of 3–5 short clarifying questions (no mock)."""
+    """
+    Generate 3-8 clarifying questions based on patient data.
+    
+    Args:
+        patient_data (dict): Patient clinical data
+    
+    Returns:
+        list[str]: List of clarifying questions in Uzbek
+    
+    Raises:
+        RuntimeError: If Gemini API fails
+    """
     text = _patient_text(patient_data)
     prompt = f"""Siz tibbiy yordamchi AI siz. Bemor ma'lumotlari:
 {text}
@@ -100,7 +111,18 @@ O'zbek tilida (Lotin)."""
 
 
 def recommend_specialists(patient_data):
-    """Return list of { model, reason } (no mock). Model must be from SPECIALIST_NAMES."""
+    """
+    Recommend 5-8 specialists based on patient case.
+    
+    Args:
+        patient_data (dict): Patient clinical data
+    
+    Returns:
+        list[dict]: Specialists with 'model' (name) and 'reason' (justification)
+    
+    Raises:
+        RuntimeError: If Gemini API fails
+    """
     text = _patient_text(patient_data)
     names_str = ", ".join(SPECIALIST_NAMES[:40])  # first 40 to fit context
     prompt = f"""Bemor ma'lumotlari:
@@ -132,7 +154,18 @@ O'zbek tilida (Lotin)."""
 
 
 def generate_diagnoses(patient_data):
-    """Return list of differential diagnoses (no mock)."""
+    """
+    Generate 3-8 differential diagnoses with probabilities.
+    
+    Args:
+        patient_data (dict): Patient clinical data
+    
+    Returns:
+        list[dict]: Diagnoses with name, probability, justification, reasoningChain, etc.
+    
+    Raises:
+        RuntimeError: If Gemini API fails
+    """
     text = _patient_text(patient_data)
     prompt = f"""Bemor ma'lumotlari:
 {text}
