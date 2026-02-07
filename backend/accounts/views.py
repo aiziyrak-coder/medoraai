@@ -209,6 +209,7 @@ class CustomTokenRefreshView(TokenRefreshView):
 def register(request):
     """User registration endpoint"""
     data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+    logger.info(f"Register attempt: role={data.get('role')}, phone={data.get('phone')}, linked_doctor={data.get('linked_doctor')}")
     if data.get('linked_doctor') in ('', None):
         data.pop('linked_doctor', None)
     serializer = UserCreateSerializer(data=data)
@@ -237,6 +238,7 @@ def register(request):
                     'message': 'Ro\'yxatdan o\'tishda server xatoligi. Iltimos, keyinroq urinib ko\'ring.',
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    logger.warning(f"Register validation failed: {serializer.errors}")
     return Response({
         'success': False,
         'error': {
