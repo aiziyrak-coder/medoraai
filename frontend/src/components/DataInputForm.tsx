@@ -35,15 +35,18 @@ const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { i
     </div>
 ));
 
-const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string; unit: string }> = ({ label, unit, ...props }) => (
-    <div className="bg-white/70 p-1.5 rounded-lg border border-slate-200 flex flex-col justify-between">
-        <span className="text-[9px] font-bold text-slate-700 uppercase">{label}</span>
-        <div className="flex items-baseline gap-1">
-            <input {...props} className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none p-0" placeholder="0" />
-            <span className="text-[9px] text-slate-600">{unit}</span>
+const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string; unit: string; id?: string }> = ({ label, unit, id, ...props }) => {
+    const inputId = id || `vital-${label.replace(/\s+/g, '-').toLowerCase()}`;
+    return (
+        <div className="bg-white/70 p-1.5 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <label htmlFor={inputId} className="text-[9px] font-bold text-slate-700 uppercase">{label}</label>
+            <div className="flex items-baseline gap-1">
+                <input id={inputId} name={inputId} aria-label={label} {...props} className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none p-0" placeholder="0" />
+                <span className="text-[9px] text-slate-600">{unit}</span>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) => {
     const { t } = useTranslation();
@@ -407,12 +410,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 flex-shrink-0">
                             <h3 className="text-xs font-bold text-slate-800 mb-2">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
                             <div className="grid grid-cols-3 gap-2">
-                                <VitalInput label="Qon Bosimi (Sys)" unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} />
-                                <VitalInput label="Qon Bosimi (Dia)" unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} />
-                                <VitalInput label="Puls" unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} />
-                                <VitalInput label="Harorat" unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} />
-                                <VitalInput label="Saturatsiya" unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} />
-                                <VitalInput label="Nafas Soni" unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} />
+                                <VitalInput id="vital-bp-systolic" label="Qon Bosimi (Sys)" unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} />
+                                <VitalInput id="vital-bp-diastolic" label="Qon Bosimi (Dia)" unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} />
+                                <VitalInput id="vital-heart-rate" label="Puls" unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} />
+                                <VitalInput id="vital-temperature" label="Harorat" unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} />
+                                <VitalInput id="vital-spo2" label="Saturatsiya" unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} />
+                                <VitalInput id="vital-respiration" label="Nafas Soni" unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} />
                             </div>
                         </div>
                     </div>

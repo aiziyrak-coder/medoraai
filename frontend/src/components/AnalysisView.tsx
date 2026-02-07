@@ -186,13 +186,13 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                                      <p className="text-sm italic text-text-primary">"{socraticQuestion}"</p>
                                  </div>
                                  <form onSubmit={handleInterventionSubmit} className="flex gap-2">
-                                    <input type="text" value={interventionText} onChange={(e) => setInterventionText(e.target.value)} placeholder="Javobingizni kiriting..." className="flex-grow common-input" autoFocus />
+                                    <input type="text" id="analysis-intervention" name="intervention" value={interventionText} onChange={(e) => setInterventionText(e.target.value)} placeholder="Javobingizni kiriting..." className="flex-grow common-input" autoFocus aria-label="Javobingizni kiriting" />
                                     <button type="submit" className="p-3 rounded-xl animated-gradient-button text-white"><SendIcon className="w-5 h-5"/></button>
                                  </form>
                             </div>
                         ) : (
                              <form onSubmit={handleInterventionSubmit} className="flex gap-2">
-                                <input type="text" value={interventionText} onChange={(e) => setInterventionText(e.target.value)} placeholder="Munozaraga aralashish..." className="flex-grow common-input" />
+                                <input type="text" id="analysis-intervention-alt" name="intervention-alt" value={interventionText} onChange={(e) => setInterventionText(e.target.value)} placeholder="Munozaraga aralashish..." className="flex-grow common-input" aria-label="Munozaraga aralashish" />
                                 <button type="submit" className="p-3 rounded-xl animated-gradient-button text-white"><SendIcon className="w-5 h-5"/></button>
                             </form>
                         )}
@@ -213,7 +213,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                             <div className="mt-8 p-6 border-2 border-dashed border-purple-200 rounded-[2rem] bg-purple-50/50">
                                 <h3 className="text-lg font-bold text-purple-900 mb-2 flex items-center gap-2"><LightBulbIcon className="w-6 h-6 text-purple-600" /> Senariy Tahlili</h3>
                                 <p className="text-sm text-purple-700/80 mb-4">"Nima bo'lardi, agar..." savolini berib, alternativ natijalarni o'rganing.</p>
-                                <textarea value={scenarioText} onChange={e => setScenarioText(e.target.value)} rows={3} placeholder="Masalan: Agar bemorning kaliy miqdori normal bo'lganda nima bo'lardi?" className="w-full common-input bg-white/80" />
+                                <textarea id="analysis-scenario" name="scenario" value={scenarioText} onChange={e => setScenarioText(e.target.value)} rows={3} placeholder="Masalan: Agar bemorning kaliy miqdori normal bo'lganda nima bo'lardi?" className="w-full common-input bg-white/80" aria-label="Ssenariy matni" />
                                 <button onClick={handleRunScenario} disabled={isScenarioRunning} className="w-full animated-gradient-button font-bold py-3 px-4 rounded-xl mt-3 disabled:opacity-50 flex items-center justify-center gap-2">
                                     {isScenarioRunning ? <><SpinnerIcon className="w-5 h-5"/> Tahlil qilinmoqda...</> : "Senariyni Ishga Tushirish"}
                                 </button>

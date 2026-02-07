@@ -378,16 +378,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                             {mode === 'register' && (
                                 <>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                                        <label htmlFor="auth-name" className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
                                             {role === 'clinic' ? t('auth_org_name_label') : t('auth_fullname_label')}
                                         </label>
                                         <input
+                                            id="auth-name"
+                                            name="name"
                                             type="text"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             className="block w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-medium backdrop-blur-sm text-sm"
                                             required
                                             placeholder={role === 'clinic' ? t('auth_org_placeholder') : t('auth_fullname_placeholder')}
+                                            autoComplete="name"
                                         />
                                     </div>
                                     {role === 'doctor' && (
@@ -418,23 +421,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                             )}
                             
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                                <label htmlFor="auth-phone" className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
                                     {t('auth_phone_label')}
                                 </label>
                                 <input
+                                    id="auth-phone"
+                                    name="phone"
                                     type="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                     className="block w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-medium backdrop-blur-sm text-sm"
                                     required
                                     placeholder={t('auth_phone_placeholder')}
+                                    autoComplete="tel"
                                 />
                             </div>
                             
                             {mode !== 'forgot' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-1">
-                                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                                        <label htmlFor="auth-password" className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider">
                                             {t('auth_password_label')}
                                         </label>
                                         {mode === 'login' && (
@@ -445,11 +451,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                     </div>
                                     <div className="relative">
                                         <input
+                                            id="auth-password"
+                                            name="password"
                                             type={showPassword ? 'text' : 'password'}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             className="block w-full px-4 py-2.5 pr-11 bg-white/10 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none font-medium backdrop-blur-sm text-sm"
                                             required
+                                            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                                         />
                                         <button
                                             type="button"
