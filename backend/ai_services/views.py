@@ -5,6 +5,9 @@ import json
 import logging
 import warnings
 
+# google.generativeai deprecated xabarini yopish (kelajakda google.genai ga o'tkazamiz)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -13,14 +16,12 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
-# Configure Gemini AI (deprecated package – kelajakda google.genai ga o'tkazish mumkin)
-with warnings.catch_warnings(action="ignore", category=FutureWarning):
-    try:
-        import google.generativeai as genai
-        if settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-    except ImportError:
-        genai = None
+try:
+    import google.generativeai as genai
+    if settings.GEMINI_API_KEY:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+except ImportError:
+    genai = None
 
 
 @api_view(['POST'])
