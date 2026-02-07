@@ -34,6 +34,11 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "Internet aloqasi bilan muammo. Iltimos, internetni tekshiring va qayta urinib ko'ring.";
     }
     
+    // Gemini API key invalid (400 INVALID_ARGUMENT / API_KEY_INVALID)
+    if (message.includes('api key not valid') || message.includes('api_key_invalid') || message.includes('invalid_argument')) {
+      return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: Google AI Studio da yangi kalit yarating va serverda .env.production ni yangilang, keyin frontendni qayta build qiling.";
+    }
+
     // API errors
     if (message.includes('api') || message.includes('gemini') || message.includes('invalid json')) {
       return "AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";

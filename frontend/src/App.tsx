@@ -451,19 +451,23 @@ const AppContent: React.FC = () => {
         setAppView('clarification');
         setStatusMessage(t('clarification_generating_questions'));
         try {
-            // Use API service
             const { generateClarifyingQuestions } = await import('./services/apiAiService');
             const response = await generateClarifyingQuestions(data);
-            if (response.success && response.data) {
+            if (response.success && response.data?.length) {
                 setClarificationQuestions(response.data);
             } else {
-                // Fallback to local service
                 const questions = await aiService.generateClarifyingQuestions(data, language);
                 setClarificationQuestions(questions);
             }
-        } catch (e) { 
-             setError(t('clarification_question_error'));
-             setClarificationQuestions([]);
+        } catch (e) {
+            try {
+                const questions = await aiService.generateClarifyingQuestions(data, language);
+                setClarificationQuestions(questions);
+                setError(null);
+            } catch (fallbackErr) {
+                setError(t('clarification_question_error'));
+                setClarificationQuestions([]);
+            }
         } 
         finally { setIsProcessing(false); }
     };
@@ -482,33 +486,23 @@ const AppContent: React.FC = () => {
         setIsProcessing(true);
         setStatusMessage(t('team_recommendation_creating'));
         try {
-            // Try API first
+            // Try API first (real Gemini on backend)
             const { recommendSpecialists } = await import('./services/apiAiService');
             const response = await recommendSpecialists(enrichedPatientData);
-            if (response.success && response.data) {
-                setRecommendedTeam(response.data.recommendations.map(rec => ({
-                    role: rec.model,
-                    backEndModel: 'Gemini 3.0 Pro'
-                })));
+            if (response.success && response.data?.recommendations?.length) {
+                setRecommendedTeam(response.data.recommendations);
             } else {
                 throw new Error('API failed');
             }
         } catch (e) {
-            // Fallback to local service
+            // Fallback to frontend Gemini
             try {
                 const team = await aiService.recommendSpecialists(enrichedPatientData, language);
-                setRecommendedTeam(team.recommendations.map(rec => ({
-                    role: rec.model,
-                    backEndModel: 'Gemini 3.0 Pro'
-                })));
+                setRecommendedTeam(team.recommendations);
             } catch (fallbackError) {
                 setError(t('team_recommendation_auto_error'));
                 const allSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
-                const fallbackTeam = allSpecialists.map(model => ({ model, reason: t('team_recommendation_fallback_reason') }));
-                setRecommendedTeam(fallbackTeam.map(rec => ({
-                    role: rec.model,
-                    backEndModel: 'Gemini 3.0 Pro'
-                })));
+                setRecommendedTeam(allSpecialists.map(model => ({ model, reason: t('team_recommendation_fallback_reason') })));
             }
         } finally { setIsProcessing(false); }
     };
@@ -521,20 +515,25 @@ const AppContent: React.FC = () => {
         setIsProcessing(true);
         try {
             setStatusMessage(t('ddx_generating'));
-            // Try API first
             const { generateInitialDiagnoses } = await import('./services/apiAiService');
             const response = await generateInitialDiagnoses(patientData);
-            if (response.success && response.data) {
+            if (response.success && response.data?.length) {
                 setDifferentialDiagnoses(response.data);
             } else {
-                // Fallback to local service
                 const diagnoses = await aiService.generateInitialDiagnoses(patientData, language);
                 setDifferentialDiagnoses(diagnoses);
             }
             setStatusMessage(t('ddx_feedback_prompt'));
-        } catch (e) { 
-            setError(t('ddx_generation_error'));
-            setStatusMessage(t('error_try_again'));
+        } catch (e) {
+            try {
+                const diagnoses = await aiService.generateInitialDiagnoses(patientData, language);
+                setDifferentialDiagnoses(diagnoses);
+                setError(null);
+                setStatusMessage(t('ddx_feedback_prompt'));
+            } catch (fallbackErr) {
+                setError(t('ddx_generation_error'));
+                setStatusMessage(t('error_try_again'));
+            }
         } 
         finally { setIsProcessing(false); }
     };
