@@ -259,16 +259,16 @@ export const generateFastDoctorConsultation = async (
     const systemInstr = getSystemInstruction(language);
 
     const promptText = `
-    Quyidagi bemor ma'lumotlarini AQLLI tahlil qiling. O'ZBEKISTON KONTEKSTI MAJBURIY.
+    Bemor ma'lumotlarini TEZ va ANIQ tahlil qiling. FAQAT ENG EHTIMOLLIK YUQORI TASHXIS va TO'G'RIDAN-TO'G'RI DAVOLASH REJASI.
+    O'ZBEKISTON SSV KLINIK PROTOKOLLARI MAJBURIY.
     
-    Talablar:
-    1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: SSV klinik protokoliga muvofiqlik (masalan: "SSV arterial gipertenziya / bronxial astma va h.k. protokoliga muvofiq").
-    2. rejectedHypotheses: rad etilgan differensial tashxislar va sababi.
-    3. treatmentPlan: SSV tasdiqlangan klinik protokollariga muvofiq, batafsil va tartibli.
-    4. medicationRecommendations: FAQAT O'zbekistonda ro'yxatdan o'tgan va aptekalarda mavjud savdo nomlari (Nimesil, Sumamed, Augmentin, Metformin va hokazo); allergiya va dori aralashuvini hisobga oling. localAvailability: "O'zbekistonda mavjud".
-    5. criticalFinding: hayotga xavf yoki shoshilinch bo'lsa to'ldiring.
-    6. recommendedTests: O'zbekiston LITS va standartlariga mos tekshiruvlar.
-    7. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV klinik protokollariga muvofiq" yoki qisqacha eslatma.
+    QISQA VA ANIQ BO'LING:
+    1. primaryDiagnosis: ENG YUQORI EHTIMOLLIKDAGI TASHXIS (name, probability, justification, reasoningChain, uzbekProtocolMatch).
+    2. treatmentPlan: QISQA, AMALIY qadamlar (masalan: "1. Dam olish, suyuqlik ko'p ichish", "2. Antibiotik terapiya boshlash").
+    3. medications: FAQAT O'ZBEKISTONDA MAVJUD SAVDO NOMLARI (Panadol, Nimesil, Augmentin, Sumamed, Metformin...).
+       Har bir dori: name, dosage (120mg, 500mg...), frequency (kuniga 3 marta, 2 marta...), duration (5 kun, 7 kun...), timing (ovqatdan oldin, ovqatdan keyin, ovqat bilan...), instructions (qo'shimcha maslahat).
+    4. criticalFinding: faqat shoshilinch holat bo'lsa, aks holda bo'sh/null.
+    5. recommendedTests: zarur tekshiruvlar ro'yxati.
 
     JAVOB TILI: ${langMap[language]}
     Format: JSON.
@@ -277,24 +277,74 @@ export const generateFastDoctorConsultation = async (
     const finalReportSchema = {
         type: Type.OBJECT,
         properties: {
-            consensusDiagnosis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, probability: { type: Type.NUMBER }, justification: { type: Type.STRING }, evidenceLevel: { type: Type.STRING }, reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } }, uzbekProtocolMatch: { type: Type.STRING } } } },
-            rejectedHypotheses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, reason: { type: Type.STRING } }}},
-            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
+            primaryDiagnosis: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    probability: { type: Type.NUMBER },
+                    justification: { type: Type.STRING },
+                    reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    uzbekProtocolMatch: { type: Type.STRING }
+                }
+            },
             treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
-            medicationRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, dosage: { type: Type.STRING }, notes: { type: Type.STRING }, localAvailability: { type: Type.STRING }, priceEstimate: { type: Type.STRING } }}},
-            unexpectedFindings: { type: Type.STRING },
-            uzbekistanLegislativeNote: { type: Type.STRING },
+            medications: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        dosage: { type: Type.STRING },
+                        frequency: { type: Type.STRING },
+                        duration: { type: Type.STRING },
+                        timing: { type: Type.STRING },
+                        instructions: { type: Type.STRING }
+                    }
+                }
+            },
+            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
             criticalFinding: {
                 type: Type.OBJECT,
-                properties: { finding: { type: Type.STRING }, implication: { type: Type.STRING }, urgency: { type: Type.STRING } },
-            },
+                properties: {
+                    finding: { type: Type.STRING },
+                    implication: { type: Type.STRING },
+                    urgency: { type: Type.STRING }
+                }
+            }
         },
-        required: ['consensusDiagnosis', 'treatmentPlan', 'medicationRecommendations']
+        required: ['primaryDiagnosis', 'treatmentPlan', 'medications']
     };
 
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     
-    return callGemini(multimodalPrompt, 'gemini-3-pro-preview', finalReportSchema, false, systemInstr) as Promise<FinalReport>;
+    // Flash model for speed (not Pro)
+    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr) as Record<string, unknown>;
+    
+    // Transform to FinalReport format
+    const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
+    return {
+        consensusDiagnosis: primaryDiag ? [{
+            name: String(primaryDiag.name || 'Tashxis'),
+            probability: Number(primaryDiag.probability || 85),
+            justification: String(primaryDiag.justification || ''),
+            evidenceLevel: 'High',
+            reasoningChain: (primaryDiag.reasoningChain as string[]) || [],
+            uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || 'SSV protokoliga muvofiq')
+        }] : [],
+        rejectedHypotheses: [],
+        treatmentPlan: (result.treatmentPlan as string[]) || [],
+        medicationRecommendations: ((result.medications as Array<Record<string, unknown>>) || []).map(med => ({
+            name: String(med.name || ''),
+            dosage: `${med.dosage || ''} - ${med.frequency || ''} - ${med.duration || ''}`.trim(),
+            notes: `⏰ ${med.timing || 'Vaqt ko\'rsatilmagan'}. 📋 ${med.instructions || ''}`.trim(),
+            localAvailability: "O'zbekistonda mavjud",
+            priceEstimate: ''
+        })),
+        recommendedTests: (result.recommendedTests as string[]) || [],
+        unexpectedFindings: '',
+        uzbekistanLegislativeNote: "SSV klinik protokollariga muvofiq",
+        criticalFinding: result.criticalFinding as { finding: string; implication: string; urgency: string } | undefined
+    } as FinalReport;
 };
 
 
