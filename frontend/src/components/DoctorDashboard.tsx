@@ -645,10 +645,15 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 setAssistantMsg("Yordamchi muvaffaqiyatli qo'shildi! U o'z telefoni va paroli bilan kirishi mumkin.");
                 setAssistantData({ name: '', phone: '', password: '' });
             } else {
-                setAssistantMsg(result.message || "Xatolik yuz berdi.");
+                const errorMsg = typeof result.message === 'string' 
+                    ? result.message 
+                    : JSON.stringify(result.message || result);
+                setAssistantMsg(`Xatolik: ${errorMsg}`);
+                console.error("Assistant register error:", result);
             }
         } catch (error) {
-            setAssistantMsg("Server bilan bog'lanishda xatolik. Qayta urinib ko'ring.");
+            setAssistantMsg(`Xatolik: ${error instanceof Error ? error.message : String(error)}`);
+            console.error("Assistant register exception:", error);
         }
     };
 
