@@ -101,6 +101,29 @@ const AppContent: React.FC = () => {
     const [appView, setAppView] = useState<AppView>('dashboard');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [tvModeDoctorId, setTvModeDoctorId] = useState<string | null>(null);
+    const historyFromPopstateRef = useRef(false);
+
+    // Brauzer orqaga: SPA ichida qolish, platformadan chiqib ketmaslik
+    useEffect(() => {
+        if (historyFromPopstateRef.current) {
+            historyFromPopstateRef.current = false;
+            return;
+        }
+        const state = { appView };
+        if (!window.history.state || (window.history.state as { appView?: AppView }).appView !== appView) {
+            window.history.pushState(state, '', window.location.href);
+        }
+    }, [appView]);
+
+    useEffect(() => {
+        const onPopstate = (e: PopStateEvent) => {
+            const state = e.state as { appView?: AppView } | null;
+            historyFromPopstateRef.current = true;
+            setAppView(state?.appView ?? 'dashboard');
+        };
+        window.addEventListener('popstate', onPopstate);
+        return () => window.removeEventListener('popstate', onPopstate);
+    }, []);
 
     // Screen Resize & URL Param Listener
     useEffect(() => {

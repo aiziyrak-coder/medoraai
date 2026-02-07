@@ -15,32 +15,32 @@ interface DataInputFormProps {
     onSubmit: (data: PatientData) => void;
 }
 
-// Ultra-compact Input component
+// Ultra-compact Input component (label/placeholder yaxshi ko‘rinishi uchun qorong‘u matn)
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string }> = ({ id, label, className, ...props }) => (
     <div className={`flex flex-col ${className}`}>
-        <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1 mb-0.5">
+        <label htmlFor={id} className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
             {label}
         </label>
-        <input id={id} {...props} className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white transition-all duration-200 border-none shadow-sm focus:ring-1 focus:ring-blue-400 rounded-lg" />
+        <input id={id} {...props} className="block w-full text-xs text-slate-800 common-input py-1.5 px-2 bg-white/80 focus:bg-white placeholder-slate-500 transition-all duration-200 border border-slate-200 shadow-sm focus:ring-1 focus:ring-blue-400 rounded-lg" />
     </div>
 );
 
 // Ultra-compact Textarea with flexible height
 const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string }> = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string }>(({ id, label, className, ...props }, ref) => (
      <div className={`flex flex-col h-full ${className}`}>
-        <label htmlFor={id} className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1 mb-0.5">
+        <label htmlFor={id} className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
             {label}
         </label>
-        <textarea id={id} {...props} className="block w-full flex-grow text-xs common-input py-2 px-2 bg-white/60 focus:bg-white transition-all duration-200 border-none shadow-sm focus:ring-1 focus:ring-blue-400 resize-none rounded-lg" ref={ref} />
+        <textarea id={id} {...props} className="block w-full flex-grow text-xs text-slate-800 common-input py-2 px-2 bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 resize-none rounded-lg" ref={ref} />
     </div>
 ));
 
 const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string; unit: string }> = ({ label, unit, ...props }) => (
-    <div className="bg-white/50 p-1.5 rounded-lg border border-white/40 flex flex-col justify-between">
-        <span className="text-[9px] font-bold text-slate-500 uppercase">{label}</span>
+    <div className="bg-white/70 p-1.5 rounded-lg border border-slate-200 flex flex-col justify-between">
+        <span className="text-[9px] font-bold text-slate-700 uppercase">{label}</span>
         <div className="flex items-baseline gap-1">
-            <input {...props} className="w-full bg-transparent text-sm font-bold text-slate-700 outline-none p-0" placeholder="0" />
-            <span className="text-[9px] text-slate-400">{unit}</span>
+            <input {...props} className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none p-0" placeholder="0" />
+            <span className="text-[9px] text-slate-600">{unit}</span>
         </div>
     </div>
 );
@@ -276,7 +276,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                 {/* Header & Submit Button */}
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 px-1">
                     <div>
-                        <h2 className="text-xl font-bold text-text-primary">Yangi Klinik Holat</h2>
+                        <h2 className="text-xl font-bold text-slate-800">Yangi Klinik Holat</h2>
                         <p className="text-xs text-text-secondary">Bemor ma'lumotlarini to'liq kiriting</p>
                     </div>
                     <button 
@@ -300,7 +300,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
                 {/* Aqlli maslahat / ogohlantirish */}
                 {(smartMessage || formErrors._smart) && (
-                    <div className={`flex-shrink-0 mb-3 px-3 py-2 rounded-xl text-xs font-medium ${formErrors._smart ? 'bg-red-500/15 border border-red-500/40 text-red-200' : 'bg-blue-500/15 border border-blue-500/40 text-blue-200'}`}>
+                    <div className={`flex-shrink-0 mb-3 px-3 py-2 rounded-xl text-xs font-medium ${formErrors._smart ? 'bg-red-100 border border-red-300 text-red-800' : 'bg-blue-100 border border-blue-300 text-blue-900'}`}>
                         {formErrors._smart ? formErrors._smart : smartMessage}
                     </div>
                 )}
@@ -311,7 +311,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                     <div className="lg:col-span-3 flex flex-col gap-3 h-full overflow-hidden">
                         {/* Demographics */}
                         <div className="glass-panel p-3 space-y-2 flex-shrink-0">
-                            <h3 className="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[10px]">1</span>
                                 Pasport
                             </h3>
@@ -329,7 +329,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                     {formErrors.age && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.age}</p>}
                                 </div>
                                 <div className="flex flex-col">
-                                    <label htmlFor="gender" className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1 mb-0.5">{t('data_input_gender')}</label>
+                                    <label htmlFor="gender" className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">{t('data_input_gender')}</label>
                                     <select id="gender" value={formData.gender || ''} onChange={e => handleChange('gender', e.target.value)} required className={`block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg ${formErrors.gender ? 'ring-1 ring-red-500' : ''}`}>
                                         <option value="">...</option>
                                         <option value="male">Erkak</option>
@@ -342,12 +342,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         
                         {/* Allergiya va dori-darmonlar (xavfsizlik uchun muhim) */}
                         <div className="glass-panel p-3 space-y-2 flex-shrink-0">
-                            <h3 className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-[10px]">!</span>
+                            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[10px]">!</span>
                                 Xavfsizlik
                             </h3>
                             <div>
-                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder="Allergiya (yo'q bo'lsa Yo'q)" />
+                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder="Allergiya (yo'q bo'lsa «Yo'q» yozing)" />
                             </div>
                             <div>
                                 <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder="Joriy dori-darmonlar" />
@@ -356,8 +356,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
                         {/* Other Information (Replaces old File Upload) */}
                         <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
-                             <h3 className="text-xs font-bold text-text-primary mb-2 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[10px]">4</span>
+                             <h3 className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[10px]">4</span>
                                 Boshqa ma'lumotlar
                             </h3>
                             <Textarea 
@@ -375,8 +375,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                     <div className="lg:col-span-5 flex flex-col gap-3 h-full overflow-hidden">
                         <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                                <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-bold">2</div>
-                                <h3 className="text-xs font-bold text-text-primary">Klinik Ma'lumotlar</h3>
+                                <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[10px] font-bold">2</div>
+                                <h3 className="text-xs font-bold text-slate-800">Klinik Ma'lumotlar</h3>
                             </div>
 
                             <div className="flex-grow flex flex-col gap-2 min-h-0">
@@ -405,7 +405,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
                         {/* Structured Vitals (Replaces old Objective Data Textarea) */}
                         <div className="glass-panel p-3 flex-shrink-0">
-                            <h3 className="text-xs font-bold text-text-primary mb-2">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
+                            <h3 className="text-xs font-bold text-slate-800 mb-2">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
                             <div className="grid grid-cols-3 gap-2">
                                 <VitalInput label="Qon Bosimi (Sys)" unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} />
                                 <VitalInput label="Qon Bosimi (Dia)" unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} />
@@ -422,7 +422,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                          <div className="glass-panel p-3 h-full flex flex-col">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                 <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[10px] font-bold">3</div>
-                                <h3 className="text-xs font-bold text-text-primary">Diagnostika va Laboratoriya</h3>
+                                <h3 className="text-xs font-bold text-slate-800">Diagnostika va Laboratoriya</h3>
                             </div>
                             
                             <div 

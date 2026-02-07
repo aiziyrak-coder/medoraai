@@ -44,7 +44,7 @@ const validKey = apiKey && apiKey !== 'no-key-set';
 let _aiInstance: InstanceType<typeof GoogleGenAI> | null = null;
 function getAI(): InstanceType<typeof GoogleGenAI> {
   if (!validKey) {
-    throw new Error('Gemini API kaliti o\'rnatilmagan. Serverda build paytida GEMINI_API_KEY yoki VITE_GEMINI_API_KEY belgilang (/var/www/medoraai/.env.production).');
+    throw new Error('AI xizmati hozircha sozlanmagan. Iltimos, keyinroq urinib ko\'ring yoki administrator bilan bog\'laning.');
   }
   if (!_aiInstance) _aiInstance = new GoogleGenAI({ apiKey: apiKey! });
   return _aiInstance;
