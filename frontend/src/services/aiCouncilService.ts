@@ -674,25 +674,6 @@ export const runCouncilDebate = async (
     }
 };
 
-export const checkDrugInteractions = async (drugList: string, language: Language): Promise<DrugInteraction[]> => {
-    const systemInstr = getSystemInstruction(language);
-    const prompt = `Analyze drug interactions for: ${drugList}. Consider only drugs registered and available in Uzbekistan. If an interaction is significant, suggest an alternative available in Uzbekistan (e.g. local trade names). Return JSON array [{interaction, severity, mechanism, management}]. Output Language: ${langMap[language]}.`;
-    const schema = {
-        type: Type.ARRAY,
-        items: {
-            type: Type.OBJECT,
-            properties: {
-                interaction: { type: Type.STRING },
-                severity: { type: Type.STRING },
-                mechanism: { type: Type.STRING },
-                management: { type: Type.STRING },
-            },
-            required: ['interaction', 'severity', 'mechanism', 'management'],
-        }
-    };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
-};
-
 export const analyzeEcgImage = async (image: { base64Data: string, mimeType: string }, language: Language): Promise<EcgReport> => {
     const systemInstr = getSystemInstruction(language);
     const textPart = { text: `Analyze ECG image. Return structured JSON report (rhythm, heartRate, etc.). Output Language: ${langMap[language]}.` };
