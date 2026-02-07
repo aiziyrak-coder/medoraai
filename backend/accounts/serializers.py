@@ -39,9 +39,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for user registration"""
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True, required=True)
-    linked_doctor = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), required=False, allow_null=True
-    )
+    linked_doctor = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = User
@@ -73,6 +71,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
+        # linked_doctor ni phone/ID dan User instance ga o'girish
+        linked_doctor_raw = validated_data.pop('linked_doctor', None)
+        linked_doctor_obj = None
+        if linked_doctor_raw:
+            # Try as ID first
+            if str(linked_doctor_raw).isdigit():
+                linked_doctor_obj = User.objects.filter(pk=int(linked_doctor_raw)).first()
+            # Try as phone
+            if not linked_doctor_obj:
+                linked_doctor_obj = User.objects.filter(phone=str(linked_doctor_raw)).first()
+        validated_data['linked_doctor'] = linked_doctor_obj
         user = User.objects.create_user(password=password, **validated_data)
         # Shifokorlar uchun 7 kunlik trial
         if user.role == 'doctor':

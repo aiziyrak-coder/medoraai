@@ -613,17 +613,48 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setMode('input');
     };
 
-    const handleSaveAssistant = () => {
+    const handleSaveAssistant = async () => {
         if (!assistantData.name || !assistantData.phone) {
             setAssistantMsg("Ism va telefon raqam majburiy.");
             return;
         }
-        const res = localAuthService.upsertAssistant(user.phone, assistantData);
-        setAssistantMsg(res.message);
+        if (!assistantData.password || assistantData.password.length < 8) {
+            setAssistantMsg("Parol kamida 8 ta belgidan iborat bo'lishi kerak.");
+            return;
+        }
+        try {
+            setAssistantMsg("Yuklanmoqda...");
+            const { register } = await import('../services/apiAuthService');
+            const { getProfile } = await import('../services/apiAuthService');
+            const doctorProfile = await getProfile();
+            if (!doctorProfile || !doctorProfile.phone) {
+                setAssistantMsg("Shifokor profili topilmadi. Qayta kiring.");
+                return;
+            }
+            // Backend ID kutadi, lekin bizda phone bor - backenddan ID olish kerak
+            // Hozircha phone yuboramiz, backend serializer'da phone'ni ID ga o'giradi
+            const result = await register({
+                phone: assistantData.phone,
+                name: assistantData.name,
+                password: assistantData.password,
+                password_confirm: assistantData.password,
+                role: 'staff',
+                linked_doctor: String(user.phone), // Backend buni ID sifatida qabul qiladi
+            });
+            if (result.success) {
+                setAssistantMsg("Yordamchi muvaffaqiyatli qo'shildi! U o'z telefoni va paroli bilan kirishi mumkin.");
+                setAssistantData({ name: '', phone: '', password: '' });
+            } else {
+                setAssistantMsg(result.message || "Xatolik yuz berdi.");
+            }
+        } catch (error) {
+            setAssistantMsg("Server bilan bog'lanishda xatolik. Qayta urinib ko'ring.");
+        }
     };
 
-    const handleDeleteAssistant = () => {
-        localAuthService.deleteAssistant(user.phone);
+    const handleDeleteAssistant = async () => {
+        // Yordamchini o'chirish backend orqali - hozircha ishlatilmaydi
+        setAssistantMsg("O'chirish funksiyasi hozircha ishlamaydi.");
         setAssistantData({ name: '', phone: '', password: '' });
         setAssistantMsg("Yordamchi o'chirildi.");
     };
@@ -832,7 +863,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         value={assistantData.password}
                                         onChange={e => setAssistantData({...assistantData, password: e.target.value})}
                                         className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                        placeholder="Yangi parol (ixtiyoriy)"
+                                        placeholder="Yangi parol (kamida 8 ta belgi)"
                                     />
                                 </div>
                                 
