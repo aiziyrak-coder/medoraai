@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Create superuser for Django admin"""
+"""
+Django admin uchun superuser yaratish.
+Loyihada USERNAME_FIELD = 'phone' — admin panelda "Username" o‘rnida TELEFON raqam kiritiladi.
+"""
 import os
 import django
 
@@ -8,17 +11,27 @@ django.setup()
 
 from accounts.models import User
 
-# Delete existing user if exists
-User.objects.filter(phone='aiproduct').delete()
+# Superuser telefon va parol (o‘zgartirishingiz mumkin)
+ADMIN_PHONE = os.environ.get('ADMIN_PHONE', '+998901234567')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin2026!')
+ADMIN_NAME = os.environ.get('ADMIN_NAME', 'Admin')
 
-# Create superuser
-user = User.objects.create_superuser(
-    phone='aiproduct',
-    password='2026',
-    name='AI Product Admin'
-)
+if User.objects.filter(phone=ADMIN_PHONE).exists():
+    user = User.objects.get(phone=ADMIN_PHONE)
+    user.set_password(ADMIN_PASSWORD)
+    user.is_staff = True
+    user.is_superuser = True
+    user.is_active = True
+    user.save()
+    print(f"Mavjud foydalanuvchi yangilandi: {ADMIN_PHONE}")
+else:
+    user = User.objects.create_superuser(
+        phone=ADMIN_PHONE,
+        password=ADMIN_PASSWORD,
+        name=ADMIN_NAME,
+    )
+    print(f"Superuser yaratildi: {ADMIN_PHONE}")
 
-print(f"Superuser yaratildi!")
-print(f"Login: aiproduct")
-print(f"Parol: 2026")
-print(f"Admin URL: http://localhost:8000/admin/")
+print(f"  Admin panel: https://medoraapi.cdcgroup.uz/admin/  (yoki http://localhost:8000/admin/)")
+print(f"  Login (telefon): {ADMIN_PHONE}")
+print(f"  Parol: {ADMIN_PASSWORD}")
