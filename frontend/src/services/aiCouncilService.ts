@@ -506,7 +506,8 @@ export const runCouncilDebate = async (
                 1. Reference O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) approved clinical protocols where applicable.
                 2. Recommend only drugs registered and available in Uzbekistan (savdo nomlari: Nimesil, Sumamed, Augmentin, Metformin va hokazo).
                 3. Debate scientifically; use reasoning and evidence.
-                4. LANGUAGE: ${langMap[language]} ONLY.
+                4. If you need clarification from the patient/doctor (e.g. specific lab value, symptom detail), mention it in your response: "Ma'lumot kerak: [question]" and the Chair will ask the user.
+                5. LANGUAGE: ${langMap[language]} ONLY.
                 History: ${JSON.stringify(debateHistory)}
             `;
             
@@ -531,7 +532,8 @@ export const runCouncilDebate = async (
         if (round < DEBATE_ROUNDS) {
             const summarizationPrompt = `
                 Role: Council Chair.
-                Task: Summarize the round and ask a sharp, clarifying question for the next round. Keep in mind SSV clinical protocols and Uzbekistan context.
+                Task: Summarize the round and ask a sharp, clarifying question for the next round OR if critical information is missing (e.g. vital signs, specific symptoms, duration, severity), ask the USER by prefixing: "FOYDALANUVCHI UCHUN SAVOL: [your question]". Keep in mind SSV clinical protocols and Uzbekistan context.
+                IMPORTANT: If you need clarification from the patient/doctor, use "FOYDALANUVCHI UCHUN SAVOL:" prefix so the system can ask the user.
                 LANGUAGE: ${langMap[language]}.
                 History: ${JSON.stringify(debateHistory)}
             `;
