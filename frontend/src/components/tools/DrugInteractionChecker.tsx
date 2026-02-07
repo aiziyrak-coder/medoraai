@@ -15,6 +15,7 @@ const DrugInteractionChecker: React.FC = () => {
     const [drugs, setDrugs] = useState<string[]>(['', '']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<DrugInteraction | null>(null);
+    const [language] = useState<'uz-L'>('uz-L');
 
     const handleAddDrug = () => {
         if (drugs.length < 10) {
@@ -42,7 +43,7 @@ const DrugInteractionChecker: React.FC = () => {
         }
         setIsAnalyzing(true);
         try {
-            const interaction = await checkDrugInteractions(validDrugs, 'uz-L');
+            const interaction = await checkDrugInteractions(validDrugs, language);
             setResult(interaction);
         } catch (error) {
             alert('Xatolik yuz berdi. Qayta urinib ko\'ring.');
@@ -65,10 +66,10 @@ const DrugInteractionChecker: React.FC = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
-            <div className="glass-panel p-6">
-                <h2 className="text-2xl font-bold text-text-primary mb-2">💊 Dori O'zaro Tasiri</h2>
-                <p className="text-sm text-text-secondary mb-6">Bir necha dori birgalikda ishlatilganda xavf-xatarlarni tekshiring</p>
+        <div className="space-y-6">
+            <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+                <h2 className="text-2xl font-bold text-white mb-2">💊 Dori O'zaro Tasiri</h2>
+                <p className="text-sm text-slate-300 mb-6">Bir necha dori birgalikda ishlatilganda xavf-xatarlarni tekshiring</p>
 
                 <div className="space-y-3">
                     {drugs.map((drug, index) => (
@@ -78,7 +79,7 @@ const DrugInteractionChecker: React.FC = () => {
                                 value={drug}
                                 onChange={(e) => handleDrugChange(index, e.target.value)}
                                 placeholder={`Dori ${index + 1} nomi (masalan: Aspirin, Metformin...)`}
-                                className="flex-1 common-input"
+                                className="flex-1 px-4 py-3 bg-white/90 text-slate-900 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                             />
                             {drugs.length > 2 && (
                                 <button
@@ -116,7 +117,7 @@ const DrugInteractionChecker: React.FC = () => {
             </div>
 
             {result && (
-                <div className="glass-panel p-6 animate-fade-in-up">
+                <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10 animate-fade-in-up">
                     <div className={`p-4 rounded-xl border-2 ${getSeverityColor(result.severity)} mb-4 flex items-center gap-3`}>
                         {getSeverityIcon(result.severity)}
                         <div>
@@ -129,14 +130,14 @@ const DrugInteractionChecker: React.FC = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <h4 className="font-bold text-text-primary mb-2">🔬 Klinik ahamiyati:</h4>
-                            <p className="text-text-secondary">{result.clinicalSignificance}</p>
+                            <h4 className="font-bold text-white mb-2">🔬 Klinik ahamiyati:</h4>
+                            <p className="text-slate-300">{result.clinicalSignificance}</p>
                         </div>
 
                         {result.recommendations.length > 0 && (
                             <div>
-                                <h4 className="font-bold text-text-primary mb-2">📋 Tavsiyalar:</h4>
-                                <ul className="list-disc list-inside space-y-1 text-text-secondary">
+                                <h4 className="font-bold text-white mb-2">📋 Tavsiyalar:</h4>
+                                <ul className="list-disc list-inside space-y-1 text-slate-300">
                                     {result.recommendations.map((rec, i) => (
                                         <li key={i}>{rec}</li>
                                     ))}

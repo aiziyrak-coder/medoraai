@@ -58,10 +58,10 @@ const DrugIdentifier: React.FC = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
-            <div className="glass-panel p-6">
-                <h2 className="text-2xl font-bold text-text-primary mb-2">🔍 Dori Aniqlash</h2>
-                <p className="text-sm text-text-secondary mb-6">Dori nomi yoki qadoq rasmi orqali batafsil ma'lumot oling</p>
+        <div className="space-y-6">
+            <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+                <h2 className="text-2xl font-bold text-white mb-2">🔍 Dori Aniqlash</h2>
+                <p className="text-sm text-slate-300 mb-6">Dori nomi yoki qadoq rasmi orqali batafsil ma'lumot oling</p>
 
                 <div className="flex gap-3 mb-6">
                     <button
@@ -85,7 +85,7 @@ const DrugIdentifier: React.FC = () => {
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
                             placeholder="Dori nomi (masalan: Panadol, Nimesil, Augmentin...)"
-                            className="w-full common-input text-lg"
+                            className="w-full px-4 py-3 bg-white/90 text-slate-900 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-lg"
                         />
                         <button
                             onClick={handleIdentify}
@@ -130,16 +130,16 @@ const DrugIdentifier: React.FC = () => {
             </div>
 
             {result && (
-                <div className="glass-panel p-6 space-y-4 animate-fade-in-up">
-                    <div className="border-b border-border-color pb-4">
-                        <h3 className="text-2xl font-bold text-text-primary">{result.name}</h3>
-                        <p className="text-sm text-text-secondary mt-1">Faol modda: {result.activeIngredient}</p>
-                        <p className="text-sm font-bold text-blue-600 mt-2">{result.dosage}</p>
+                <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10 space-y-4 animate-fade-in-up">
+                    <div className="border-b border-white/10 pb-4">
+                        <h3 className="text-2xl font-bold text-white">{result.name}</h3>
+                        <p className="text-sm text-slate-300 mt-1">Faol modda: {result.activeIngredient}</p>
+                        <p className="text-sm font-bold text-blue-400 mt-2">{result.dosage}</p>
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-text-primary mb-2">📌 Ko'rsatmalar:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-text-secondary text-sm">
+                        <h4 className="font-bold text-white mb-2">📌 Ko'rsatmalar:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-slate-300 text-sm">
                             {result.indications.map((ind, i) => (
                                 <li key={i}>{ind}</li>
                             ))}
@@ -147,8 +147,8 @@ const DrugIdentifier: React.FC = () => {
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-text-primary mb-2">⚠️ Kontrendikatsiyalar:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-text-secondary text-sm">
+                        <h4 className="font-bold text-white mb-2">⚠️ Kontrendikatsiyalar:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-slate-300 text-sm">
                             {result.contraindications.map((con, i) => (
                                 <li key={i}>{con}</li>
                             ))}
@@ -156,8 +156,8 @@ const DrugIdentifier: React.FC = () => {
                     </div>
 
                     <div>
-                        <h4 className="font-bold text-text-primary mb-2">🔴 Yon ta'sirlar:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-text-secondary text-sm">
+                        <h4 className="font-bold text-white mb-2">🔴 Yon ta'sirlar:</h4>
+                        <ul className="list-disc list-inside space-y-1 text-slate-300 text-sm">
                             {result.sideEffects.map((side, i) => (
                                 <li key={i}>{side}</li>
                             ))}
