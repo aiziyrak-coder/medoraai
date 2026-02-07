@@ -66,25 +66,35 @@ const DrugInteractionChecker: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h2 className="text-2xl font-bold text-white mb-2">💊 Dori O'zaro Tasiri</h2>
-                <p className="text-sm text-slate-300 mb-6">Bir necha dori birgalikda ishlatilganda xavf-xatarlarni tekshiring</p>
+        <div className="w-full">
+            <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
+                        <span className="text-2xl">💊</span>
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white">Dori O'zaro Tasiri</h2>
+                        <p className="text-xs text-slate-400">Xavf-xatarlarni tekshiring</p>
+                    </div>
+                </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {drugs.map((drug, index) => (
                         <div key={index} className="flex gap-2">
+                            <div className="flex-shrink-0 w-8 h-10 flex items-center justify-center">
+                                <span className="text-slate-400 font-bold text-sm">{index + 1}.</span>
+                            </div>
                             <input
                                 type="text"
                                 value={drug}
                                 onChange={(e) => handleDrugChange(index, e.target.value)}
-                                placeholder={`Dori ${index + 1} nomi (masalan: Aspirin, Metformin...)`}
-                                className="flex-1 px-4 py-3 bg-white/90 text-slate-900 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                placeholder={`Dori nomi (Aspirin, Metformin...)`}
+                                className="flex-1 px-3 py-2.5 bg-white text-slate-900 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm placeholder:text-slate-400"
                             />
                             {drugs.length > 2 && (
                                 <button
                                     onClick={() => handleRemoveDrug(index)}
-                                    className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 font-bold"
+                                    className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 font-bold transition"
                                 >
                                     ✕
                                 </button>
@@ -117,7 +127,7 @@ const DrugInteractionChecker: React.FC = () => {
             </div>
 
             {result && (
-                <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10 animate-fade-in-up">
+                <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl animate-fade-in-up mt-4">
                     <div className={`p-4 rounded-xl border-2 ${getSeverityColor(result.severity)} mb-4 flex items-center gap-3`}>
                         {getSeverityIcon(result.severity)}
                         <div>

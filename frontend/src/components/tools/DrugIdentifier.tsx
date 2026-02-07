@@ -58,23 +58,30 @@ const DrugIdentifier: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h2 className="text-2xl font-bold text-white mb-2">🔍 Dori Aniqlash</h2>
-                <p className="text-sm text-slate-300 mb-6">Dori nomi yoki qadoq rasmi orqali batafsil ma'lumot oling</p>
+        <div className="w-full">
+            <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                        <span className="text-2xl">🔍</span>
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white">Dori Aniqlash</h2>
+                        <p className="text-xs text-slate-400">Nomi yoki rasm orqali</p>
+                    </div>
+                </div>
 
-                <div className="flex gap-3 mb-6">
+                <div className="flex gap-2 mb-4 bg-slate-800/50 p-1 rounded-xl">
                     <button
                         onClick={() => setMode('text')}
-                        className={`flex-1 py-3 rounded-xl font-bold transition ${mode === 'text' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                        className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition ${mode === 'text' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}
                     >
-                        ✍️ Nomi bo'yicha
+                        ✍️ Nom
                     </button>
                     <button
                         onClick={() => setMode('image')}
-                        className={`flex-1 py-3 rounded-xl font-bold transition ${mode === 'image' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                        className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition ${mode === 'image' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}
                     >
-                        📸 Rasm bo'yicha
+                        📸 Rasm
                     </button>
                 </div>
 
@@ -84,8 +91,8 @@ const DrugIdentifier: React.FC = () => {
                             type="text"
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Dori nomi (masalan: Panadol, Nimesil, Augmentin...)"
-                            className="w-full px-4 py-3 bg-white/90 text-slate-900 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-lg"
+                            placeholder="Dori nomi (Panadol, Nimesil, Augmentin...)"
+                            className="w-full px-4 py-3 bg-white text-slate-900 rounded-xl border-2 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-400"
                         />
                         <button
                             onClick={handleIdentify}
@@ -130,50 +137,62 @@ const DrugIdentifier: React.FC = () => {
             </div>
 
             {result && (
-                <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-white/10 space-y-4 animate-fade-in-up">
+                <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl space-y-4 animate-fade-in-up mt-4">
                     <div className="border-b border-white/10 pb-4">
                         <h3 className="text-2xl font-bold text-white">{result.name}</h3>
                         <p className="text-sm text-slate-300 mt-1">Faol modda: {result.activeIngredient}</p>
                         <p className="text-sm font-bold text-blue-400 mt-2">{result.dosage}</p>
                     </div>
 
-                    <div>
-                        <h4 className="font-bold text-white mb-2">📌 Ko'rsatmalar:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-slate-300 text-sm">
-                            {result.indications.map((ind, i) => (
-                                <li key={i}>{ind}</li>
+                    <div className="grid md:grid-cols-2 gap-3">
+                        <div className="bg-blue-900/20 p-3 rounded-lg border border-blue-500/20">
+                            <h4 className="font-bold text-blue-300 mb-2 text-sm flex items-center gap-1">
+                                <span>📌</span> Ko'rsatmalar
+                            </h4>
+                            <ul className="space-y-1 text-slate-300 text-xs">
+                                {result.indications.slice(0, 5).map((ind, i) => (
+                                    <li key={i} className="flex gap-1"><span className="text-blue-400">•</span> {ind}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="bg-red-900/20 p-3 rounded-lg border border-red-500/20">
+                            <h4 className="font-bold text-red-300 mb-2 text-sm flex items-center gap-1">
+                                <span>⚠️</span> Kontrendikatsiyalar
+                            </h4>
+                            <ul className="space-y-1 text-slate-300 text-xs">
+                                {result.contraindications.slice(0, 5).map((con, i) => (
+                                    <li key={i} className="flex gap-1"><span className="text-red-400">•</span> {con}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="bg-orange-900/20 p-3 rounded-lg border border-orange-500/20">
+                        <h4 className="font-bold text-orange-300 mb-2 text-sm flex items-center gap-1">
+                            <span>🔴</span> Yon ta'sirlar
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {result.sideEffects.slice(0, 8).map((side, i) => (
+                                <span key={i} className="px-2 py-1 bg-orange-500/10 text-orange-200 rounded text-xs">{side}</span>
                             ))}
-                        </ul>
+                        </div>
                     </div>
 
-                    <div>
-                        <h4 className="font-bold text-white mb-2">⚠️ Kontrendikatsiyalar:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-slate-300 text-sm">
-                            {result.contraindications.map((con, i) => (
-                                <li key={i}>{con}</li>
-                            ))}
-                        </ul>
+                    <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 p-4 rounded-xl border border-blue-400/20">
+                        <h4 className="font-bold text-blue-200 mb-2 text-sm flex items-center gap-1">
+                            <span>📋</span> Qabul qilish yo'riqnomasi
+                        </h4>
+                        <p className="text-blue-100 text-sm leading-relaxed">{result.dosageInstructions}</p>
                     </div>
 
-                    <div>
-                        <h4 className="font-bold text-white mb-2">🔴 Yon ta'sirlar:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-slate-300 text-sm">
-                            {result.sideEffects.map((side, i) => (
-                                <li key={i}>{side}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                        <h4 className="font-bold text-blue-900 mb-2">📋 Qabul qilish yo'riqnomasi:</h4>
-                        <p className="text-blue-800 text-sm">{result.dosageInstructions}</p>
-                    </div>
-
-                    <div className="bg-green-50 p-4 rounded-lg">
-                        <h4 className="font-bold text-green-900 mb-2">🇺🇿 O'zbekistonda mavjudligi:</h4>
-                        <p className="text-green-800 text-sm">{result.availabilityInUzbekistan}</p>
+                    <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 p-4 rounded-xl border border-green-400/20">
+                        <h4 className="font-bold text-green-200 mb-2 text-sm flex items-center gap-1">
+                            <span>🇺🇿</span> O'zbekistonda
+                        </h4>
+                        <p className="text-green-100 text-sm">{result.availabilityInUzbekistan}</p>
                         {result.priceRange && (
-                            <p className="text-green-700 text-sm font-bold mt-1">Narx: {result.priceRange}</p>
+                            <p className="text-green-300 text-sm font-bold mt-2">💰 Narx: {result.priceRange}</p>
                         )}
                     </div>
                 </div>
