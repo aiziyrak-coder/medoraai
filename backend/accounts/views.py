@@ -130,24 +130,27 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 def _register_session_for_tokens(user, refresh):
     """OutstandingToken va ActiveSession yozadi, limitdan ortiq sessiyalarni bekor qiladi."""
-    jti = str(refresh.get('jti'))
-    exp = refresh.get('exp')
-    expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
     try:
-        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
-        OutstandingToken.objects.get_or_create(
-            jti=jti,
-            defaults={
-                'user': user,
-                'token': str(refresh),
-                'created_at': timezone.now(),
-                'expires_at': expires_at,
-            }
-        )
+        jti = str(refresh.get('jti'))
+        exp = refresh.get('exp')
+        expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+            OutstandingToken.objects.get_or_create(
+                jti=jti,
+                defaults={
+                    'user': user,
+                    'token': str(refresh),
+                    'created_at': timezone.now(),
+                    'expires_at': expires_at,
+                }
+            )
+        except Exception as ex:
+            logger.warning("OutstandingToken create: %s", ex)
+        ActiveSession.objects.create(user=user, refresh_jti=jti)
+        _revoke_oldest_sessions(user, user.max_concurrent_sessions())
     except Exception as ex:
-        logger.warning("OutstandingToken create: %s", ex)
-    ActiveSession.objects.create(user=user, refresh_jti=jti)
-    _revoke_oldest_sessions(user, user.max_concurrent_sessions())
+        logger.warning("Session registration failed (user created): %s", ex)
 
 
 class CustomTokenRefreshView(TokenRefreshView):
@@ -205,22 +208,35 @@ class CustomTokenRefreshView(TokenRefreshView):
 @permission_classes([permissions.AllowAny])
 def register(request):
     """User registration endpoint"""
-    serializer = UserCreateSerializer(data=request.data)
+    data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+    if data.get('linked_doctor') in ('', None):
+        data.pop('linked_doctor', None)
+    serializer = UserCreateSerializer(data=data)
     if serializer.is_valid():
-        user = serializer.save()
-        refresh = RefreshToken.for_user(user)
-        _register_session_for_tokens(user, refresh)
-        return Response({
-            'success': True,
-            'message': 'Ro\'yxatdan o\'tish muvaffaqiyatli',
-            'data': {
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
+        try:
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            _register_session_for_tokens(user, refresh)
+            return Response({
+                'success': True,
+                'message': 'Ro\'yxatdan o\'tish muvaffaqiyatli',
+                'data': {
+                    'user': UserSerializer(user).data,
+                    'tokens': {
+                        'access': str(refresh.access_token),
+                        'refresh': str(refresh),
+                    }
                 }
-            }
-        }, status=status.HTTP_201_CREATED)
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.exception("Register: error after user save: %s", e)
+            return Response({
+                'success': False,
+                'error': {
+                    'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    'message': 'Ro\'yxatdan o\'tishda server xatoligi. Iltimos, keyinroq urinib ko\'ring.',
+                }
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return Response({
         'success': False,
         'error': {

@@ -39,14 +39,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer for user registration"""
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True, required=True)
-    
+    linked_doctor = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+
     class Meta:
         model = User
         fields = [
             'phone', 'name', 'password', 'password_confirm',
             'role', 'specialties', 'linked_doctor'
         ]
-    
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({"password": "Parollar mos kelmadi"})
