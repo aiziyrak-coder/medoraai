@@ -31,25 +31,9 @@ import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
 
 // --- INITIALIZATION (lazy: brauzerda kalit bo'lmasa sahifa yopilmaydi) ---
-interface ImportMetaEnv {
-  VITE_GEMINI_API_KEY?: string;
-  [key: string]: string | undefined;
-}
-
-interface ProcessEnv {
-  API_KEY?: string;
-  GEMINI_API_KEY?: string;
-  [key: string]: string | undefined;
-}
-
 const getGeminiApiKey = (): string => {
-  const importMeta = typeof import.meta !== 'undefined' ? (import.meta as { env?: ImportMetaEnv }) : null;
-  const processEnv = typeof process !== 'undefined' ? (process as { env?: ProcessEnv }) : null;
-  
-  const key = importMeta?.env?.VITE_GEMINI_API_KEY
-    || processEnv?.env?.API_KEY
-    || processEnv?.env?.GEMINI_API_KEY
-    || '';
+  // Vite replaces import.meta.env.VITE_* at build time (must be direct access, no optional chaining)
+  const key = import.meta.env.VITE_GEMINI_API_KEY || '';
   return key;
 };
 const apiKey = getGeminiApiKey();
