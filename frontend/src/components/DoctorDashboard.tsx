@@ -1037,78 +1037,64 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 </div>
             )}
 
-            {/* Top Bar (Fixed Header) */}
-            <div className="flex-none px-5 py-4 z-50 safe-top">
-                <GlassCard className="flex justify-between items-center p-3 rounded-full bg-white/5 border-white/10 shadow-lg backdrop-blur-md">
-                    <div className="flex items-center gap-4 pl-2 flex-1 min-w-0">
-                        {/* 
-                           CONDITIONALLY RENDER HEADER CONTENT 
-                           If in 'queue' or 'list' view: Show Doctor Info
-                           If in 'consultation' view: Show Patient Info centered/prominent, HIDE Doctor Info
-                        */}
+            {/* Top Bar (Fixed Header) — mobil: ixcham, ustma-ust kelmasin */}
+            <div className="flex-none px-3 py-2 sm:px-5 sm:py-4 z-50 safe-top">
+                <GlassCard className="flex justify-between items-center gap-2 p-2 sm:p-3 rounded-2xl sm:rounded-full bg-white/5 border-white/10 shadow-lg backdrop-blur-md">
+                    <div className="flex items-center gap-2 sm:gap-4 pl-1 sm:pl-2 flex-1 min-w-0 overflow-hidden">
                         {view !== 'consultation' ? (
                             <>
-                                {/* Doctor Avatar */}
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-50 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-[0_0_15px_rgba(79,70,229,0.5)] flex-shrink-0">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-50 to-indigo-600 flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-[0_0_15px_rgba(79,70,229,0.5)] flex-shrink-0">
                                     {user.name.charAt(0)}
                                 </div>
-                                <div className="overflow-hidden">
-                                    <h1 className="font-bold text-white text-sm leading-tight tracking-wide truncate">{user.name}</h1>
-                                    <p className="text-[10px] text-blue-300 font-semibold uppercase tracking-wider truncate">{user.specialties?.[0]}</p>
+                                <div className="min-w-0 overflow-hidden">
+                                    <h1 className="font-bold text-white text-xs sm:text-sm leading-tight tracking-wide truncate">{user.name}</h1>
+                                    <p className="text-[9px] sm:text-[10px] text-blue-300 font-semibold uppercase tracking-wider truncate">{user.specialties?.[0]}</p>
                                 </div>
                             </>
                         ) : (
-                            /* Patient Info in Consultation View - Takes up available space */
-                            <div className="flex-grow flex justify-center items-center">
-                                {currentPatient && (
-                                    <div className="flex items-center gap-4 animate-fade-in-up bg-black/20 px-6 py-1.5 rounded-full border border-white/10">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]"></div>
-                                            <span className="font-bold text-white text-lg tracking-wide">{currentPatient.lastName} {currentPatient.firstName}</span>
-                                        </div>
-                                        <div className="h-4 w-px bg-white/20"></div>
-                                        <span className="text-sm text-blue-200 font-mono font-bold">{currentPatient.age} yosh</span>
-                                        <div className="h-4 w-px bg-white/20"></div>
-                                        <span className="text-xs text-slate-400">{currentPatient.arrivalTime}</span>
-                                        
-                                        {/* Quick Edit Button */}
-                                        <button 
-                                            onClick={handleEditPatientOpen}
-                                            className="ml-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-blue-300"
-                                            title="Bemor ma'lumotlarini tahrirlash"
-                                        >
-                                            <PencilIcon className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            currentPatient && (
+                                <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1 animate-fade-in-up bg-black/20 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full border border-white/10">
+                                    <div className="w-1.5 h-1.5 sm:w-2.5 sm:h-2.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                                    <span className="font-bold text-white text-sm sm:text-base truncate min-w-0">{currentPatient.lastName} {currentPatient.firstName}</span>
+                                    <span className="text-[10px] sm:text-xs text-blue-200 font-mono flex-shrink-0">{currentPatient.age}y</span>
+                                    <span className="text-[10px] sm:text-xs text-slate-400 flex-shrink-0 hidden sm:inline">{currentPatient.arrivalTime}</span>
+                                    <button 
+                                        type="button"
+                                        onClick={handleEditPatientOpen}
+                                        className="p-1 sm:p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-blue-300 flex-shrink-0 ml-auto"
+                                        aria-label="Tahrirlash"
+                                    >
+                                        <PencilIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                    </button>
+                                </div>
+                            )
                         )}
                     </div>
-
-                    <div className="flex items-center gap-2">
-                        {/* Hide Team/Settings button in consultation mode to reduce clutter */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                         {(view !== 'consultation') && (
                             <button 
+                                type="button"
                                 onClick={() => setView('assistant')}
-                                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-blue-300 transition-colors"
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-blue-300 transition-colors"
                                 title="Jamoa va Sozlamalar"
+                                aria-label="Jamoa"
                             >
-                                <UsersIcon className="w-5 h-5" />
+                                <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         )}
-                        
-                        {/* Navigation / Logout Button */}
                         {view === 'consultation' ? (
                             <button 
+                                type="button"
                                 onClick={() => setView('queue')} 
-                                className="h-10 px-6 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white font-bold text-sm transition-colors shadow-lg"
+                                className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm transition-colors shadow-lg whitespace-nowrap"
                             >
                                 &larr; Navbat
                             </button>
                         ) : (
                             <button 
+                                type="button"
                                 onClick={onLogout} 
-                                className="h-10 px-4 rounded-full bg-white/10 hover:bg-red-500/20 text-white/70 hover:text-red-400 flex items-center justify-center font-bold text-xs transition-colors border border-white/5"
+                                className="h-8 sm:h-10 px-3 sm:px-4 rounded-full bg-white/10 hover:bg-red-500/20 text-white/70 hover:text-red-400 flex items-center justify-center font-bold text-[10px] sm:text-xs transition-colors border border-white/5 whitespace-nowrap"
                             >
                                 {t('logout')}
                             </button>
@@ -1122,56 +1108,57 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 
                 {/* VIEW: QUEUE */}
                 {view === 'queue' && (
-                    <div className="flex-grow overflow-y-auto p-5 pb-32 custom-scrollbar">
-                        <div className="flex justify-between items-center mb-8">
-                            <h2 className="text-3xl font-black text-white tracking-tight drop-shadow-md">{t('doc_tab_queue')}</h2>
+                    <div className="flex-grow overflow-y-auto p-3 sm:p-5 pb-32 custom-scrollbar">
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-8">
+                            <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">{t('doc_tab_queue')}</h2>
                             <button 
+                                type="button"
                                 onClick={() => setShowWalkInModal(true)}
-                                className="h-12 px-6 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center text-white font-bold gap-2 active:scale-95 transition-transform border border-green-400/50"
+                                className="h-10 sm:h-12 px-4 sm:px-6 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center text-white font-bold gap-1.5 sm:gap-2 active:scale-95 transition-transform border border-green-400/50 text-xs sm:text-sm"
                             >
-                                <PlayIcon className="w-5 h-5" />
-                                <span className="text-sm">Navbatsiz Qabul</span>
+                                <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span>Navbatsiz Qabul</span>
                             </button>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                             {queue.filter(p => p.status !== 'completed').length === 0 && (
-                                <p className="text-center text-slate-500 mt-10">{t('doc_queue_empty')}</p>
+                                <p className="text-center text-slate-500 mt-6 sm:mt-10 text-sm">{t('doc_queue_empty')}</p>
                             )}
                             {queue.map(patient => (
                                 <GlassCard 
                                     key={patient.id}
                                     onClick={() => patient.status !== 'completed' && handleStartPatient(patient)}
-                                    className={`p-5 relative overflow-hidden group border-white/5 ${
+                                    className={`p-3 sm:p-5 relative overflow-hidden group border-white/5 ${
                                         patient.status === 'completed' ? 'opacity-50' : 'hover:bg-white/10 cursor-pointer'
                                     }`}
                                 >
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-transparent opacity-50"></div>
-                                    <div className="flex justify-between items-center relative z-10">
-                                        <div className="flex items-center gap-5">
-                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold backdrop-blur-md shadow-inner ${
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-transparent opacity-50" />
+                                    <div className="flex justify-between items-center gap-3 relative z-10 min-w-0">
+                                        <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+                                            <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-base sm:text-xl font-bold backdrop-blur-md shadow-inner flex-shrink-0 ${
                                                 patient.status === 'waiting' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
                                                 patient.status === 'in-progress' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 
                                                 'bg-white/5 text-slate-400 border border-white/10'
                                             }`}>
                                                 {patient.ticketNumber}
                                             </div>
-                                            <div>
-                                                <h3 className="font-bold text-white text-lg tracking-wide">{patient.lastName} {patient.firstName}</h3>
-                                                <div className="flex flex-wrap items-center gap-2 mt-1">
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="font-bold text-white text-sm sm:text-lg tracking-wide truncate">{patient.lastName} {patient.firstName}</h3>
+                                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5">
+                                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                                                         patient.status === 'waiting' ? 'bg-yellow-400 animate-pulse' :
                                                         patient.status === 'in-progress' ? 'bg-blue-400 animate-pulse' : 'bg-slate-500'
-                                                    }`}></span>
-                                                    <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">
-                                                        {patient.age} yosh • {patient.arrivalTime}
+                                                    }`} />
+                                                    <p className="text-[10px] sm:text-xs text-slate-300 font-medium uppercase tracking-wider">
+                                                        {patient.age} yosh{typeof patient.arrivalTime === 'string' ? ` · ${patient.arrivalTime}` : ''}
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
                                         {patient.status !== 'completed' && (
-                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300">
-                                                <ChevronRightIcon className="w-5 h-5" />
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300 flex-shrink-0">
+                                                <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                                             </div>
                                         )}
                                     </div>
@@ -1184,8 +1171,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 {/* VIEW: PATIENTS LIST */}
                 {view === 'patients_list' && (
                     <div className="flex-grow overflow-hidden">
-                        <div className="p-5 pb-0">
-                            <h2 className="text-2xl font-bold text-white mb-4">{t('doc_patients_title')}</h2>
+                        <div className="p-3 sm:p-5 pb-0">
+                            <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">{t('doc_patients_title')}</h2>
                         </div>
                         <PatientsList queue={queue} />
                     </div>
@@ -1400,29 +1387,29 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 )}
             </div>
 
-            {/* Bottom Dock (Only Visible in Queue View) */}
+            {/* Bottom Dock — mobil: ixcham, barcha tugmalar sig'sin */}
             {(view !== 'consultation') && (
-                <div className="absolute bottom-5 left-5 right-5 z-50">
-                    <GlassCard className="flex justify-around items-center py-3 px-2 rounded-[32px] bg-white/10 border-white/10 backdrop-blur-2xl shadow-2xl">
-                        <button onClick={() => setView('queue')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'queue' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
-                            <HomeIcon className={`w-6 h-6 ${view === 'queue' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
-                            <span className="text-[9px] font-bold mt-1 tracking-widest text-glow">{t('doc_tab_queue')}</span>
+                <div className="absolute bottom-3 left-3 right-3 sm:bottom-5 sm:left-5 sm:right-5 z-50">
+                    <GlassCard className="flex justify-between sm:justify-around items-center py-2 px-1 sm:py-3 sm:px-2 rounded-2xl sm:rounded-[32px] bg-white/10 border-white/10 backdrop-blur-2xl shadow-2xl">
+                        <button type="button" onClick={() => setView('queue')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'queue' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
+                            <HomeIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'queue' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider sm:tracking-widest truncate w-full text-center text-glow">{t('doc_tab_queue')}</span>
                         </button>
-                        <button onClick={() => setView('patients_list')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'patients_list' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
-                            <ViewListIcon className={`w-6 h-6 ${view === 'patients_list' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
-                            <span className="text-[9px] font-bold mt-1 tracking-widest">{t('doc_tab_patients')}</span>
+                        <button type="button" onClick={() => setView('patients_list')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'patients_list' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
+                            <ViewListIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'patients_list' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">{t('doc_tab_patients')}</span>
                         </button>
-                        <button onClick={() => setView('documents')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'documents' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
-                            <DocumentTextIcon className={`w-6 h-6 ${view === 'documents' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
-                            <span className="text-[9px] font-bold mt-1 tracking-widest">{t('doc_tab_docs')}</span>
+                        <button type="button" onClick={() => setView('documents')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'documents' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
+                            <DocumentTextIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'documents' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">{t('doc_tab_docs')}</span>
                         </button>
-                        <button onClick={() => setView('drug_tools')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'drug_tools' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
-                            <PillIcon className={`w-6 h-6 ${view === 'drug_tools' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
-                            <span className="text-[9px] font-bold mt-1 tracking-widest">Dorilar</span>
+                        <button type="button" onClick={() => setView('drug_tools')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'drug_tools' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
+                            <PillIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'drug_tools' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">Dorilar</span>
                         </button>
-                        <button onClick={() => setView('profile')} className={`flex flex-col items-center justify-center p-2 transition-colors ${view === 'profile' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
-                            <UserCircleIcon className={`w-6 h-6 ${view === 'profile' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
-                            <span className="text-[9px] font-bold mt-1 tracking-widest">{t('doc_tab_profile')}</span>
+                        <button type="button" onClick={() => setView('profile')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'profile' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
+                            <UserCircleIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'profile' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">{t('doc_tab_profile')}</span>
                         </button>
                     </GlassCard>
                 </div>
