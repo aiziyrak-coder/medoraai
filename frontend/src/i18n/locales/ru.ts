@@ -400,4 +400,18 @@ export const ru: TranslationSet = {
   landing_contact_modal_title: 'Свяжитесь с нами',
   landing_contact_modal_desc: 'Круглосуточная служба поддержки по техническим вопросам.',
   landing_contact_modal_call: 'Позвонить автоматически',
+
+  alert_required_name_age: 'Имя, фамилия и возраст обязательны.',
+  alert_complaints_required: 'Введите жалобы или прикрепите файлы.',
+  confirm_finish_consultation: 'Завершить приём? Пациент будет удалён из очереди.',
+  confirm_retry_analysis: 'Повторить попытку?',
+  alert_max_specialists: 'Можно выбрать до {max} специалистов.',
+  alert_min_specialists: 'Выберите не менее {min} специалистов.',
+  alert_phone_only_mode: 'Используйте компьютер или планшет. На телефоне доступны только режимы Врач и Регистратор.',
+  alert_copied: 'Скопировано!',
+  confirm_clear_completed: 'Удалить {count} завершённых пациентов из списка?',
+  alert_error_generic: 'Произошла ошибка. Попробуйте снова.',
+  alert_qr_error: 'Ошибка генерации QR-кода.',
+  alert_training_done: 'Тренинг завершён!',
+  alert_min_drugs: 'Введите не менее 2 препаратов.',
 };

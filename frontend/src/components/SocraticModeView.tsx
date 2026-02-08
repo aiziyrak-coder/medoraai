@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 interface SocraticModeViewProps {
@@ -28,6 +29,7 @@ const mockCase = {
 };
 
 const SocraticModeView: React.FC<SocraticModeViewProps> = ({ onBack }) => {
+    const { t } = useTranslation();
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
@@ -45,7 +47,7 @@ const SocraticModeView: React.FC<SocraticModeViewProps> = ({ onBack }) => {
             setIsAnswered(false);
         } else {
             // End of session
-            alert("Trening yakunlandi!");
+            alert(t('alert_training_done'));
             onBack();
         }
     };

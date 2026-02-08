@@ -398,6 +398,20 @@ export const uzC: TranslationSet = {
   user_intervention_log: 'Сизнинг аралашувингиз: "{intervention}"',
   scenario_analysis_error: 'Сценарий таҳлилида хатолик юз берди.',
   
+  alert_required_name_age: 'Исм, Фамилия ва Ёш мажбурий!',
+  alert_complaints_required: 'Шикоятлар ёки қўшимча файллар киритилиши керак.',
+  confirm_finish_consultation: 'Қабулни якунлашни тасдиқлайсизми? Бемор навбатдан чиқарилади.',
+  confirm_retry_analysis: 'Қайта уриниб кўрасизми?',
+  alert_max_specialists: 'Максимал {max} та мутахассис танлаш мумкин.',
+  alert_min_specialists: 'Камida {min} та мутахассис танланг.',
+  alert_phone_only_mode: 'Компьютер ёки планшет орқали киринг. Телефон орқали фақат Шифокор ва Регистратор режими ишлайди.',
+  alert_copied: 'Нусхаланди!',
+  confirm_clear_completed: '{count} та тугалланган беморларни рўйхатдан тозалашни тасдиқлайсизми?',
+  alert_error_generic: 'Хатолик юз берди. Қайта уриниб кўринг.',
+  alert_qr_error: 'QR Код генерация қилишда хатолик.',
+  alert_training_done: 'Тренинг якунланди!',
+  alert_min_drugs: 'Камida 2 та дори киритинг.',
+
   // Other various strings
   'unknown_diagnosis': 'Номаълум ташхис',
 };

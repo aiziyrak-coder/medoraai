@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { checkDrugInteractions } from '../../services/aiCouncilService';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import AlertTriangleIcon from '../icons/AlertTriangleIcon';
@@ -12,6 +13,7 @@ interface DrugInteraction {
 }
 
 const DrugInteractionChecker: React.FC = () => {
+    const { t } = useTranslation();
     const [drugs, setDrugs] = useState<string[]>(['', '']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<DrugInteraction | null>(null);
@@ -38,7 +40,7 @@ const DrugInteractionChecker: React.FC = () => {
     const handleCheck = async () => {
         const validDrugs = drugs.filter(d => d.trim());
         if (validDrugs.length < 2) {
-            alert('Kamida 2 ta dori kiriting');
+            alert(t('alert_min_drugs'));
             return;
         }
         setIsAnalyzing(true);
@@ -46,7 +48,7 @@ const DrugInteractionChecker: React.FC = () => {
             const interaction = await checkDrugInteractions(validDrugs, language);
             setResult(interaction);
         } catch (error) {
-            alert('Xatolik yuz berdi. Qayta urinib ko\'ring.');
+            alert(t('alert_error_generic'));
         } finally {
             setIsAnalyzing(false);
         }

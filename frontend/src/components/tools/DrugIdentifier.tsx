@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import { identifyDrugByImage, identifyDrugByName } from '../../services/aiCouncilService';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import CameraIcon from '../icons/CameraIcon';
@@ -16,6 +17,7 @@ interface DrugInfo {
 }
 
 const DrugIdentifier: React.FC = () => {
+    const { t } = useTranslation();
     const [searchText, setSearchText] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
@@ -51,7 +53,7 @@ const DrugIdentifier: React.FC = () => {
                 return;
             }
         } catch (error) {
-            alert('Xatolik yuz berdi. Qayta urinib ko\'ring.');
+            alert(t('alert_error_generic'));
         } finally {
             setIsAnalyzing(false);
         }

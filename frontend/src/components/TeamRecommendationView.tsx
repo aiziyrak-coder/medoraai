@@ -42,7 +42,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             newSelection.delete(model);
         } else {
             if (newSelection.size >= LIMITS.MAX_SPECIALISTS) {
-                alert(`Maksimal ${LIMITS.MAX_SPECIALISTS} ta mutaxassis tanlash mumkin.`);
+                alert(t('alert_max_specialists').replace('{max}', String(LIMITS.MAX_SPECIALISTS)));
                 return;
             }
             newSelection.add(model);
@@ -52,7 +52,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
 
     const handleConfirm = () => {
         if (selectedSpecialists.size < LIMITS.MIN_SPECIALISTS) {
-            alert(`Iltimos, kamida ${LIMITS.MIN_SPECIALISTS} ta mutaxassis tanlang.`);
+            alert(t('alert_min_specialists').replace('{min}', String(LIMITS.MIN_SPECIALISTS)));
             return;
         }
         // Automatically assign the best model to all selected roles

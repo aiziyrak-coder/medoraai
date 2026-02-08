@@ -58,6 +58,25 @@
 ✅ **Konsilium:**
 - Haqiqiy AI (mock 100% olib tashlandi)
 - Socratic savol prefix tozalangan
+
+### 2026-02 To'liq tekshiruv (audit)
+
+✅ **Backend:**
+- `create_superuser.py`: barcha `print` logger orqali, faqat bitta qisqa xabar (parol/telefon chiqarilmaydi)
+
+✅ **i18n (xabarlar):**
+- Alert/confirm matnlari kalitlarga ko'chirildi: `alert_required_name_age`, `alert_complaints_required`, `confirm_finish_consultation`, `confirm_retry_analysis`, `alert_max_specialists`, `alert_min_specialists`, `alert_phone_only_mode`, `alert_copied`, `confirm_clear_completed`, `alert_error_generic`, `alert_qr_error`, `alert_training_done`, `alert_min_drugs`
+- Barcha til fayllarida (en, uzL, uzC, ru, kaa) qo'shildi
+
+✅ **Komponentlar (t() ishlatish):**
+- DoctorDashboard, StaffDashboard, AuthPage, TeamRecommendationView, SubscriptionPage, SocraticModeView, DrugInteractionChecker, DrugIdentifier — alert/confirm endi `t(...)` orqali
+
+✅ **Mobil UX:**
+- AuthPage: form konteynerida `overflow-y-auto`, `mobile-keyboard-pad`, `custom-scrollbar`
+- StaffDashboard: modal `overflow-y-auto`, `mobile-keyboard-pad`; yopish tugmasi `aria-label`, `type="button"`
+
+✅ **A11y:**
+- DoctorDashboard: kamera, galereya, hujjat yuklash, mikrofon tugmalarida `aria-label`, `type="button"`
 - Mutaxassislar tanlash UI (chap-o'ng layout)
 - Minimal fallback (6 ta, barchasi emas)
 

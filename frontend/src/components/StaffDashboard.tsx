@@ -62,7 +62,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
 
     const handleAddPatient = () => {
         if (!newPatient.firstName.trim() || !newPatient.lastName.trim() || !newPatient.age.trim()) {
-            alert(t('required_field'));
+            alert(t('required_field') + ': ' + t('data_input_patient_name') + ', ' + t('data_input_patient_lastname') + ', ' + t('data_input_age'));
             return;
         }
         
@@ -138,12 +138,12 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
         } catch (e) {
             // QR generation error
             logger.error("QR Generation Error", e);
-            alert("QR Kod generatsiya qilishda xatolik.");
+            alert(t('alert_qr_error'));
         }
     };
 
     const handleRemove = (id: string) => {
-        if(confirm(t('delete') + "?")) {
+        if (confirm(t('delete') + '?')) {
             queueService.removeFromQueue(doctorId, id);
         }
     };
@@ -154,7 +154,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
 
     const handleClearCompleted = () => {
         if (completedList.length === 0) return;
-        if (confirm(`${completedList.length} ta tugallangan bemorni tozalashni tasdiqlaysizmi?`)) {
+        if (confirm(t('confirm_clear_completed').replace('{count}', String(completedList.length)))) {
             completedList.forEach(p => queueService.removeFromQueue(doctorId, p.id));
         }
     };
@@ -175,11 +175,11 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
             
             {/* --- ADD PATIENT MODAL --- */}
             {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up overflow-y-auto">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up overflow-y-auto custom-scrollbar mobile-keyboard-pad">
                     <GlassCard className="w-full max-w-md p-6 bg-slate-900/95 border-white/20 my-auto">
                         <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                             <h3 className="text-xl font-bold">{t('staff_add_patient')}</h3>
-                            <button onClick={() => setShowAddModal(false)}><XIcon className="w-6 h-6 text-slate-400" /></button>
+                            <button type="button" onClick={() => setShowAddModal(false)} aria-label={t('close')}><XIcon className="w-6 h-6 text-slate-400" /></button>
                         </div>
                         
                         <div className="space-y-4">

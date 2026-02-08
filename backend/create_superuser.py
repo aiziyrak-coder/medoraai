@@ -32,22 +32,18 @@ try:
         user.is_superuser = True
         user.is_active = True
         user.save()
-        logger.info(f"Superuser yangilandi: {ADMIN_PHONE}")
-        print(f"✅ Superuser yangilandi: {ADMIN_PHONE}")
+        logger.info("Superuser yangilandi: %s", ADMIN_PHONE)
     else:
-        user = User.objects.create_superuser(
+        User.objects.create_superuser(
             phone=ADMIN_PHONE,
             password=ADMIN_PASSWORD,
             name=ADMIN_NAME,
         )
-        logger.info(f"Superuser yaratildi: {ADMIN_PHONE}")
-        print(f"✅ Superuser yaratildi: {ADMIN_PHONE}")
+        logger.info("Superuser yaratildi: %s", ADMIN_PHONE)
 
-    print(f"📊 Admin panel: https://medoraapi.cdcgroup.uz/admin/")
-    print(f"📱 Login (telefon): {ADMIN_PHONE}")
-    print(f"🔐 Parol: {'*' * len(ADMIN_PASSWORD)} (xavfsizlik uchun yashirin)")
-    print(f"\n💡 Parol `.env` yoki environment variable'da saqlangan.")
+    # Faqat minimal xabar (parol va telefon log/chiqishda ko'rsatilmasin)
+    print("OK: Superuser tayyor. Admin panelga .env dagi ADMIN_PHONE va ADMIN_PASSWORD bilan kiring.")
 except Exception as e:
-    logger.error(f"Superuser yaratishda xatolik: {e}")
-    print(f"❌ Xatolik: {e}")
+    logger.exception("Superuser yaratishda xatolik")
+    print(f"Xatolik: {e}")
     sys.exit(1)

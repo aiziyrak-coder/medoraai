@@ -396,6 +396,21 @@ export const en = {
   user_intervention_log: 'Your intervention: "{intervention}"',
   scenario_analysis_error: 'Error in scenario analysis.',
   
+  // Alerts & confirmations (UX consistency)
+  alert_required_name_age: 'First name, last name and age are required.',
+  alert_complaints_required: 'Please enter complaints or attach files.',
+  confirm_finish_consultation: 'Are you sure you want to finish the consultation? The patient will be removed from the queue.',
+  confirm_retry_analysis: 'Would you like to try again?',
+  alert_max_specialists: 'You can select up to {max} specialists.',
+  alert_min_specialists: 'Please select at least {min} specialists.',
+  alert_phone_only_mode: 'Please use a computer or tablet. On phone only Doctor and Reception modes are available.',
+  alert_copied: 'Copied to clipboard!',
+  confirm_clear_completed: 'Clear {count} completed patient(s) from the list?',
+  alert_error_generic: 'An error occurred. Please try again.',
+  alert_qr_error: 'Error generating QR code.',
+  alert_training_done: 'Training completed!',
+  alert_min_drugs: 'Please enter at least 2 drugs.',
+
   // Other various strings
   'unknown_diagnosis': 'Unknown diagnosis',
 };

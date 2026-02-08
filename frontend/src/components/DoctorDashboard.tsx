@@ -506,7 +506,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     // New "Navbatsiz Qabul" (Immediate Admission) Logic
     const handleImmediateAdmit = () => {
         if (!walkInPatient.firstName || !walkInPatient.lastName || !walkInPatient.age) {
-            alert("Ism, Familiya va Yosh majburiy!");
+            alert(t('alert_required_name_age'));
             return;
         }
 
@@ -590,7 +590,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
     const handleAnalyze = async () => {
         if ((!complaints.trim() && attachments.length === 0) || !currentPatient) {
-            alert("Shikoyatlar yoki qo'shimcha fayllar kiritilishi kerak.");
+            alert(t('alert_complaints_required'));
             return;
         }
         if (mode === 'processing') return;
@@ -641,7 +641,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             setIsAnalyzing(false);
             const { getUserFriendlyError } = await import('../utils/errorHandler');
             const errorMessage = getUserFriendlyError(e, "Tahlilda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
-            const retry = confirm(`${errorMessage}\n\nQayta urinib ko'rasizmi?`);
+            const retry = confirm(`${errorMessage}\n\n${t('confirm_retry_analysis')}`);
             if (retry) {
                 handleAnalyze();
             } else {
@@ -660,7 +660,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     const handleFinish = () => {
-        if (!confirm("Qabulni yakunlashni tasdiqlaysizmi? Bemor navbatdan chiqariladi.")) {
+        if (!confirm(t('confirm_finish_consultation'))) {
             return;
         }
         if (currentPatient) {
@@ -1289,13 +1289,13 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                                 <input type="file" ref={galleryInputRef} className="hidden" accept="image/*" onChange={handleFileSelect} />
                                                 <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onChange={handleFileSelect} />
                                                 
-                                                <button onClick={() => cameraInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Kamera">
+                                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Kamera" aria-label="Kamera">
                                                     <CameraIcon className="w-5 h-5 text-blue-300" />
                                                 </button>
-                                                <button onClick={() => galleryInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Galereya">
+                                                <button type="button" onClick={() => galleryInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Galereya" aria-label="Galereya">
                                                     <PhotoIcon className="w-5 h-5 text-emerald-300" />
                                                 </button>
-                                                <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Hujjat Yuklash">
+                                                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Hujjat Yuklash" aria-label="Hujjat yuklash">
                                                     <UploadCloudIcon className="w-5 h-5 text-purple-300" />
                                                 </button>
                                                 
@@ -1306,12 +1306,14 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                             </div>
 
                                             <button 
+                                                type="button"
                                                 onClick={isListening ? stopListening : startListening}
                                                 className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
                                                     isListening 
                                                     ? 'bg-red-500 animate-pulse shadow-red-500/50' 
                                                     : 'bg-white/10 hover:bg-white/20 border border-white/10'
                                                 }`}
+                                                aria-label={isListening ? 'Ovozni to\'xtatish' : 'Ovoz yozish'}
                                             >
                                                 <MicrophoneIcon className="w-6 h-6 text-white" />
                                             </button>

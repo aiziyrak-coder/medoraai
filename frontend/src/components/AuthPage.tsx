@@ -212,7 +212,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     const handleRoleSelect = (selectedRole: UserRole) => {
         // Mobile restriction check
         if (selectedRole === 'clinic' && window.innerWidth < 768) {
-            alert("Iltimos, kompyuter yoki planshet orqali kiring. Telefon orqali faqat Shifokor va Registrator rejimi ishlaydi.");
+            alert(t('alert_phone_only_mode'));
             return;
         }
 
@@ -338,8 +338,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 {/* RIGHT SIDE: Login Form */}
-                <div className="w-full lg:w-1/2 h-full bg-slate-900/50 backdrop-blur-xl border-l border-white/10 flex flex-col justify-center p-6 lg:p-12 overflow-y-auto shadow-2xl transition-all">
-                    <div className="max-w-sm w-full mx-auto space-y-4 animate-fade-in-up">
+                <div className="w-full lg:w-1/2 h-full bg-slate-900/50 backdrop-blur-xl border-l border-white/10 flex flex-col justify-center p-6 lg:p-12 overflow-y-auto overflow-x-hidden custom-scrollbar mobile-keyboard-pad shadow-2xl transition-all">
+                    <div className="max-w-sm w-full mx-auto space-y-4 animate-fade-in-up min-h-0">
                         
                         {/* Role Switcher */}
                         <div className="bg-slate-800 p-1 rounded-xl flex mb-4 border border-slate-700">

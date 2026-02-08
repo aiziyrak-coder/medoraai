@@ -400,4 +400,18 @@ export const kaa: TranslationSet = {
   landing_contact_modal_title: 'Biz benen baylanısıń',
   landing_contact_modal_desc: 'Texnikalıq mashqalalar yamasa sorawlar boyınsha 24/7 qollap-quwatlaw xızmeti.',
   landing_contact_modal_call: 'Avtomat qıńǵıraw qılıw',
+
+  alert_required_name_age: 'Aty, familiyası hám jası majbúriy!',
+  alert_complaints_required: 'Shaǵımlar yamasa qosımcha fayllar kiritilisi kerek.',
+  confirm_finish_consultation: 'Qabılıstı tamamlawdı tasdıqlaysızmı? Nawqas navbattan shıǵarıladı.',
+  confirm_retry_analysis: 'Qayta urınıp kóresińmi?',
+  alert_max_specialists: 'Maksimal {max} mutaxassis tanlaw múmkin.',
+  alert_min_specialists: 'Keminde {min} mutaxassis tańlań.',
+  alert_phone_only_mode: 'Kompyuter yamasa planshet orqalı kiriń. Telefon orqalı tek Shıpaker hám Registrator rejimi isleydi.',
+  alert_copied: 'Nusqalandı!',
+  confirm_clear_completed: '{count} tamamlanǵan nawqası(lar)dı tizimnen tazalawnı tasdıqlaysızmı?',
+  alert_error_generic: 'Qate júz berdi. Qayta urınıp kóriń.',
+  alert_qr_error: 'QR Kod generaciya qılıwda qate.',
+  alert_training_done: 'Trening tamamlandı!',
+  alert_min_drugs: 'Keminde 2 dori kiritiń.',
 };

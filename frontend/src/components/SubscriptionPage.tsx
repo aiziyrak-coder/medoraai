@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { User, SubscriptionPlan } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 import * as telegramService from '../services/telegramService';
 import * as apiSubscription from '../services/apiSubscriptionService';
 import * as authService from '../services/authService';
@@ -52,6 +52,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onSubscriptio
     const [loadingPlans, setLoadingPlans] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const { t } = useTranslation();
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,12 +91,12 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onSubscriptio
 
     const handleCopyAccount = () => {
         navigator.clipboard.writeText(BANK_ACCOUNT.accountNumber);
-        alert("Hisob raqam nusxalandi!");
+        alert(t('alert_copied'));
     };
 
     const handleCopyCard = () => {
         navigator.clipboard.writeText("9860356627000702");
-        alert("Karta raqami nusxalandi!");
+        alert(t('alert_copied'));
     };
 
     const doctorAmount = doctorPlan ? Number(doctorPlan.price_monthly) : DOCTOR_PRICE_USD;
