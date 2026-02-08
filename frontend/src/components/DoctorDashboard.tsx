@@ -568,25 +568,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     const handleVitalChange = (key: keyof typeof vitals, value: string) => {
-        // Validatsiya
-        const numValue = parseFloat(value);
-        if (value && isNaN(numValue)) return;
-        
-        // Chegaralar (LIMITS.VITALS dan)
-        const vitalLimits: Record<string, { min: number; max: number }> = {
-            bpSys: LIMITS.VITALS.BP_SYS,
-            bpDia: LIMITS.VITALS.BP_DIA,
-            heartRate: LIMITS.VITALS.HEART_RATE,
-            temp: LIMITS.VITALS.TEMPERATURE,
-            spO2: LIMITS.VITALS.SPO2,
-            respiration: LIMITS.VITALS.RESPIRATION,
-        };
-        
-        if (value && vitalLimits[key]) {
-            const { min, max } = vitalLimits[key];
-            if (numValue < min || numValue > max) return;
-        }
-        
+        // Bo'sh yoki raqam bo'lishi kerak
+        if (value && !/^\d*\.?\d*$/.test(value)) return;
         setVitals(prev => ({ ...prev, [key]: value }));
     };
 
