@@ -186,8 +186,10 @@ const callGemini = async (
             try {
                 return JSON.parse(cleanedText);
             } catch (e) {
-                logger.error("Failed to parse JSON from Gemini:", cleanedText);
-                throw new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
+                logger.error("Failed to parse JSON from Gemini:", cleanedText?.slice(0, 500));
+                const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
+                (err as Error & { cause?: string }).cause = 'parse_json';
+                throw err;
             }
         }
         
@@ -198,13 +200,13 @@ const callGemini = async (
         return text;
     };
     
-    // Retry logic for network errors
+    // Retry logic: tarmoq xatolari va 503 (model band) uchun qayta urinish
     if (shouldRetry) {
         try {
             return await retry(executeCall, {
                 maxRetries: 2,
-                initialDelay: 1000,
-                retryableErrors: ['network', 'timeout', 'fetch', 'connection']
+                initialDelay: 2000,
+                retryableErrors: ['network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded']
             });
         } catch (error) {
             logger.error(`Error calling Gemini API with model ${model} (after retries):`, error);
@@ -258,7 +260,9 @@ export const generateFastDoctorConsultation = async (
     
     const systemInstr = getSystemInstruction(language);
 
-    const promptText = `TEZ tahlil. Bitta eng ehtimol tashxis, qisqa davolash rejasi, O'zbekistonda mavjud dori-darmonlar (savdo nomi, doza, chastota, muddat, yo'riqnoma). SSV protokollari. Til: ${langMap[language]}. JSON.`;
+    const promptText = `TEZ tahlil. Bitta eng ehtimol tashxis, qisqa davolash rejasi, O'zbekistonda mavjud dori-darmonlar.
+MAJBURIY: Har bir dori uchun FAQAT QISQA maydonlar: name, dosage (masalan 500mg), frequency (kuniga 2 marta), duration (5 kun), timing (ovqatdan keyin), instructions (1 qisqa jumla). Uzun yo'riqnoma yozmang.
+primaryDiagnosis da justification ham 1-2 jumla. reasoningChain 3-5 ta qisqa band. SSV protokollari. Til: ${langMap[language]}. JSON.`;
 
     const finalReportSchema = {
         type: Type.OBJECT,
@@ -303,8 +307,8 @@ export const generateFastDoctorConsultation = async (
 
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     
-    // Flash model, limited tokens = faster response
-    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 1400) as Record<string, unknown>;
+    // Flash model; token limit yetarli bo'lsin (kesilish oldini olish), lekin prompt qisqa javob talab qiladi
+    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 2048) as Record<string, unknown>;
     
     // Transform to FinalReport format
     const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;

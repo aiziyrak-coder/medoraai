@@ -39,8 +39,18 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: Google AI Studio da yangi kalit yarating va serverda .env.production ni yangilang, keyin frontendni qayta build qiling.";
     }
 
+    // 503 / model overloaded / UNAVAILABLE
+    if (message.includes('503') || message.includes('overloaded') || message.includes('unavailable')) {
+      return "AI server hozir band. Iltimos, 10–15 soniyadan keyin qayta urinib ko'ring.";
+    }
+
+    // Invalid/truncated JSON response
+    if (message.includes("noto'g'ri javob") || message.includes('invalid json') || message.includes('failed to parse json')) {
+      return "AI javobi to'liq kelmadi. Iltimos, qayta urinib ko'ring.";
+    }
+
     // API errors
-    if (message.includes('api') || message.includes('gemini') || message.includes('invalid json')) {
+    if (message.includes('api') || message.includes('gemini')) {
       return "AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";
     }
     
