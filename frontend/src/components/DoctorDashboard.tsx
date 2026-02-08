@@ -108,7 +108,7 @@ const VitalInputCompact: React.FC<{
 const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
     const primaryDiag = report.consensusDiagnosis[0];
     return (
-    <div className="space-y-4 animate-fade-in-up pb-24">
+    <div className="space-y-4 animate-fade-in-up">
         {report.criticalFinding && (
             <GlassCard className="p-5 border-l-4 border-red-500 bg-red-500/10">
                 <div className="flex items-center gap-3 mb-2">
@@ -155,7 +155,7 @@ const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
 };
 
 const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
-    <div className="space-y-4 animate-fade-in-up pb-24">
+    <div className="space-y-4 animate-fade-in-up">
         <GlassCard className="p-6">
             <h4 className="font-bold text-white/90 text-lg mb-6 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-indigo-500/30">1</div>
@@ -192,7 +192,7 @@ const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
 );
 
 const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
-    <div className="space-y-4 animate-fade-in-up pb-24">
+    <div className="space-y-4 animate-fade-in-up">
         {report.medicationRecommendations.length === 0 && (
             <p className="text-center text-slate-400 py-8">Dori tavsiya qilinmagan.</p>
         )}
@@ -413,7 +413,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     // State
     const [view, setView] = useState<'queue' | 'consultation' | 'assistant' | 'patients_list' | 'documents' | 'profile' | 'drug_tools'>('queue');
     const [mode, setMode] = useState<'input' | 'processing' | 'result'>('input');
-    const [activeResultTab, setActiveResultTab] = useState('diagnosis');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     
     // Immediate Admission (Walk-in) State
     const [showWalkInModal, setShowWalkInModal] = useState(false);
@@ -588,9 +588,10 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             alert("Shikoyatlar yoki qo'shimcha fayllar kiritilishi kerak.");
             return;
         }
-        if (mode === 'processing') return; // Debouncing - takroriy bosishni oldini olish
-        setMode('processing');
-        
+        if (mode === 'processing') return;
+        setMode('result');
+        setIsAnalyzing(true);
+        setReport(null);
         try {
             const formattedAttachments = await Promise.all(attachments.map(async (att) => {
                 // Fixed: Remove casting causing issues. att.file is already defined as File in the interface.
@@ -630,9 +631,9 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
             const result = await aiService.generateFastDoctorConsultation(patientData, user.specialties || [], language);
             setReport(result);
-            setMode('result');
-            setActiveResultTab('diagnosis');
+            setIsAnalyzing(false);
         } catch (e) {
+            setIsAnalyzing(false);
             const { getUserFriendlyError } = await import('../utils/errorHandler');
             const errorMessage = getUserFriendlyError(e, "Tahlilda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
             const retry = confirm(`${errorMessage}\n\nQayta urinib ko'rasizmi?`);
@@ -1333,60 +1334,58 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             </div>
                         )}
 
-                        {/* PROCESSING MODE */}
-                        {mode === 'processing' && (
-                            <div className="flex-grow flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
-                                {/* Futuristic Spinner */}
-                                <div className="relative w-32 h-32 mb-10">
-                                    <div className="absolute inset-0 border-t-4 border-blue-500 rounded-full animate-spin"></div>
-                                    <div className="absolute inset-2 border-r-4 border-purple-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-                                    <div className="absolute inset-4 border-b-4 border-cyan-500 rounded-full animate-spin" style={{ animationDuration: '2s' }}></div>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <StethoscopeIcon className="w-12 h-12 text-white animate-pulse" />
-                                    </div>
-                                </div>
-                                <h3 className="text-3xl font-black text-white mb-2 tracking-tight text-glow">MEDORA AI</h3>
-                                <p className="text-blue-200 font-medium tracking-wide">Ma'lumotlar qayta ishlanmoqda...</p>
-                            </div>
-                        )}
-
-                        {/* RESULT MODE */}
-                        {mode === 'result' && report && (
+                        {/* RESULT VIEW: darhol natija sahifasi, loading — ingichka qator */}
+                        {mode === 'result' && (
                             <div className="flex-grow flex flex-col overflow-hidden bg-black/20 backdrop-blur-xl h-full">
-                                {/* Result Tabs Switcher */}
-                                <div className="flex-none px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5">
-                                    {[
-                                        { id: 'diagnosis', label: 'Tashxis', icon: <CheckCircleIcon className="w-4 h-4"/> },
-                                        { id: 'plan', label: 'Reja', icon: <ClipboardListIcon className="w-4 h-4"/> },
-                                        { id: 'rx', label: 'Retsept', icon: <PillIcon className="w-4 h-4"/> }
-                                    ].map(tab => (
-                                        <button
-                                            key={tab.id}
-                                            onClick={() => setActiveResultTab(tab.id)}
-                                            className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all whitespace-nowrap border ${
-                                                activeResultTab === tab.id 
-                                                ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
-                                                : 'bg-white/5 text-white/60 border-white/5 hover:bg-white/10'
-                                            }`}
-                                        >
-                                            {tab.icon}
-                                            {tab.label}
-                                        </button>
-                                    ))}
-                                </div>
+                                {/* Ingichka loading — "Ma'lumotlar qayta ishlanmoqda" o'rniga */}
+                                {isAnalyzing && (
+                                    <div className="flex-none flex items-center gap-3 px-4 py-2 bg-blue-500/20 border-b border-blue-500/30">
+                                        <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                        <span className="text-sm font-bold text-blue-200">Tahlil qilinmoqda...</span>
+                                    </div>
+                                )}
 
-                                {/* Result Body */}
+                                {/* Bitta sahifa — 3 bo'lim (Tashxis, Reja, Retsept) */}
                                 <div className="flex-grow overflow-y-auto p-5 custom-scrollbar">
-                                    {activeResultTab === 'diagnosis' && <DiagnosisTab report={report} />}
-                                    {activeResultTab === 'plan' && <PlanTab report={report} />}
-                                    {activeResultTab === 'rx' && <PrescriptionTab report={report} />}
+                                    {!report && isAnalyzing && (
+                                        <>
+                                            <div className="space-y-4 pb-8">
+                                                <div className="h-24 bg-white/5 rounded-2xl animate-pulse" />
+                                                <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+                                            </div>
+                                            <div className="h-28 bg-white/5 rounded-2xl animate-pulse mb-6" />
+                                            <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
+                                        </>
+                                    )}
+                                    {report && (
+                                        <div className="space-y-8 pb-24">
+                                            <section className="animate-fade-in-up">
+                                                <h3 className="text-xs font-black text-white/60 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <CheckCircleIcon className="w-4 h-4 text-emerald-400" /> 1. Tashxis
+                                                </h3>
+                                                <DiagnosisTab report={report} />
+                                            </section>
+                                            <section className="animate-fade-in-up">
+                                                <h3 className="text-xs font-black text-white/60 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <ClipboardListIcon className="w-4 h-4 text-indigo-400" /> 2. Davolash rejasi
+                                                </h3>
+                                                <PlanTab report={report} />
+                                            </section>
+                                            <section className="animate-fade-in-up">
+                                                <h3 className="text-xs font-black text-white/60 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <PillIcon className="w-4 h-4 text-emerald-400" /> 3. Dori-darmonlar
+                                                </h3>
+                                                <PrescriptionTab report={report} />
+                                            </section>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Bottom Action */}
                                 <div className="flex-none p-5 bg-gradient-to-t from-black via-black/80 to-transparent z-30">
                                     <button 
                                         onClick={handleFinish}
-                                        className="w-full bg-white text-black font-black py-5 rounded-[24px] shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 hover:bg-slate-200"
+                                        disabled={isAnalyzing}
+                                        className="w-full bg-white text-black font-black py-5 rounded-[24px] shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all flex items-center justify-center gap-3 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         QABULNI YAKUNLASH
                                     </button>

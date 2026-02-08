@@ -142,6 +142,7 @@ const getRelevantHistoryContext = (currentComplaints: string): string => {
 interface GeminiConfig {
     systemInstruction?: string;
     temperature?: number;
+    maxOutputTokens?: number;
     responseMimeType?: string;
     responseSchema?: unknown;
     tools?: Array<{ googleSearch: Record<string, never> }>;
@@ -153,14 +154,15 @@ const callGemini = async (
     responseSchema?: unknown,
     useSearch: boolean = false,
     systemInstruction: string = '',
-    shouldRetry: boolean = true
+    shouldRetry: boolean = true,
+    maxOutputTokens?: number
 ) => {
     const executeCall = async (): Promise<unknown> => {
         const config: GeminiConfig = {
             systemInstruction: systemInstruction,
-            temperature: 0.1, // Ultra-low temperature for medical precision
+            temperature: 0.15,
         };
-        
+        if (maxOutputTokens != null) config.maxOutputTokens = maxOutputTokens;
         if (responseSchema) {
             config.responseMimeType = "application/json";
             config.responseSchema = responseSchema;
@@ -256,21 +258,7 @@ export const generateFastDoctorConsultation = async (
     
     const systemInstr = getSystemInstruction(language);
 
-    const promptText = `
-    Bemor ma'lumotlarini TEZ va ANIQ tahlil qiling. FAQAT ENG EHTIMOLLIK YUQORI TASHXIS va TO'G'RIDAN-TO'G'RI DAVOLASH REJASI.
-    O'ZBEKISTON SSV KLINIK PROTOKOLLARI MAJBURIY.
-    
-    QISQA VA ANIQ BO'LING:
-    1. primaryDiagnosis: ENG YUQORI EHTIMOLLIKDAGI TASHXIS (name, probability, justification, reasoningChain, uzbekProtocolMatch).
-    2. treatmentPlan: QISQA, AMALIY qadamlar (masalan: "1. Dam olish, suyuqlik ko'p ichish", "2. Antibiotik terapiya boshlash").
-    3. medications: FAQAT O'ZBEKISTONDA MAVJUD SAVDO NOMLARI (Panadol, Nimesil, Augmentin, Sumamed, Metformin...).
-       Har bir dori: name, dosage (120mg, 500mg...), frequency (kuniga 3 marta, 2 marta...), duration (5 kun, 7 kun...), timing (ovqatdan oldin, ovqatdan keyin, ovqat bilan...), instructions (qo'shimcha maslahat).
-    4. criticalFinding: faqat shoshilinch holat bo'lsa, aks holda bo'sh/null.
-    5. recommendedTests: zarur tekshiruvlar ro'yxati.
-
-    JAVOB TILI: ${langMap[language]}
-    Format: JSON.
-    `;
+    const promptText = `TEZ tahlil. Bitta eng ehtimol tashxis, qisqa davolash rejasi, O'zbekistonda mavjud dori-darmonlar (savdo nomi, doza, chastota, muddat, yo'riqnoma). SSV protokollari. Til: ${langMap[language]}. JSON.`;
 
     const finalReportSchema = {
         type: Type.OBJECT,
@@ -315,8 +303,8 @@ export const generateFastDoctorConsultation = async (
 
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     
-    // Flash model for speed (not Pro)
-    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr) as Record<string, unknown>;
+    // Flash model, limited tokens = faster response
+    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 1400) as Record<string, unknown>;
     
     // Transform to FinalReport format
     const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
