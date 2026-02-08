@@ -455,6 +455,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const galleryInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { isListening, transcript, startListening, stopListening } = useSpeechToText();
+    /** Diktofon boshlanganda shikoyat matni — faqat oxirgi transcript yangilanadi, takrorlanmaydi */
+    const complaintsBaseRef = useRef('');
 
     // Init Queue & Settings
     useEffect(() => {
@@ -484,12 +486,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     }, [user.phone]);
 
     useEffect(() => {
-        if (transcript && isListening) {
-            setComplaints(prev => {
-                if (prev.endsWith(transcript)) return prev;
-                return prev + (prev ? ' ' : '') + transcript;
-            });
-        }
+        if (!isListening) return;
+        setComplaints(complaintsBaseRef.current + (transcript ? (complaintsBaseRef.current ? ' ' : '') + transcript : ''));
     }, [transcript, isListening]);
 
     // Handlers
@@ -1348,7 +1346,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
                                             <button 
                                                 type="button"
-                                                onClick={isListening ? stopListening : startListening}
+                                                onClick={isListening ? stopListening : () => { complaintsBaseRef.current = complaints; startListening(); }}
                                                 className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
                                                     isListening 
                                                     ? 'bg-red-500 animate-pulse shadow-red-500/50' 

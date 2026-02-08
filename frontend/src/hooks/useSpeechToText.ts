@@ -57,28 +57,10 @@ export const useSpeechToText = () => {
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
             const results = event.results;
-            const segments: string[] = [];
-            let interim = '';
-            for (let i = 0; i < results.length; i++) {
-                const r = results[i];
-                const text = (r[0] as { transcript: string }).transcript.trim();
-                const isFinal = (r as SpeechRecognitionResult & { isFinal?: boolean }).isFinal;
-                if (!text) continue;
-                if (isFinal) {
-                    if (segments.length > 0 && text.includes(segments[segments.length - 1])) {
-                        segments[segments.length - 1] = text;
-                    } else if (segments.length > 0 && segments[segments.length - 1].includes(text)) {
-                        // yangi qisqaroq — o'tkazib yuboramiz
-                    } else {
-                        segments.push(text);
-                    }
-                    interim = '';
-                } else {
-                    interim = text;
-                }
-            }
-            const full = (segments.join(' ') + (interim ? ' ' + interim : '')).trim();
-            setTranscript(full);
+            if (results.length === 0) return;
+            const last = results[results.length - 1];
+            const text = (last[0] as { transcript: string }).transcript.trim();
+            setTranscript(text);
         };
 
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
