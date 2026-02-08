@@ -338,8 +338,9 @@ export const generateFastDoctorConsultation = async (
 
     const multimodalPrompt = buildFastDoctorPrompt(promptText, patientData);
 
+    const DOCTOR_FAST_MODEL = 'gemini-2.5-flash-lite';
     const runWithTokens = (maxTok: number) =>
-        callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, maxTok) as Promise<Record<string, unknown>>;
+        callGemini(multimodalPrompt, DOCTOR_FAST_MODEL, finalReportSchema, false, systemInstr, true, maxTok) as Promise<Record<string, unknown>>;
 
     let result: Record<string, unknown>;
     try {
