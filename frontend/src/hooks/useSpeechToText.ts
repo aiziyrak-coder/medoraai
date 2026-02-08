@@ -56,11 +56,29 @@ export const useSpeechToText = () => {
         recognition.lang = langCodeMap[language] || 'uz-UZ';
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-            let fullTranscript = '';
-            for (let i = 0; i < event.results.length; i++) {
-                fullTranscript += event.results[i][0].transcript;
+            const results = event.results;
+            const segments: string[] = [];
+            let interim = '';
+            for (let i = 0; i < results.length; i++) {
+                const r = results[i];
+                const text = (r[0] as { transcript: string }).transcript.trim();
+                const isFinal = (r as SpeechRecognitionResult & { isFinal?: boolean }).isFinal;
+                if (!text) continue;
+                if (isFinal) {
+                    if (segments.length > 0 && text.includes(segments[segments.length - 1])) {
+                        segments[segments.length - 1] = text;
+                    } else if (segments.length > 0 && segments[segments.length - 1].includes(text)) {
+                        // yangi qisqaroq — o'tkazib yuboramiz
+                    } else {
+                        segments.push(text);
+                    }
+                    interim = '';
+                } else {
+                    interim = text;
+                }
             }
-            setTranscript(fullTranscript);
+            const full = (segments.join(' ') + (interim ? ' ' + interim : '')).trim();
+            setTranscript(full);
         };
 
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
