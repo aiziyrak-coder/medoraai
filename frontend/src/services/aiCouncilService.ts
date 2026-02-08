@@ -261,18 +261,39 @@ const buildMultimodalPrompt = (introText: string, data: PatientData) => {
     return { parts };
 };
 
+/** Doktor tez tahlili uchun: tarix kontekstisiz, minimal prompt — maksimal tezlik */
+const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
+    const { attachments, ...rest } = data;
+    const textData = JSON.stringify(rest);
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+        { text: `${introText}\n\nPATIENT: ${textData}` }
+    ];
+    if (attachments && attachments.length > 0) {
+        parts[0].text += `\nAttachments: ${attachments.length}.`;
+        attachments.forEach(att => {
+            parts.push({
+                inlineData: { mimeType: att.mimeType, data: att.base64Data }
+            });
+        });
+    }
+    return { parts };
+};
 
-// --- SINGLE DOCTOR MODE (ENHANCED) ---
+
+// --- SINGLE DOCTOR MODE (TEZKOR — faqat doktor profilida) ---
+/** Juda qisqa tizim ko'rsatmasi: tez tahlil uchun, konsilium emas */
+const getFastDoctorSystemInstruction = (language: Language): string => {
+    const til = langMap[language];
+    return `Siz tibbiy yordamchi AI. Javobni faqat ${til} tilida, STRICT JSON. Qisqa va aniq. O'zbekistonda mavjud dori-darmonlar. SSV protokollari.`;
+};
 
 export const generateFastDoctorConsultation = async (
     patientData: PatientData, 
     specialties: string[], 
     language: Language
 ): Promise<FinalReport> => {
-    
-    const systemInstr = getSystemInstruction(language);
-
-    const promptText = `Tez tahlil: 1 tashxis, qisqa reja, O'zbekistonda mavjud dori. Har bir dori: name, dosage, frequency, duration, timing, instructions (1 jumla). justification 1-2 jumla. reasoningChain 3-4 band. Til: ${langMap[language]}. Faqat JSON.`;
+    const systemInstr = getFastDoctorSystemInstruction(language);
+    const promptText = `1 tashxis, qisqa reja, dori (name, dosage, frequency, duration, timing, instructions). justification 1 jumla. reasoningChain 2 band. Til: ${langMap[language]}. Faqat JSON.`;
 
     const finalReportSchema = {
         type: Type.OBJECT,
@@ -315,9 +336,9 @@ export const generateFastDoctorConsultation = async (
         required: ['primaryDiagnosis', 'treatmentPlan', 'medications']
     };
 
-    const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
-    // Tez javob: 1024 token, qisqa prompt
-    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 1024) as Record<string, unknown>;
+    const multimodalPrompt = buildFastDoctorPrompt(promptText, patientData);
+    // Maksimal tezlik: 640 token, tarix yo'q, qisqa tizim (512 dan kesilish kam)
+    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 640) as Record<string, unknown>;
     
     // Transform to FinalReport format
     const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
