@@ -75,20 +75,20 @@ const VitalInputCompact: React.FC<{
     icon: React.ReactNode;
     color: string;
 }> = ({ label, value, onChange, unit, icon, color }) => (
-    <div className="flex flex-col bg-white/5 border border-white/10 rounded-2xl p-2 relative overflow-hidden group focus-within:border-white/30 focus-within:bg-white/10 transition-all">
-        <div className={`absolute top-1 right-1 text-${color}-400 opacity-50 scale-75`}>
+    <div className="flex flex-col bg-slate-800/60 border-2 border-slate-700 rounded-xl p-2.5 relative overflow-hidden group focus-within:border-blue-500 focus-within:bg-slate-800 transition-all">
+        <div className={`absolute top-1 right-1 text-${color}-400 opacity-40`}>
             {icon}
         </div>
-        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</span>
+        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider mb-1">{label}</span>
         <div className="flex items-baseline gap-1 z-10">
             <input 
                 type="number" 
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder="-"
-                className="w-full bg-transparent text-lg font-bold text-white outline-none placeholder-white/20"
+                className="w-full bg-transparent text-xl font-black text-white outline-none placeholder-slate-600"
             />
-            <span className="text-[9px] text-slate-500 font-medium">{unit}</span>
+            <span className="text-[10px] text-slate-400 font-bold">{unit}</span>
         </div>
     </div>
 );
