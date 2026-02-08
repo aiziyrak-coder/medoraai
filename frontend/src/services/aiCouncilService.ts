@@ -272,9 +272,7 @@ export const generateFastDoctorConsultation = async (
     
     const systemInstr = getSystemInstruction(language);
 
-    const promptText = `TEZ tahlil. Bitta eng ehtimol tashxis, qisqa davolash rejasi, O'zbekistonda mavjud dori-darmonlar.
-MAJBURIY: Har bir dori uchun FAQAT QISQA maydonlar: name, dosage (masalan 500mg), frequency (kuniga 2 marta), duration (5 kun), timing (ovqatdan keyin), instructions (1 qisqa jumla). Uzun yo'riqnoma yozmang.
-primaryDiagnosis da justification ham 1-2 jumla. reasoningChain 3-5 ta qisqa band. SSV protokollari. Til: ${langMap[language]}. JSON.`;
+    const promptText = `Tez tahlil: 1 tashxis, qisqa reja, O'zbekistonda mavjud dori. Har bir dori: name, dosage, frequency, duration, timing, instructions (1 jumla). justification 1-2 jumla. reasoningChain 3-4 band. Til: ${langMap[language]}. Faqat JSON.`;
 
     const finalReportSchema = {
         type: Type.OBJECT,
@@ -318,11 +316,80 @@ primaryDiagnosis da justification ham 1-2 jumla. reasoningChain 3-5 ta qisqa ban
     };
 
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
-    
-    // Flash model; token limit yetarli bo'lsin (kesilish oldini olish), lekin prompt qisqa javob talab qiladi
-    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 2048) as Record<string, unknown>;
+    // Tez javob: 1024 token, qisqa prompt
+    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 1024) as Record<string, unknown>;
     
     // Transform to FinalReport format
+    const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
+    return {
+        consensusDiagnosis: primaryDiag ? [{
+            name: String(primaryDiag.name || 'Tashxis'),
+            probability: Number(primaryDiag.probability || 85),
+            justification: String(primaryDiag.justification || ''),
+            evidenceLevel: 'High',
+            reasoningChain: (primaryDiag.reasoningChain as string[]) || [],
+            uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || 'SSV protokoliga muvofiq')
+        }] : [],
+        rejectedHypotheses: [],
+        treatmentPlan: (result.treatmentPlan as string[]) || [],
+        medicationRecommendations: ((result.medications as Array<Record<string, unknown>>) || []).map(med => ({
+            name: String(med.name || ''),
+            dosage: String(med.dosage || ''),
+            frequency: String(med.frequency || ''),
+            timing: String(med.timing || ''),
+            duration: String(med.duration || ''),
+            instructions: String(med.instructions || ''),
+            notes: '',
+            localAvailability: "O'zbekistonda mavjud",
+            priceEstimate: ''
+        })),
+        recommendedTests: (result.recommendedTests as string[]) || [],
+        unexpectedFindings: '',
+        uzbekistanLegislativeNote: "SSV klinik protokollariga muvofiq",
+        criticalFinding: result.criticalFinding as { finding: string; implication: string; urgency: string } | undefined
+    } as FinalReport;
+};
+
+/** Strim: javob kelishi bilan matnni onChunk orqali yuboradi, oxirida FinalReport qaytaradi */
+export const generateFastDoctorConsultationStream = async (
+    patientData: PatientData,
+    specialties: string[],
+    language: Language,
+    onChunk: (text: string) => void
+): Promise<FinalReport> => {
+    const systemInstr = getSystemInstruction(language);
+    const promptText = `Tez tahlil. Javobni FAQAT quyidagi JSON ko'rinishida bering, boshqa matn yozmang. primaryDiagnosis: { name, probability, justification, reasoningChain, uzbekProtocolMatch }, treatmentPlan: [], medications: [{ name, dosage, frequency, duration, timing, instructions }], recommendedTests: [], criticalFinding: { finding, implication, urgency }. Til: ${langMap[language]}.`;
+    const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
+    let fullText = '';
+    try {
+        const stream = await getAI().models.generateContentStream({
+            model: 'gemini-3-flash-preview',
+            contents: multimodalPrompt,
+            config: {
+                systemInstruction: systemInstr,
+                temperature: 0.15,
+                maxOutputTokens: 1024,
+            },
+        });
+        for await (const chunk of stream) {
+            const t = (chunk as { text?: string }).text ?? '';
+            if (t) {
+                fullText += t;
+                onChunk(fullText);
+            }
+        }
+    } catch (e) {
+        logger.error('Stream error, falling back to non-stream:', e);
+        return generateFastDoctorConsultation(patientData, specialties, language);
+    }
+    const cleaned = fullText.replace(/^```json\s*|```\s*$/g, '').trim();
+    let result: Record<string, unknown>;
+    try {
+        result = JSON.parse(cleaned) as Record<string, unknown>;
+    } catch {
+        logger.error('Stream JSON parse failed, fallback to full call:', cleaned?.slice(0, 300));
+        return generateFastDoctorConsultation(patientData, specialties, language);
+    }
     const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
     return {
         consensusDiagnosis: primaryDiag ? [{

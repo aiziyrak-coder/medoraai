@@ -449,6 +449,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [report, setReport] = useState<FinalReport | null>(null);
+    /** Strim: AI javobi kelayotganda matn (yozilayotganini ko'rsatish) */
+    const [streamingText, setStreamingText] = useState('');
 
     // Tools
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -598,6 +600,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setMode('result');
         setIsAnalyzing(true);
         setReport(null);
+        setStreamingText('');
         try {
             const formattedAttachments = await Promise.all(attachments.map(async (att) => {
                 // Fixed: Remove casting causing issues. att.file is already defined as File in the interface.
@@ -635,10 +638,17 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 attachments: supportedAttachments
             };
 
-            const result = await aiService.generateFastDoctorConsultation(patientData, user.specialties || [], language);
+            const result = await aiService.generateFastDoctorConsultationStream(
+                patientData,
+                user.specialties || [],
+                language,
+                (text) => setStreamingText(text)
+            );
+            setStreamingText('');
             setReport(result);
             setIsAnalyzing(false);
         } catch (e) {
+            setStreamingText('');
             setIsAnalyzing(false);
             const { getUserFriendlyError } = await import('../utils/errorHandler');
             const errorMessage = getUserFriendlyError(e, "Tahlilda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
@@ -1338,7 +1348,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
                                 {/* Bitta sahifa — 3 bo'lim (Tashxis, Reja, Retsept) */}
                                 <div className="flex-grow overflow-y-auto p-5 custom-scrollbar">
-                                    {!report && isAnalyzing && (
+                                    {!report && isAnalyzing && !streamingText && (
                                         <>
                                             <div className="space-y-4 pb-8">
                                                 <div className="h-24 bg-white/5 rounded-2xl animate-pulse" />
@@ -1347,6 +1357,15 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                             <div className="h-28 bg-white/5 rounded-2xl animate-pulse mb-6" />
                                             <div className="h-20 bg-white/5 rounded-2xl animate-pulse" />
                                         </>
+                                    )}
+                                    {!report && isAnalyzing && streamingText && (
+                                        <div className="space-y-4 animate-fade-in-up">
+                                            <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">Tahlil yozilmoqda...</p>
+                                            <pre className="bg-white/5 rounded-2xl p-4 text-sm text-white/90 whitespace-pre-wrap break-words font-sans min-h-[120px] border border-white/10">
+                                                {streamingText}
+                                                <span className="inline-block w-2 h-4 ml-0.5 bg-emerald-400 animate-pulse align-middle" aria-hidden />
+                                            </pre>
+                                        </div>
                                     )}
                                     {report && (
                                         <div className="space-y-8 pb-24">
