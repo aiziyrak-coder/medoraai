@@ -281,10 +281,10 @@ const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
 
 
 // --- SINGLE DOCTOR MODE (TEZKOR — faqat doktor profilida) ---
-/** Juda qisqa tizim ko'rsatmasi: tez tahlil uchun, konsilium emas */
+/** Tez tahlil tizim ko'rsatmasi: batafsil lekin tez, bemor uchun foydali */
 const getFastDoctorSystemInstruction = (language: Language): string => {
     const til = langMap[language];
-    return `Siz tibbiy yordamchi AI. Javobni faqat ${til} tilida, STRICT JSON. Qisqa va aniq. O'zbekistonda mavjud dori-darmonlar. SSV protokollari.`;
+    return `Siz tibbiy yordamchi AI. Javobni ${til} tilida, STRICT JSON. Batafsil va bemor uchun tushunarli: tashxis asosi, aniq davolash qadamlari, dorilarni qanday ichish va nimalardan saqlanish. O'zbekistonda mavjud dori-darmonlar. SSV protokollari.`;
 };
 
 export const generateFastDoctorConsultation = async (
@@ -293,7 +293,7 @@ export const generateFastDoctorConsultation = async (
     language: Language
 ): Promise<FinalReport> => {
     const systemInstr = getFastDoctorSystemInstruction(language);
-    const promptText = `1 tashxis, qisqa reja, dori (name, dosage, frequency, duration, timing, instructions). justification 1 jumla. reasoningChain 2 band. Til: ${langMap[language]}. Faqat JSON.`;
+    const promptText = `Batafsil tahlil, bemor uchun foydali. 1) Tashxis: name, probability, justification (2-3 jumla, nima asosda), reasoningChain (3-4 qisqa band), uzbekProtocolMatch. 2) treatmentPlan: aniq qadamlari (3-5 ta). 3) medications: har biri uchun name, dosage, frequency, duration, timing, instructions (bemor uchun: qanday ichish, ovqat bilan/bo'sh qoringa, nimalardan saqlanish, 1-2 jumla). 4) recommendedTests agar kerak bo'lsa. 5) criticalFinding agar xavfli bo'lsa. Til: ${langMap[language]}. Faqat JSON.`;
 
     const finalReportSchema = {
         type: Type.OBJECT,
@@ -344,13 +344,13 @@ export const generateFastDoctorConsultation = async (
 
     let result: Record<string, unknown>;
     try {
-        result = await runWithTokens(768);
+        result = await runWithTokens(1024);
     } catch (firstErr) {
         const msg = firstErr instanceof Error ? firstErr.message : String(firstErr);
         const isParseOrIncomplete = /parse_json|noto'g'ri|javob|invalid json|to'liq kelmadi/i.test(msg) || (firstErr as Error & { cause?: string })?.cause === 'parse_json';
         if (isParseOrIncomplete) {
-            logger.warn('Doktor tahlil: birinchi javob kesilgan/noto\'g\'ri, 1024 token bilan qayta urinilmoqda');
-            result = await runWithTokens(1024);
+            logger.warn('Doktor tahlil: birinchi javob kesilgan/noto\'g\'ri, 1280 token bilan qayta urinilmoqda');
+            result = await runWithTokens(1280);
         } else {
             throw firstErr;
         }
