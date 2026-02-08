@@ -47,39 +47,40 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
 
     useEffect(() => {
         if (!doctorId) return;
-        
-        const loadQueue = () => {
-            setQueue(queueService.getQueue(doctorId));
-        };
-        loadQueue();
-
-        const unsubscribe = queueService.subscribeToQueueUpdates(doctorId, (updatedQueue) => {
-            setQueue(updatedQueue);
+        let cancelled = false;
+        queueService.loadQueueFromServer(doctorId).then(() => {
+            if (!cancelled) setQueue(queueService.getQueue(doctorId));
         });
-
-        return () => unsubscribe();
+        const unsubscribe = queueService.subscribeToQueueUpdates(doctorId, (updatedQueue) => {
+            if (!cancelled) setQueue(updatedQueue);
+        });
+        return () => {
+            cancelled = true;
+            unsubscribe();
+        };
     }, [doctorId]);
 
-    const handleAddPatient = () => {
+    const handleAddPatient = async () => {
         if (!newPatient.firstName.trim() || !newPatient.lastName.trim() || !newPatient.age.trim()) {
             alert(t('required_field') + ': ' + t('data_input_patient_name') + ', ' + t('data_input_patient_lastname') + ', ' + t('data_input_age'));
             return;
         }
-        
-        const item = queueService.addToQueue(doctorId, {
-            firstName: newPatient.firstName,
-            lastName: newPatient.lastName,
-            age: newPatient.age,
-            address: newPatient.address,
-            arrivalTime: new Date().toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'}),
-            complaints: ''
-        });
-
-        setNewPatient({ firstName: '', lastName: '', age: '', address: '' });
-        setShowAddModal(false);
-        
-        // Always attempt to print/show ticket
-        handlePrintTicket(item);
+        try {
+            const item = await queueService.addToQueue(doctorId, {
+                firstName: newPatient.firstName,
+                lastName: newPatient.lastName,
+                age: newPatient.age,
+                address: newPatient.address,
+                arrivalTime: new Date().toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'}),
+                complaints: ''
+            });
+            setQueue(queueService.getQueue(doctorId));
+            setNewPatient({ firstName: '', lastName: '', age: '', address: '' });
+            setShowAddModal(false);
+            handlePrintTicket(item);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : 'Navbatga qo\'shish amalga oshmadi.');
+        }
     };
 
     const handlePrintTicket = async (item: PatientQueueItem) => {
@@ -142,20 +143,33 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
         }
     };
 
-    const handleRemove = (id: string) => {
-        if (confirm(t('delete') + '?')) {
-            queueService.removeFromQueue(doctorId, id);
+    const handleRemove = async (id: string) => {
+        if (!confirm(t('delete') + '?')) return;
+        try {
+            await queueService.removeFromQueue(doctorId, id);
+            setQueue(queueService.getQueue(doctorId));
+        } catch {
+            // ignore
         }
     };
 
-    const handleStatusChange = (id: string, newStatus: PatientQueueItem['status']) => {
-        queueService.updatePatientStatus(doctorId, id, newStatus);
+    const handleStatusChange = async (id: string, newStatus: PatientQueueItem['status']) => {
+        try {
+            await queueService.updatePatientStatus(doctorId, id, newStatus);
+            setQueue(queueService.getQueue(doctorId));
+        } catch {
+            // ignore
+        }
     };
 
-    const handleClearCompleted = () => {
+    const handleClearCompleted = async () => {
         if (completedList.length === 0) return;
-        if (confirm(t('confirm_clear_completed').replace('{count}', String(completedList.length)))) {
-            completedList.forEach(p => queueService.removeFromQueue(doctorId, p.id));
+        if (!confirm(t('confirm_clear_completed').replace('{count}', String(completedList.length)))) return;
+        try {
+            for (const p of completedList) await queueService.removeFromQueue(doctorId, p.id);
+            setQueue(queueService.getQueue(doctorId));
+        } catch {
+            // ignore
         }
     };
 

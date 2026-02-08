@@ -1,127 +1,180 @@
-
 import type { PatientQueueItem } from '../types';
+import { isApiConfigured } from '../config/api';
+import { getAuthToken } from './api';
+import * as apiQueue from './apiQueueService';
 
 const QUEUE_KEY_PREFIX = 'medora_queue_';
 
-// Get queue key for a specific doctor
+// Server navbati uchun cache (barcha qurilmalarda bir xil)
+let queueCache: PatientQueueItem[] = [];
+
 const getQueueKey = (doctorId: string) => `${QUEUE_KEY_PREFIX}${doctorId}`;
 
+function isQueueApiMode(): boolean {
+  return isApiConfigured() && !!getAuthToken();
+}
+
+/** Navbat ro'yxati — API bo'lsa cache, aks holda localStorage */
 export const getQueue = (doctorId: string): PatientQueueItem[] => {
-    try {
-        const data = localStorage.getItem(getQueueKey(doctorId));
-        return data ? JSON.parse(data) : [];
-    } catch (e) {
-        return [];
-    }
+  if (isQueueApiMode()) return [...queueCache];
+  try {
+    const data = localStorage.getItem(getQueueKey(doctorId));
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+};
+
+/** Serverdan navbatni yuklash (API rejimida), yoki localStorage (API yo‘q bo‘lsa) */
+export const loadQueueFromServer = async (doctorId: string): Promise<PatientQueueItem[]> => {
+  if (!isQueueApiMode()) return getQueue(doctorId);
+  const res = await apiQueue.apiGetQueue();
+  if (res.ok && res.data) {
+    queueCache = res.data;
+    return res.data;
+  }
+  return queueCache;
 };
 
 export const saveQueue = (doctorId: string, queue: PatientQueueItem[]) => {
-    localStorage.setItem(getQueueKey(doctorId), JSON.stringify(queue));
-    // Dispatch event for cross-tab sync
-    window.dispatchEvent(new StorageEvent('storage', {
-        key: getQueueKey(doctorId),
-        newValue: JSON.stringify(queue)
-    }));
+  if (isQueueApiMode()) {
+    queueCache = queue;
+    return;
+  }
+  localStorage.setItem(getQueueKey(doctorId), JSON.stringify(queue));
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: getQueueKey(doctorId),
+    newValue: JSON.stringify(queue)
+  }));
 };
 
-export const addToQueue = (doctorId: string, patient: Omit<PatientQueueItem, 'id' | 'status' | 'ticketNumber' | 'patientName'>) => {
-    const currentQueue = getQueue(doctorId);
-    
-    // Generate simple ticket number
-    const maxTicket = currentQueue.reduce((max, p) => Math.max(max, p.ticketNumber), 0);
-    const newTicket = maxTicket + 1;
-
-    const newItem: PatientQueueItem = {
-        ...patient,
-        patientName: `${patient.lastName} ${patient.firstName}`, // Construct full name for display
-        id: Date.now().toString(),
-        status: 'waiting',
-        ticketNumber: newTicket
-    };
-
-    const updatedQueue = [...currentQueue, newItem];
-    saveQueue(doctorId, updatedQueue);
-    return newItem;
-};
-
-export const updatePatientStatus = (doctorId: string, patientId: string, status: PatientQueueItem['status']) => {
-    const currentQueue = getQueue(doctorId);
-    const patientIndex = currentQueue.findIndex(p => p.id === patientId);
-    
-    if (patientIndex === -1) return;
-
-    const patient = { ...currentQueue[patientIndex], status };
-    
-    // Remove from current position
-    let newQueue = [...currentQueue];
-    newQueue.splice(patientIndex, 1);
-
-    if (status === 'waiting') {
-        // PRIORITY LOGIC: If returning to 'waiting' (from hold), put at the TOP of the waiting list
-        // Find the index of the first 'waiting' item
-        const firstWaitingIndex = newQueue.findIndex(p => p.status === 'waiting');
-        if (firstWaitingIndex === -1) {
-            // No one waiting, just push (but before completed/hold usually, logic depends on sort)
-            // Ideally we insert before any other 'waiting' patient.
-            // Since we removed it, we need to find where to put it.
-            // Let's filter and reconstruct to be safe.
-            const waiting = newQueue.filter(p => p.status === 'waiting');
-            const others = newQueue.filter(p => p.status !== 'waiting');
-            newQueue = [patient, ...waiting, ...others];
-        } else {
-            // Insert at the very specific index of the first waiting person
-            newQueue.splice(firstWaitingIndex, 0, patient);
-        }
-    } else {
-        // For other statuses (hold, completed, in-progress), just update in place (or append)
-        // Ideally, we keep the original order or grouped by status. 
-        // For simplicity in this app, we just place it back or append. 
-        const simpleUpdateQueue = getQueue(doctorId).map(p => 
-            p.id === patientId ? { ...p, status } : p
-        );
-        newQueue = simpleUpdateQueue;
-    }
-
-    saveQueue(doctorId, newQueue);
-};
-
-export const updatePatientDetails = (doctorId: string, patientId: string, details: Partial<PatientQueueItem>) => {
-    const currentQueue = getQueue(doctorId);
-    const updatedQueue = currentQueue.map(p => {
-        if (p.id === patientId) {
-            const updated = { ...p, ...details };
-            // Update the display name if names changed
-            updated.patientName = `${updated.lastName} ${updated.firstName}`;
-            return updated;
-        }
-        return p;
+export const addToQueue = async (
+  doctorId: string,
+  patient: Omit<PatientQueueItem, 'id' | 'status' | 'ticketNumber' | 'patientName'>
+): Promise<PatientQueueItem> => {
+  if (isQueueApiMode()) {
+    const res = await apiQueue.apiAddToQueue({
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      age: patient.age,
+      address: patient.address,
+      complaints: patient.complaints,
+      arrivalTime: patient.arrivalTime
     });
-    saveQueue(doctorId, updatedQueue);
+    if (res.ok && res.data) {
+      queueCache = [...queueCache, res.data];
+      return res.data;
+    }
+    throw new Error(res.error || 'Navbatga qo\'shish amalga oshmadi');
+  }
+  const currentQueue = getQueue(doctorId);
+  const maxTicket = currentQueue.reduce((max, p) => Math.max(max, p.ticketNumber), 0);
+  const newItem: PatientQueueItem = {
+    ...patient,
+    patientName: `${patient.lastName} ${patient.firstName}`,
+    id: Date.now().toString(),
+    status: 'waiting',
+    ticketNumber: maxTicket + 1
+  };
+  const updatedQueue = [...currentQueue, newItem];
+  saveQueue(doctorId, updatedQueue);
+  return newItem;
 };
 
-export const removeFromQueue = (doctorId: string, patientId: string) => {
-    const currentQueue = getQueue(doctorId);
-    const updatedQueue = currentQueue.filter(p => p.id !== patientId);
-    saveQueue(doctorId, updatedQueue);
+export const updatePatientStatus = async (
+  doctorId: string,
+  patientId: string,
+  status: PatientQueueItem['status']
+): Promise<void> => {
+  if (isQueueApiMode()) {
+    const res = await apiQueue.apiUpdateQueueItem(patientId, { status });
+    if (res.ok && res.data) {
+      queueCache = queueCache.map(p => p.id === patientId ? res.data! : p);
+      return;
+    }
+    throw new Error(res.error || 'Status yangilanmadi');
+  }
+  const currentQueue = getQueue(doctorId);
+  const patientIndex = currentQueue.findIndex(p => p.id === patientId);
+  if (patientIndex === -1) return;
+  const patient = { ...currentQueue[patientIndex], status };
+  let newQueue = [...currentQueue];
+  newQueue.splice(patientIndex, 1);
+  if (status === 'waiting') {
+    const firstWaitingIndex = newQueue.findIndex(p => p.status === 'waiting');
+    if (firstWaitingIndex === -1) {
+      const waiting = newQueue.filter(p => p.status === 'waiting');
+      const others = newQueue.filter(p => p.status !== 'waiting');
+      newQueue = [patient, ...waiting, ...others];
+    } else {
+      newQueue.splice(firstWaitingIndex, 0, patient);
+    }
+  } else {
+    newQueue = currentQueue.map(p => (p.id === patientId ? { ...p, status } : p));
+  }
+  saveQueue(doctorId, newQueue);
 };
 
-export const subscribeToQueueUpdates = (doctorId: string, callback: (queue: PatientQueueItem[]) => void) => {
-    const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === getQueueKey(doctorId) && e.newValue) {
-            callback(JSON.parse(e.newValue));
-        }
-    };
+export const updatePatientDetails = async (
+  doctorId: string,
+  patientId: string,
+  details: Partial<PatientQueueItem>
+): Promise<void> => {
+  if (isQueueApiMode()) {
+    const payload: Parameters<typeof apiQueue.apiUpdateQueueItem>[1] = {};
+    if (details.firstName !== undefined) payload.firstName = details.firstName;
+    if (details.lastName !== undefined) payload.lastName = details.lastName;
+    if (details.age !== undefined) payload.age = details.age;
+    if (details.address !== undefined) payload.address = details.address;
+    if (details.complaints !== undefined) payload.complaints = details.complaints;
+    const res = await apiQueue.apiUpdateQueueItem(patientId, payload);
+    if (res.ok && res.data) {
+      queueCache = queueCache.map(p => (p.id === patientId ? res.data! : p));
+      return;
+    }
+    throw new Error(res.error || 'Ma\'lumot yangilanmadi');
+  }
+  const currentQueue = getQueue(doctorId);
+  const updatedQueue = currentQueue.map(p => {
+    if (p.id !== patientId) return p;
+    const updated = { ...p, ...details };
+    updated.patientName = `${updated.lastName} ${updated.firstName}`;
+    return updated;
+  });
+  saveQueue(doctorId, updatedQueue);
+};
 
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also use a poller for same-tab updates if not strictly relying on events
-    const interval = setInterval(() => {
-        const q = getQueue(doctorId);
-        callback(q);
-    }, 2000);
+export const removeFromQueue = async (doctorId: string, patientId: string): Promise<void> => {
+  if (isQueueApiMode()) {
+    const res = await apiQueue.apiRemoveFromQueue(patientId);
+    if (res.ok) {
+      queueCache = queueCache.filter(p => p.id !== patientId);
+      return;
+    }
+    throw new Error(res.error || 'O\'chirish amalga oshmadi');
+  }
+  const currentQueue = getQueue(doctorId);
+  saveQueue(doctorId, currentQueue.filter(p => p.id !== patientId));
+};
 
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-        clearInterval(interval);
-    };
+export const subscribeToQueueUpdates = (
+  doctorId: string,
+  callback: (queue: PatientQueueItem[]) => void
+): (() => void) => {
+  if (isQueueApiMode()) {
+    const interval = setInterval(async () => {
+      await loadQueueFromServer(doctorId);
+      callback(getQueue(doctorId));
+    }, 2500);
+    return () => clearInterval(interval);
+  }
+  const handleStorageChange = (e: StorageEvent) => {
+    if (e.key === getQueueKey(doctorId) && e.newValue) callback(JSON.parse(e.newValue));
+  };
+  window.addEventListener('storage', handleStorageChange);
+  const interval = setInterval(() => callback(getQueue(doctorId)), 2000);
+  return () => {
+    window.removeEventListener('storage', handleStorageChange);
+    clearInterval(interval);
+  };
 };

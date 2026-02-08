@@ -15,6 +15,7 @@ from .views import (
     UserListAPIView,
     UserDetailAPIView,
 )
+from .queue_views import queue_list, queue_add, queue_item_detail
 
 app_name = 'accounts'
 
@@ -35,4 +36,9 @@ urlpatterns = [
     # User management
     path('users/', UserListAPIView.as_view(), name='user_list'),
     path('users/<int:id>/', UserDetailAPIView.as_view(), name='user_detail'),
+
+    # Navbat (qurilmalar orasida sinxron)
+    path('queue/', queue_list, name='queue_list'),
+    path('queue/add/', queue_add, name='queue_add'),
+    path('queue/<int:item_id>/', queue_item_detail, name='queue_item_detail'),
 ]

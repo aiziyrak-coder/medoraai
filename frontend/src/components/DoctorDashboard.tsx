@@ -458,12 +458,14 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
     // Init Queue & Settings
     useEffect(() => {
-        // Queue
-        const initialQueue = queueService.getQueue(user.phone) as DoctorPatient[];
-        setQueue(initialQueue);
-
+        let cancelled = false;
+        const init = async () => {
+            const data = await queueService.loadQueueFromServer(user.phone);
+            if (!cancelled) setQueue(data as DoctorPatient[]);
+        };
+        init();
         const unsubscribeQueue = queueService.subscribeToQueueUpdates(user.phone, (updatedQueue) => {
-            setQueue(updatedQueue as DoctorPatient[]);
+            if (!cancelled) setQueue(updatedQueue as DoctorPatient[]);
         });
 
         // Assistant
@@ -476,8 +478,9 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setTvSettings(settingsService.getTvSettings(user.phone));
 
         return () => {
+            cancelled = true;
             unsubscribeQueue();
-        }
+        };
     }, [user.phone]);
 
     useEffect(() => {
@@ -498,50 +501,44 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setReport(null);
         setMode('input');
         setView('consultation');
-        
-        // Update status in shared queue
-        queueService.updatePatientStatus(user.phone, patient.id, 'in-progress');
+        queueService.updatePatientStatus(user.phone, patient.id, 'in-progress').then(() => {
+            setQueue(queueService.getQueue(user.phone) as DoctorPatient[]);
+        }).catch(() => {});
     };
 
     // New "Navbatsiz Qabul" (Immediate Admission) Logic
-    const handleImmediateAdmit = () => {
+    const handleImmediateAdmit = async () => {
         if (!walkInPatient.firstName || !walkInPatient.lastName || !walkInPatient.age) {
             alert(t('alert_required_name_age'));
             return;
         }
-
-        // 1. Create patient and add to queue
-        const newPatient = queueService.addToQueue(user.phone, {
-            firstName: walkInPatient.firstName,
-            lastName: walkInPatient.lastName,
-            age: walkInPatient.age,
-            address: walkInPatient.address,
-            arrivalTime: new Date().toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'}),
-            complaints: 'Navbatsiz qabul'
-        });
-
-        // 2. Immediately mark as in-progress (active)
-        // If there is already someone in-progress, we should ideally handle that (e.g. force them to hold/completed)
-        // For simplicity, we just set this new one to in-progress.
-        if (currentPatient) {
-            // Put current patient on hold automatically if doctor forces a new admission
-            queueService.updatePatientStatus(user.phone, currentPatient.id, 'hold');
+        try {
+            const newPatient = await queueService.addToQueue(user.phone, {
+                firstName: walkInPatient.firstName,
+                lastName: walkInPatient.lastName,
+                age: walkInPatient.age,
+                address: walkInPatient.address,
+                arrivalTime: new Date().toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'}),
+                complaints: 'Navbatsiz qabul'
+            });
+            if (currentPatient) {
+                await queueService.updatePatientStatus(user.phone, currentPatient.id, 'hold');
+            }
+            await queueService.updatePatientStatus(user.phone, newPatient.id, 'in-progress');
+            setQueue(queueService.getQueue(user.phone) as DoctorPatient[]);
+            const patientWithId = { ...newPatient, id: newPatient.id, status: 'in-progress' } as DoctorPatient;
+            setCurrentPatient(patientWithId);
+            setComplaints('');
+            setAttachments([]);
+            setVitals({ bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: '' });
+            setReport(null);
+            setMode('input');
+            setView('consultation');
+            setWalkInPatient({ firstName: '', lastName: '', age: '', address: '' });
+            setShowWalkInModal(false);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : 'Navbatga qo\'shish amalga oshmadi.');
         }
-
-        queueService.updatePatientStatus(user.phone, newPatient.id, 'in-progress');
-
-        // 3. Start session
-        const patientWithId = { ...newPatient, id: newPatient.id, status: 'in-progress' } as DoctorPatient;
-        setCurrentPatient(patientWithId);
-        setComplaints('');
-        setAttachments([]);
-        setVitals({ bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: '' });
-        setReport(null);
-        setMode('input');
-        setView('consultation');
-        
-        setWalkInPatient({ firstName: '', lastName: '', age: '', address: '' });
-        setShowWalkInModal(false);
     };
 
     const handleEditPatientOpen = () => {
@@ -551,17 +548,21 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         }
     };
 
-    const handleEditPatientSave = () => {
+    const handleEditPatientSave = async () => {
         if (editingPatient && currentPatient) {
-            queueService.updatePatientDetails(user.phone, currentPatient.id, {
-                firstName: editingPatient.firstName,
-                lastName: editingPatient.lastName,
-                age: editingPatient.age,
-                address: editingPatient.address
-            });
-            // Reflect changes immediately in UI
-            setCurrentPatient(editingPatient);
-            setShowEditPatientModal(false);
+            try {
+                await queueService.updatePatientDetails(user.phone, currentPatient.id, {
+                    firstName: editingPatient.firstName,
+                    lastName: editingPatient.lastName,
+                    age: editingPatient.age,
+                    address: editingPatient.address
+                });
+                setQueue(queueService.getQueue(user.phone) as DoctorPatient[]);
+                setCurrentPatient(editingPatient);
+                setShowEditPatientModal(false);
+            } catch {
+                // ignore
+            }
         }
     };
 
@@ -659,12 +660,11 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         });
     };
 
-    const handleFinish = () => {
-        if (!confirm(t('confirm_finish_consultation'))) {
-            return;
-        }
+    const handleFinish = async () => {
+        if (!confirm(t('confirm_finish_consultation'))) return;
         if (currentPatient) {
-            queueService.updatePatientStatus(user.phone, currentPatient.id, 'completed');
+            await queueService.updatePatientStatus(user.phone, currentPatient.id, 'completed').catch(() => {});
+            setQueue(queueService.getQueue(user.phone) as DoctorPatient[]);
         }
         setCurrentPatient(null);
         setComplaints('');

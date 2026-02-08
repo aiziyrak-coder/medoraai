@@ -6,7 +6,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from .models import User, SubscriptionPlan, SubscriptionPayment
+from .models import User, SubscriptionPlan, SubscriptionPayment, QueueItem
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
@@ -161,3 +161,19 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             return attrs
         else:
             raise serializers.ValidationError('Telefon raqami va parol kiritilishi shart')
+
+
+class QueueItemSerializer(serializers.ModelSerializer):
+    """Navbat elementi - shifokor/registrator uchun."""
+    patient_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = QueueItem
+        fields = [
+            'id', 'first_name', 'last_name', 'patient_name', 'age', 'address', 'complaints',
+            'status', 'ticket_number', 'arrival_time', 'created_at'
+        ]
+        read_only_fields = ['id', 'ticket_number', 'created_at']
+
+    def get_patient_name(self, obj):
+        return f"{obj.last_name} {obj.first_name}"

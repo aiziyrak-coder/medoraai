@@ -25,9 +25,13 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
     ];
 
     useEffect(() => {
-        // Load Queue
-        setQueue(queueService.getQueue(doctorId));
-        const unsubscribeQueue = queueService.subscribeToQueueUpdates(doctorId, setQueue);
+        let cancelled = false;
+        queueService.loadQueueFromServer(doctorId).then(() => {
+            if (!cancelled) setQueue(queueService.getQueue(doctorId));
+        });
+        const unsubscribeQueue = queueService.subscribeToQueueUpdates(doctorId, (q) => {
+            if (!cancelled) setQueue(q);
+        });
         
         // Load Settings
         const currentSettings = settingsService.getTvSettings(doctorId);
@@ -42,6 +46,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
 
         return () => {
+            cancelled = true;
             unsubscribeQueue();
             unsubscribeSettings();
             clearInterval(timer);

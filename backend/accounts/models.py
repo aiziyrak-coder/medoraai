@@ -269,3 +269,40 @@ class ActiveSession(models.Model):
 
     def __str__(self):
         return f"{self.user.phone} @ {self.created_at}"
+
+
+class QueueItem(models.Model):
+    """
+    Shifokor navbati — barcha qurilmalarda bir xil (telefon/kompyuter sinxron).
+    Registrator yoki shifokor qo'shadi; shifokor ko'radi va boshqaradi.
+    """
+    STATUS_CHOICES = [
+        ('waiting', 'Kutilmoqda'),
+        ('in-progress', 'Jarayonda'),
+        ('hold', 'Kutish'),
+        ('completed', 'Tugallangan'),
+    ]
+    doctor = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='queue_items',
+        verbose_name='Shifokor'
+    )
+    first_name = models.CharField(max_length=255, verbose_name='Ism')
+    last_name = models.CharField(max_length=255, verbose_name='Familiya')
+    age = models.CharField(max_length=20, verbose_name='Yosh')
+    address = models.TextField(blank=True, verbose_name='Manzil')
+    complaints = models.TextField(blank=True, verbose_name='Shikoyatlar')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting', db_index=True)
+    ticket_number = models.PositiveIntegerField(verbose_name='Navbat raqami')
+    arrival_time = models.CharField(max_length=20, blank=True, verbose_name='Kelish vaqti')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Navbat elementi'
+        verbose_name_plural = 'Navbat elementlari'
+        ordering = ['ticket_number', 'created_at']
+        indexes = [models.Index(fields=['doctor', 'status'])]
+
+    def __str__(self):
+        return f"#{self.ticket_number} {self.last_name} {self.first_name}"
