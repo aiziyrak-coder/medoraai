@@ -1330,9 +1330,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             <div className="flex-grow flex flex-col overflow-hidden bg-black/20 backdrop-blur-xl h-full">
                                 {/* Ingichka loading — "Ma'lumotlar qayta ishlanmoqda" o'rniga */}
                                 {isAnalyzing && (
-                                    <div className="flex-none flex items-center gap-3 px-4 py-2 bg-blue-500/20 border-b border-blue-500/30">
-                                        <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                        <span className="text-sm font-bold text-blue-200">Tahlil qilinmoqda...</span>
+                                    <div className="flex-none flex flex-col gap-0.5 px-4 py-2 bg-blue-500/20 border-b border-blue-500/30">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
+                                            <span className="text-sm font-bold text-blue-200">Tahlil qilinmoqda...</span>
+                                        </div>
+                                        <p className="text-[11px] text-white/50">Iltimos, kuting. Sahifani yopmang (30–60 soniya)</p>
                                     </div>
                                 )}
 

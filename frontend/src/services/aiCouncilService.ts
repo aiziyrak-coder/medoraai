@@ -337,9 +337,24 @@ export const generateFastDoctorConsultation = async (
     };
 
     const multimodalPrompt = buildFastDoctorPrompt(promptText, patientData);
-    // Maksimal tezlik: 640 token, tarix yo'q, qisqa tizim (512 dan kesilish kam)
-    const result = await callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, 640) as Record<string, unknown>;
-    
+
+    const runWithTokens = (maxTok: number) =>
+        callGemini(multimodalPrompt, 'gemini-3-flash-preview', finalReportSchema, false, systemInstr, true, maxTok) as Promise<Record<string, unknown>>;
+
+    let result: Record<string, unknown>;
+    try {
+        result = await runWithTokens(768);
+    } catch (firstErr) {
+        const msg = firstErr instanceof Error ? firstErr.message : String(firstErr);
+        const isParseOrIncomplete = /parse_json|noto'g'ri|javob|invalid json|to'liq kelmadi/i.test(msg) || (firstErr as Error & { cause?: string })?.cause === 'parse_json';
+        if (isParseOrIncomplete) {
+            logger.warn('Doktor tahlil: birinchi javob kesilgan/noto\'g\'ri, 1024 token bilan qayta urinilmoqda');
+            result = await runWithTokens(1024);
+        } else {
+            throw firstErr;
+        }
+    }
+
     // Transform to FinalReport format
     const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
     return {
