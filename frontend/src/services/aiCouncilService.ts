@@ -114,6 +114,40 @@ const getSystemInstruction = (language: Language): string => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** Kesilgan JSON ni minimal yopuvchi qo'shib parse qilishga urinish (doktor hisobot formati) */
+function tryRepairTruncatedJson(raw: string): unknown | null {
+    const s = raw.trim();
+    if (!s) return null;
+    const repairs: string[] = [
+        s + '[],"medications":[],"recommendedTests":[]}',
+        s + '[]}',
+        s + ']}',
+        s + '}',
+    ];
+    for (const t of repairs) {
+        try {
+            return JSON.parse(t);
+        } catch {
+            continue;
+        }
+    }
+    if (/\"treatmentPlan\"\s*:\s*$/i.test(s)) {
+        try {
+            return JSON.parse(s + '[],"medications":[],"recommendedTests":[]}');
+        } catch {
+            //
+        }
+    }
+    if (/\"medications\"\s*:\s*$/i.test(s)) {
+        try {
+            return JSON.parse(s + '[],"recommendedTests":[]}');
+        } catch {
+            //
+        }
+    }
+    return null;
+}
+
 /** Mobil qurilma (telefon) — sekin tarmoq va kesilishlarda ko'proq qayta urinish kerak */
 const isMobile = (): boolean => {
     if (typeof navigator === 'undefined') return false;
@@ -191,14 +225,19 @@ const callGemini = async (
         
         if (responseSchema) {
             const cleanedText = text.replace(/^```json\s*|```\s*$/g, '').trim();
+            let parsed: unknown;
             try {
-                return JSON.parse(cleanedText);
-            } catch (e) {
-                logger.error("Failed to parse JSON from Gemini:", cleanedText?.slice(0, 500));
-                const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
-                (err as Error & { cause?: string }).cause = 'parse_json';
-                throw err;
+                parsed = JSON.parse(cleanedText);
+            } catch {
+                parsed = tryRepairTruncatedJson(cleanedText);
+                if (parsed == null) {
+                    logger.error("Failed to parse JSON from Gemini:", cleanedText?.slice(0, 500));
+                    const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
+                    (err as Error & { cause?: string }).cause = 'parse_json';
+                    throw err;
+                }
             }
+            return parsed;
         }
         
         if (useSearch) {
@@ -356,34 +395,41 @@ export const generateFastDoctorConsultation = async (
         }
     }
 
-    // Transform to FinalReport format
-    const primaryDiag = result.primaryDiagnosis as Record<string, unknown> | undefined;
+    // Xavfsiz: kesilgan JSON yoki API dan bo'sh maydon kelganda ham crash bo'lmasin
+    const safe = (x: unknown): x is Record<string, unknown> => x != null && typeof x === 'object';
+    const arr = <T>(x: unknown, def: T[]): T[] => (Array.isArray(x) ? x : def);
+    const primaryDiag = safe(result.primaryDiagnosis) ? result.primaryDiagnosis : undefined;
+    const treatmentPlan = arr(result.treatmentPlan, []) as string[];
+    const medications = arr(result.medications, []) as Array<Record<string, unknown>>;
+    const recommendedTests = arr(result.recommendedTests, []) as string[];
+    const reasoningChain = primaryDiag ? arr(primaryDiag.reasoningChain, []) as string[] : [];
+
     return {
         consensusDiagnosis: primaryDiag ? [{
             name: String(primaryDiag.name || 'Tashxis'),
-            probability: Number(primaryDiag.probability || 85),
+            probability: Number(primaryDiag.probability ?? 85),
             justification: String(primaryDiag.justification || ''),
             evidenceLevel: 'High',
-            reasoningChain: (primaryDiag.reasoningChain as string[]) || [],
+            reasoningChain,
             uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || 'SSV protokoliga muvofiq')
         }] : [],
         rejectedHypotheses: [],
-        treatmentPlan: (result.treatmentPlan as string[]) || [],
-        medicationRecommendations: ((result.medications as Array<Record<string, unknown>>) || []).map(med => ({
-            name: String(med.name || ''),
-            dosage: String(med.dosage || ''),
-            frequency: String(med.frequency || ''),
-            timing: String(med.timing || ''),
-            duration: String(med.duration || ''),
-            instructions: String(med.instructions || ''),
+        treatmentPlan,
+        medicationRecommendations: medications.map(med => ({
+            name: String(med?.name ?? ''),
+            dosage: String(med?.dosage ?? ''),
+            frequency: String(med?.frequency ?? ''),
+            timing: String(med?.timing ?? ''),
+            duration: String(med?.duration ?? ''),
+            instructions: String(med?.instructions ?? ''),
             notes: '',
             localAvailability: "O'zbekistonda mavjud",
             priceEstimate: ''
         })),
-        recommendedTests: (result.recommendedTests as string[]) || [],
+        recommendedTests,
         unexpectedFindings: '',
         uzbekistanLegislativeNote: "SSV klinik protokollariga muvofiq",
-        criticalFinding: result.criticalFinding as { finding: string; implication: string; urgency: string } | undefined
+        criticalFinding: safe(result.criticalFinding) ? result.criticalFinding as { finding: string; implication: string; urgency: string } : undefined
     } as FinalReport;
 };
 

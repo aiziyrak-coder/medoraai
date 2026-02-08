@@ -111,7 +111,7 @@ const VitalInputCompact: React.FC<{
 // --- TAB COMPONENTS ---
 
 const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
-    const primaryDiag = report.consensusDiagnosis[0];
+    const primaryDiag = (report.consensusDiagnosis ?? [])[0];
     return (
     <div className="space-y-4 animate-fade-in-up">
         {report.criticalFinding && (
@@ -168,7 +168,7 @@ const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
             </h4>
             <div className="space-y-5 relative pl-4">
                 <div className="absolute left-[27px] top-4 bottom-4 w-[2px] bg-white/10 rounded-full"></div>
-                {report.treatmentPlan.map((step, i) => (
+                {(report.treatmentPlan ?? []).map((step, i) => (
                     <div key={i} className="flex gap-5 relative z-10 group">
                         <div className="w-6 h-6 rounded-full bg-slate-800 border-2 border-indigo-500 flex items-center justify-center text-[10px] font-bold text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)] shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
                             {i + 1}
@@ -185,7 +185,7 @@ const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
                 Qo'shimcha Tekshiruvlar
             </h4>
             <ul className="space-y-3">
-                {report.recommendedTests.map((t, i) => (
+                {(report.recommendedTests ?? []).map((t, i) => (
                     <li key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
                         <div className="w-1.5 h-1.5 rounded-full bg-pink-400 shadow-[0_0_5px_#f472b6]"></div>
                         <span className="text-sm text-slate-200 font-medium">{t}</span>
@@ -198,10 +198,10 @@ const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
 
 const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
     <div className="space-y-4 animate-fade-in-up">
-        {report.medicationRecommendations.length === 0 && (
+        {(!report.medicationRecommendations || report.medicationRecommendations.length === 0) && (
             <p className="text-center text-slate-400 py-8">Dori tavsiya qilinmagan.</p>
         )}
-        {report.medicationRecommendations.map((med, i) => (
+        {(report.medicationRecommendations ?? []).map((med, i) => (
             <GlassCard key={i} className="p-5 relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative z-10">
