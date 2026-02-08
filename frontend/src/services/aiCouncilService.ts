@@ -114,6 +114,14 @@ const getSystemInstruction = (language: Language): string => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/** Mobil qurilma (telefon) — sekin tarmoq va kesilishlarda ko'proq qayta urinish kerak */
+const isMobile = (): boolean => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(ua)
+        || (navigator.maxTouchPoints > 0 && window.innerWidth < 768);
+};
+
 // Simulated RAG: Get relevant context from past successful cases
 const getRelevantHistoryContext = (currentComplaints: string): string => {
     try {
@@ -200,13 +208,17 @@ const callGemini = async (
         return text;
     };
     
-    // Retry logic: tarmoq xatolari va 503 (model band) uchun qayta urinish
+    // Retry logic: tarmoq xatolari, 503, va mobilda "javob to'liq kelmadi" / JSON parse xatolarida ham qayta urinish
     if (shouldRetry) {
+        const mobile = isMobile();
         try {
             return await retry(executeCall, {
-                maxRetries: 2,
-                initialDelay: 2000,
-                retryableErrors: ['network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded']
+                maxRetries: mobile ? 4 : 2,
+                initialDelay: mobile ? 3000 : 2000,
+                retryableErrors: [
+                    'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
+                    'parse_json', "noto'g'ri", 'javob', 'invalid json', 'failed to parse'
+                ]
             });
         } catch (error) {
             logger.error(`Error calling Gemini API with model ${model} (after retries):`, error);
