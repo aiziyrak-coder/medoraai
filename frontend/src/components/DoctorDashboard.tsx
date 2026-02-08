@@ -74,8 +74,12 @@ const VitalInputCompact: React.FC<{
     unit: string;
     icon: React.ReactNode;
     color: string;
-}> = ({ label, value, onChange, unit, icon, color }) => {
+    onFocus?: () => void;
+}> = ({ label, value, onChange, unit, icon, color, onFocus }) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    const handleFocus = () => {
+        onFocus?.();
+    };
     return (
     <div 
         onClick={() => inputRef.current?.focus()}
@@ -93,6 +97,7 @@ const VitalInputCompact: React.FC<{
                 autoComplete="off"
                 value={typeof value === 'string' ? value : ''}
                 onChange={(e) => onChange(e.target.value)}
+                onFocus={handleFocus}
                 placeholder="-"
                 aria-label={label}
                 className="w-full bg-transparent text-xl font-black text-white outline-none placeholder-slate-600 min-w-0 min-h-[1.5rem] py-0.5"
@@ -448,7 +453,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     // Tools
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null); 
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { isListening, transcript, startListening, stopListening } = useSpeechToText();
 
     // Init Queue & Settings
@@ -1219,40 +1224,36 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             </div>
                         )}
 
-                        {/* INPUT MODE */}
+                        {/* INPUT MODE — mobil: scroll qilish mumkin, klaviatura orqasida qolmasin */}
                         {mode === 'input' && (
-                            <div className="flex-grow flex flex-col h-full p-4 overflow-hidden">
-                                
-                                {/* Top: Vitals (HUD) - Fixed Height */}
-                                <div className="flex-none mb-3">
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <VitalInputCompact label="SYS" unit="mm" value={vitals.bpSys} onChange={val => handleVitalChange('bpSys', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" />
-                                        <VitalInputCompact label="DIA" unit="mm" value={vitals.bpDia} onChange={val => handleVitalChange('bpDia', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" />
-                                        <VitalInputCompact label="Puls" unit="bpm" value={vitals.heartRate} onChange={val => handleVitalChange('heartRate', val)} icon={<HeartRateIcon className="w-3 h-3"/>} color="pink" />
-                                        <VitalInputCompact label="t°" unit="°C" value={vitals.temp} onChange={val => handleVitalChange('temp', val)} icon={<span className="text-xs">🌡</span>} color="orange" />
-                                        <VitalInputCompact label="SpO2" unit="%" value={vitals.spO2} onChange={val => handleVitalChange('spO2', val)} icon={<OxygenIcon className="w-3 h-3"/>} color="cyan" />
-                                        <VitalInputCompact label="Nafas" unit="/min" value={vitals.respiration} onChange={val => handleVitalChange('respiration', val)} icon={<span className="text-xs">🫁</span>} color="blue" />
+                            <div className="flex-grow flex flex-col min-h-0 p-4 flex flex-col h-full">
+                                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar consultation-scroll mobile-keyboard-pad pb-safe">
+                                    {/* Top: Vitals (HUD) */}
+                                    <div className="flex-none mb-3">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <VitalInputCompact label="SYS" unit="mm" value={vitals.bpSys} onChange={val => handleVitalChange('bpSys', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" />
+                                            <VitalInputCompact label="DIA" unit="mm" value={vitals.bpDia} onChange={val => handleVitalChange('bpDia', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" />
+                                            <VitalInputCompact label="Puls" unit="bpm" value={vitals.heartRate} onChange={val => handleVitalChange('heartRate', val)} icon={<HeartRateIcon className="w-3 h-3"/>} color="pink" />
+                                            <VitalInputCompact label="t°" unit="°C" value={vitals.temp} onChange={val => handleVitalChange('temp', val)} icon={<span className="text-xs">🌡</span>} color="orange" />
+                                            <VitalInputCompact label="SpO2" unit="%" value={vitals.spO2} onChange={val => handleVitalChange('spO2', val)} icon={<OxygenIcon className="w-3 h-3"/>} color="cyan" />
+                                            <VitalInputCompact label="Nafas" unit="/min" value={vitals.respiration} onChange={val => handleVitalChange('respiration', val)} icon={<span className="text-xs">🫁</span>} color="blue" />
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Middle: Smart Input Area (Expands) */}
-                                <div className="flex-grow flex flex-col min-h-0 relative">
-                                    <GlassCard className="flex flex-col h-full bg-white/5 border border-white/10 overflow-hidden relative">
-                                        
-                                        {/* Listening Visualizer Overlay */}
-                                        {isListening && (
-                                            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/60 to-transparent z-20 flex flex-col items-center justify-center pointer-events-none">
-                                                <AudioVisualizer isListening={isListening} />
-                                            </div>
-                                        )}
-
-                                        {/* Text Area - Only this scrolls */}
-                                        <textarea
-                                            value={complaints}
-                                            onChange={(e) => setComplaints(e.target.value)}
-                                            placeholder="Shikoyatlar, anamnez va ob'ektiv ko'rik ma'lumotlarini bu yerga yozing..."
-                                            className="flex-grow w-full bg-transparent text-white text-base leading-relaxed placeholder-white/20 p-4 outline-none resize-none custom-scrollbar"
-                                        />
+                                    {/* Middle: Shikoyatlar (mobil uchun min-height — klaviatura uchun joy) */}
+                                    <div className="flex-none min-h-[220px] mb-3">
+                                        <GlassCard className="flex flex-col min-h-[200px] bg-white/5 border border-white/10 overflow-hidden relative">
+                                            {isListening && (
+                                                <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/60 to-transparent z-20 flex flex-col items-center justify-center pointer-events-none">
+                                                    <AudioVisualizer isListening={isListening} />
+                                                </div>
+                                            )}
+                                            <textarea
+                                                value={complaints}
+                                                onChange={(e) => setComplaints(e.target.value)}
+                                                placeholder="Shikoyatlar, anamnez va ob'ektiv ko'rik ma'lumotlarini bu yerga yozing..."
+                                                className="min-h-[180px] w-full bg-transparent text-white text-base leading-relaxed placeholder-white/20 p-4 outline-none resize-none custom-scrollbar"
+                                            />
                                         
                                         {/* Attachment List Area (Inside Input) */}
                                         <div className="flex-none p-2 border-t border-white/5 bg-black/20 overflow-x-auto whitespace-nowrap custom-scrollbar flex items-center gap-2 min-h-[60px]">
@@ -1317,9 +1318,10 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         </div>
                                     </GlassCard>
                                 </div>
+                                </div>
 
-                                {/* Bottom: Analyze Button - Fixed */}
-                                <div className="flex-none mt-3">
+                                {/* Tugma doim pastda (klaviatura ochiq bo'lsa ham ko'rinadi) */}
+                                <div className="flex-none mt-3 pt-2 pb-safe">
                                     <button 
                                         onClick={handleAnalyze}
                                         disabled={!complaints && attachments.length === 0}

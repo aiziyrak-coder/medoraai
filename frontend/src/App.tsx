@@ -125,6 +125,26 @@ const AppContent: React.FC = () => {
         return () => window.removeEventListener('popstate', onPopstate);
     }, []);
 
+    // Telefon: input/textarea fokusida klaviatura orqasida qolmasin
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const onFocusIn = (e: FocusEvent) => {
+            const el = e.target as HTMLElement;
+            if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    timer = null;
+                }, 380);
+            }
+        };
+        document.addEventListener('focusin', onFocusIn);
+        return () => {
+            document.removeEventListener('focusin', onFocusIn);
+            if (timer) clearTimeout(timer);
+        };
+    }, []);
+
     // Screen Resize & URL Param Listener
     useEffect(() => {
         const handleResize = () => {
