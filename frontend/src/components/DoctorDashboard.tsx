@@ -1335,7 +1335,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                             <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin shrink-0" />
                                             <span className="text-sm font-bold text-blue-200">Tahlil qilinmoqda...</span>
                                         </div>
-                                        <p className="text-[11px] text-white/50">Iltimos, kuting. Sahifani yopmang (30–60 soniya)</p>
+                                        <p className="text-[11px] text-white/50">Iltimos, kuting. Sahifani yopmang (10–20 soniya)</p>
                                     </div>
                                 )}
 
