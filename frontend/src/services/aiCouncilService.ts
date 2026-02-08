@@ -281,10 +281,10 @@ const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
 
 
 // --- SINGLE DOCTOR MODE (TEZKOR — faqat doktor profilida) ---
-/** Tez tahlil tizim ko'rsatmasi: batafsil lekin tez, bemor uchun foydali */
+/** Tez tahlil: qisqa tizim — tez qaytish uchun */
 const getFastDoctorSystemInstruction = (language: Language): string => {
     const til = langMap[language];
-    return `Siz tibbiy yordamchi AI. Javobni ${til} tilida, STRICT JSON. Batafsil va bemor uchun tushunarli: tashxis asosi, aniq davolash qadamlari, dorilarni qanday ichish va nimalardan saqlanish. O'zbekistonda mavjud dori-darmonlar. SSV protokollari.`;
+    return `Tibbiy AI. Javob: ${til}, faqat JSON. Tashxis asosi, reja, dori (qanday ichish). O'zbekiston dorilari, SSV.`;
 };
 
 export const generateFastDoctorConsultation = async (
@@ -293,7 +293,7 @@ export const generateFastDoctorConsultation = async (
     language: Language
 ): Promise<FinalReport> => {
     const systemInstr = getFastDoctorSystemInstruction(language);
-    const promptText = `Batafsil tahlil, bemor uchun foydali. 1) Tashxis: name, probability, justification (2-3 jumla, nima asosda), reasoningChain (3-4 qisqa band), uzbekProtocolMatch. 2) treatmentPlan: aniq qadamlari (3-5 ta). 3) medications: har biri uchun name, dosage, frequency, duration, timing, instructions (bemor uchun: qanday ichish, ovqat bilan/bo'sh qoringa, nimalardan saqlanish, 1-2 jumla). 4) recommendedTests agar kerak bo'lsa. 5) criticalFinding agar xavfli bo'lsa. Til: ${langMap[language]}. Faqat JSON.`;
+    const promptText = `Tashxis (name, probability, justification 2 jumla, reasoningChain 3 band, uzbekProtocolMatch). treatmentPlan 3-5 qadam. medications: name, dosage, frequency, duration, timing, instructions (qanday ichish, 1 jumla). recommendedTests, criticalFinding agar kerak. Til: ${langMap[language]}. JSON.`;
 
     const finalReportSchema = {
         type: Type.OBJECT,

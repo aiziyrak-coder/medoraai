@@ -600,15 +600,19 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setReport(null);
         try {
             const formattedAttachments = await Promise.all(attachments.map(async (att) => {
-                // Fixed: Remove casting causing issues. att.file is already defined as File in the interface.
                 const file = att.file;
-                const isSupported = (file.type && file.type.startsWith('image/')) || file.type === 'application/pdf';
+                const isImage = file.type && file.type.startsWith('image/');
+                const isPdf = file.type === 'application/pdf';
+                let base64Data = '';
+                if (isImage) {
+                    base64Data = await compressImageToBase64(file, 1024, 0.82);
+                } else if (isPdf) {
+                    base64Data = (await blobToBase64(file)).split(',')[1];
+                }
                 return {
                     name: file.name,
-                    base64Data: isSupported 
-                        ? (await blobToBase64(file)).split(',')[1] 
-                        : '', 
-                    mimeType: file.type
+                    base64Data,
+                    mimeType: isImage ? 'image/jpeg' : file.type
                 };
             }));
 
@@ -657,6 +661,56 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
+        });
+    };
+
+    /** Rasmni siqish — tez tahlil uchun (max 1024px, JPEG) */
+    const compressImageToBase64 = (file: File, maxSizePx: number, quality: number): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                let w = img.width;
+                let h = img.height;
+                if (w > maxSizePx || h > maxSizePx) {
+                    if (w > h) {
+                        h = Math.round((h * maxSizePx) / w);
+                        w = maxSizePx;
+                    } else {
+                        w = Math.round((w * maxSizePx) / h);
+                        h = maxSizePx;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    blobToBase64(file).then(s => resolve(s.split(',')[1])).catch(reject);
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(
+                    (blob) => {
+                        if (!blob) {
+                            blobToBase64(file).then(s => resolve(s.split(',')[1])).catch(reject);
+                            return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    },
+                    'image/jpeg',
+                    quality
+                );
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                blobToBase64(file).then(s => resolve(s.split(',')[1])).catch(reject);
+            };
+            img.src = url;
         });
     };
 
