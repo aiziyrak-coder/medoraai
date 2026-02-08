@@ -74,24 +74,34 @@ const VitalInputCompact: React.FC<{
     unit: string;
     icon: React.ReactNode;
     color: string;
-}> = ({ label, value, onChange, unit, icon, color }) => (
-    <div className="flex flex-col bg-slate-800/60 border-2 border-slate-700 rounded-xl p-2.5 relative overflow-hidden group focus-within:border-blue-500 focus-within:bg-slate-800 transition-all">
-        <div className={`absolute top-1 right-1 text-${color}-400 opacity-40`}>
+}> = ({ label, value, onChange, unit, icon, color }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+    <div 
+        onClick={() => inputRef.current?.focus()}
+        className="flex flex-col bg-slate-800/60 border-2 border-slate-700 rounded-xl p-2.5 relative overflow-hidden group focus-within:border-blue-500 focus-within:bg-slate-800 transition-all cursor-text select-text"
+    >
+        <div className={`absolute top-1 right-1 text-${color}-400 opacity-40 pointer-events-none`}>
             {icon}
         </div>
-        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider mb-1">{label}</span>
-        <div className="flex items-baseline gap-1 z-10">
+        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider mb-1 pointer-events-none">{label}</span>
+        <div className="flex items-baseline gap-1 z-10 min-h-[28px]">
             <input 
-                type="number" 
-                value={value}
+                ref={inputRef}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={typeof value === 'string' ? value : ''}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder="-"
-                className="w-full bg-transparent text-xl font-black text-white outline-none placeholder-slate-600"
+                aria-label={label}
+                className="w-full bg-transparent text-xl font-black text-white outline-none placeholder-slate-600 min-w-0 min-h-[1.5rem] py-0.5"
             />
-            <span className="text-[10px] text-slate-400 font-bold">{unit}</span>
+            <span className="text-[10px] text-slate-400 font-bold shrink-0 pointer-events-none">{unit}</span>
         </div>
     </div>
-);
+    );
+};
 
 // --- TAB COMPONENTS ---
 
@@ -568,8 +578,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     const handleVitalChange = (key: keyof typeof vitals, value: string) => {
-        // Bo'sh yoki raqam bo'lishi kerak
-        if (value && !/^\d*\.?\d*$/.test(value)) return;
+        // Bo'sh, yoki raqam (minus, kasr qo'llab-quvvatlanadi)
+        if (value !== '' && !/^-?\d*\.?\d*$/.test(value)) return;
         setVitals(prev => ({ ...prev, [key]: value }));
     };
 
