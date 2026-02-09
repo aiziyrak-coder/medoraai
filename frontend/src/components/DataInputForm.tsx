@@ -102,13 +102,28 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
     const handleChange = (field: keyof PatientData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error when user starts typing
-        if (formErrors[field]) {
-            setFormErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[field];
-                return newErrors;
-            });
+        
+        // Real-time validatsiya yosh uchun
+        if (field === 'age') {
+            const validation = validateAge(value);
+            if (!validation.isValid) {
+                setFormErrors(prev => ({ ...prev, age: validation.error || '' }));
+            } else {
+                setFormErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.age;
+                    return newErrors;
+                });
+            }
+        } else {
+            // Clear error when user starts typing (boshqa fieldlar uchun)
+            if (formErrors[field]) {
+                setFormErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field];
+                    return newErrors;
+                });
+            }
         }
     };
 
@@ -372,7 +387,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <Input id="age" label={t('data_input_age')} type="number" value={formData.age || ''} onChange={e => handleChange('age', e.target.value)} required placeholder="Yosh" min="0" max="150" />
+                                    <div className="flex flex-col">
+                                        <div className={formErrors.age ? 'border-2 border-red-500 rounded-lg' : ''}>
+                                            <Input id="age" label={t('data_input_age')} type="number" value={formData.age || ''} onChange={e => handleChange('age', e.target.value)} required placeholder="Yosh" min="0" max="120" />
+                                        </div>
+                                        {formErrors.age && (
+                                            <p className="text-[10px] text-red-600 mt-0.5 px-1 font-medium leading-tight">{formErrors.age}</p>
+                                        )}
+                                    </div>
                                     {formErrors.age && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.age}</p>}
                                 </div>
                                 <div className="flex flex-col">

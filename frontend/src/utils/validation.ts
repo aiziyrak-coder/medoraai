@@ -29,13 +29,31 @@ export const validatePhone = (phone: string): ValidationResult => {
 };
 
 /**
- * Validates age
+ * Validates age - realistik tibbiy chegaralar
  */
 export const validateAge = (age: string | number): ValidationResult => {
+  if (age === '' || age === null || age === undefined) {
+    return { isValid: true }; // Bo'sh qiymat ruxsat etiladi
+  }
+  
   const ageNum = typeof age === 'string' ? parseInt(age, 10) : age;
   
-  if (isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
-    return { isValid: false, error: "Yosh 0 dan 150 gacha bo'lishi kerak." };
+  if (isNaN(ageNum)) {
+    return { isValid: false, error: "Noto'g'ri qiymat. Faqat raqam kiriting." };
+  }
+  
+  // Realistik tibbiy chegaralar: 0-120 yosh
+  if (ageNum < 0) {
+    return { isValid: false, error: "Yosh manfiy bo'lishi mumkin emas. Minimal qiymat: 0 yosh." };
+  }
+  
+  if (ageNum > 120) {
+    return { isValid: false, error: `Yosh ${ageNum} juda yuqori. Maksimal qiymat: 120 yosh. Bu hayotiy holat emas.` };
+  }
+  
+  // Qo'shimcha: juda kichik yoshlar uchun (masalan, 0-1 yosh chaqaloqlar)
+  if (ageNum === 0 && typeof age === 'string' && age.trim() !== '0') {
+    return { isValid: false, error: "Noto'g'ri qiymat." };
   }
   
   return { isValid: true };

@@ -12,7 +12,7 @@ import * as caseService from '../services/caseService';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import { logger } from '../utils/logger';
 import { LIMITS } from '../constants/timeouts';
-import { validateVitalSign } from '../utils/validation'; 
+import { validateVitalSign, validateAge } from '../utils/validation'; 
 
 // Icons
 import PlusCircleIcon from './icons/PlusCircleIcon';
@@ -435,10 +435,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     // Immediate Admission (Walk-in) State
     const [showWalkInModal, setShowWalkInModal] = useState(false);
     const [walkInPatient, setWalkInPatient] = useState({ firstName: '', lastName: '', age: '', address: '' });
+    const [walkInPatientErrors, setWalkInPatientErrors] = useState<Record<string, string>>({});
 
     // Edit Patient State
     const [showEditPatientModal, setShowEditPatientModal] = useState(false);
     const [editingPatient, setEditingPatient] = useState<DoctorPatient | null>(null);
+    const [editingPatientErrors, setEditingPatientErrors] = useState<Record<string, string>>({});
 
     // Assistant Mgmt State
     const [assistantData, setAssistantData] = useState({ name: '', phone: '', password: '' });
@@ -524,6 +526,13 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             alert(t('alert_required_name_age'));
             return;
         }
+        // Yosh validatsiyasini tekshirish
+        const ageValidation = validateAge(walkInPatient.age);
+        if (!ageValidation.isValid) {
+            setWalkInPatientErrors(prev => ({ ...prev, age: ageValidation.error || '' }));
+            alert(ageValidation.error || t('alert_required_name_age'));
+            return;
+        }
         try {
             const newPatient = await queueService.addToQueue(user.phone, {
                 firstName: walkInPatient.firstName,
@@ -548,6 +557,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             setMode('input');
             setView('consultation');
             setWalkInPatient({ firstName: '', lastName: '', age: '', address: '' });
+            setWalkInPatientErrors({});
             setShowWalkInModal(false);
         } catch (e) {
             alert(e instanceof Error ? e.message : t('queue_add_error'));
@@ -557,6 +567,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const handleEditPatientOpen = () => {
         if (currentPatient) {
             setEditingPatient({ ...currentPatient });
+            setEditingPatientErrors({});
             setShowEditPatientModal(true);
         }
     };
@@ -894,10 +905,28 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 <input 
                                     type="number"
                                     value={walkInPatient.age}
-                                    onChange={e => setWalkInPatient({...walkInPatient, age: e.target.value})}
-                                    className="w-full common-input bg-white/10 border-white/10 text-white placeholder-slate-500 focus:bg-white focus:text-slate-900 font-bold"
+                                    onChange={e => {
+                                        const value = e.target.value;
+                                        setWalkInPatient({...walkInPatient, age: value});
+                                        const validation = validateAge(value);
+                                        if (!validation.isValid) {
+                                            setWalkInPatientErrors(prev => ({ ...prev, age: validation.error || '' }));
+                                        } else {
+                                            setWalkInPatientErrors(prev => {
+                                                const newErrors = { ...prev };
+                                                delete newErrors.age;
+                                                return newErrors;
+                                            });
+                                        }
+                                    }}
+                                    className={`w-full common-input border-white/10 text-white placeholder-slate-500 focus:bg-white focus:text-slate-900 font-bold ${
+                                        walkInPatientErrors.age ? 'bg-red-500/10 border-red-500' : 'bg-white/10'
+                                    }`}
                                     placeholder={t('age_placeholder')}
                                 />
+                                {walkInPatientErrors.age && (
+                                    <p className="text-[10px] text-red-400 mt-1 px-1 font-medium leading-tight">{walkInPatientErrors.age}</p>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('address_label_short')}</label>
@@ -961,9 +990,27 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 <input 
                                     type="number"
                                     value={editingPatient.age}
-                                    onChange={e => setEditingPatient({...editingPatient, age: e.target.value})}
-                                    className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900 font-bold text-lg"
+                                    onChange={e => {
+                                        const value = e.target.value;
+                                        setEditingPatient({...editingPatient, age: value});
+                                        const validation = validateAge(value);
+                                        if (!validation.isValid) {
+                                            setEditingPatientErrors(prev => ({ ...prev, age: validation.error || '' }));
+                                        } else {
+                                            setEditingPatientErrors(prev => {
+                                                const newErrors = { ...prev };
+                                                delete newErrors.age;
+                                                return newErrors;
+                                            });
+                                        }
+                                    }}
+                                    className={`w-full common-input border-white/10 text-white focus:bg-white focus:text-slate-900 font-bold text-lg ${
+                                        editingPatientErrors.age ? 'bg-red-500/10 border-red-500' : 'bg-white/10'
+                                    }`}
                                 />
+                                {editingPatientErrors.age && (
+                                    <p className="text-[10px] text-red-400 mt-1 px-1 font-medium leading-tight">{editingPatientErrors.age}</p>
+                                )}
                             </div>
 
                             <div>
