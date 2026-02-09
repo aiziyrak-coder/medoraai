@@ -76,6 +76,11 @@ const getSystemInstruction = (language: Language): string => {
        - Pediatr bemorlar (0–18 yosh) va keksalar (65+ yosh) uchun fiziologik chegaralar va dori dozalari boshqacha bo'lishini hisobga oling.
        - Homiladorlik, buyrak/jigar yetishmovchiligi, yurak yetishmovchiligi, diabet va boshqa surunkali kasalliklar fonida dori tanlash va dozalashni moslashtiring.
        - FIZIONOMIK BELGILAR (teri rangi, shish, nafas qisilishi, qiyofadagi og'riq ifodasi, nevrologik holat va h.k.) tashxis ehtimolini oshirishi yoki kamaytirishini mantiqan izohlab bering, lekin hech qachon diskriminatsion xulosa chiqarmang.
+    8. MANTIQIY TROLLING VA MOS KELMASLIK: Agar foydalanuvchi ataylab chalg'ituvchi, o'zaro zid yoki fiziologik/anatomik jihatdan bir-biriga to'g'ri kelmaydigan ma'lumotlar kiritsa:
+       - bularni jiddiy klinik ma'lumot sifatida qabul qilmang;
+       - "bu ma'lumotlar o'zaro mos kelmaydi / mantiqan imkonsiz" ekanini muloyim, tushunarli va PROFESSIONALL tarzda tushuntiring;
+       - bunday sharoitda tashxis va davolashni to'liq berishdan tiyiling, faqat umumiy klinik fikr va qanday ma'lumotlar kerakligini ko'rsating;
+       - hazil/trolling shubha qilinsa ham, hech qachon qo'pol yoki hurmatsiz bo'lmang, faqat ilmiy mantiq orqali javob bering.
     `;
 
     const specificInstructions: Record<Language, string> = {
