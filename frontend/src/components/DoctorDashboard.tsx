@@ -531,7 +531,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 age: walkInPatient.age,
                 address: walkInPatient.address,
                 arrivalTime: new Date().toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'}),
-                complaints: 'Navbatsiz qabul'
+                complaints: t('walk_in_admission')
             });
             if (currentPatient) {
                 await queueService.updatePatientStatus(user.phone, currentPatient.id, 'hold');
@@ -550,7 +550,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             setWalkInPatient({ firstName: '', lastName: '', age: '', address: '' });
             setShowWalkInModal(false);
         } catch (e) {
-            alert(e instanceof Error ? e.message : 'Navbatga qo\'shish amalga oshmadi.');
+            alert(e instanceof Error ? e.message : t('queue_add_error'));
         }
     };
 
@@ -664,14 +664,14 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             const supportedAttachments = formattedAttachments.filter(a => a.base64Data);
 
             const objectiveData = `
-                Vital Ko'rsatkichlar:
-                Qon Bosimi: ${vitals.bpSys || '-'}/${vitals.bpDia || '-'} mm.Hg
-                Puls: ${vitals.heartRate || '-'} bpm
-                Harorat: ${vitals.temp || '-'} °C
-                Saturatsiya: ${vitals.spO2 || '-'} %
-                Nafas Soni: ${vitals.respiration || '-'} /min
+                ${t('vitals_title')}:
+                ${t('vitals_bp')}: ${vitals.bpSys || '-'}/${vitals.bpDia || '-'} mm.Hg
+                ${t('vitals_pulse')}: ${vitals.heartRate || '-'} bpm
+                ${t('vitals_temp')}: ${vitals.temp || '-'} °C
+                ${t('vitals_spo2')}: ${vitals.spO2 || '-'} %
+                ${t('vitals_respiration')}: ${vitals.respiration || '-'} /min
                 
-                Yashash Manzili: ${currentPatient.address || 'Kiritilmagan'}
+                ${t('address_label')}: ${currentPatient.address || t('not_entered')}
             `;
 
             const patientData: PatientData = {
@@ -804,7 +804,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 linked_doctor: String(user.phone), // Backend buni ID sifatida qabul qiladi
             });
             if (result.success) {
-                setAssistantMsg("Yordamchi muvaffaqiyatli qo'shildi! U o'z telefoni va paroli bilan kirishi mumkin.");
+                setAssistantMsg(t('assistant_added_success'));
                 setAssistantData({ name: '', phone: '', password: '' });
             } else {
                 const errorMsg = typeof result.message === 'string' 
@@ -821,9 +821,9 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
     const handleDeleteAssistant = async () => {
         // Yordamchini o'chirish backend orqali - hozircha ishlatilmaydi
-        setAssistantMsg("O'chirish funksiyasi hozircha ishlamaydi.");
+        setAssistantMsg(t('assistant_delete_disabled'));
         setAssistantData({ name: '', phone: '', password: '' });
-        setAssistantMsg("Yordamchi o'chirildi.");
+        setAssistantMsg(t('assistant_deleted'));
     };
 
     // TV Settings Handlers
@@ -841,7 +841,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
     const handleSaveTvSettings = () => {
         settingsService.saveTvSettings(user.phone, tvSettings);
-        setTvMsg("Sozlamalar saqlandi.");
+        setTvMsg(t('tv_settings_saved'));
     };
 
     const openTvDisplay = () => {
@@ -859,7 +859,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                     <GlassCard className="w-full max-w-md p-6 border-white/20 bg-slate-900/80">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                <PlayIcon className="w-5 h-5 text-green-400"/> Navbatsiz Qabul
+                                <PlayIcon className="w-5 h-5 text-green-400"/> {t('walk_in_admission')}
                             </h3>
                             <button onClick={() => setShowWalkInModal(false)} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
                                 <XIcon className="w-6 h-6" />
@@ -867,52 +867,52 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         </div>
                         <div className="space-y-4">
                             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-200">
-                                Ushbu bemor navbat kutmasdan, to'g'ridan-to'g'ri qabulga kiritiladi.
+                                {t('walk_in_admission_desc')}
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Ism</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('first_name_label')}</label>
                                     <input 
                                         value={walkInPatient.firstName}
                                         onChange={e => setWalkInPatient({...walkInPatient, firstName: e.target.value})}
                                         className="w-full common-input bg-white/10 border-white/10 text-white placeholder-slate-500 focus:bg-white focus:text-slate-900"
-                                        placeholder="Ism"
+                                        placeholder={t('data_input_patient_name')}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Familiya</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('last_name_label')}</label>
                                     <input 
                                         value={walkInPatient.lastName}
                                         onChange={e => setWalkInPatient({...walkInPatient, lastName: e.target.value})}
                                         className="w-full common-input bg-white/10 border-white/10 text-white placeholder-slate-500 focus:bg-white focus:text-slate-900"
-                                        placeholder="Familiya"
+                                        placeholder={t('data_input_patient_lastname')}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Yosh</label>
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('age_label')}</label>
                                 <input 
                                     type="number"
                                     value={walkInPatient.age}
                                     onChange={e => setWalkInPatient({...walkInPatient, age: e.target.value})}
                                     className="w-full common-input bg-white/10 border-white/10 text-white placeholder-slate-500 focus:bg-white focus:text-slate-900 font-bold"
-                                    placeholder="Masalan: 35"
+                                    placeholder={t('age_placeholder')}
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Manzil</label>
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('address_label_short')}</label>
                                 <input 
                                     value={walkInPatient.address}
                                     onChange={e => setWalkInPatient({...walkInPatient, address: e.target.value})}
                                     className="w-full common-input bg-white/10 border-white/10 text-white placeholder-slate-500 focus:bg-white focus:text-slate-900"
-                                    placeholder="Manzil (ixtiyoriy)"
+                                    placeholder={t('address_optional')}
                                 />
                             </div>
                             <button 
                                 onClick={handleImmediateAdmit}
                                 className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow-lg mt-4 active:scale-95 transition-all"
                             >
-                                Qabulni Boshlash
+                                {t('start_consultation')}
                             </button>
                         </div>
                     </GlassCard>
@@ -925,7 +925,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                     <GlassCard className="w-full max-w-md p-6 border-white/20 bg-slate-900/95 my-auto">
                         <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                <PencilIcon className="w-5 h-5"/> Bemor Ma'lumotlarini Tahrirlash
+                                <PencilIcon className="w-5 h-5"/> {t('edit_patient_info')}
                             </h3>
                             <button onClick={() => setShowEditPatientModal(false)} className="text-slate-400 hover:text-white">
                                 <XIcon className="w-6 h-6" />
@@ -934,12 +934,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         
                         <div className="space-y-4">
                             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-200">
-                                Iltimos, tashxis qo'yishdan oldin bemorning yoshi va ma'lumotlari to'g'riligini tasdiqlang.
+                                {t('edit_patient_desc')}
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Ism</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('first_name_label')}</label>
                                     <input 
                                         value={editingPatient.firstName}
                                         onChange={e => setEditingPatient({...editingPatient, firstName: e.target.value})}
@@ -947,7 +947,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Familiya</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('last_name_label')}</label>
                                     <input 
                                         value={editingPatient.lastName}
                                         onChange={e => setEditingPatient({...editingPatient, lastName: e.target.value})}
@@ -957,7 +957,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Yosh (Bemor Yoshi)</label>
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('patient_age_label')}</label>
                                 <input 
                                     type="number"
                                     value={editingPatient.age}
@@ -967,7 +967,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             </div>
 
                             <div>
-                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Manzil</label>
+                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('address_label_short')}</label>
                                 <input 
                                     value={editingPatient.address}
                                     onChange={e => setEditingPatient({...editingPatient, address: e.target.value})}
@@ -979,7 +979,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 onClick={handleEditPatientSave}
                                 className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl shadow-lg mt-4 active:scale-95 transition-all"
                             >
-                                Saqlash va Davom Etish
+                                {t('save_and_continue')}
                             </button>
                         </div>
                     </GlassCard>
@@ -992,7 +992,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                     <GlassCard className="w-full max-w-lg p-8 border-white/20 bg-slate-900/95 my-auto">
                         <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                             <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                                <UsersIcon className="w-6 h-6 text-blue-400"/> Sozlamalar
+                                <UsersIcon className="w-6 h-6 text-blue-400"/> {t('settings')}
                             </h3>
                             <button onClick={() => setView('queue')} className="text-slate-400 hover:text-white">
                                 <XIcon className="w-6 h-6" />
@@ -1002,7 +1002,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         {/* Section 1: Assistant */}
                         <div className="mb-8">
                             <h4 className="text-lg font-bold text-blue-200 mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-blue-500"></span> Yordamchi (Registrator)
+                                <span className="w-2 h-2 rounded-full bg-blue-500"></span> {t('assistant_registrator')}
                             </h4>
                             <div className="space-y-4">
                                 <div>
@@ -1011,7 +1011,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         value={assistantData.name}
                                         onChange={e => setAssistantData({...assistantData, name: e.target.value})}
                                         className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                        placeholder="Yordamchi ismi"
+                                        placeholder={t('assistant_name_placeholder')}
                                     />
                                 </div>
                                 <div>
@@ -1047,7 +1047,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         onClick={handleDeleteAssistant}
                                         className="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 font-bold py-3 rounded-xl border border-red-500/30 active:scale-95 transition-all"
                                     >
-                                        O'chirish
+                                        {t('delete')}
                                     </button>
                                 </div>
                             </div>
@@ -1056,7 +1056,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         {/* Section 2: TV Settings */}
                         <div className="pt-6 border-t border-white/10">
                             <h4 className="text-lg font-bold text-purple-200 mb-4 flex items-center gap-2">
-                                <MonitorIcon className="w-5 h-5"/> TV Ekran Sozlamalari
+                                <MonitorIcon className="w-5 h-5"/> {t('tv_settings')}
                             </h4>
                             
                             <div className="space-y-4">
@@ -1116,7 +1116,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                                 onClick={handleSaveTvSettings}
                                                 className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl shadow-lg mt-2"
                                             >
-                                                Sozlamalarni Saqlash
+                                                {t('save_settings')}
                                             </button>
                                         </div>
                                     </div>
@@ -1162,7 +1162,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         type="button"
                                         onClick={handleEditPatientOpen}
                                         className="p-1 sm:p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-blue-300 flex-shrink-0 ml-auto"
-                                        aria-label="Tahrirlash"
+                                        aria-label={t('edit_label')}
                                     >
                                         <PencilIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                     </button>
@@ -1176,7 +1176,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 type="button"
                                 onClick={() => setView('assistant')}
                                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-blue-300 transition-colors"
-                                title="Jamoa va Sozlamalar"
+                                title={t('team_and_settings')}
                                 aria-label="Jamoa"
                             >
                                 <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1188,7 +1188,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 onClick={() => setView('queue')} 
                                 className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white font-bold text-xs sm:text-sm transition-colors shadow-lg whitespace-nowrap"
                             >
-                                &larr; Navbat
+                                &larr; {t('back_to_queue')}
                             </button>
                         ) : (
                             <button 
@@ -1217,7 +1217,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 className="h-10 sm:h-12 px-4 sm:px-6 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center justify-center text-white font-bold gap-1.5 sm:gap-2 active:scale-95 transition-transform border border-green-400/50 text-xs sm:text-sm"
                             >
                                 <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                                <span>Navbatsiz Qabul</span>
+                                <span>{t('walk_in_admission')}</span>
                             </button>
                         </div>
 
