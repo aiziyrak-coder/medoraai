@@ -308,10 +308,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                     </div>
                 )}
 
-                <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0"> 
+                <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-12 gap-3 min-h-0"> 
                     
                     {/* LEFT COLUMN: Demographics & Other Info (3 cols) */}
-                    <div className="lg:col-span-3 flex flex-col gap-3 h-full overflow-hidden">
+                    <div className="lg:col-span-2 2xl:col-span-3 flex flex-col gap-3 h-full overflow-hidden">
                         {/* Demographics */}
                         <div className="glass-panel p-3 space-y-2 flex-shrink-0">
                             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -375,7 +375,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                     </div>
 
                     {/* MIDDLE COLUMN: Clinical Data & Vitals (5 cols) */}
-                    <div className="lg:col-span-5 flex flex-col gap-3 h-full overflow-hidden">
+                    <div className="lg:col-span-2 2xl:col-span-5 flex flex-col gap-3 h-full overflow-hidden">
                         <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                 <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[10px] font-bold">2</div>
@@ -421,7 +421,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                     </div>
 
                     {/* RIGHT COLUMN: Diagnostics & Lab Uploads (4 cols) */}
-                    <div className="lg:col-span-4 h-full overflow-hidden">
+                    <div className="lg:col-span-2 2xl:col-span-4 h-full overflow-hidden">
                          <div className="glass-panel p-3 h-full flex flex-col">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                 <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[10px] font-bold">3</div>
