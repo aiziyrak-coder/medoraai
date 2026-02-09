@@ -1278,7 +1278,7 @@ JSON tashqarisida hech qanday matn yozmang.`;
 };
 
 export const checkDrugInteractions = async (drugs: string[], language: Language): Promise<{
-    severity: 'High' | 'Moderate' | 'Low' | 'None';
+    severity: string;
     description: string;
     clinicalSignificance: string;
     recommendations: string[];
@@ -1312,19 +1312,39 @@ Output Language: ${langMap[language]}.`;
 
     const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
 
-    const allowedSeverity = ['High', 'Moderate', 'Low', 'None'] as const;
-    const sev = typeof raw.severity === 'string' && allowedSeverity.includes(raw.severity as any)
-        ? (raw.severity as (typeof allowedSeverity)[number])
-        : 'None';
+    const sevRaw = String((raw as any).severity || '').toLowerCase();
+    let severityUz = 'Xavf aniqlanmadi';
+    if (sevRaw.includes('high') || sevRaw.includes('yuqori')) severityUz = 'Yuqori';
+    else if (sevRaw.includes('moderate') || sevRaw.includes("o'rta") || sevRaw.includes('orta')) severityUz = "O'rta";
+    else if (sevRaw.includes('low') || sevRaw.includes('past')) severityUz = 'Past';
 
     const recs = Array.isArray(raw.recommendations)
         ? (raw.recommendations as unknown[]).map(r => String(r)).filter(Boolean)
         : [];
 
+    let description = String((raw as any).description || '');
+    let clinicalSignificance = String((raw as any).clinicalSignificance || '');
+
+    if (!description) {
+        if (severityUz === 'Yuqori' || severityUz === "O'rta") {
+            description = "Dorilar o'zaro ta'siri mumkin. Klinik holatni hisobga olib, ehtiyotkorlik bilan qo'llash tavsiya etiladi.";
+        } else {
+            description = "Mavjud ma'lumotlarga ko'ra klinik ahamiyatli o'zaro ta'sir aniqlanmadi.";
+        }
+    }
+
+    if (!clinicalSignificance) {
+        if (severityUz === 'Yuqori' || severityUz === "O'rta") {
+            clinicalSignificance = "Bemorni yaqindan kuzatish, qon bosimi, yurak urishi va boshqa muhim ko'rsatkichlarni nazorat qilish, kerak bo'lsa dozani moslashtirish yoki muqobil dori tanlash tavsiya etiladi.";
+        } else {
+            clinicalSignificance = "Mavjud ma'lumotlarga ko'ra, ushbu kombinatsiya odatda xavfsiz, ammo bemorning umumiy holatini kuzatish zarur.";
+        }
+    }
+
     return {
-        severity: sev,
-        description: String((raw as any).description || ''),
-        clinicalSignificance: String((raw as any).clinicalSignificance || ''),
+        severity: severityUz,
+        description,
+        clinicalSignificance,
         recommendations: recs,
     };
 };
@@ -1374,18 +1394,34 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar ma'lumotlarini bering
     };
 
     const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
-    const toArray = (v: unknown): string[] => Array.isArray(v) ? v.map(x => String(x)).filter(Boolean) : [];
+    const toArray = (v: unknown): string[] => {
+        if (!v) return [];
+        if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);
+        return [String(v)];
+    };
+
+    let indications = toArray((raw as any).indications);
+    let contraindications = toArray((raw as any).contraindications);
+    let sideEffects = toArray((raw as any).sideEffects);
+
+    if (indications.length === 0) indications = ["Ma'lumot topilmadi"];
+    if (contraindications.length === 0) contraindications = ["Ma'lumot topilmadi"];
+    if (sideEffects.length === 0) sideEffects = ["Ma'lumot topilmadi"];
+
+    const dosageInstructions = String((raw as any).dosageInstructions || "Ma'lumot topilmadi");
+    const availabilityInUzbekistan = String((raw as any).availabilityInUzbekistan || "Ma'lumot topilmadi");
+    const priceRange = String((raw as any).priceRange || "Ma'lumot topilmadi");
 
     return {
         name: String((raw as any).name || ''),
-        activeIngredient: String((raw as any).activeIngredient || ''),
-        dosage: String((raw as any).dosage || ''),
-        indications: toArray((raw as any).indications),
-        contraindications: toArray((raw as any).contraindications),
-        sideEffects: toArray((raw as any).sideEffects),
-        dosageInstructions: String((raw as any).dosageInstructions || ''),
-        availabilityInUzbekistan: String((raw as any).availabilityInUzbekistan || ''),
-        priceRange: String((raw as any).priceRange || ''),
+        activeIngredient: String((raw as any).activeIngredient || "Ma'lumot topilmadi"),
+        dosage: String((raw as any).dosage || "Ma'lumot topilmadi"),
+        indications,
+        contraindications,
+        sideEffects,
+        dosageInstructions,
+        availabilityInUzbekistan,
+        priceRange,
     };
 };
 
@@ -1439,17 +1475,33 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot ber
     };
 
     const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
-    const toArray = (v: unknown): string[] => Array.isArray(v) ? v.map(x => String(x)).filter(Boolean) : [];
+    const toArray = (v: unknown): string[] => {
+        if (!v) return [];
+        if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);
+        return [String(v)];
+    };
+
+    let indications = toArray((raw as any).indications);
+    let contraindications = toArray((raw as any).contraindications);
+    let sideEffects = toArray((raw as any).sideEffects);
+
+    if (indications.length === 0) indications = ["Ma'lumot topilmadi"];
+    if (contraindications.length === 0) contraindications = ["Ma'lumot topilmadi"];
+    if (sideEffects.length === 0) sideEffects = ["Ma'lumot topilmadi"];
+
+    const dosageInstructions = String((raw as any).dosageInstructions || "Ma'lumot topilmadi");
+    const availabilityInUzbekistan = String((raw as any).availabilityInUzbekistan || "Ma'lumot topilmadi");
+    const priceRange = String((raw as any).priceRange || "Ma'lumot topilmadi");
 
     return {
         name: String((raw as any).name || ''),
-        activeIngredient: String((raw as any).activeIngredient || ''),
-        dosage: String((raw as any).dosage || ''),
-        indications: toArray((raw as any).indications),
-        contraindications: toArray((raw as any).contraindications),
-        sideEffects: toArray((raw as any).sideEffects),
-        dosageInstructions: String((raw as any).dosageInstructions || ''),
-        availabilityInUzbekistan: String((raw as any).availabilityInUzbekistan || ''),
-        priceRange: String((raw as any).priceRange || ''),
+        activeIngredient: String((raw as any).activeIngredient || "Ma'lumot topilmadi"),
+        dosage: String((raw as any).dosage || "Ma'lumot topilmadi"),
+        indications,
+        contraindications,
+        sideEffects,
+        dosageInstructions,
+        availabilityInUzbekistan,
+        priceRange,
     };
 };
