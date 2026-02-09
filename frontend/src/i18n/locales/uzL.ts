@@ -415,6 +415,19 @@ export const uzL: TranslationSet = {
   user_intervention_log: 'Sizning aralashuvingiz: "{intervention}"',
   scenario_analysis_error: 'Senariy tahlilida xatolik yuz berdi.',
   
+  // Drug interaction tool
+  drug_interaction_title: 'Dori O\'zaro Tasiri',
+  drug_interaction_desc: 'Bir vaqtning o\'zida qabul qilinayotgan dorilarni kiriting. Tizim ularning o\'zaro ta\'sirini tahlil qilib, xavf darajasi va amaliy tavsiyalarni (qaysi dori bilan ehtiyot bo\'lish kerak, dozani o\'zgartirish kerakmi va h.k.) ko\'rsatadi. Bu vosita klinik qarorni to\'ldiradi, lekin shifokor qarorini almashtirmaydi.',
+  drug_name_placeholder: 'Dori nomi (Aspirin, Metformin...)',
+  drug_add_button: '+ Dori qo\'shish',
+  drug_check_button: 'Tekshirish',
+  drug_checking: 'Tekshirilmoqda...',
+  drug_safe: 'Xavfsiz',
+  drug_severity_label: 'Xavf darajasi:',
+  drug_clinical_significance: '🔬 Klinik ahamiyati:',
+  drug_recommendations: '📋 Tavsiyalar:',
+  drug_tools_title: '🧪 Dori Vositalari',
+  
   // Other various strings
   'unknown_diagnosis': 'Noma\'lum tashxis',
 };

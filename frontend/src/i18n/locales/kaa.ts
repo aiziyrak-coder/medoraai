@@ -414,4 +414,17 @@ export const kaa: TranslationSet = {
   alert_qr_error: 'QR Kod generaciya qılıwda qate.',
   alert_training_done: 'Trening tamamlandı!',
   alert_min_drugs: 'Keminde 2 dori kiritiń.',
+  
+  // Drug interaction tool
+  drug_interaction_title: 'Dori Ózara Tásiri',
+  drug_interaction_desc: 'Bir waqıtıń ózinde qabıl qılınaatqan dorilardı kiritiń. Tizim olardıń ózara tásirin tahlil qılıp, xawf dárejesi hám amalıy tawsıyalardı (qaysı dori menen ehtiyat bolıw kerek, dozanı ózgertiw kerekmi hám h.k.) kórsetedi. Bul qural klinikalıq qarornı toltıradı, biraq shıpaker qararın almastırmaydı.',
+  drug_name_placeholder: 'Dori atı (Aspirin, Metformin...)',
+  drug_add_button: '+ Dori qosıw',
+  drug_check_button: 'Tekshiriw',
+  drug_checking: 'Tekshirilmekte...',
+  drug_safe: 'Xawfsiz',
+  drug_severity_label: 'Xawf dárejesi:',
+  drug_clinical_significance: '🔬 Klinikalıq áhmiyeti:',
+  drug_recommendations: '📋 Tawsıyalar:',
+  drug_tools_title: '🧪 Dori quralları',
 };

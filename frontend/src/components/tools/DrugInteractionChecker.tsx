@@ -13,11 +13,10 @@ interface DrugInteraction {
 }
 
 const DrugInteractionChecker: React.FC = () => {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [drugs, setDrugs] = useState<string[]>(['', '']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<DrugInteraction | null>(null);
-    const [language] = useState<'uz-L'>('uz-L');
 
     const handleAddDrug = () => {
         if (drugs.length < 10) {
@@ -82,11 +81,9 @@ const DrugInteractionChecker: React.FC = () => {
                         <span className="text-2xl">💊</span>
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Dori O'zaro Tasiri</h2>
+                        <h2 className="text-xl font-bold text-white">{t('drug_interaction_title')}</h2>
                         <p className="text-xs text-slate-400">
-                            Bir vaqtning o'zida qabul qilinayotgan dorilarni kiriting. Tizim ularning o'zaro ta'sirini tahlil qilib,
-                            xavf darajasi va amaliy tavsiyalarni (qaysi dori bilan ehtiyot bo'lish kerak, dozani o'zgartirish kerakmi va h.k.) ko'rsatadi.
-                            Bu vosita klinik qarorni to'ldiradi, lekin shifokor qarorini almashtirmaydi.
+                            {t('drug_interaction_desc')}
                         </p>
                     </div>
                 </div>
@@ -101,7 +98,7 @@ const DrugInteractionChecker: React.FC = () => {
                                 type="text"
                                 value={drug}
                                 onChange={(e) => handleDrugChange(index, e.target.value)}
-                                placeholder={`Dori nomi (Aspirin, Metformin...)`}
+                                placeholder={t('drug_name_placeholder')}
                                 className="flex-1 px-3 py-2.5 bg-white text-slate-900 rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm placeholder:text-slate-400"
                             />
                             {drugs.length > 2 && (
@@ -122,7 +119,7 @@ const DrugInteractionChecker: React.FC = () => {
                             onClick={handleAddDrug}
                             className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold"
                         >
-                            + Dori qo'shish
+                            {t('drug_add_button')}
                         </button>
                     )}
                     <button
@@ -132,9 +129,9 @@ const DrugInteractionChecker: React.FC = () => {
                     >
                         {isAnalyzing ? (
                             <span className="flex items-center justify-center gap-2">
-                                <SpinnerIcon className="w-5 h-5" /> Tekshirilmoqda...
+                                <SpinnerIcon className="w-5 h-5" /> {t('drug_checking')}
                             </span>
-                        ) : 'Tekshirish'}
+                        ) : t('drug_check_button')}
                     </button>
                 </div>
             </div>
@@ -145,7 +142,7 @@ const DrugInteractionChecker: React.FC = () => {
                         {getSeverityIcon(result.severity)}
                         <div>
                             <h3 className="font-bold text-lg">
-                                {result.severity === 'None' ? 'Xavfsiz' : `Xavf darajasi: ${result.severity}`}
+                                {result.severity === 'None' ? t('drug_safe') : `${t('drug_severity_label')} ${result.severity}`}
                             </h3>
                             <p className="text-sm mt-1">{result.description}</p>
                         </div>
@@ -153,13 +150,13 @@ const DrugInteractionChecker: React.FC = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <h4 className="font-bold text-white mb-2">🔬 Klinik ahamiyati:</h4>
+                            <h4 className="font-bold text-white mb-2">{t('drug_clinical_significance')}</h4>
                             <p className="text-slate-300">{result.clinicalSignificance}</p>
                         </div>
 
                         {result.recommendations.length > 0 && (
                             <div>
-                                <h4 className="font-bold text-white mb-2">📋 Tavsiyalar:</h4>
+                                <h4 className="font-bold text-white mb-2">{t('drug_recommendations')}</h4>
                                 <ul className="list-disc list-inside space-y-1 text-slate-300">
                                     {result.recommendations.map((rec, i) => (
                                         <li key={i}>{rec}</li>

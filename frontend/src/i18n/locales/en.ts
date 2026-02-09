@@ -410,6 +410,19 @@ export const en = {
   alert_qr_error: 'Error generating QR code.',
   alert_training_done: 'Training completed!',
   alert_min_drugs: 'Please enter at least 2 drugs.',
+  
+  // Drug interaction tool
+  drug_interaction_title: 'Drug Interaction Checker',
+  drug_interaction_desc: 'Enter drugs being taken simultaneously. The system analyzes their interactions, showing risk level and practical recommendations (which drug to be cautious with, whether to adjust dosage, etc.). This tool supplements clinical decision but does not replace physician judgment.',
+  drug_name_placeholder: 'Drug name (Aspirin, Metformin...)',
+  drug_add_button: '+ Add Drug',
+  drug_check_button: 'Check',
+  drug_checking: 'Checking...',
+  drug_safe: 'Safe',
+  drug_severity_label: 'Risk Level:',
+  drug_clinical_significance: '🔬 Clinical Significance:',
+  drug_recommendations: '📋 Recommendations:',
+  drug_tools_title: '🧪 Drug Tools',
 
   // Other various strings
   'unknown_diagnosis': 'Unknown diagnosis',
