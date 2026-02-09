@@ -1336,19 +1336,55 @@ Output Language: ${langMap[language]}.`;
     let description = String((raw as any).description || '');
     let clinicalSignificance = String((raw as any).clinicalSignificance || '');
 
+    // Agar model qisqa yoki bo'sh matn bergan bo'lsa, dorilarga asoslangan batafsil matnni alohida so'raymiz
     if (!description) {
-        if (severityUz === 'Yuqori' || severityUz === "O'rta") {
-            description = "Dorilar o'zaro ta'siri mumkin. Klinik holatni hisobga olib, ehtiyotkorlik bilan qo'llash tavsiya etiladi.";
+        if (severityUz === 'Yuqori' || severityUz === "O'rta" || severityUz === 'Past') {
+            try {
+                const descPrompt = `
+Siz klinik farmakologsiz. Quyidagi dorilar kombinatsiyasi bo'yicha BATTAFSIL izoh yozing:
+Dorilar: ${drugs.join(', ')}.
+Xavf darajasi: ${severityUz}.
+
+Talablar:
+- Har bir dori nomini matnda qayta tilga oling.
+- O'zaro ta'sirning asosiy farmakodinamik va/yoki farmakokinetik mexanizmini tushuntiring.
+- Klinik misol(lar) keltiring: qaysi holatlarda ayniqsa xavfli bo'ladi.
+- Kamida 3–4 jumla yozing.
+
+Faqat soddalashtirilgan matn yozing, hech qanday ro'yxat, bullet, JSON yoki kod ishlatmang.
+Javob tili: ${langMap[language]}.
+`;
+                description = await callGemini(descPrompt, 'gemini-2.5-flash', undefined, false, getSystemInstruction(language)) as string;
+            } catch {
+                description = `Quyidagi dorilar kombinatsiyasi (${drugs.join(', ')}) uchun AI aniq mexanizmni qaytarmadi, lekin xavf darajasi "${severityUz}". Klinik holatga qarab ehtiyotkorlik bilan qo'llash va qo'shimcha manbalarni ko'rib chiqish zarur.`;
+            }
         } else {
-            description = "Mavjud ma'lumotlarga ko'ra klinik ahamiyatli o'zaro ta'sir aniqlanmadi.";
+            description = `Mavjud ma'lumotlarga ko'ra ${drugs.join(', ')} kombinatsiyasi bo'yicha klinik ahamiyatli o'zaro ta'sir aniqlanmadi. Shunga qaramay, bemorning umumiy holatini individual baholash kerak.`;
         }
     }
 
     if (!clinicalSignificance) {
-        if (severityUz === 'Yuqori' || severityUz === "O'rta") {
-            clinicalSignificance = "Bemorni yaqindan kuzatish, qon bosimi, yurak urishi va boshqa muhim ko'rsatkichlarni nazorat qilish, kerak bo'lsa dozani moslashtirish yoki muqobil dori tanlash tavsiya etiladi.";
+        if (severityUz === 'Yuqori' || severityUz === "O'rta" || severityUz === 'Past') {
+            try {
+                const signifPrompt = `
+Siz tajribali klinik farmakologsiz. Quyidagi dorilar kombinatsiyasi (${drugs.join(', ')}) uchun
+"${severityUz}" xavf darajasiga mos ravishda BEMOR UCHUN KLINIK AHAMIYATINI batafsil tushuntiring.
+
+Talablar:
+- Qaysi bemor guruhlari uchun (yoshi katta, surunkali buyrak/jigar yetishmovchiligi, yurak yetishmovchiligi va h.k.) xavf yuqori bo'lishi mumkinligini aniq yozing.
+- Qanday monitoring zarur: qon bosimi, yurak urishi, EKG, INR, buyrak/jigar funksiyasi va h.k.
+- Qachon dozani o'zgartirish yoki dori(lar)ni almashtirish kerak bo'lishi mumkinligini tushuntiring.
+- Kamida 3–4 jumla yozing.
+
+Faqat izoh matnini yozing, ro'yxat va JSON ishlatmang.
+Javob tili: ${langMap[language]}.
+`;
+                clinicalSignificance = await callGemini(signifPrompt, 'gemini-2.5-flash', undefined, false, getSystemInstruction(language)) as string;
+            } catch {
+                clinicalSignificance = `Ushbu kombinatsiya (${drugs.join(', ')}) uchun "${severityUz}" xavf darajasi taxmin qilinmoqda. Ayniqsa xavf guruhi hisoblangan bemorlarda (keksa yosh, ko'p dori qabul qiladiganlar, yurak yoki buyrak/jigar yetishmovchiligi borlar) yaqin monitoring va dozani ehtiyotkorlik bilan tanlash zarur.`;
+            }
         } else {
-            clinicalSignificance = "Mavjud ma'lumotlarga ko'ra, ushbu kombinatsiya odatda xavfsiz, ammo bemorning umumiy holatini kuzatish zarur.";
+            clinicalSignificance = `Mavjud ma'lumotlarga ko'ra ${drugs.join(', ')} kombinatsiyasi odatda xavfsiz hisoblanadi, lekin individual bemor holatini hisobga olib, standart klinik kuzatuv o'tkazish tavsiya etiladi.`;
         }
     }
 
