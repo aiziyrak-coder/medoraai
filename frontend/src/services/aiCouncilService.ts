@@ -72,6 +72,10 @@ const getSystemInstruction = (language: Language): string => {
        - ularni AQLGA TO'G'RI KELMAYDIGAN yoki ehtimol noto'g'ri yozilgan deb baholang;
        - bunday joylashuvga asoslangan tashxis/davolash bermang;
        - bemor/shifokorga muloyimlik bilan bu anatomik jihatdan mumkin emasligini tushuntiring va kerak bo'lsa to'g'ri joylashuvni aniqlashtirish uchun savol bering.
+    7. FIZIOLOGIYA VA FIZIONOMIYA: Har bir holatda bemorning YOSHI, JINSI, VAZNI, VITAL KO'RSATKICHLARI (BP, yurak urishi, harorat, SpO2, nafas soni) va umumiy ko'rinishi (kaxeksiya, semizlik, shish, sianoz, rangparlik, dismorfik belgilar) NI INOBATGA OLING. 
+       - Pediatr bemorlar (0–18 yosh) va keksalar (65+ yosh) uchun fiziologik chegaralar va dori dozalari boshqacha bo'lishini hisobga oling.
+       - Homiladorlik, buyrak/jigar yetishmovchiligi, yurak yetishmovchiligi, diabet va boshqa surunkali kasalliklar fonida dori tanlash va dozalashni moslashtiring.
+       - FIZIONOMIK BELGILAR (teri rangi, shish, nafas qisilishi, qiyofadagi og'riq ifodasi, nevrologik holat va h.k.) tashxis ehtimolini oshirishi yoki kamaytirishini mantiqan izohlab bering, lekin hech qachon diskriminatsion xulosa chiqarmang.
     `;
 
     const specificInstructions: Record<Language, string> = {
