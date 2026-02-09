@@ -43,7 +43,6 @@ import PatientsList from './PatientsList';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
 import DrugInteractionChecker from './tools/DrugInteractionChecker';
-import DrugIdentifier from './tools/DrugIdentifier';
 
 interface DoctorDashboardProps {
     user: User;
@@ -1243,7 +1242,6 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             <h2 className="text-2xl font-bold text-white mb-6 px-2">🧪 Dori Vositalari</h2>
                             <div className="space-y-6">
                                 <DrugInteractionChecker />
-                                <DrugIdentifier />
                             </div>
                         </div>
                     </div>

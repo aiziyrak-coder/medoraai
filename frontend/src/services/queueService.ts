@@ -165,7 +165,7 @@ export const subscribeToQueueUpdates = (
     const interval = setInterval(async () => {
       await loadQueueFromServer(doctorId);
       callback(getQueue(doctorId));
-    }, 2500);
+    }, 5000);
     return () => clearInterval(interval);
   }
   const handleStorageChange = (e: StorageEvent) => {

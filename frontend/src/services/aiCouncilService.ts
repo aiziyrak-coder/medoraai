@@ -1289,17 +1289,23 @@ export const checkDrugInteractions = async (drugs: string[], language: Language)
     recommendations: string[];
 }> => {
     const systemInstr = getDrugToolSystemInstruction(language);
-    const prompt = `Quyidagi dorilarni birga qabul qilish xavfsizmi? Dorilar: ${drugs.join(', ')}.
+    const prompt = `Quyidagi dorilarni BIRGA qabul qilish xavfsizmi? Dorilar: ${drugs.join(', ')}.
 
-JSON formatda faqat quyidagilarni qaytaring:
+Har bir kombinatsiya bo'yicha klinik jihatdan CHUQUR tahlil qiling:
+- Farmakodinamik va farmakokinetik mexanizmlarini qisqacha tushuntiring.
+- Real amaliyotdagi asosiy xavflarni va eng yomon ssenariyni aytib bering.
+- Monitoring va dozani o'zgartirish bo'yicha aniq, amaliy tavsiyalar yozing.
+
+JSON formatda faqat quyidagilarni qaytaring (batafsil matnlar bilan):
 {
   "severity": "High | Moderate | Low | None",
-  "description": "O'zaro ta'sirning qisqa tavsifi (2-3 jumla)",
-  "clinicalSignificance": "Bemor uchun klinik ahamiyati (nimalarga e'tibor berish kerak)",
+  "description": "O'zaro ta'sirning batafsil tavsifi (kamida 3-4 jumla, klinik misollar bilan)",
+  "clinicalSignificance": "Bemor uchun klinik ahamiyati (nimalarga e'tibor berish kerak, qaysi guruh bemorlarda xavf yuqori)",
   "recommendations": [
-    "Qaysi dori dozasini o'zgartirish yoki bekor qilish kerak",
-    "Monitoring (bosim, EKG, INR va h.k.) bo'yicha tavsiyalar",
-    "Qachon shoshilinch shifokorga murojaat qilish kerak"
+    "Qaysi dori(lar) dozasini o'zgartirish yoki bekor qilish kerak (aniq misol bilan)",
+    "Monitoring (bosim, EKG, INR, buyrak/jigar funktsiyasi va h.k.) bo'yicha aniq tavsiyalar",
+    "Qachon shoshilinch shifokorga murojaat qilish kerak (aniq klinik belgilar bilan)",
+    "Zarur bo'lsa, muqobil xavfsizroq dori kombinatsiyasi"
   ]
 }
 
@@ -1315,7 +1321,7 @@ Output Language: ${langMap[language]}.`;
         }
     };
 
-    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 896) as Record<string, unknown>;
 
     const sevRaw = String((raw as any).severity || '').toLowerCase();
     let severityUz = 'Xavf aniqlanmadi';
