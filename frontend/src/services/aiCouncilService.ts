@@ -114,11 +114,6 @@ const getSystemInstruction = (language: Language): string => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-/** 
- * Kesilgan yoki oxirida faqat vergul qolgan JSON ni tiklashga urinish.
- *  - Avval umumiy holda `,` ni olib tashlab, `{` va `[` larni balanslaymiz.
- *  - Agar baribir bo'lmasa, doktor hisobotiga xos patchlar bilan urinib ko'ramiz.
- */
 function tryRepairTruncatedJson(raw: string): unknown | null {
     let s = raw.trim();
     if (!s) return null;
@@ -272,18 +267,28 @@ const callGemini = async (
         const text = result.text;
         
         if (responseSchema) {
-            const cleanedText = text.replace(/^```json\s*|```\s*$/g, '').trim();
+            // 1. Kod bloklarini va izohlarni inkor etib, faqat JSON bo'lagini ajratib olish
+            const cleaned = text.replace(/```[\s\S]*?```/g, (m) => m); // avval o'z holida qoldiramiz
+            const jsonStart = Math.min(
+                ...['{', '[']
+                    .map(ch => cleaned.indexOf(ch))
+                    .filter(idx => idx >= 0)
+            );
+            const candidate = jsonStart >= 0 ? cleaned.slice(jsonStart).trim() : cleaned.trim();
+
             let parsed: unknown;
             try {
-                parsed = JSON.parse(cleanedText);
+                parsed = JSON.parse(candidate);
             } catch {
-                parsed = tryRepairTruncatedJson(cleanedText);
-                if (parsed == null) {
-                    logger.error("Failed to parse JSON from Gemini:", cleanedText?.slice(0, 500));
+                // Agar hali ham bo'lmasa – kesilgan/izohlangan bo'lishi mumkin, qo'shimcha patch bilan urinib ko'ramiz
+                const repaired = tryRepairTruncatedJson(candidate);
+                if (repaired == null) {
+                    logger.error("Failed to parse JSON from Gemini:", candidate?.slice(0, 500));
                     const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
-                    (err as Error & { cause?: string }).cause = 'parse_json';
+                    (err as Error & { cause?: string }).curse = 'parse_json';
                     throw err;
                 }
+                parsed = repaired;
             }
             return parsed;
         }
