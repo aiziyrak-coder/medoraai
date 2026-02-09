@@ -114,10 +114,44 @@ const getSystemInstruction = (language: Language): string => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-/** Kesilgan JSON ni minimal yopuvchi qo'shib parse qilishga urinish (doktor hisobot formati) */
+/** 
+ * Kesilgan yoki oxirida faqat vergul qolgan JSON ni tiklashga urinish.
+ *  - Avval umumiy holda `,` ni olib tashlab, `{` va `[` larni balanslaymiz.
+ *  - Agar baribir bo'lmasa, doktor hisobotiga xos patchlar bilan urinib ko'ramiz.
+ */
 function tryRepairTruncatedJson(raw: string): unknown | null {
-    const s = raw.trim();
+    let s = raw.trim();
     if (!s) return null;
+
+    // 1) Umumiy tuzatish: oxiridagi vergulni olib tashlash va figurali/qavslarni yopish
+    if (s.startsWith('{') || s.startsWith('[')) {
+        // Oxirgi vergulni olib tashlash: { "name": "Qupen",
+        s = s.replace(/,\s*$/, '');
+
+        const fixBrackets = (text: string): string => {
+            let fixed = text;
+            const openCurly = (fixed.match(/{/g) || []).length;
+            const closeCurly = (fixed.match(/}/g) || []).length;
+            for (let i = 0; i < openCurly - closeCurly; i++) {
+                fixed += '}';
+            }
+            const openSquare = (fixed.match(/\[/g) || []).length;
+            const closeSquare = (fixed.match(/]/g) || []).length;
+            for (let i = 0; i < openSquare - closeSquare; i++) {
+                fixed += ']';
+            }
+            return fixed;
+        };
+
+        const genericFixed = fixBrackets(s);
+        try {
+            return JSON.parse(genericFixed);
+        } catch {
+            // pastga tushamiz
+        }
+    }
+
+    // 2) Doktor hisobotiga xos patchlar (treatmentPlan/medications kesilganda)
     const repairs: string[] = [
         s + '[],"medications":[],"recommendedTests":[]}',
         s + '[]}',

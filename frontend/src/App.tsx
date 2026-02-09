@@ -125,8 +125,15 @@ const AppContent: React.FC = () => {
         return () => window.removeEventListener('popstate', onPopstate);
     }, []);
 
-    // Telefon: input/textarea fokusida klaviatura orqasida qolmasin
+    // Telefon: input/textarea fokusida klaviatura orqasida qolmasin (faqat mobil qurilmalarda)
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const ua = navigator.userAgent || '';
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(ua);
+        if (!isMobileUA) {
+            // Faqat haqiqiy telefon/planshetlarda yoqamiz; desktopda ishlamasin
+            return;
+        }
         let timer: ReturnType<typeof setTimeout> | null = null;
         const onFocusIn = (e: FocusEvent) => {
             const el = e.target as HTMLElement;
