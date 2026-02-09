@@ -55,16 +55,23 @@ const DrugInteractionChecker: React.FC = () => {
     };
 
     const getSeverityColor = (severity: string) => {
-        switch (severity) {
-            case 'High': return 'bg-red-100 text-red-800 border-red-300';
-            case 'Moderate': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-            case 'Low': return 'bg-blue-100 text-blue-800 border-blue-300';
-            default: return 'bg-green-100 text-green-800 border-green-300';
+        const s = severity.toLowerCase();
+        if (s.includes('high') || s.includes('yuqori')) {
+            return 'bg-red-100 text-red-800 border-red-300';
         }
+        if (s.includes('moderate') || s.includes("o'rta") || s.includes('orta')) {
+            return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        }
+        if (s.includes('low') || s.includes('past')) {
+            return 'bg-blue-100 text-blue-800 border-blue-300';
+        }
+        return 'bg-green-100 text-green-800 border-green-300';
     };
 
     const getSeverityIcon = (severity: string) => {
-        return severity === 'None' ? <CheckCircleIcon className="w-6 h-6" /> : <AlertTriangleIcon className="w-6 h-6" />;
+        const s = severity.toLowerCase();
+        const isSafe = s.includes('none') || s.includes('xavfsiz') || s.includes("yo'q") || s.includes('yoq');
+        return isSafe ? <CheckCircleIcon className="w-6 h-6" /> : <AlertTriangleIcon className="w-6 h-6" />;
     };
 
     return (

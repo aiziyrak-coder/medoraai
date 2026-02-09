@@ -123,6 +123,20 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
     let s = raw.trim();
     if (!s) return null;
 
+    // 0) Oxiridagi "axlat" satrlarni olib tashlash (masalan, faqat "2" yoki notog'ri bo'laklar)
+    const lines = s.split('\n');
+    while (lines.length > 0) {
+        const last = lines[lines.length - 1].trim();
+        // agar oxirgi qatorda ':' yoki '}' yoki ']' bo'lmasa, ehtimol keraksiz bo'lak — olib tashlaymiz
+        if (last && !last.includes(':') && !last.includes('}') && !last.includes(']')) {
+            lines.pop();
+            continue;
+        }
+        break;
+    }
+    s = lines.join('\n').trim();
+    if (!s) return null;
+
     // 1) Umumiy tuzatish: oxiridagi vergulni olib tashlash va figurali/qavslarni yopish
     if (s.startsWith('{') || s.startsWith('[')) {
         // Oxirgi vergulni olib tashlash: { "name": "Qupen",
