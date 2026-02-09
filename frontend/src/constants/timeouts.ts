@@ -32,12 +32,12 @@ export const LIMITS = {
   MIN_SPECIALISTS: 4,
   MAX_SPECIALISTS: 10,
   
-  // Vitals ranges
+  // Vitals ranges - tibbiy jihatdan realistik chegaralar
   VITALS: {
-    BP_SYS: { min: 50, max: 300 },
-    BP_DIA: { min: 30, max: 200 },
-    HEART_RATE: { min: 30, max: 250 },
-    TEMPERATURE: { min: 30, max: 45 },
+    BP_SYS: { min: 60, max: 250 },
+    BP_DIA: { min: 40, max: 150 },
+    HEART_RATE: { min: 30, max: 220 },
+    TEMPERATURE: { min: 35.0, max: 42.0 },
     SPO2: { min: 50, max: 100 },
     RESPIRATION: { min: 5, max: 60 },
   },

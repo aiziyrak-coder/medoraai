@@ -150,33 +150,75 @@ export const sanitizeInput = (input: string): string => {
 };
 
 /**
- * Validates vital signs ranges
+ * Validates vital signs ranges - tibbiy jihatdan realistik chegaralar
  */
 export const validateVitalSign = (
   value: string | number,
   type: 'bpSystolic' | 'bpDiastolic' | 'heartRate' | 'temperature' | 'spO2' | 'respirationRate'
 ): ValidationResult => {
+  if (value === '' || value === null || value === undefined) {
+    return { isValid: true }; // Bo'sh qiymat ruxsat etiladi
+  }
+  
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
   if (isNaN(numValue)) {
-    return { isValid: false, error: "Noto'g'ri qiymat." };
+    return { isValid: false, error: "Noto'g'ri qiymat. Faqat raqam kiriting." };
   }
   
-  const ranges: Record<typeof type, { min: number; max: number; unit: string }> = {
-    bpSystolic: { min: 50, max: 250, unit: 'mm.Hg' },
-    bpDiastolic: { min: 30, max: 150, unit: 'mm.Hg' },
-    heartRate: { min: 30, max: 220, unit: 'bpm' },
-    temperature: { min: 30, max: 45, unit: '°C' },
-    spO2: { min: 0, max: 100, unit: '%' },
-    respirationRate: { min: 0, max: 60, unit: '/min' }
+  // Tibbiy jihatdan realistik chegaralar
+  const ranges: Record<typeof type, { min: number; max: number; unit: string; errorMessage: string }> = {
+    bpSystolic: { 
+      min: 60, 
+      max: 250, 
+      unit: 'mm.Hg',
+      errorMessage: 'Qon bosimi (SYS) 60-250 mm.Hg oralig\'ida bo\'lishi kerak. Bu hayotiy holat emas.'
+    },
+    bpDiastolic: { 
+      min: 40, 
+      max: 150, 
+      unit: 'mm.Hg',
+      errorMessage: 'Qon bosimi (DIA) 40-150 mm.Hg oralig\'ida bo\'lishi kerak. Bu hayotiy holat emas.'
+    },
+    heartRate: { 
+      min: 30, 
+      max: 220, 
+      unit: 'bpm',
+      errorMessage: 'Yurak urishi 30-220 bpm oralig\'ida bo\'lishi kerak. Bu hayotiy holat emas.'
+    },
+    temperature: { 
+      min: 35.0, 
+      max: 42.0, 
+      unit: '°C',
+      errorMessage: 'Tana harorati 35.0-42.0°C oralig\'ida bo\'lishi kerak. 45°C kabi qiymat hayotiy holat emas.'
+    },
+    spO2: { 
+      min: 50, 
+      max: 100, 
+      unit: '%',
+      errorMessage: 'Saturatsiya (SpO2) 50-100% oralig\'ida bo\'lishi kerak. Bu hayotiy holat emas.'
+    },
+    respirationRate: { 
+      min: 5, 
+      max: 60, 
+      unit: '/min',
+      errorMessage: 'Nafas soni 5-60 /min oralig\'ida bo\'lishi kerak. Bu hayotiy holat emas.'
+    }
   };
   
   const range = ranges[type];
   
-  if (numValue < range.min || numValue > range.max) {
+  if (numValue < range.min) {
     return { 
       isValid: false, 
-      error: `${type} ${range.min}-${range.max} ${range.unit} oralig'ida bo'lishi kerak.` 
+      error: `Minimal qiymat: ${range.min} ${range.unit}. ${range.errorMessage}` 
+    };
+  }
+  
+  if (numValue > range.max) {
+    return { 
+      isValid: false, 
+      error: `Maksimal qiymat: ${range.max} ${range.unit}. ${range.errorMessage}` 
     };
   }
   

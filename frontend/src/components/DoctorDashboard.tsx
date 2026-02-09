@@ -11,7 +11,8 @@ import * as tvLinkService from '../services/tvLinkService';
 import * as caseService from '../services/caseService';
 import { useSpeechToText } from '../hooks/useSpeechToText';
 import { logger } from '../utils/logger';
-import { LIMITS } from '../constants/timeouts'; 
+import { LIMITS } from '../constants/timeouts';
+import { validateVitalSign } from '../utils/validation'; 
 
 // Icons
 import PlusCircleIcon from './icons/PlusCircleIcon';
@@ -74,35 +75,47 @@ const VitalInputCompact: React.FC<{
     icon: React.ReactNode;
     color: string;
     onFocus?: () => void;
-}> = ({ label, value, onChange, unit, icon, color, onFocus }) => {
+    error?: string;
+}> = ({ label, value, onChange, unit, icon, color, onFocus, error }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const handleFocus = () => {
         onFocus?.();
     };
     return (
-    <div 
-        onClick={() => inputRef.current?.focus()}
-        className="flex flex-col bg-slate-800/60 border-2 border-slate-700 rounded-xl p-2.5 relative overflow-hidden group focus-within:border-blue-500 focus-within:bg-slate-800 transition-all cursor-text select-text"
-    >
-        <div className={`absolute top-1 right-1 text-${color}-400 opacity-40 pointer-events-none`}>
-            {icon}
+    <div className="flex flex-col">
+        <div 
+            onClick={() => inputRef.current?.focus()}
+            className={`flex flex-col bg-slate-800/60 border-2 rounded-xl p-2.5 relative overflow-hidden group focus-within:bg-slate-800 transition-all cursor-text select-text ${
+                error 
+                    ? 'border-red-500 focus-within:border-red-500' 
+                    : 'border-slate-700 focus-within:border-blue-500'
+            }`}
+        >
+            <div className={`absolute top-1 right-1 text-${color}-400 opacity-40 pointer-events-none`}>
+                {icon}
+            </div>
+            <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider mb-1 pointer-events-none">{label}</span>
+            <div className="flex items-baseline gap-1 z-10 min-h-[28px]">
+                <input 
+                    ref={inputRef}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={typeof value === 'string' ? value : ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    onFocus={handleFocus}
+                    placeholder="-"
+                    aria-label={label}
+                    className={`w-full bg-transparent text-xl font-black outline-none placeholder-slate-600 min-w-0 min-h-[1.5rem] py-0.5 ${
+                        error ? 'text-red-300' : 'text-white'
+                    }`}
+                />
+                <span className="text-[10px] text-slate-400 font-bold shrink-0 pointer-events-none">{unit}</span>
+            </div>
         </div>
-        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-wider mb-1 pointer-events-none">{label}</span>
-        <div className="flex items-baseline gap-1 z-10 min-h-[28px]">
-            <input 
-                ref={inputRef}
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={typeof value === 'string' ? value : ''}
-                onChange={(e) => onChange(e.target.value)}
-                onFocus={handleFocus}
-                placeholder="-"
-                aria-label={label}
-                className="w-full bg-transparent text-xl font-black text-white outline-none placeholder-slate-600 min-w-0 min-h-[1.5rem] py-0.5"
-            />
-            <span className="text-[10px] text-slate-400 font-bold shrink-0 pointer-events-none">{unit}</span>
-        </div>
+        {error && (
+            <p className="text-[10px] text-red-400 mt-1 px-1 font-medium leading-tight">{error}</p>
+        )}
     </div>
     );
 };
@@ -445,6 +458,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const [vitals, setVitals] = useState({
         bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: ''
     });
+    const [vitalErrors, setVitalErrors] = useState<Record<string, string>>({});
 
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [report, setReport] = useState<FinalReport | null>(null);
@@ -495,6 +509,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setComplaints(patient.complaints || '');
         setAttachments([]);
         setVitals({ bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: '' });
+        setVitalErrors({});
         setReport(null);
         setMode('input');
         setView('consultation');
@@ -528,6 +543,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             setComplaints('');
             setAttachments([]);
             setVitals({ bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: '' });
+        setVitalErrors({});
             setReport(null);
             setMode('input');
             setView('consultation');
@@ -583,6 +599,38 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const handleVitalChange = (key: keyof typeof vitals, value: string) => {
         // Bo'sh, yoki raqam (minus, kasr qo'llab-quvvatlanadi)
         if (value !== '' && !/^-?\d*\.?\d*$/.test(value)) return;
+        
+        // Validatsiya
+        const vitalTypeMap: Record<string, 'bpSystolic' | 'bpDiastolic' | 'heartRate' | 'temperature' | 'spO2' | 'respirationRate'> = {
+            bpSys: 'bpSystolic',
+            bpDia: 'bpDiastolic',
+            heartRate: 'heartRate',
+            temp: 'temperature',
+            spO2: 'spO2',
+            respiration: 'respirationRate'
+        };
+        
+        const validationType = vitalTypeMap[key];
+        if (validationType && value !== '') {
+            const validation = validateVitalSign(value, validationType);
+            if (!validation.isValid) {
+                setVitalErrors(prev => ({ ...prev, [key]: validation.error || '' }));
+            } else {
+                setVitalErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[key];
+                    return newErrors;
+                });
+            }
+        } else if (value === '') {
+            // Bo'sh bo'lsa, xatolikni o'chirish
+            setVitalErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[key];
+                return newErrors;
+            });
+        }
+        
         setVitals(prev => ({ ...prev, [key]: value }));
     };
 
@@ -720,6 +768,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
         setCurrentPatient(null);
         setComplaints('');
         setVitals({ bpSys: '', bpDia: '', heartRate: '', temp: '', spO2: '', respiration: '' });
+        setVitalErrors({});
         setAttachments([]);
         setReport(null);
         setView('queue');
@@ -1268,12 +1317,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                     {/* Top: Vitals (HUD) */}
                                     <div className="flex-none mb-3">
                                         <div className="grid grid-cols-3 gap-2">
-                                            <VitalInputCompact label="SYS" unit="mm" value={vitals.bpSys} onChange={val => handleVitalChange('bpSys', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" />
-                                            <VitalInputCompact label="DIA" unit="mm" value={vitals.bpDia} onChange={val => handleVitalChange('bpDia', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" />
-                                            <VitalInputCompact label="Puls" unit="bpm" value={vitals.heartRate} onChange={val => handleVitalChange('heartRate', val)} icon={<HeartRateIcon className="w-3 h-3"/>} color="pink" />
-                                            <VitalInputCompact label="t°" unit="°C" value={vitals.temp} onChange={val => handleVitalChange('temp', val)} icon={<span className="text-xs">🌡</span>} color="orange" />
-                                            <VitalInputCompact label="SpO2" unit="%" value={vitals.spO2} onChange={val => handleVitalChange('spO2', val)} icon={<OxygenIcon className="w-3 h-3"/>} color="cyan" />
-                                            <VitalInputCompact label="Nafas" unit="/min" value={vitals.respiration} onChange={val => handleVitalChange('respiration', val)} icon={<span className="text-xs">🫁</span>} color="blue" />
+                                            <VitalInputCompact label="SYS" unit="mm" value={vitals.bpSys} onChange={val => handleVitalChange('bpSys', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" error={vitalErrors.bpSys} />
+                                            <VitalInputCompact label="DIA" unit="mm" value={vitals.bpDia} onChange={val => handleVitalChange('bpDia', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" error={vitalErrors.bpDia} />
+                                            <VitalInputCompact label="Puls" unit="bpm" value={vitals.heartRate} onChange={val => handleVitalChange('heartRate', val)} icon={<HeartRateIcon className="w-3 h-3"/>} color="pink" error={vitalErrors.heartRate} />
+                                            <VitalInputCompact label="t°" unit="°C" value={vitals.temp} onChange={val => handleVitalChange('temp', val)} icon={<span className="text-xs">🌡</span>} color="orange" error={vitalErrors.temp} />
+                                            <VitalInputCompact label="SpO2" unit="%" value={vitals.spO2} onChange={val => handleVitalChange('spO2', val)} icon={<OxygenIcon className="w-3 h-3"/>} color="cyan" error={vitalErrors.spO2} />
+                                            <VitalInputCompact label="Nafas" unit="/min" value={vitals.respiration} onChange={val => handleVitalChange('respiration', val)} icon={<span className="text-xs">🫁</span>} color="blue" error={vitalErrors.respiration} />
                                         </div>
                                     </div>
 

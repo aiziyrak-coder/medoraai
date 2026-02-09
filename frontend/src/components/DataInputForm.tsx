@@ -35,15 +35,24 @@ const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { i
     </div>
 ));
 
-const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string; unit: string; id?: string }> = ({ label, unit, id, ...props }) => {
+const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string; unit: string; id?: string; error?: string }> = ({ label, unit, id, error, ...props }) => {
     const inputId = id || `vital-${label.replace(/\s+/g, '-').toLowerCase()}`;
     return (
-        <div className="bg-white/70 p-1.5 rounded-lg border border-slate-200 flex flex-col justify-between">
-            <label htmlFor={inputId} className="text-[9px] font-bold text-slate-700 uppercase">{label}</label>
-            <div className="flex items-baseline gap-1">
-                <input id={inputId} name={inputId} aria-label={label} {...props} className="w-full bg-transparent text-sm font-bold text-slate-800 outline-none p-0" placeholder="0" />
-                <span className="text-[9px] text-slate-600">{unit}</span>
+        <div className="flex flex-col">
+            <div className={`bg-white/70 p-1.5 rounded-lg border flex flex-col justify-between ${
+                error ? 'border-red-400 bg-red-50/50' : 'border-slate-200'
+            }`}>
+                <label htmlFor={inputId} className="text-[9px] font-bold text-slate-700 uppercase">{label}</label>
+                <div className="flex items-baseline gap-1">
+                    <input id={inputId} name={inputId} aria-label={label} {...props} className={`w-full bg-transparent text-sm font-bold outline-none p-0 ${
+                        error ? 'text-red-700' : 'text-slate-800'
+                    }`} placeholder="0" />
+                    <span className="text-[9px] text-slate-600">{unit}</span>
+                </div>
             </div>
+            {error && (
+                <p className="text-[9px] text-red-600 mt-0.5 px-1 font-medium leading-tight">{error}</p>
+            )}
         </div>
     );
 };
@@ -72,6 +81,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         spO2: '',
         respirationRate: ''
     });
+    const [vitalErrors, setVitalErrors] = useState<Record<string, string>>({});
 
     const [attachments, setAttachments] = useState<File[]>([]);
     const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
@@ -103,6 +113,40 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
     };
 
     const handleVitalChange = (field: keyof typeof vitals, value: string) => {
+        // Bo'sh, yoki raqam (minus, kasr qo'llab-quvvatlanadi)
+        if (value !== '' && !/^-?\d*\.?\d*$/.test(value)) return;
+        
+        // Validatsiya
+        const vitalTypeMap: Record<string, 'bpSystolic' | 'bpDiastolic' | 'heartRate' | 'temperature' | 'spO2' | 'respirationRate'> = {
+            bpSystolic: 'bpSystolic',
+            bpDiastolic: 'bpDiastolic',
+            heartRate: 'heartRate',
+            temperature: 'temperature',
+            spO2: 'spO2',
+            respirationRate: 'respirationRate'
+        };
+        
+        const validationType = vitalTypeMap[field];
+        if (validationType && value !== '') {
+            const validation = validateVitalSign(value, validationType);
+            if (!validation.isValid) {
+                setVitalErrors(prev => ({ ...prev, [field]: validation.error || '' }));
+            } else {
+                setVitalErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field];
+                    return newErrors;
+                });
+            }
+        } else if (value === '') {
+            // Bo'sh bo'lsa, xatolikni o'chirish
+            setVitalErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
+        
         setVitals(prev => ({ ...prev, [field]: value }));
     };
     
@@ -410,12 +454,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 flex-shrink-0">
                             <h3 className="text-xs font-bold text-slate-800 mb-2">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
                             <div className="grid grid-cols-3 gap-2">
-                                <VitalInput id="vital-bp-systolic" label="Qon Bosimi (Sys)" unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} />
-                                <VitalInput id="vital-bp-diastolic" label="Qon Bosimi (Dia)" unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} />
-                                <VitalInput id="vital-heart-rate" label="Puls" unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} />
-                                <VitalInput id="vital-temperature" label="Harorat" unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} />
-                                <VitalInput id="vital-spo2" label="Saturatsiya" unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} />
-                                <VitalInput id="vital-respiration" label="Nafas Soni" unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} />
+                                <VitalInput id="vital-bp-systolic" label="Qon Bosimi (Sys)" unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
+                                <VitalInput id="vital-bp-diastolic" label="Qon Bosimi (Dia)" unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
+                                <VitalInput id="vital-heart-rate" label="Puls" unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} error={vitalErrors.heartRate} />
+                                <VitalInput id="vital-temperature" label="Harorat" unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} error={vitalErrors.temperature} />
+                                <VitalInput id="vital-spo2" label="Saturatsiya" unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} error={vitalErrors.spO2} />
+                                <VitalInput id="vital-respiration" label="Nafas Soni" unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
                         </div>
                     </div>
