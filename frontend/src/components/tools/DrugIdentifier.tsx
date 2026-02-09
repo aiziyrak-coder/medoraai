@@ -61,14 +61,17 @@ const DrugIdentifier: React.FC = () => {
 
     return (
         <div className="w-full">
-            <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl">
+                <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                         <span className="text-2xl">🔍</span>
                     </div>
                     <div>
                         <h2 className="text-xl font-bold text-white">Dori Aniqlash</h2>
-                        <p className="text-xs text-slate-400">Nomi yoki rasm orqali</p>
+                            <p className="text-xs text-slate-400">
+                                Dori nomi yoki qadoq rasmini kiriting. Tizim faol modda, asosiy ko'rsatmalar, kontrendikatsiyalar va qabul qilish yo'riqnomasi bo'yicha ma'lumot beradi.
+                                Bu klinik qarorni to'liq almashtirmaydi, lekin tez orientatsiya uchun yordam beradi.
+                            </p>
                     </div>
                 </div>
 
@@ -152,7 +155,7 @@ const DrugIdentifier: React.FC = () => {
                                 <span>📌</span> Ko'rsatmalar
                             </h4>
                             <ul className="space-y-1 text-slate-300 text-xs">
-                                {result.indications.slice(0, 5).map((ind, i) => (
+                                {(result.indications || []).slice(0, 5).map((ind, i) => (
                                     <li key={i} className="flex gap-1"><span className="text-blue-400">•</span> {ind}</li>
                                 ))}
                             </ul>
@@ -163,7 +166,7 @@ const DrugIdentifier: React.FC = () => {
                                 <span>⚠️</span> Kontrendikatsiyalar
                             </h4>
                             <ul className="space-y-1 text-slate-300 text-xs">
-                                {result.contraindications.slice(0, 5).map((con, i) => (
+                                {(result.contraindications || []).slice(0, 5).map((con, i) => (
                                     <li key={i} className="flex gap-1"><span className="text-red-400">•</span> {con}</li>
                                 ))}
                             </ul>
@@ -175,7 +178,7 @@ const DrugIdentifier: React.FC = () => {
                             <span>🔴</span> Yon ta'sirlar
                         </h4>
                         <div className="flex flex-wrap gap-2">
-                            {result.sideEffects.slice(0, 8).map((side, i) => (
+                            {(result.sideEffects || []).slice(0, 8).map((side, i) => (
                                 <span key={i} className="px-2 py-1 bg-orange-500/10 text-orange-200 rounded text-xs">{side}</span>
                             ))}
                         </div>

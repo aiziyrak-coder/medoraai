@@ -76,7 +76,11 @@ const DrugInteractionChecker: React.FC = () => {
                     </div>
                     <div>
                         <h2 className="text-xl font-bold text-white">Dori O'zaro Tasiri</h2>
-                        <p className="text-xs text-slate-400">Xavf-xatarlarni tekshiring</p>
+                        <p className="text-xs text-slate-400">
+                            Bir vaqtning o'zida qabul qilinayotgan dorilarni kiriting. Tizim ularning o'zaro ta'sirini tahlil qilib,
+                            xavf darajasi va amaliy tavsiyalarni (qaysi dori bilan ehtiyot bo'lish kerak, dozani o'zgartirish kerakmi va h.k.) ko'rsatadi.
+                            Bu vosita klinik qarorni to'ldiradi, lekin shifokor qarorini almashtirmaydi.
+                        </p>
                     </div>
                 </div>
 

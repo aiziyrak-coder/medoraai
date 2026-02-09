@@ -1221,24 +1221,36 @@ export const runResearchCouncilDebate = async (
 
 // --- DORI TOOLLAR ---
 
+const getDrugToolSystemInstruction = (language: Language): string => {
+    const til = langMap[language];
+    return `Siz klinik farmakolog va dori-darmonlar bo'yicha AI assistentsiz.
+Javobni faqat ${til} tilida, STRICT JSON formatida yozing. 
+Faqat O'zbekistonda mavjud dori vositalari va SSV klinik protokollariga tayangan holda javob bering.
+JSON tashqarisida hech qanday matn yozmang.`;
+};
+
 export const checkDrugInteractions = async (drugs: string[], language: Language): Promise<{
     severity: 'High' | 'Moderate' | 'Low' | 'None';
     description: string;
     clinicalSignificance: string;
     recommendations: string[];
 }> => {
-    const systemInstr = getSystemInstruction(language);
-    const prompt = `Quyidagi dorilarning o'zaro ta'sirini tahlil qiling: ${drugs.join(', ')}.
-    
-O'ZBEKISTON KONTEKSTI: Faqat O'zbekistonda mavjud dorilar va amaliyotga asoslangan javob bering.
+    const systemInstr = getDrugToolSystemInstruction(language);
+    const prompt = `Quyidagi dorilarni birga qabul qilish xavfsizmi? Dorilar: ${drugs.join(', ')}.
 
-Quyidagilarni tahlil qiling:
-1. Xavf darajasi (High/Moderate/Low/None)
-2. Ta'sir tavsifi
-3. Klinik ahamiyati
-4. Tavsiyalar (agar xavf bo'lsa)
+JSON formatda faqat quyidagilarni qaytaring:
+{
+  "severity": "High | Moderate | Low | None",
+  "description": "O'zaro ta'sirning qisqa tavsifi (2-3 jumla)",
+  "clinicalSignificance": "Bemor uchun klinik ahamiyati (nimalarga e'tibor berish kerak)",
+  "recommendations": [
+    "Qaysi dori dozasini o'zgartirish yoki bekor qilish kerak",
+    "Monitoring (bosim, EKG, INR va h.k.) bo'yicha tavsiyalar",
+    "Qachon shoshilinch shifokorga murojaat qilish kerak"
+  ]
+}
 
-JSON formatda qaytaring. Output Language: ${langMap[language]}.`;
+Output Language: ${langMap[language]}.`;
 
     const schema = {
         type: Type.OBJECT,
@@ -1250,7 +1262,23 @@ JSON formatda qaytaring. Output Language: ${langMap[language]}.`;
         }
     };
 
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
+
+    const allowedSeverity = ['High', 'Moderate', 'Low', 'None'] as const;
+    const sev = typeof raw.severity === 'string' && allowedSeverity.includes(raw.severity as any)
+        ? (raw.severity as (typeof allowedSeverity)[number])
+        : 'None';
+
+    const recs = Array.isArray(raw.recommendations)
+        ? (raw.recommendations as unknown[]).map(r => String(r)).filter(Boolean)
+        : [];
+
+    return {
+        severity: sev,
+        description: String((raw as any).description || ''),
+        clinicalSignificance: String((raw as any).clinicalSignificance || ''),
+        recommendations: recs,
+    };
 };
 
 export const identifyDrugByName = async (drugName: string, language: Language): Promise<{
@@ -1264,20 +1292,23 @@ export const identifyDrugByName = async (drugName: string, language: Language): 
     availabilityInUzbekistan: string;
     priceRange: string;
 }> => {
-    const systemInstr = getSystemInstruction(language);
-    const prompt = `Dori: "${drugName}". O'ZBEKISTON KONTEKSTI: faqat O'zbekistonda mavjud ma'lumotlar.
+    const systemInstr = getDrugToolSystemInstruction(language);
+    const prompt = `Dori: \"${drugName}\".
 
-Quyidagilarni taqdim eting:
-1. To'liq nom va faol modda
-2. Dozasi
-3. Ko'rsatmalar (indications)
-4. Kontrendikatsiyalar
-5. Yon ta'sirlar
-6. Qabul qilish yo'riqnomasi (kuniga necha marta, ovqat bilan/oldinda/keyin)
-7. O'zbekistonda mavjudligi (qaysi aptekalarda, savdo nomlari)
-8. Narx oralig'i (so'm)
+JSON formatda faqat quyidagilarni qaytaring:
+{
+  "name": "Savdo nomi",
+  "activeIngredient": "Faol modda",
+  "dosage": "Doza (masalan, 500 mg, 1 tabletka kuniga 2 marta)",
+  "indications": ["Asosiy ko'rsatmalar"],
+  "contraindications": ["Asosiy qarshi ko'rsatmalar"],
+  "sideEffects": ["Asosiy nojo'ya ta'sirlar"],
+  "dosageInstructions": "Qanday va qanchalik tez-tez qabul qilish",
+  "availabilityInUzbekistan": "Retsept bilan/retseptsiz, qaysi analoglar mavjud",
+  "priceRange": "Taxminiy narx (so'm)"
+}
 
-JSON formatda. Output Language: ${langMap[language]}.`;
+O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar ma'lumotlarini bering. Output Language: ${langMap[language]}.`;
 
     const schema = {
         type: Type.OBJECT,
@@ -1294,7 +1325,20 @@ JSON formatda. Output Language: ${langMap[language]}.`;
         }
     };
 
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const toArray = (v: unknown): string[] => Array.isArray(v) ? v.map(x => String(x)).filter(Boolean) : [];
+
+    return {
+        name: String((raw as any).name || ''),
+        activeIngredient: String((raw as any).activeIngredient || ''),
+        dosage: String((raw as any).dosage || ''),
+        indications: toArray((raw as any).indications),
+        contraindications: toArray((raw as any).contraindications),
+        sideEffects: toArray((raw as any).sideEffects),
+        dosageInstructions: String((raw as any).dosageInstructions || ''),
+        availabilityInUzbekistan: String((raw as any).availabilityInUzbekistan || ''),
+        priceRange: String((raw as any).priceRange || ''),
+    };
 };
 
 export const identifyDrugByImage = async (base64Image: string, mimeType: string, language: Language): Promise<{
@@ -1308,22 +1352,25 @@ export const identifyDrugByImage = async (base64Image: string, mimeType: string,
     availabilityInUzbekistan: string;
     priceRange: string;
 }> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = getDrugToolSystemInstruction(language);
     const prompt = {
         parts: [
-            { text: `Rasmda ko'rsatilgan dori qadoqni aniqlang. O'ZBEKISTON KONTEKSTI.
+            { text: `Suratdagi dori vositasini aniqlang.
 
-Quyidagilarni taqdim eting:
-1. Dori nomi va faol modda
-2. Dozasi
-3. Ko'rsatmalar
-4. Kontrendikatsiyalar  
-5. Yon ta'sirlar
-6. Qabul qilish yo'riqnomasi
-7. O'zbekistonda mavjudligi
-8. Narx
+JSON formatda faqat quyidagilarni qaytaring:
+{
+  "name": "Savdo nomi",
+  "activeIngredient": "Faol modda",
+  "dosage": "Doza (masalan, 500 mg, 1 tabletka kuniga 2 marta)",
+  "indications": ["Asosiy ko'rsatmalar"],
+  "contraindications": ["Asosiy qarshi ko'rsatmalar"],
+  "sideEffects": ["Asosiy nojo'ya ta'sirlar"],
+  "dosageInstructions": "Qanday qabul qilish (ovqatdan oldin/keyin, necha marta)",
+  "availabilityInUzbekistan": "Qayerda va qanday shaklda mavjud",
+  "priceRange": "Taxminiy narx (so'm)"
+}
 
-JSON formatda. Output Language: ${langMap[language]}.` },
+O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot bering. Output Language: ${langMap[language]}.` },
             { inlineData: { mimeType, data: base64Image } }
         ]
     };
@@ -1343,5 +1390,18 @@ JSON formatda. Output Language: ${langMap[language]}.` },
         }
     };
 
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const toArray = (v: unknown): string[] => Array.isArray(v) ? v.map(x => String(x)).filter(Boolean) : [];
+
+    return {
+        name: String((raw as any).name || ''),
+        activeIngredient: String((raw as any).activeIngredient || ''),
+        dosage: String((raw as any).dosage || ''),
+        indications: toArray((raw as any).indications),
+        contraindications: toArray((raw as any).contraindications),
+        sideEffects: toArray((raw as any).sideEffects),
+        dosageInstructions: String((raw as any).dosageInstructions || ''),
+        availabilityInUzbekistan: String((raw as any).availabilityInUzbekistan || ''),
+        priceRange: String((raw as any).priceRange || ''),
+    };
 };
