@@ -569,6 +569,15 @@ export const uzL: TranslationSet = {
   // Dashboard hero
   dashboard_hero_badge: 'AI Konsilium 2.0 Tizimi',
 
+  // Patients list (registrator/doktor)
+  patients_list_title: 'Bemorlar Ro\'yxati',
+  patients_search_placeholder: 'Ism yoki chek raqami bo\'yicha qidirish...',
+  patients_not_found: 'Bemorlar topilmadi.',
+  patients_status_completed: 'Yakunlangan',
+  patients_status_in_progress: 'Qabulda',
+  patients_status_waiting: 'Kutmoqda',
+  patients_status_hold: 'Kutishda',
+
   // Landing footer & testimonials
   landing_footer_price: 'Narxlar',
   landing_footer_security: 'Xavfsizlik',

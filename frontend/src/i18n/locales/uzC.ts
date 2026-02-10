@@ -566,6 +566,15 @@ export const uzC: TranslationSet = {
   // Dashboard hero
   dashboard_hero_badge: 'АИ Консилиум 2.0 Тизими',
 
+  // Patients list (регистратор/доктор)
+  patients_list_title: 'Беморлар рўйхати',
+  patients_search_placeholder: 'Исм ёки чек рақами бўйича қидириш...',
+  patients_not_found: 'Беморлар топилмади.',
+  patients_status_completed: 'Якунланган',
+  patients_status_in_progress: 'Қабулда',
+  patients_status_waiting: 'Кутмоқда',
+  patients_status_hold: 'Кутишда',
+
   // Landing footer & testimonials
   landing_footer_price: 'Нархлар',
   landing_footer_security: 'Хавфсизлик',

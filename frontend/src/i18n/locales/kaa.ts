@@ -566,6 +566,15 @@ export const kaa: TranslationSet = {
   // Dashboard hero
   dashboard_hero_badge: 'AI Konsilium 2.0 Tizimi',
 
+  // Patients list (registrator/shıpaker)
+  patients_list_title: 'Nawqaslar Dizimi',
+  patients_search_placeholder: 'Atı yamasa chek nomeri boyınsha izlew...',
+  patients_not_found: 'Nawqaslar tabılmadı.',
+  patients_status_completed: 'Juwmaqlandı',
+  patients_status_in_progress: 'Qabılda',
+  patients_status_waiting: 'Kútpekte',
+  patients_status_hold: 'Kútiwde',
+
   // Landing footer & testimonials
   landing_footer_price: 'Baxalar',
   landing_footer_security: 'Xawfsızlıq',

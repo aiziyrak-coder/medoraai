@@ -566,6 +566,15 @@ export const en = {
   // Dashboard hero
   dashboard_hero_badge: 'AI Konsilium 2.0 System',
 
+  // Patients list (registrar/doctor)
+  patients_list_title: 'Patient List',
+  patients_search_placeholder: 'Search by name or ticket number...',
+  patients_not_found: 'No patients found.',
+  patients_status_completed: 'Completed',
+  patients_status_in_progress: 'In consultation',
+  patients_status_waiting: 'Waiting',
+  patients_status_hold: 'On hold',
+
   // Landing footer & testimonials
   landing_footer_price: 'Pricing',
   landing_footer_security: 'Security',

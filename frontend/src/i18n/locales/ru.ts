@@ -566,6 +566,15 @@ export const ru: TranslationSet = {
   // Dashboard hero
   dashboard_hero_badge: 'Система AI Консилиум 2.0',
 
+  // Patients list (регистратор/врач)
+  patients_list_title: 'Список пациентов',
+  patients_search_placeholder: 'Поиск по имени или номеру талона...',
+  patients_not_found: 'Пациенты не найдены.',
+  patients_status_completed: 'Завершен',
+  patients_status_in_progress: 'На приёме',
+  patients_status_waiting: 'Ожидает',
+  patients_status_hold: 'Отложен',
+
   // Landing footer & testimonials
   landing_footer_price: 'Тарифы',
   landing_footer_security: 'Безопасность',
