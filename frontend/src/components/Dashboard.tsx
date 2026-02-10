@@ -50,7 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, onNewAnalysis, onViewHi
                         <div className="flex-1 space-y-6 z-10 text-center md:text-left">
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-semibold text-white tracking-wide shadow-sm">
                                 <span className="w-2.5 h-2.5 rounded-full bg-[#34C759] shadow-[0_0_10px_rgba(52,199,89,0.8)] animate-pulse"></span>
-                                AI Konsilium 2.0 Tizimi
+                                {t('dashboard_hero_badge')}
                             </div>
                             <div>
                                 <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight mb-2">
@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, onNewAnalysis, onViewHi
                                 </p>
                             </div>
                             <div className="inline-flex items-center gap-2 bg-white text-[#007AFF] px-6 py-3 rounded-2xl font-bold text-lg shadow-lg group-hover:shadow-xl transition-all group-hover:px-8">
-                                Boshlash <ChevronRightIcon className="w-5 h-5"/>
+                                {t('dashboard_start')} <ChevronRightIcon className="w-5 h-5"/>
                             </div>
                         </div>
                         

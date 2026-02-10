@@ -93,7 +93,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
     React.useEffect(() => {
         const payload: Partial<PatientData> = {
             ...formData,
-            objectiveData: vitals.bpSystolic || vitals.heartRate ? 'Vitals kiritilgan' : undefined,
+            objectiveData: vitals.bpSystolic || vitals.heartRate ? t('data_form_vitals_entered') : undefined,
         };
         const res = validatePatientDataSmart(payload);
         const msg = getSmartValidationMessage(res, t);
@@ -175,14 +175,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
             // Validate file size (max 10MB)
             const sizeValidation = validateFileSize(file, 10);
             if (!sizeValidation.isValid) {
-                errors[file.name] = sizeValidation.error || "Fayl hajmi juda katta.";
+                errors[file.name] = sizeValidation.error || t('data_form_file_too_large');
                 return;
             }
             
             // Validate file type
             const typeValidation = validateFileType(file);
             if (!typeValidation.isValid) {
-                errors[file.name] = typeValidation.error || "Fayl turi qo'llab-quvvatlanmaydi.";
+                errors[file.name] = typeValidation.error || t('data_form_file_type_not_supported');
                 return;
             }
         });
@@ -224,20 +224,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         // Validate required fields
         const errors: Record<string, string> = {};
         
-        const firstNameValidation = validateRequired(formData.firstName, "Ism");
-        if (!firstNameValidation.isValid) errors.firstName = firstNameValidation.error || "";
-        
-        const lastNameValidation = validateRequired(formData.lastName, "Familiya");
-        if (!lastNameValidation.isValid) errors.lastName = lastNameValidation.error || "";
+        if (!formData.firstName?.trim()) errors.firstName = t('validation_required', { field: t('data_input_patient_name') });
+        if (!formData.lastName?.trim()) errors.lastName = t('validation_required', { field: t('data_input_patient_lastname') });
         
         const ageValidation = validateAge(formData.age || '');
         if (!ageValidation.isValid) errors.age = ageValidation.error || "";
         
-        const genderValidation = validateRequired(formData.gender, "Jins");
-        if (!genderValidation.isValid) errors.gender = genderValidation.error || "";
-        
-        const complaintsValidation = validateRequired(formData.complaints, "Shikoyatlar");
-        if (!complaintsValidation.isValid) errors.complaints = complaintsValidation.error || "";
+        if (!formData.gender?.trim()) errors.gender = t('validation_required', { field: t('data_input_gender') });
+        if (!formData.complaints?.trim()) errors.complaints = t('validation_required', { field: t('data_input_complaints_label') });
         
         // Validate vitals if provided
         if (vitals.bpSystolic) {
@@ -270,14 +264,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
             return;
         }
         
-        // Construct Objective Data String from Vitals
-        const objectiveString = `
-            Arterial Bosim: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg
-            Yurak Urishi (Puls): ${vitals.heartRate || '-'} zarba/daq
-            Tana Harorati: ${vitals.temperature || '-'} °C
-            Saturatsiya (SpO2): ${vitals.spO2 || '-'} %
-            Nafas Soni: ${vitals.respirationRate || '-'} ta/daq
-        `.trim();
+        // Construct Objective Data String from Vitals (translated labels)
+        const objectiveString = [
+            `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
+            `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
+            `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} °C`,
+            `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
+            `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
+        ].join('\n');
 
         let attachmentData: PatientData['attachments'] = [];
         if (attachments.length > 0) {
@@ -293,7 +287,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                 reject(handleError(error, 'File reading'));
                             }
                         };
-                        reader.onerror = () => reject(new Error(`Faylni o'qib bo'lmadi: ${file.name}`));
+                        reader.onerror = () => reject(new Error(`${t('data_form_file_read_error')}: ${file.name}`));
                         reader.readAsDataURL(file);
                     }))
                 );
@@ -316,7 +310,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
             familyHistory: formData.familyHistory || undefined,
             additionalInfo: formData.additionalInfo || '',
             objectiveData: objectiveString,
-            labResults: attachments.length > 0 ? "Laboratoriya va diagnostika natijalari fayl sifatida yuklandi." : undefined,
+            labResults: attachments.length > 0 ? t('data_form_lab_uploaded') : undefined,
             attachments: attachmentData.length > 0 ? attachmentData : undefined,
         };
 
@@ -338,8 +332,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                 {/* Header & Submit Button */}
                 <div className="flex-shrink-0 flex justify-between items-center mb-4 px-1">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800">Yangi Klinik Holat</h2>
-                        <p className="text-xs text-text-secondary">Bemor ma'lumotlarini to'liq kiriting</p>
+                        <h2 className="text-xl font-bold text-slate-800">{t('data_form_new_case')}</h2>
+                        <p className="text-xs text-text-secondary">{t('data_form_subtitle')}</p>
                     </div>
                     <button 
                         type="submit" 
@@ -349,11 +343,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         {isAnalyzing ? (
                             <>
                                 <SpinnerIcon className="w-4 h-4 text-white/90" />
-                                <span>Tahlil...</span>
+                                <span>{t('data_form_analyzing')}</span>
                             </>
                         ) : (
                             <>
-                                <span>Tahlilni Boshlash</span>
+                                <span>{t('data_form_start_analysis')}</span>
                                 <ChevronRightIcon className="w-4 h-4 opacity-80" />
                             </>
                         )}
@@ -375,21 +369,21 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 space-y-2 flex-shrink-0">
                             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[10px]">1</span>
-                                Pasport
+                                {t('data_form_section_passport')}
                             </h3>
                             <div>
-                                <Input id="firstName" label={t('data_input_patient_name')} type="text" value={formData.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required placeholder="Ism" />
+                                <Input id="firstName" label={t('data_input_patient_name')} type="text" value={formData.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required placeholder={t('data_input_placeholder_firstname')} />
                                 {formErrors.firstName && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.firstName}</p>}
                             </div>
                             <div>
-                                <Input id="lastName" label={t('data_input_patient_lastname')} type="text" value={formData.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required placeholder="Familiya" />
+                                <Input id="lastName" label={t('data_input_patient_lastname')} type="text" value={formData.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required placeholder={t('data_input_placeholder_lastname')} />
                                 {formErrors.lastName && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.lastName}</p>}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <div className="flex flex-col">
                                         <div className={formErrors.age ? 'border-2 border-red-500 rounded-lg' : ''}>
-                                            <Input id="age" label={t('data_input_age')} type="number" value={formData.age || ''} onChange={e => handleChange('age', e.target.value)} required placeholder="Yosh" min="0" max="120" />
+                                            <Input id="age" label={t('data_input_age')} type="number" value={formData.age || ''} onChange={e => handleChange('age', e.target.value)} required placeholder={t('data_input_placeholder_age')} min="0" max="120" />
                                         </div>
                                         {formErrors.age && (
                                             <p className="text-[10px] text-red-600 mt-0.5 px-1 font-medium leading-tight">{formErrors.age}</p>
@@ -400,9 +394,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                 <div className="flex flex-col">
                                     <label htmlFor="gender" className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">{t('data_input_gender')}</label>
                                     <select id="gender" value={formData.gender || ''} onChange={e => handleChange('gender', e.target.value)} required className={`block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg ${formErrors.gender ? 'ring-1 ring-red-500' : ''}`}>
-                                        <option value="">...</option>
-                                        <option value="male">Erkak</option>
-                                        <option value="female">Ayol</option>
+                                        <option value="">{t('data_input_gender_select')}</option>
+                                        <option value="male">{t('data_input_gender_male')}</option>
+                                        <option value="female">{t('data_input_gender_female')}</option>
                                     </select>
                                     {formErrors.gender && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.gender}</p>}
                                 </div>
@@ -413,13 +407,13 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 space-y-2 flex-shrink-0">
                             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[10px]">!</span>
-                                Xavfsizlik
+                                {t('data_form_section_safety')}
                             </h3>
                             <div>
-                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder="Allergiya (yo'q bo'lsa «Yo'q» yozing)" />
+                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} />
                             </div>
                             <div>
-                                <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder="Joriy dori-darmonlar" />
+                                <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} />
                             </div>
                         </div>
 
@@ -427,12 +421,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
                              <h3 className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[10px]">4</span>
-                                Boshqa ma'lumotlar
+                                {t('data_form_section_other_info')}
                             </h3>
                             <Textarea 
                                 id="additionalInfo" 
-                                label="Qo'shimcha izoh" 
-                                placeholder="Allergiya, oilaviy muhit va boshqalar..."
+                                label={t('data_form_extra_notes')} 
+                                placeholder={t('data_form_extra_notes_placeholder')}
                                 value={formData.additionalInfo || ''} 
                                 onChange={e => handleChange('additionalInfo', e.target.value)} 
                                 className="flex-grow"
@@ -445,7 +439,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                 <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[10px] font-bold">2</div>
-                                <h3 className="text-xs font-bold text-slate-800">Klinik Ma'lumotlar</h3>
+                                <h3 className="text-xs font-bold text-slate-800">{t('data_form_clinical_data')}</h3>
                             </div>
 
                             <div className="flex-grow flex flex-col gap-2 min-h-0">
@@ -453,7 +447,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                     <Textarea 
                                         id="complaints" 
                                         label={t('data_input_complaints_label')} 
-                                        placeholder="Shikoyatlar..."
+                                        placeholder={t('data_input_complaints_placeholder')}
                                         value={formData.complaints || ''} 
                                         onChange={e => handleChange('complaints', e.target.value)} 
                                         required 
@@ -464,7 +458,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                 <Textarea 
                                     id="history" 
                                     label={t('data_input_history_label')} 
-                                    placeholder="Anamnez..." 
+                                    placeholder={t('data_input_history_placeholder')} 
                                     value={formData.history || ''} 
                                     onChange={e => handleChange('history', e.target.value)} 
                                     className="flex-grow"
@@ -476,12 +470,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         <div className="glass-panel p-3 flex-shrink-0">
                             <h3 className="text-xs font-bold text-slate-800 mb-2">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
                             <div className="grid grid-cols-3 gap-2">
-                                <VitalInput id="vital-bp-systolic" label="Qon Bosimi (Sys)" unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
-                                <VitalInput id="vital-bp-diastolic" label="Qon Bosimi (Dia)" unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
-                                <VitalInput id="vital-heart-rate" label="Puls" unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} error={vitalErrors.heartRate} />
-                                <VitalInput id="vital-temperature" label="Harorat" unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} error={vitalErrors.temperature} />
-                                <VitalInput id="vital-spo2" label="Saturatsiya" unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} error={vitalErrors.spO2} />
-                                <VitalInput id="vital-respiration" label="Nafas Soni" unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
+                                <VitalInput id="vital-bp-systolic" label={t('data_form_vitals_bp_sys')} unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
+                                <VitalInput id="vital-bp-diastolic" label={t('data_form_vitals_bp_dia')} unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
+                                <VitalInput id="vital-heart-rate" label={t('data_form_vitals_pulse')} unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} error={vitalErrors.heartRate} />
+                                <VitalInput id="vital-temperature" label={t('data_form_vitals_temp')} unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} error={vitalErrors.temperature} />
+                                <VitalInput id="vital-spo2" label={t('data_form_vitals_spo2')} unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} error={vitalErrors.spO2} />
+                                <VitalInput id="vital-respiration" label={t('data_form_vitals_resp')} unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
                         </div>
                     </div>
@@ -491,7 +485,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                          <div className="glass-panel p-3 h-full flex flex-col">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                 <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[10px] font-bold">3</div>
-                                <h3 className="text-xs font-bold text-slate-800">Diagnostika va Laboratoriya</h3>
+                                <h3 className="text-xs font-bold text-slate-800">{t('data_form_diagnostics')}</h3>
                             </div>
                             
                             <div 
@@ -499,9 +493,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                 className="flex-grow border-2 border-dashed border-teal-200 bg-teal-50/30 rounded-xl flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group min-h-0 relative"
                             >
                                 <UploadCloudIcon className="h-10 w-10 text-teal-400 mb-2 group-hover:scale-110 transition-transform"/>
-                                <p className="text-sm font-bold text-teal-700 text-center">Fayllarni yuklash</p>
+                                <p className="text-sm font-bold text-teal-700 text-center">{t('data_form_upload_files')}</p>
                                 <p className="text-[10px] text-teal-600/70 text-center mt-1 px-4">
-                                    Tahlil natijalari, Rentgen, EKG, MRT xulosalari (JPG, PDF, DOCX, XLSX)
+                                    {t('data_form_upload_hint')}
                                 </p>
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
                             </div>
@@ -515,7 +509,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                             <span className="truncate max-w-[150px] font-medium text-slate-700" title={file.name}>{file.name}</span>
                                             <span className="text-[9px] text-slate-400">({(file.size / 1024 / 1024).toFixed(2)}MB)</span>
                                         </div>
-                                        <button onClick={(e) => {e.stopPropagation(); removeAttachment(file.name)}} className="text-slate-400 hover:text-red-500 font-bold p-1 rounded hover:bg-red-50 transition-colors" aria-label={`${file.name} faylini o'chirish`}>&times;</button>
+                                        <button onClick={(e) => {e.stopPropagation(); removeAttachment(file.name)}} className="text-slate-400 hover:text-red-500 font-bold p-1 rounded hover:bg-red-50 transition-colors" aria-label={`${t('data_form_remove_file')} ${file.name}`}>&times;</button>
                                     </div>
                                 ))}
                                 {Object.keys(fileErrors).length > 0 && (
@@ -528,7 +522,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                     </div>
                                 )}
                                 {attachments.length === 0 && Object.keys(fileErrors).length === 0 && (
-                                    <p className="text-[10px] text-center text-slate-400 italic py-2">Hozircha fayllar yuklanmadi</p>
+                                    <p className="text-[10px] text-center text-slate-400 italic py-2">{t('data_form_no_files')}</p>
                                 )}
                             </div>
                         </div>

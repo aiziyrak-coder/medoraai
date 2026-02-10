@@ -236,29 +236,54 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
     // --- LEGAL TEXT CONTENT GENERATORS ---
     const showTerms = () => setLegalModalContent({
-        title: "Foydalanish Shartlari va Ommaviy Oferta",
+        title: t('legal_terms_title'),
         content: (
             <>
-                <p><strong className="text-white">1. Umumiy qoidalar:</strong> Ushbu platforma faqat tibbiy ma'lumotga ega bo'lgan mutaxassislar (shifokorlar, rezidentlar, talabalar) uchun mo'ljallangan yordamchi vositadir.</p>
-                <p><strong className="text-white">2. Mas'uliyatni cheklash:</strong> "MedoraAi" tizimi (keyingi o'rinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor o'rnini bosmaydi. Yakuniy klinik qaror uchun to'liq javobgarlik foydalanuvchi (shifokor) zimmasidadir.</p>
-                <p><strong className="text-white">3. Ma'lumotlar xavfsizligi:</strong> Biz foydalanuvchi kiritgan bemor ma'lumotlarini (F.I.Sh va boshqa shaxsiy identifikatorlar) anonimlashtirishga harakat qilamiz, ammo internet tarmog'idagi xavfsizlik uchun mutlaq kafolat berilmaydi.</p>
-                <p><strong className="text-white">4. Rozilik:</strong> Tizimdan foydalanish orqali siz sun'iy intellekt tomonidan yuzaga kelishi mumkin bo'lgan xatoliklar (gallyutsinatsiyalar) ehtimolini tushunasiz va qabul qilasiz.</p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_terms_p1')}
+                </p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_terms_p2')}
+                </p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_terms_p3')}
+                </p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_terms_p4')}
+                </p>
             </>
         )
     });
 
     const showPrivacy = () => setLegalModalContent({
-        title: t('auth_agree_privacy'),
+        title: t('legal_privacy_title'),
         content: (
             <>
-                <p><strong className="text-white">1. Ma'lumotlarni to'plash:</strong> Biz telefon raqamingiz, ismingiz, rol va mutaxassislik ma'lumotlaringizni faqat hisob yaratish va xizmat ko'rsatish uchun saqlaymiz.</p>
-                <p><strong className="text-white">2. Ma'lumotlardan foydalanish:</strong> Shaxsiy ma'lumotlaringiz faqat tizim ishlashi, xavfsizlik va qonuniy talablar uchun ishlatiladi. Uchinchi tomonlarga sotilmaydi.</p>
-                <p><strong className="text-white">3. Himoya:</strong> Ma'lumotlaringiz shifrlash va xavfsiz saqlash orqali himoyalanadi. Faqat avtorizatsiya qilingan xodimlar kirishi mumkin.</p>
-                <p><strong className="text-white">4. Huquqlaringiz:</strong> Hisobingizni o'chirish yoki ma'lumotlaringizni ko'rish/o'zgartirish so'rovini yuborishingiz mumkin.</p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_privacy_p1')}
+                </p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_privacy_p2')}
+                </p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_privacy_p3')}
+                </p>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_privacy_p4')}
+                </p>
             </>
         )
     });
-    const showFAQ = () => setLegalModalContent({ title: "Ko'p so'raladigan savollar (FAQ)", content: (<><p>Tizim noto'g'ri tashxis qo'yishi mumkinmi? Ha. AI yordamchi vositadir.</p></>) });
+    const showFAQ = () => setLegalModalContent({ 
+        title: t('legal_faq_title'), 
+        content: (
+            <>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                    {t('legal_faq_p1')}
+                </p>
+            </>
+        ) 
+    });
 
     return (
         <div className="h-[100dvh] w-full relative flex overflow-hidden font-sans bg-slate-900">

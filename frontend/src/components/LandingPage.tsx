@@ -367,9 +367,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                     <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 md:mb-20">{t('landing_testimonials_title')}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
-                            { name: "Dr. A. Karimov", role: "Kardiolog, 15 yillik tajriba", text: "MedoraAi murakkab holatlarda ikkinchi fikrni olish uchun ajoyib vosita. Ayniqsa EKG tahlili juda aniq va tezkor." },
-                            { name: "Dr. S. Umarova", role: "Nevrolog", text: "Noyob kasalliklarni tashxislashda vaqtni tejashga yordam beradi. Tadqiqot bo'limi shunchaki xazina, eng so'nggi maqolalar doim qo'l ostida." },
-                            { name: "Shifokorlar Assotsiatsiyasi", role: "Hamkor", text: "Biz ushbu platformani O'zbekistondagi barcha klinikalarga tavsiya qilamiz. Zamonaviy tibbiyot kelajagi aynan shu yerda." }
+                            { 
+                                name: t('testimonial_1_name'), 
+                                role: t('testimonial_1_role'), 
+                                text: t('testimonial_1_text') 
+                            },
+                            { 
+                                name: t('testimonial_2_name'), 
+                                role: t('testimonial_2_role'), 
+                                text: t('testimonial_2_text') 
+                            },
+                            { 
+                                name: t('testimonial_3_name'), 
+                                role: t('testimonial_3_role'), 
+                                text: t('testimonial_3_text') 
+                            }
                         ].map((review, i) => (
                             <div key={i} className="p-8 md:p-10 bg-white/5 rounded-[2rem] border border-white/5 hover:bg-white/10 transition-colors relative">
                                 <div className="absolute -top-6 left-8 text-6xl text-blue-500 opacity-30 font-serif">"</div>
@@ -441,19 +453,51 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                     <div>
                         <h4 className="font-bold text-white mb-6 uppercase tracking-wider">{t('landing_footer_platform')}</h4>
                         <ul className="space-y-4">
-                            <li><button onClick={() => scrollToSection('features')} className="hover:text-blue-400 transition-colors">{t('nav_features')}</button></li>
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">Narxlar</a></li>
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">Xavfsizlik</a></li>
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">API</a></li>
+                            <li>
+                                <button onClick={() => scrollToSection('features')} className="hover:text-blue-400 transition-colors">
+                                    {t('nav_features')}
+                                </button>
+                            </li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_price')}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_security')}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_api')}
+                                </a>
+                            </li>
                         </ul>
                     </div>
                     <div>
                         <h4 className="font-bold text-white mb-6 uppercase tracking-wider">{t('landing_footer_company')}</h4>
                         <ul className="space-y-4">
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">Biz haqimizda</a></li>
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">Karyera</a></li>
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">Blog</a></li>
-                            <li><a href="#" className="hover:text-blue-400 transition-colors">Bog'lanish</a></li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_about')}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_careers')}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_blog')}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" className="hover:text-blue-400 transition-colors">
+                                    {t('landing_footer_contact_link')}
+                                </a>
+                            </li>
                         </ul>
                     </div>
                     <div>

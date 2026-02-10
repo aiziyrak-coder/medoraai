@@ -123,6 +123,7 @@ const VitalInputCompact: React.FC<{
 // --- TAB COMPONENTS ---
 
 const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
+    const { t } = useTranslation();
     const primaryDiag = (report.consensusDiagnosis ?? [])[0];
     return (
     <div className="space-y-4 animate-fade-in-up">
@@ -130,7 +131,7 @@ const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
             <GlassCard className="p-5 border-l-4 border-red-500 bg-red-500/10">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
-                    <h4 className="text-red-400 font-bold text-xs uppercase tracking-widest">Kritik Signal</h4>
+                    <h4 className="text-red-400 font-bold text-xs uppercase tracking-widest">{t('report_critical_signal')}</h4>
                 </div>
                 <p className="text-white font-bold text-xl leading-tight text-glow">{report.criticalFinding.finding}</p>
                 <p className="text-red-200/80 text-sm mt-2 font-medium">{report.criticalFinding.implication}</p>
@@ -171,12 +172,14 @@ const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
     );
 };
 
-const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
+const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => {
+    const { t } = useTranslation();
+    return (
     <div className="space-y-4 animate-fade-in-up">
         <GlassCard className="p-6">
             <h4 className="font-bold text-white/90 text-lg mb-6 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-indigo-500/30">1</div>
-                Davolash Taktikasi
+                {t('report_treatment_tactics')}
             </h4>
             <div className="space-y-5 relative pl-4">
                 <div className="absolute left-[27px] top-4 bottom-4 w-[2px] bg-white/10 rounded-full"></div>
@@ -194,24 +197,27 @@ const PlanTab: React.FC<{ report: FinalReport }> = ({ report }) => (
         <GlassCard className="p-6">
             <h4 className="font-bold text-white/90 text-lg mb-4 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-500 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-pink-500/30">2</div>
-                Qo'shimcha Tekshiruvlar
+                {t('report_additional_tests')}
             </h4>
             <ul className="space-y-3">
-                {(report.recommendedTests ?? []).map((t, i) => (
+                {(report.recommendedTests ?? []).map((testItem, i) => (
                     <li key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
                         <div className="w-1.5 h-1.5 rounded-full bg-pink-400 shadow-[0_0_5px_#f472b6]"></div>
-                        <span className="text-sm text-slate-200 font-medium">{t}</span>
+                        <span className="text-sm text-slate-200 font-medium">{testItem}</span>
                     </li>
                 ))}
             </ul>
         </GlassCard>
     </div>
-);
+    );
+};
 
-const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
+const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => {
+    const { t } = useTranslation();
+    return (
     <div className="space-y-4 animate-fade-in-up">
         {(!report.medicationRecommendations || report.medicationRecommendations.length === 0) && (
-            <p className="text-center text-slate-400 py-8">Dori tavsiya qilinmagan.</p>
+            <p className="text-center text-slate-400 py-8">{t('report_no_medication')}</p>
         )}
         {(report.medicationRecommendations ?? []).map((med, i) => (
             <GlassCard key={i} className="p-5 relative overflow-hidden group">
@@ -220,32 +226,32 @@ const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
                     <div className="flex justify-between items-start mb-3">
                         <h4 className="font-black text-lg text-white tracking-tight">{med.name}</h4>
                         <span className="text-[9px] font-black uppercase text-emerald-300 bg-emerald-900/40 px-2 py-1 rounded-md border border-emerald-500/30">
-                            O'zbekiston
+                            {t('report_uzbekistan_badge')}
                         </span>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 mb-3">
                         {med.dosage && (
                             <div className="bg-blue-900/20 p-2 rounded border border-blue-500/20">
-                                <p className="text-[10px] text-blue-300 mb-0.5">💊 Dozasi</p>
+                                <p className="text-[10px] text-blue-300 mb-0.5">{t('report_dosage')}</p>
                                 <p className="text-sm font-bold text-white">{med.dosage}</p>
                             </div>
                         )}
                         {med.frequency && (
                             <div className="bg-purple-900/20 p-2 rounded border border-purple-500/20">
-                                <p className="text-[10px] text-purple-300 mb-0.5">🔁 Chastota</p>
+                                <p className="text-[10px] text-purple-300 mb-0.5">{t('report_frequency')}</p>
                                 <p className="text-sm font-bold text-white">{med.frequency}</p>
                             </div>
                         )}
                         {med.timing && (
                             <div className="bg-amber-900/20 p-2 rounded border border-amber-500/20">
-                                <p className="text-[10px] text-amber-300 mb-0.5">⏰ Vaqt</p>
+                                <p className="text-[10px] text-amber-300 mb-0.5">{t('report_timing')}</p>
                                 <p className="text-sm font-bold text-white">{med.timing}</p>
                             </div>
                         )}
                         {med.duration && (
                             <div className="bg-green-900/20 p-2 rounded border border-green-500/20">
-                                <p className="text-[10px] text-green-300 mb-0.5">📅 Davomiyligi</p>
+                                <p className="text-[10px] text-green-300 mb-0.5">{t('report_duration')}</p>
                                 <p className="text-sm font-bold text-white">{med.duration}</p>
                             </div>
                         )}
@@ -253,7 +259,7 @@ const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
                     
                     {med.instructions && (
                         <p className="text-xs text-slate-300 bg-black/30 p-3 rounded-lg border border-white/5">
-                            📋 <span className="font-semibold">Yo'riqnoma:</span> {med.instructions}
+                            📋 <span className="font-semibold">{t('report_instructions')}</span> {med.instructions}
                         </p>
                     )}
                 </div>
@@ -263,12 +269,13 @@ const PrescriptionTab: React.FC<{ report: FinalReport }> = ({ report }) => (
         <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3 backdrop-blur-md">
             <span className="text-xl">⚠️</span>
             <p className="text-xs text-amber-200 leading-relaxed font-medium">
-                <span className="font-bold text-amber-100">Diqqat:</span> Ushbu elektron retsept tavsiyaviy xarakterga ega. 
+                {t('report_disclaimer')}
                 {report.uzbekistanLegislativeNote && ` ${report.uzbekistanLegislativeNote}`}
             </p>
         </div>
     </div>
-);
+    );
+};
 
 // --- NEW SUB-VIEWS FOR DOCK ---
 
@@ -306,7 +313,7 @@ const DocumentsView: React.FC<{ user: User }> = ({ user }) => {
             <p className="text-slate-400 mb-6">{t('doc_docs_desc')}</p>
             
             <div className="space-y-4">
-                {docs.length === 0 && <p className="text-center text-slate-500 py-10">Hujjatlar mavjud emas.</p>}
+                {docs.length === 0 && <p className="text-center text-slate-500 py-10">{t('doc_no_documents')}</p>}
                 {docs.map(doc => (
                     <GlassCard key={doc.id} className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -316,7 +323,7 @@ const DocumentsView: React.FC<{ user: User }> = ({ user }) => {
                             <div>
                                 <h4 className="font-bold text-white">{doc.patientData.firstName} {doc.patientData.lastName}</h4>
                                 <p className="text-xs text-slate-400">{new Date(doc.date).toLocaleDateString()}</p>
-                                <span className="text-[10px] text-blue-300 uppercase font-bold">Tibbiy Xulosa</span>
+                                <span className="text-[10px] text-blue-300 uppercase font-bold">{t('doc_medical_summary')}</span>
                             </div>
                         </div>
                         <div className="flex gap-2">
@@ -844,9 +851,9 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             const newSettings = { ...tvSettings, isUnlocked: true };
             setTvSettings(newSettings);
             settingsService.saveTvSettings(user.phone, newSettings);
-            setTvMsg("Reklama bloki ochildi!");
+            setTvMsg(t('tv_ad_opened'));
         } else {
-            setTvMsg("Noto'g'ri kod. Admin bilan bog'laning.");
+            setTvMsg(t('alert_tv_wrong_code'));
         }
     };
 
@@ -1067,7 +1074,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         value={assistantData.phone}
                                         onChange={e => setAssistantData({...assistantData, phone: e.target.value})}
                                         className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                        placeholder="+998..."
+                                        placeholder={t('assistant_phone_placeholder')}
                                     />
                                 </div>
                                 <div>
@@ -1077,7 +1084,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         value={assistantData.password}
                                         onChange={e => setAssistantData({...assistantData, password: e.target.value})}
                                         className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                        placeholder="Yangi parol (kamida 8 ta belgi)"
+                                        placeholder={t('assistant_password_placeholder')}
                                     />
                                 </div>
                                 
@@ -1112,7 +1119,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         <div className="flex items-start gap-3 mb-3">
                                             <ShieldCheckIcon className="w-6 h-6 text-yellow-500" />
                                             <div>
-                                                <p className="text-sm text-white font-bold">Reklama bloki faol</p>
+                                                <p className="text-sm text-white font-bold">{t('tv_ad_active')}</p>
                                                 <p className="text-xs text-slate-400 mt-1">
                                                     Standart reklama (Admin tomonidan) ko'rsatilmoqda. O'zgartirish uchun maxsus kodni kiriting.
                                                 </p>
@@ -1123,7 +1130,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                                 value={unlockCodeInput}
                                                 onChange={e => setUnlockCodeInput(e.target.value)}
                                                 className="flex-grow common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                                placeholder="Maxsus kod (masalan: ADMIN-...)"
+                                                placeholder={t('tv_unlock_code_placeholder')}
                                             />
                                             <button 
                                                 onClick={handleUnlockTv}
@@ -1141,22 +1148,22 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         </p>
                                         <div className="space-y-3">
                                             <div>
-                                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Video URL (Vergullab bir nechta kiritish mumkin)</label>
+                                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('tv_video_url_label')}</label>
                                                 <input 
                                                     value={tvSettings.videoUrl}
                                                     onChange={e => setTvSettings({...tvSettings, videoUrl: e.target.value})}
                                                     className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                                    placeholder="https://video1.mp4, https://video2.mp4"
+                                                    placeholder={t('tv_video_url_placeholder')}
                                                 />
-                                                <p className="text-[10px] text-slate-500 mt-1">Ko'p videolar uchun vergul (,) bilan ajrating.</p>
+                                                <p className="text-[10px] text-slate-500 mt-1">{t('tv_videos_separate')}</p>
                                             </div>
                                             <div>
-                                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Yuguruvchi satr matni</label>
+                                                <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('tv_scrolling_label')}</label>
                                                 <input 
                                                     value={tvSettings.scrollingText}
                                                     onChange={e => setTvSettings({...tvSettings, scrollingText: e.target.value})}
                                                     className="w-full common-input bg-white/10 border-white/10 text-white focus:bg-white focus:text-slate-900"
-                                                    placeholder="Yangiliklar..."
+                                                    placeholder={t('tv_scrolling_placeholder')}
                                                 />
                                             </div>
                                             <button 
@@ -1176,7 +1183,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                     className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl border border-white/20 transition-colors mt-4"
                                 >
                                     <MonitorIcon className="w-5 h-5"/>
-                                    TV Ekranni Ko'rish (Demo)
+                                    {t('tv_demo_btn')}
                                 </button>
                             </div>
                         </div>
@@ -1224,7 +1231,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 onClick={() => setView('assistant')}
                                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-blue-300 transition-colors"
                                 title={t('team_and_settings')}
-                                aria-label="Jamoa"
+                                aria-label={t('team_aria')}
                             >
                                 <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
@@ -1364,12 +1371,12 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                     {/* Top: Vitals (HUD) */}
                                     <div className="flex-none mb-3">
                                         <div className="grid grid-cols-3 gap-2">
-                                            <VitalInputCompact label="SYS" unit="mm" value={vitals.bpSys} onChange={val => handleVitalChange('bpSys', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" error={vitalErrors.bpSys} />
-                                            <VitalInputCompact label="DIA" unit="mm" value={vitals.bpDia} onChange={val => handleVitalChange('bpDia', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" error={vitalErrors.bpDia} />
-                                            <VitalInputCompact label="Puls" unit="bpm" value={vitals.heartRate} onChange={val => handleVitalChange('heartRate', val)} icon={<HeartRateIcon className="w-3 h-3"/>} color="pink" error={vitalErrors.heartRate} />
-                                            <VitalInputCompact label="t°" unit="°C" value={vitals.temp} onChange={val => handleVitalChange('temp', val)} icon={<span className="text-xs">🌡</span>} color="orange" error={vitalErrors.temp} />
-                                            <VitalInputCompact label="SpO2" unit="%" value={vitals.spO2} onChange={val => handleVitalChange('spO2', val)} icon={<OxygenIcon className="w-3 h-3"/>} color="cyan" error={vitalErrors.spO2} />
-                                            <VitalInputCompact label="Nafas" unit="/min" value={vitals.respiration} onChange={val => handleVitalChange('respiration', val)} icon={<span className="text-xs">🫁</span>} color="blue" error={vitalErrors.respiration} />
+                                            <VitalInputCompact label={t('vitals_label_sys')} unit="mm" value={vitals.bpSys} onChange={val => handleVitalChange('bpSys', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" error={vitalErrors.bpSys} />
+                                            <VitalInputCompact label={t('vitals_label_dia')} unit="mm" value={vitals.bpDia} onChange={val => handleVitalChange('bpDia', val)} icon={<span className="text-[10px] font-black">BP</span>} color="red" error={vitalErrors.bpDia} />
+                                            <VitalInputCompact label={t('vitals_label_puls')} unit="bpm" value={vitals.heartRate} onChange={val => handleVitalChange('heartRate', val)} icon={<HeartRateIcon className="w-3 h-3"/>} color="pink" error={vitalErrors.heartRate} />
+                                            <VitalInputCompact label={t('vitals_label_temp')} unit="°C" value={vitals.temp} onChange={val => handleVitalChange('temp', val)} icon={<span className="text-xs">🌡</span>} color="orange" error={vitalErrors.temp} />
+                                            <VitalInputCompact label={t('vitals_label_spo2')} unit="%" value={vitals.spO2} onChange={val => handleVitalChange('spO2', val)} icon={<OxygenIcon className="w-3 h-3"/>} color="cyan" error={vitalErrors.spO2} />
+                                            <VitalInputCompact label={t('vitals_label_resp')} unit="/min" value={vitals.respiration} onChange={val => handleVitalChange('respiration', val)} icon={<span className="text-xs">🫁</span>} color="blue" error={vitalErrors.respiration} />
                                         </div>
                                     </div>
 
@@ -1384,7 +1391,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                             <textarea
                                                 value={complaints}
                                                 onChange={(e) => setComplaints(e.target.value)}
-                                                placeholder="Shikoyatlar, anamnez va ob'ektiv ko'rik ma'lumotlarini bu yerga yozing..."
+                                                placeholder={t('doc_complaints_placeholder')}
                                                 className="min-h-[180px] w-full bg-transparent text-white text-base leading-relaxed placeholder-white/20 p-4 outline-none resize-none custom-scrollbar"
                                             />
                                         
@@ -1392,7 +1399,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         <div className="flex-none p-2 border-t border-white/5 bg-black/20 overflow-x-auto whitespace-nowrap custom-scrollbar flex items-center gap-2 min-h-[60px]">
                                             {attachments.length === 0 && (
                                                 <div className="text-xs text-white/30 italic px-2 flex items-center gap-2">
-                                                    <UploadCloudIcon className="w-4 h-4"/> Analizlar yuklanmagan (PDF, JPG, DOC)
+                                                    <UploadCloudIcon className="w-4 h-4"/> {t('doc_analyses_not_uploaded')}
                                                 </div>
                                             )}
                                             {attachments.map((att, i) => (
@@ -1422,19 +1429,21 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                                 <input type="file" ref={galleryInputRef} className="hidden" accept="image/*" onChange={handleFileSelect} />
                                                 <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple onChange={handleFileSelect} />
                                                 
-                                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Kamera" aria-label="Kamera">
+                                                <button type="button" onClick={() => cameraInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title={t('doc_camera')} aria-label={t('doc_camera')}>
                                                     <CameraIcon className="w-5 h-5 text-blue-300" />
                                                 </button>
-                                                <button type="button" onClick={() => galleryInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Galereya" aria-label="Galereya">
+                                                <button type="button" onClick={() => galleryInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title={t('doc_gallery')} aria-label={t('doc_gallery')}>
                                                     <PhotoIcon className="w-5 h-5 text-emerald-300" />
                                                 </button>
-                                                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title="Hujjat Yuklash" aria-label="Hujjat yuklash">
+                                                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors" title={t('upload_document')} aria-label={t('upload_document')}>
                                                     <UploadCloudIcon className="w-5 h-5 text-purple-300" />
                                                 </button>
                                                 
                                                 <div className="h-9 w-[1px] bg-white/10 mx-1"></div>
                                                 <span className="text-[9px] leading-tight text-white/40 flex items-center font-bold max-w-[60px]">
-                                                    ANALIZ<br/>YUKLASH
+                                                    {t('doc_upload_analyses').split(' ').map((word, i, arr) => (
+                                                    <React.Fragment key={i}>{word}{i < arr.length - 1 ? <br/> : null}</React.Fragment>
+                                                ))}
                                                 </span>
                                             </div>
 
@@ -1446,7 +1455,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                                     ? 'bg-red-500 animate-pulse shadow-red-500/50' 
                                                     : 'bg-white/10 hover:bg-white/20 border border-white/10'
                                                 }`}
-                                                aria-label={isListening ? 'Ovozni to\'xtatish' : 'Ovoz yozish'}
+                                                aria-label={isListening ? t('voice_stop') : t('voice_record')}
                                             >
                                                 <MicrophoneIcon className="w-6 h-6 text-white" />
                                             </button>
@@ -1465,7 +1474,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                         <div className="p-1 bg-black rounded-full text-white">
                                             <CheckCircleIcon className="w-5 h-5" />
                                         </div>
-                                        <span className="text-base tracking-wide font-bold">TAHLILNI BOSHLASH</span>
+                                        <span className="text-base tracking-wide font-bold">{t('start_analysis_btn')}</span>
                                     </button>
                                 </div>
                             </div>
@@ -1554,7 +1563,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         </button>
                         <button type="button" onClick={() => setView('drug_tools')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'drug_tools' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
                             <PillIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'drug_tools' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
-                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">Dorilar</span>
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">{t('nav_drugs')}</span>
                         </button>
                         <button type="button" onClick={() => setView('profile')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'profile' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
                             <UserCircleIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'profile' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
