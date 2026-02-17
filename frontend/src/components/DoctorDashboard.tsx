@@ -380,21 +380,30 @@ const ProfileView: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
                 </div>
             </GlassCard>
 
-            {/* Obuna */}
+            {/* Obuna / Subscription */}
             {(user.subscriptionPlan || user.subscriptionExpiry || user.trialEndsAt) && (
                 <GlassCard className="p-4 mb-6 bg-white/5 border border-white/10">
-                    <h4 className="text-sm font-bold text-slate-400 uppercase mb-2">Obuna</h4>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase mb-2">
+                        {t('subscription_title')}
+                    </h4>
                     {user.subscriptionPlan && (
                         <p className="text-white font-medium">{user.subscriptionPlan.name}</p>
                     )}
                     {user.trialEndsAt && new Date(user.trialEndsAt) > new Date() && (
                         <p className="text-green-400 text-sm mt-1">
-                            Trial: {Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} kun qoldi
+                            {t('subscription_trial', {
+                                days: Math.ceil(
+                                    (new Date(user.trialEndsAt).getTime() - Date.now()) /
+                                    (1000 * 60 * 60 * 24)
+                                )
+                            })}
                         </p>
                     )}
                     {user.subscriptionExpiry && new Date(user.subscriptionExpiry) > new Date() && !user.trialEndsAt && (
                         <p className="text-slate-300 text-sm mt-1">
-                            Tugash: {new Date(user.subscriptionExpiry).toLocaleDateString('uz-UZ')}
+                            {t('subscription_expires', {
+                                date: new Date(user.subscriptionExpiry).toLocaleDateString('uz-UZ')
+                            })}
                         </p>
                     )}
                 </GlassCard>

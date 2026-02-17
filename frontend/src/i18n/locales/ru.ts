@@ -575,6 +575,11 @@ export const ru: TranslationSet = {
   patients_status_waiting: 'Ожидает',
   patients_status_hold: 'Отложен',
 
+  // Subscription
+  subscription_title: 'Подписка',
+  subscription_trial: 'Trial: осталось {days} дн.',
+  subscription_expires: 'Окончание: {date}',
+
   // Landing footer & testimonials
   landing_footer_price: 'Тарифы',
   landing_footer_security: 'Безопасность',

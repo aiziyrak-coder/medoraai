@@ -1119,7 +1119,7 @@ export const runResearchCouncilDebate = async (
     onProgress({ type: 'status', message: 'Discussing innovative strategies...' });
     await sleep(2000);
     
-    const prompt = `Provide detailed research report on "${diseaseName}". Use web search. Return strictly defined JSON ResearchReport. LANGUAGE: ${langMap[language]}.`;
+    const prompt = `Provide detailed research report on "${diseaseName}". Use web search for latest data. Return ONLY valid JSON (no markdown, no extra text). The JSON must have these fields: diseaseName, summary, epidemiology {prevalence, incidence, keyRiskFactors[]}, pathophysiology, emergingBiomarkers [{name, type, description}], clinicalGuidelines [{guidelineTitle, source, recommendations [{category, details[]}]}], potentialStrategies [{name, mechanism, evidence, pros[], cons[], riskBenefit {risk, benefit}, developmentRoadmap [{stage, duration, cost}], molecularTarget {name, pdbId}, ethicalConsiderations[], requiredCollaborations[], companionDiagnosticNeeded}], pharmacogenomics {relevantGenes [{gene, mutation, impact}], targetSubgroup}, patentLandscape {competingPatents [{patentId, title, assignee}], whitespaceOpportunities[]}, relatedClinicalTrials [{trialId, title, status, url}], strategicConclusion, sources [{title, uri}]. LANGUAGE: ${langMap[language]}.`;
 
     const researchReportSchema = {
       type: Type.OBJECT,
@@ -1160,11 +1160,11 @@ export const runResearchCouncilDebate = async (
                             properties: {
                                 category: { type: Type.STRING },
                                 details: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            }
-                        }
-                    }
-                }
-            }
+                            },
+                        },
+                    },
+                },
+            },
         },
         potentialStrategies: {
           type: Type.ARRAY,
@@ -1268,14 +1268,40 @@ export const runResearchCouncilDebate = async (
     };
 
     try {
-        const result = await callGemini(prompt, 'gemini-3-pro-preview', researchReportSchema, true, systemInstr) as GenerateContentResponse;
+        // useSearch=true va responseSchema birga ishlamaydi (callGemini ichida schema birinchi tekshiriladi).
+        // Shuning uchun schema'siz chaqiramiz, raw response olamiz, keyin JSON parse qilamiz.
+        const result = await callGemini(prompt, 'gemini-3-pro-preview', undefined, true, systemInstr) as GenerateContentResponse;
         
-        const reportData: ResearchReport = JSON.parse(result.text.replace(/^```json\s*|```\s*$/g, '').trim());
+        const rawText = result?.text || '';
+        const cleanedText = rawText.replace(/^```json\s*|```\s*$/g, '').trim();
+        
+        let reportData: ResearchReport;
+        try {
+            reportData = JSON.parse(cleanedText);
+        } catch {
+            // JSON parse xatosi — truncated bo'lishi mumkin
+            const repaired = tryRepairTruncatedJson(cleanedText);
+            if (repaired) {
+                reportData = repaired as ResearchReport;
+            } else {
+                throw new Error("Tadqiqot hisoboti JSON formatida kelmadi.");
+            }
+        }
 
-        reportData.sources = result.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: { uri?: string; chunk?: { text?: string } }) => ({
-            title: chunk.web.title || chunk.web.uri,
-            uri: chunk.web.uri
-        })).filter((v: { uri?: string }) => v.uri) || [];
+        // Grounding sources — null-safe access
+        const groundingChunks = result?.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (groundingChunks && Array.isArray(groundingChunks)) {
+            reportData.sources = groundingChunks
+                .filter((chunk: Record<string, unknown>) => chunk?.web)
+                .map((chunk: Record<string, unknown>) => {
+                    const web = chunk.web as { title?: string; uri?: string } | undefined;
+                    return {
+                        title: web?.title || web?.uri || '',
+                        uri: web?.uri || ''
+                    };
+                })
+                .filter((v: { uri?: string }) => v.uri) || [];
+        }
 
         onProgress({ type: 'report', data: reportData });
     } catch (e) {

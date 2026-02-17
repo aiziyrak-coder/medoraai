@@ -575,6 +575,11 @@ export const uzC: TranslationSet = {
   patients_status_waiting: 'Кутмоқда',
   patients_status_hold: 'Кутишда',
 
+  // Subscription / Обуна
+  subscription_title: 'Обунa',
+  subscription_trial: 'Trial: {days} кун қолди',
+  subscription_expires: 'Тугаш: {date}',
+
   // Landing footer & testimonials
   landing_footer_price: 'Нархлар',
   landing_footer_security: 'Хавфсизлик',

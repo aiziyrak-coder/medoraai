@@ -578,6 +578,11 @@ export const uzL: TranslationSet = {
   patients_status_waiting: 'Kutmoqda',
   patients_status_hold: 'Kutishda',
 
+  // Subscription / Obuna
+  subscription_title: 'Obuna',
+  subscription_trial: 'Trial: {days} kun qoldi',
+  subscription_expires: 'Tugash: {date}',
+
   // Landing footer & testimonials
   landing_footer_price: 'Narxlar',
   landing_footer_security: 'Xavfsizlik',

@@ -448,7 +448,7 @@ def send_payment_receipt(request):
         f"👤 <b>Foydalanuvchi:</b> {user_name}\n"
         f"📱 <b>Telefon:</b> {user_phone}\n"
         f"👨‍⚕️ <b>Rol:</b> {user_role}\n"
-        f"💰 <b>Kutilgan summa:</b> {amount:,.0f} so'm\n\n"
+        f"💰 <b>Kutilgan summa:</b> {amount} $\n\n"
         "⚠️ <i>Adminlar, chekni tekshiring va tasdiqlash tugmasini bosing.</i>"
     )
 

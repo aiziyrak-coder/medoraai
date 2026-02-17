@@ -575,6 +575,11 @@ export const kaa: TranslationSet = {
   patients_status_waiting: 'Kútpekte',
   patients_status_hold: 'Kútiwde',
 
+  // Subscription
+  subscription_title: 'Obuna',
+  subscription_trial: 'Trial: {days} kún qaldı',
+  subscription_expires: 'Tugawı: {date}',
+
   // Landing footer & testimonials
   landing_footer_price: 'Baxalar',
   landing_footer_security: 'Xawfsızlıq',

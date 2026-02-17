@@ -144,7 +144,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         setMessage('');
 
         try {
-            const result = authService.requestPasswordReset(phone);
+            const result = await authService.requestPasswordReset(phone);
             if (result.success) {
                 setMessage(result.message);
             } else {

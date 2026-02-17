@@ -61,9 +61,9 @@ const StrategyComparisonMatrix: React.FC<{strategies: TreatmentStrategy[]}> = ({
                         <tr key={i} className="border-b border-border-color">
                             <th scope="row" className="px-4 py-4 font-medium text-text-primary whitespace-nowrap">{s.name}</th>
                             <td className="px-4 py-4">{s.evidence}</td>
-                            <td className={`px-4 py-4 font-bold ${s.riskBenefit.risk.startsWith('High') || s.riskBenefit.risk.startsWith('Very') ? 'text-red-500' : 'text-yellow-500'}`}>{s.riskBenefit.risk}</td>
-                             <td className={`px-4 py-4 font-bold ${s.riskBenefit.benefit === 'Breakthrough' ? 'text-green-500' : 'text-blue-500'}`}>{s.riskBenefit.benefit}</td>
-                            <td className="px-4 py-4 truncate">{s.molecularTarget.name}</td>
+                            <td className={`px-4 py-4 font-bold ${s.riskBenefit?.risk?.startsWith('High') || s.riskBenefit?.risk?.startsWith('Very') ? 'text-red-500' : 'text-yellow-500'}`}>{s.riskBenefit?.risk || '-'}</td>
+                             <td className={`px-4 py-4 font-bold ${s.riskBenefit?.benefit === 'Breakthrough' ? 'text-green-500' : 'text-blue-500'}`}>{s.riskBenefit?.benefit || '-'}</td>
+                            <td className="px-4 py-4 truncate">{s.molecularTarget?.name || '-'}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -89,27 +89,27 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
                         <div>
                             <h4 className="font-semibold text-text-primary">Epidemiologiya:</h4>
                             <ul className="list-disc list-inside mt-1 text-sm">
-                                <li><span className="font-bold">Tarqalishi:</span> {report.epidemiology.prevalence}</li>
-                                <li><span className="font-bold">Kasallanish:</span> {report.epidemiology.incidence}</li>
-                                <li><span className="font-bold">Xavf Omillari:</span> {report.epidemiology.keyRiskFactors.join(', ')}</li>
+                                <li><span className="font-bold">Tarqalishi:</span> {report.epidemiology?.prevalence || 'Ma\'lumot yo\'q'}</li>
+                                <li><span className="font-bold">Kasallanish:</span> {report.epidemiology?.incidence || 'Ma\'lumot yo\'q'}</li>
+                                <li><span className="font-bold">Xavf Omillari:</span> {(report.epidemiology?.keyRiskFactors || []).join(', ') || 'Ma\'lumot yo\'q'}</li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-semibold text-text-primary">Patofiziologiya:</h4>
-                            <p className="text-sm">{report.pathophysiology}</p>
+                            <p className="text-sm">{report.pathophysiology || 'Ma\'lumot yo\'q'}</p>
                         </div>
                     </div>
                 </Section>
 
                 <Section title="Yangi Istiqbolli Biomarkerlar" icon={<TargetIcon />}>
                     <div className="space-y-3">
-                        {report.emergingBiomarkers.map((marker, index) => (
+                        {(report.emergingBiomarkers || []).map((marker, index) => (
                             <div key={index} className="p-3 bg-slate-100 rounded-lg border border-border-color">
                                 <p className="font-semibold text-text-primary">{marker.name} <span className="text-xs font-mono bg-slate-200 text-text-secondary px-2 py-0.5 rounded-full align-middle">{marker.type}</span></p>
                                 <p className="text-sm text-text-secondary mt-1">{marker.description}</p>
                             </div>
                         ))}
-                         {report.emergingBiomarkers.length === 0 && <p>Yangi istiqbolli biomarkerlar topilmadi.</p>}
+                         {(!report.emergingBiomarkers || report.emergingBiomarkers.length === 0) && <p>Yangi istiqbolli biomarkerlar topilmadi.</p>}
                     </div>
                 </Section>
                  
@@ -139,17 +139,17 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
                 )}
 
                  <Section title="Strategiyalarni Taqqoslash Matritsasi" icon={<ChartBarIcon />}>
-                     <StrategyComparisonMatrix strategies={report.potentialStrategies} />
+                     <StrategyComparisonMatrix strategies={report.potentialStrategies || []} />
                  </Section>
 
                  <Section title="Risk/Foyda Tahlili" icon={<ScaleIcon />}>
-                     <RiskBenefitChart strategies={report.potentialStrategies} />
+                     <RiskBenefitChart strategies={report.potentialStrategies || []} />
                  </Section>
 
                 <Section title="Potensial Davolash Strategiyalari Batafsil" icon={<LightBulbIcon className="h-7 w-7 text-accent-color-blue" />}>
-                    {report.potentialStrategies.length > 0 ? (
+                    {(report.potentialStrategies || []).length > 0 ? (
                         <div className="space-y-8">
-                            {report.potentialStrategies.map((strategy, index) => (
+                            {(report.potentialStrategies || []).map((strategy, index) => (
                                 <div key={index} className="p-4 bg-slate-50 rounded-2xl border border-border-color">
                                     <h4 className="font-bold text-xl text-text-primary">{index+1}. {strategy.name}</h4>
                                     
@@ -209,12 +209,12 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
                         <div>
                             <h4 className="font-semibold text-text-primary">Tegishli Genlar va Mutatsiyalar:</h4>
                             <ul className="list-disc list-inside mt-1">
-                            {report.pharmacogenomics.relevantGenes.map((g,i) => <li key={i}><span className="font-bold">{g.gene} ({g.mutation}):</span> {g.impact}</li>)}
+                            {(report.pharmacogenomics?.relevantGenes || []).map((g,i) => <li key={i}><span className="font-bold">{g.gene} ({g.mutation}):</span> {g.impact}</li>)}
                             </ul>
                         </div>
                          <div>
                             <h4 className="font-semibold text-text-primary">Maqsadli Bemorlar Guruhi:</h4>
-                            <p>{report.pharmacogenomics.targetSubgroup}</p>
+                            <p>{report.pharmacogenomics?.targetSubgroup || 'Ma\'lumot yo\'q'}</p>
                         </div>
                     </div>
                 </Section>
@@ -224,13 +224,13 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
                         <div>
                             <h4 className="font-semibold text-text-primary">Raqobatchi Patentlar:</h4>
                             <ul className="list-disc list-inside mt-1">
-                                {report.patentLandscape.competingPatents.map((p,i) => <li key={i}><span className="font-bold">{p.patentId}</span> ({p.assignee}): {p.title}</li>)}
+                                {(report.patentLandscape?.competingPatents || []).map((p,i) => <li key={i}><span className="font-bold">{p.patentId}</span> ({p.assignee}): {p.title}</li>)}
                             </ul>
                         </div>
                         <div>
                             <h4 className="font-semibold text-text-primary">Ochish Mumkin Bo'lgan Yangi Imkoniyatlar (White Space):</h4>
                             <ul className="list-disc list-inside mt-1">
-                               {report.patentLandscape.whitespaceOpportunities.map((o,i) => <li key={i}>{o}</li>)}
+                               {(report.patentLandscape?.whitespaceOpportunities || []).map((o,i) => <li key={i}>{o}</li>)}
                             </ul>
                         </div>
                     </div>
@@ -238,7 +238,7 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
 
                 <Section title="Tegishli Klinik Sinovlar" icon={<FlaskIcon />}>
                     <ul className="list-disc list-inside space-y-2">
-                        {report.relatedClinicalTrials.map((t,i) => (
+                        {(report.relatedClinicalTrials || []).map((t,i) => (
                             <li key={i}>
                                 <a href={t.url} target="_blank" rel="noopener noreferrer" className="text-accent-color-blue hover:underline">
                                     <span className="font-bold">{t.trialId}</span> - {t.title}

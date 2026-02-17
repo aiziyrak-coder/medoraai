@@ -119,13 +119,23 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onSubscriptio
             );
 
             if (result.success) {
+                // Update localStorage (fallback auth)
                 authService.updateUserSubscription(user.phone, 'pending');
+                // Trigger App.tsx to refresh user from API (backend already set status to 'pending')
                 onSubscriptionPending();
             } else {
-                setError(result.message || "Xatolik yuz berdi.");
+                // Foydalanuvchiga tushunarli xabar
+                const msg = result.message || "Xatolik yuz berdi.";
+                if (msg.includes('sozlanmagan') || msg.includes('503') || msg.includes('Service')) {
+                    setError("To'lov xizmati hozircha texnik ishlar olib borilmoqda. Iltimos, +998 94 878 88 78 raqamiga qo'ng'iroq qiling yoki keyinroq urinib ko'ring.");
+                } else if (msg.includes('ulanish') || msg.includes('502') || msg.includes('Gateway')) {
+                    setError("Serverga ulanishda muammo. Iltimos, internet aloqangizni tekshiring va qayta urinib ko'ring.");
+                } else {
+                    setError(msg);
+                }
             }
         } catch (err) {
-            setError("Tizim xatoligi. Qayta urinib ko'ring.");
+            setError("Tizim xatoligi. Iltimos, qayta urinib ko'ring yoki +998 94 878 88 78 raqamiga murojaat qiling.");
         } finally {
             setIsUploading(false);
         }

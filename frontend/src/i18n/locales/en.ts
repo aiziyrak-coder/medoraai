@@ -575,6 +575,11 @@ export const en = {
   patients_status_waiting: 'Waiting',
   patients_status_hold: 'On hold',
 
+  // Subscription
+  subscription_title: 'Subscription',
+  subscription_trial: 'Trial: {days} days left',
+  subscription_expires: 'Expires: {date}',
+
   // Landing footer & testimonials
   landing_footer_price: 'Pricing',
   landing_footer_security: 'Security',
