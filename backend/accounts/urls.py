@@ -12,6 +12,7 @@ from .views import (
     subscription_plans_list,
     my_subscription,
     send_payment_receipt,
+    telegram_webhook,
     UserListAPIView,
     UserDetailAPIView,
 )
@@ -32,6 +33,7 @@ urlpatterns = [
     path('plans/', subscription_plans_list, name='subscription_plans_list'),
     path('subscription/', my_subscription, name='my_subscription'),
     path('send-payment-receipt/', send_payment_receipt, name='send_payment_receipt'),
+    path('telegram-webhook/', telegram_webhook, name='telegram_webhook'),
     
     # User management
     path('users/', UserListAPIView.as_view(), name='user_list'),

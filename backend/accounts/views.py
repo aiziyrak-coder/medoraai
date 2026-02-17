@@ -453,31 +453,44 @@ def send_payment_receipt(request):
     )
 
     try:
+        # Create subscription payment record (pending) FIRST to get payment ID for buttons
+        plan_id = request.data.get('plan_id')
+        plan = None
+        if plan_id:
+            try:
+                plan = SubscriptionPlan.objects.get(pk=plan_id, is_active=True)
+            except SubscriptionPlan.DoesNotExist:
+                pass
+        payment = SubscriptionPayment.objects.create(
+            user=request.user,
+            plan=plan,
+            amount=amount,
+            status='pending',
+            receipt_note='Chek yuborildi',
+        )
+
+        # Inline keyboard: Tasdiqlash / Rad etish
+        import json as _json
+        reply_markup = _json.dumps({
+            'inline_keyboard': [
+                [
+                    {'text': '✅ Tasdiqlash', 'callback_data': f'approve_{payment.id}'},
+                    {'text': '❌ Rad etish', 'callback_data': f'reject_{payment.id}'},
+                ]
+            ]
+        })
+
         url = f"https://api.telegram.org/bot{token}/sendPhoto"
         payload = {
             'chat_id': group_id,
             'caption': caption,
             'parse_mode': 'HTML',
+            'reply_markup': reply_markup,
         }
         files = {'photo': (file.name, file, file.content_type)}
         resp = requests.post(url, data=payload, files=files, timeout=30)
         data = resp.json()
         if data.get('ok'):
-            # Create subscription payment record (pending) and set user to pending
-            plan_id = request.data.get('plan_id')
-            plan = None
-            if plan_id:
-                try:
-                    plan = SubscriptionPlan.objects.get(pk=plan_id, is_active=True)
-                except SubscriptionPlan.DoesNotExist:
-                    pass
-            SubscriptionPayment.objects.create(
-                user=request.user,
-                plan=plan,
-                amount=amount,
-                status='pending',
-                receipt_note='Chek yuborildi',
-            )
             request.user.subscription_status = 'pending'
             request.user.save(update_fields=['subscription_status'])
             return Response({'success': True, 'message': 'Chek yuborildi. Admin tasdiqlagach obuna faollashadi.'})
@@ -498,3 +511,123 @@ def send_payment_receipt(request):
                 'message': 'Tashqi xizmatga ulanishda xatolik.'
             }
         }, status=status.HTTP_502_BAD_GATEWAY)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def telegram_webhook(request):
+    """
+    Telegram bot webhook — inline tugmalar callback'larini qayta ishlaydi.
+    Tasdiqlash: obunani 30 kunga faollashtiradi.
+    Rad etish: obunani rad etadi.
+    """
+    import json as _json
+
+    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+    if not token:
+        return Response({'ok': True})
+
+    body = request.data
+    callback_query = body.get('callback_query')
+    if not callback_query:
+        return Response({'ok': True})
+
+    callback_data = callback_query.get('data', '')
+    callback_id = callback_query.get('id')
+    message = callback_query.get('message', {})
+    chat_id = message.get('chat', {}).get('id')
+    message_id = message.get('message_id')
+
+    # Parse action and payment ID
+    action = None
+    payment_id = None
+    if callback_data.startswith('approve_'):
+        action = 'approve'
+        payment_id = callback_data.replace('approve_', '')
+    elif callback_data.startswith('reject_'):
+        action = 'reject'
+        payment_id = callback_data.replace('reject_', '')
+
+    if not action or not payment_id:
+        _answer_callback(token, callback_id, "Noma'lum buyruq")
+        return Response({'ok': True})
+
+    try:
+        payment = SubscriptionPayment.objects.select_related('user').get(pk=int(payment_id))
+    except (SubscriptionPayment.DoesNotExist, ValueError):
+        _answer_callback(token, callback_id, "To'lov topilmadi")
+        return Response({'ok': True})
+
+    if payment.status != 'pending':
+        status_text = 'tasdiqlangan' if payment.status == 'approved' else 'rad etilgan'
+        _answer_callback(token, callback_id, f"Bu to'lov allaqachon {status_text}")
+        return Response({'ok': True})
+
+    user = payment.user
+
+    if action == 'approve':
+        payment.status = 'approved'
+        payment.reviewed_at = timezone.now()
+        payment.save(update_fields=['status', 'reviewed_at'])
+
+        # Activate subscription for 30 days
+        user.subscription_status = 'active'
+        user.subscription_expiry = timezone.now() + timedelta(days=30)
+        if payment.plan:
+            user.subscription_plan = payment.plan
+        user.save(update_fields=['subscription_status', 'subscription_expiry', 'subscription_plan'])
+
+        result_text = (
+            f"✅ <b>TASDIQLANDI</b>\n\n"
+            f"👤 {user.name} ({user.phone})\n"
+            f"📅 Obuna: 30 kun ({user.subscription_expiry.strftime('%d.%m.%Y')} gacha)\n"
+            f"💰 {payment.amount} $"
+        )
+        _answer_callback(token, callback_id, "✅ Tasdiqlandi! Obuna 30 kunga faollashtirildi.")
+        logger.info("Payment %s approved for user %s", payment_id, user.phone)
+
+    else:  # reject
+        payment.status = 'rejected'
+        payment.reviewed_at = timezone.now()
+        payment.save(update_fields=['status', 'reviewed_at'])
+
+        user.subscription_status = 'inactive'
+        user.save(update_fields=['subscription_status'])
+
+        result_text = (
+            f"❌ <b>RAD ETILDI</b>\n\n"
+            f"👤 {user.name} ({user.phone})\n"
+            f"💰 {payment.amount} $"
+        )
+        _answer_callback(token, callback_id, "❌ Rad etildi.")
+        logger.info("Payment %s rejected for user %s", payment_id, user.phone)
+
+    # Update the original message — remove buttons and show result
+    if chat_id and message_id:
+        try:
+            edit_url = f"https://api.telegram.org/bot{token}/editMessageCaption"
+            old_caption = message.get('caption', '')
+            new_caption = f"{old_caption}\n\n{'─' * 20}\n{result_text}"
+            requests.post(edit_url, json={
+                'chat_id': chat_id,
+                'message_id': message_id,
+                'caption': new_caption,
+                'parse_mode': 'HTML',
+            }, timeout=10)
+        except Exception as e:
+            logger.error("Failed to edit Telegram message: %s", e)
+
+    return Response({'ok': True})
+
+
+def _answer_callback(token: str, callback_id: str, text: str):
+    """Answer Telegram callback query"""
+    try:
+        url = f"https://api.telegram.org/bot{token}/answerCallbackQuery"
+        requests.post(url, json={
+            'callback_query_id': callback_id,
+            'text': text,
+            'show_alert': True,
+        }, timeout=10)
+    except Exception as e:
+        logger.error("Failed to answer callback query: %s", e)
