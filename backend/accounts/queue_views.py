@@ -51,15 +51,22 @@ def _item_to_frontend(item):
 @permission_classes([IsAuthenticated])
 def queue_list(request):
     """Navbat ro'yxati — joriy shifokor (yoki registratorning shifokori) uchun."""
-    owner = _get_queue_owner(request)
-    if not owner:
+    try:
+        owner = _get_queue_owner(request)
+        if not owner:
+            return Response(
+                {'success': False, 'error': {'code': 403, 'message': 'Navbat faqat shifokor yoki registrator uchun'}},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        items = QueueItem.objects.filter(doctor=owner).order_by('ticket_number', 'created_at')
+        data = [_item_to_frontend(item) for item in items]
+        return Response({'success': True, 'data': data})
+    except Exception as e:
+        logger.exception("queue_list error: %s", e)
         return Response(
-            {'success': False, 'error': {'code': 403, 'message': 'Navbat faqat shifokor yoki registrator uchun'}},
-            status=status.HTTP_403_FORBIDDEN
+            {'success': False, 'error': {'code': 500, 'message': 'Server xatosi', 'detail': str(e)}},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    items = QueueItem.objects.filter(doctor=owner).order_by('ticket_number', 'created_at')
-    data = [_item_to_frontend(item) for item in items]
-    return Response({'success': True, 'data': data})
 
 
 @api_view(['POST'])
