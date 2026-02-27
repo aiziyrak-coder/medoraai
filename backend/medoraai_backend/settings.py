@@ -16,7 +16,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-produc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,medora.ziyrak.org,20.82.115.71',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -55,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'medoraai_backend.middleware.RequestLoggingMiddleware',  # Request logging
+    'ai_services.anatomy_guard.AnatomyGuardMiddleware',     # Anatomy & Logic Guard
 ]
 
 ROOT_URLCONF = 'medoraai_backend.urls'
@@ -189,7 +194,10 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000',
+    default=(
+        'http://localhost:3000,http://127.0.0.1:3000,'
+        'https://medora.ziyrak.org,http://20.82.115.71'
+    ),
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
@@ -232,9 +240,45 @@ SWAGGER_SETTINGS = {
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 
-# AI Service Configuration
-GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-3-pro-preview')
+# Azure AI Foundry Configuration
+AZURE_OPENAI_ENDPOINT   = config('AZURE_OPENAI_ENDPOINT',   default='')
+AZURE_OPENAI_API_KEY    = config('AZURE_OPENAI_API_KEY',    default='')
+AZURE_OPENAI_API_VERSION = config('AZURE_OPENAI_API_VERSION', default='2024-12-01-preview')
+
+# Azure Speech Services (Medora-Jarvis)
+AZURE_SPEECH_KEY      = config('AZURE_SPEECH_KEY',      default='')
+AZURE_SPEECH_REGION   = config('AZURE_SPEECH_REGION',   default='swedencentral')
+AZURE_SPEECH_ENDPOINT = config('AZURE_SPEECH_ENDPOINT', default='https://swedencentral.api.cognitive.microsoft.com/')
+
+# Azure deployment names
+AZURE_DEPLOY_GPT4O = config('AZURE_DEPLOY_GPT4O', default='medora-gpt4o')
+AZURE_DEPLOY_DEEPSEEK = config('AZURE_DEPLOY_DEEPSEEK', default='medora-deepseek')
+AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='medora-llama')
+AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='medora-mistral')
+AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='medora-mini')
+
+# Legacy (kept for backwards-compat, not used for AI calls)
+GEMINI_API_KEY   = config('GEMINI_API_KEY',   default='')
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='medora-gpt4o')
+
+# ── Production Security Settings ───────────────────────────────────────────
+if not DEBUG:
+    # HTTPS enforcement
+    SECURE_SSL_REDIRECT          = True
+    SECURE_PROXY_SSL_HEADER      = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS          = 31536000   # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD          = True
+    SECURE_CONTENT_TYPE_NOSNIFF  = True
+    SECURE_BROWSER_XSS_FILTER    = True
+    SESSION_COOKIE_SECURE        = True
+    SESSION_COOKIE_HTTPONLY      = True
+    CSRF_COOKIE_SECURE           = True
+    CSRF_COOKIE_HTTPONLY         = True
+    X_FRAME_OPTIONS              = 'DENY'
+
+# Static files (production: WhiteNoise)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Telegram (payment receipts) - set in production .env, never expose to frontend
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')

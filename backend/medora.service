@@ -1,0 +1,26 @@
+# /etc/systemd/system/medora.service
+# sudo systemctl enable medora && sudo systemctl start medora
+
+[Unit]
+Description=Medora AI – Gunicorn Django backend
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/medoraai/backend
+EnvironmentFile=/var/www/medoraai/backend/.env
+ExecStart=/var/www/medoraai/venv/bin/gunicorn \
+    --config /var/www/medoraai/backend/gunicorn_config.py \
+    medoraai_backend.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
+StandardOutput=append:/var/log/gunicorn/medora.log
+StandardError=append:/var/log/gunicorn/medora_error.log
+
+[Install]
+WantedBy=multi-user.target

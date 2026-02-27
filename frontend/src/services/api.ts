@@ -3,7 +3,7 @@
  */
 import { API_CONFIG } from '../config/api';
 
-const API_BASE_URL = API_CONFIG.BASE_URL;
+export const API_BASE_URL = API_CONFIG.BASE_URL;
 const HOST_BASE = API_CONFIG.HOST_BASE ?? (API_BASE_URL.replace(/\/api\/?$/, '') || 'http://localhost:8000');
 
 export interface ApiResponse<T = unknown> {

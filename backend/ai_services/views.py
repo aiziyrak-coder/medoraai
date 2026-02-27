@@ -1,542 +1,379 @@
 """
-AI Services Views – haqiqiy Gemini orqali; mock yo'q.
-Autonomous Treatment Protocol Generation System
+AI Services Views — Azure AI Foundry
+  - /ai/consilium/       → Multi-Agent Consilium (5 professor, 3 faza)
+  - /ai/doctor-support/  → Doctor Support Mode (GPT-4o, tezkor)
+  - /ai/doctor-stream/   → Doctor Support SSE stream
+  - Legacy endpoints     → qolgan endpointlar (backwards-compat)
 """
+import json
 import logging
 
 from django.conf import settings
+from django.http import StreamingHttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .gemini_utils import (
-    generate_clarifying_questions as gemini_clarifying,
-    recommend_specialists as gemini_recommend,
-    generate_diagnoses as gemini_diagnoses,
+from .azure_utils import (
+    generate_clarifying_questions as azure_clarifying,
+    recommend_specialists          as azure_recommend,
+    generate_diagnoses             as azure_diagnoses,
 )
+from .multi_agent_system     import run_consilium
+from .doctor_support         import (
+    doctor_consult, doctor_consult_stream,
+    TASK_QUICK_CONSULT, TASK_DIAGNOSIS, TASK_TREATMENT,
+    TASK_DRUG_CHECK, TASK_LAB_INTERPRET, TASK_FOLLOW_UP,
+)
+from .physiology_filter      import check as physiology_check
 from .autonomous_protocol_generator import autonomous_generator
-from .clinical_decision_engine import clinical_decision_engine
-from .continuous_monitoring import continuous_monitoring
-from .self_learning_system import self_learning_system
+from .clinical_decision_engine      import clinical_decision_engine
+from .continuous_monitoring         import continuous_monitoring
+from .self_learning_system          import self_learning_system
 
 logger = logging.getLogger(__name__)
 
 
-def _patient_data_from_request(request):
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _pd(request):
     return request.data.get("patient_data") or {}
+
+
+def _azure_ok() -> bool:
+    return bool(
+        getattr(settings, "AZURE_OPENAI_ENDPOINT", None)
+        and getattr(settings, "AZURE_OPENAI_API_KEY", None)
+    )
+
+
+def _err(code: int, msg: str):
+    return Response({"success": False, "error": {"code": code, "message": msg}},
+                    status=code)
+
+
+def _azure_not_configured():
+    return _err(503, "Azure AI xizmati sozlanmagan")
+
+
+def _run_filter(patient_data: dict) -> Response | None:
+    """
+    Run PhysiologyFilter. Returns error Response if blocked, else None.
+    """
+    result = physiology_check(patient_data, use_ai=True)
+    if not result.passed:
+        return Response(
+            {
+                "success": False,
+                "filtered": True,
+                "filter_level": result.level,
+                "error": {
+                    "code": 422,
+                    "message": result.message,
+                },
+            },
+            status=422,
+        )
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Multi-Agent Consilium
+# ---------------------------------------------------------------------------
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def run_consilium_view(request):
+    """
+    POST /api/ai/consilium/
+    Body: { patient_data, language }
+
+    Phase 1: Independent Analysis (4 agents, parallel)
+    Phase 2: Cross-Examination / Debate (4 agents, parallel)
+    Phase 3: Consensus (GPT-4o Orchestrator)
+    """
+    patient_data = _pd(request)
+    language     = request.data.get("language", "uz-L")
+
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
+
+    # Physiology / Logic Gate filter
+    blocked = _run_filter(patient_data)
+    if blocked:
+        return blocked
+
+    try:
+        result = run_consilium(patient_data, language)
+        return Response({"success": True, "data": result})
+    except Exception as exc:
+        logger.exception("Consilium error: %s", exc)
+        return _err(500, f"Konsilium xatosi: {exc}")
+
+
+# Backwards-compat alias
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def run_council_debate(request):
+    return run_consilium_view(request)
+
+
+# ---------------------------------------------------------------------------
+# Doctor Support Mode
+# ---------------------------------------------------------------------------
+
+_VALID_TASKS = {
+    TASK_QUICK_CONSULT, TASK_DIAGNOSIS, TASK_TREATMENT,
+    TASK_DRUG_CHECK, TASK_LAB_INTERPRET, TASK_FOLLOW_UP,
+}
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def generate_clarifying_questions(request):
-    """Aniqlashtiruvchi savollar – bemor ma'lumotiga qarab Gemini orqali."""
+def doctor_support_view(request):
+    """
+    POST /api/ai/doctor-support/
+    Body: { patient_data, query?, task_type?, language }
+
+    task_type: quick_consult | diagnosis | treatment_plan |
+               drug_check | lab_interpretation | follow_up
+    """
+    patient_data = _pd(request)
+    query        = request.data.get("query", "")
+    task_type    = request.data.get("task_type", TASK_QUICK_CONSULT)
+    language     = request.data.get("language", "uz-L")
+
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
+    if task_type not in _VALID_TASKS:
+        return _err(400, f"Noto'g'ri task_type: {task_type}")
+
+    # PhysiologyFilter
+    blocked = _run_filter(patient_data)
+    if blocked:
+        return blocked
+
     try:
-        patient_data = _patient_data_from_request(request)
-        if not patient_data or not patient_data.get("complaints"):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari yoki shikoyatlar kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        result = doctor_consult(patient_data, query, task_type, language)
+        return Response({"success": True, "data": result})
+    except Exception as exc:
+        logger.exception("DoctorSupport error: %s", exc)
+        return _err(500, f"Doktor yordami xatosi: {exc}")
 
-        if not getattr(settings, "GEMINI_API_KEY", None):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "message": "AI xizmati sozlanmagan",
-                    }
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
 
-        questions = gemini_clarifying(patient_data)
-        return Response({"success": True, "data": questions})
-    except Exception as e:
-        logger.exception("Error generating clarifying questions: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Savollar yaratishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def doctor_support_stream_view(request):
+    """
+    POST /api/ai/doctor-stream/
+    Returns: text/event-stream  (Server-Sent Events)
+    """
+    patient_data = _pd(request)
+    query        = request.data.get("query", "")
+    task_type    = request.data.get("task_type", TASK_QUICK_CONSULT)
+    language     = request.data.get("language", "uz-L")
+
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
+
+    blocked = _run_filter(patient_data)
+    if blocked:
+        return blocked
+
+    def event_stream():
+        try:
+            for chunk in doctor_consult_stream(patient_data, query, task_type, language):
+                yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            logger.exception("SSE stream error: %s", exc)
+            yield f"data: {json.dumps({'error': str(exc)}, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Basic AI endpoints (used by old frontend code)
+# ---------------------------------------------------------------------------
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_clarifying_questions(request):
+    patient_data = _pd(request)
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
+    try:
+        return Response({"success": True, "data": azure_clarifying(patient_data)})
+    except Exception as exc:
+        logger.exception("Clarifying questions error: %s", exc)
+        return _err(500, "Savollar yaratishda xatolik")
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def recommend_specialists(request):
-    """Mutaxassislar tavsiyasi – bemor holatiga qarab Gemini orqali."""
+    patient_data = _pd(request)
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor ma'lumotlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
     try:
-        patient_data = _patient_data_from_request(request)
-        if not patient_data or not patient_data.get("complaints"):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not getattr(settings, "GEMINI_API_KEY", None):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "message": "AI xizmati sozlanmagan",
-                    }
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        recommendations = gemini_recommend(patient_data)
-        return Response({"success": True, "data": {"recommendations": recommendations}})
-    except Exception as e:
-        logger.exception("Error recommending specialists: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Mutaxassislar tavsiya qilishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        recs = azure_recommend(patient_data)
+        return Response({"success": True, "data": {"recommendations": recs}})
+    except Exception as exc:
+        logger.exception("Recommend specialists error: %s", exc)
+        return _err(500, "Mutaxassislar tavsiyasida xatolik")
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_diagnoses(request):
-    """Dastlabki differensial tashxislar – Gemini orqali (mock yo‘q)."""
+    patient_data = _pd(request)
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor ma'lumotlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
+
+    blocked = _run_filter(patient_data)
+    if blocked:
+        return blocked
+
     try:
-        patient_data = _patient_data_from_request(request)
-        if not patient_data or not patient_data.get("complaints"):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not getattr(settings, "GEMINI_API_KEY", None):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "message": "AI xizmati sozlanmagan",
-                    }
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        diagnoses = gemini_diagnoses(patient_data)
-        return Response({"success": True, "data": diagnoses})
-    except Exception as e:
-        logger.exception("Error generating diagnoses: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Tashxis yaratishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        return Response({"success": True, "data": azure_diagnoses(patient_data)})
+    except Exception as exc:
+        logger.exception("Generate diagnoses error: %s", exc)
+        return _err(500, "Tashxis yaratishda xatolik")
 
 
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def run_council_debate(request):
-    """
-    Konsilium munozarasi – hozircha frontend tomondan Gemini API orqali amalga oshiriladi.
-    Bu endpoint kelajakda server-side debate uchun ishlatilishi mumkin.
-    """
-    try:
-        patient_data = _patient_data_from_request(request)
-        if not patient_data or not patient_data.get("complaints"):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari yoki shikoyatlar kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response({
-            "success": True,
-            "data": {
-                "message": "Konsilium munozarasi frontend tomondan amalga oshiriladi.",
-                "mode": "client_side",
-            }
-        })
-    except Exception as e:
-        logger.exception("Error in council debate endpoint: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Konsilium munozarasida xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
-# --- AUTONOMOUS TREATMENT PROTOCOL ENDPOINTS ---
+# ---------------------------------------------------------------------------
+# Autonomous treatment endpoints
+# ---------------------------------------------------------------------------
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_autonomous_protocol(request):
-    """Generate autonomous treatment protocol with minimal human intervention"""
+    patient_data = _pd(request)
+    language     = request.data.get("language", "uz-L")
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor ma'lumotlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
     try:
-        patient_data = _patient_data_from_request(request)
-        language = request.data.get("language", "uz-L")
-        
-        if not patient_data or not patient_data.get("complaints"):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari yoki shikoyatlar kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not getattr(settings, "GEMINI_API_KEY", None):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "message": "AI xizmati sozlanmagan",
-                    }
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        protocol = autonomous_generator.generate_autonomous_protocol(patient_data, language)
-        
-        return Response({
-            "success": True, 
-            "data": protocol
-        })
-        
-    except Exception as e:
-        logger.exception("Error generating autonomous protocol: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Avtonom protokol yaratishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        return Response({"success": True, "data": autonomous_generator.generate_autonomous_protocol(patient_data, language)})
+    except Exception as exc:
+        logger.exception("Autonomous protocol error: %s", exc)
+        return _err(500, "Avtonom protokol yaratishda xatolik")
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def make_clinical_decision(request):
-    """Make comprehensive autonomous clinical decision"""
+    patient_data = _pd(request)
+    language     = request.data.get("language", "uz-L")
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor ma'lumotlari kiritilmagan")
+    if not _azure_ok():
+        return _azure_not_configured()
     try:
-        patient_data = _patient_data_from_request(request)
-        language = request.data.get("language", "uz-L")
-        
-        if not patient_data or not patient_data.get("complaints"):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return Response({"success": True, "data": clinical_decision_engine.make_autonomous_decision(patient_data, language)})
+    except Exception as exc:
+        logger.exception("Clinical decision error: %s", exc)
+        return _err(500, "Klinik qaror qabul qilishda xatolik")
 
-        if not getattr(settings, "GEMINI_API_KEY", None):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_503_SERVICE_UNAVAILABLE,
-                        "message": "AI xizmati sozlanmagan",
-                    }
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
 
-        decision = clinical_decision_engine.make_autonomous_decision(patient_data, language)
-        
-        return Response({
-            "success": True, 
-            "data": decision
-        })
-        
-    except Exception as e:
-        logger.exception("Error making clinical decision: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Klinik qaror qabul qilishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
+# ---------------------------------------------------------------------------
+# Monitoring endpoints
+# ---------------------------------------------------------------------------
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def start_monitoring(request):
-    """Start continuous monitoring session"""
+    pid    = request.data.get("protocol_id")
+    pd_    = request.data.get("patient_data")
+    plan   = request.data.get("treatment_plan")
+    if not all([pid, pd_, plan]):
+        return _err(400, "Kerakli ma'lumotlar to'liq emas")
     try:
-        protocol_id = request.data.get("protocol_id")
-        patient_data = request.data.get("patient_data")
-        treatment_plan = request.data.get("treatment_plan")
-        
-        if not all([protocol_id, patient_data, treatment_plan]):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Kerakli ma'lumotlar to'liq emas",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        session_id = continuous_monitoring.start_monitoring_session(
-            protocol_id, patient_data, treatment_plan
-        )
-        
-        return Response({
-            "success": True,
-            "data": {
-                "session_id": session_id,
-                "message": "Monitoring sessiyasi boshlandi"
-            }
-        })
-        
-    except Exception as e:
-        logger.exception("Error starting monitoring: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Monitoringni boshlashda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        sid = continuous_monitoring.start_monitoring_session(pid, pd_, plan)
+        return Response({"success": True, "data": {"session_id": sid, "message": "Monitoring boshlandi"}})
+    except Exception as exc:
+        logger.exception("Start monitoring error: %s", exc)
+        return _err(500, "Monitoringni boshlashda xatolik")
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def record_vital_signs(request):
-    """Record vital signs and get analysis"""
+    sid  = request.data.get("session_id")
+    vita = request.data.get("vital_data")
+    if not sid or not vita:
+        return _err(400, "Sessiya ID yoki vital ma'lumotlari kiritilmagan")
     try:
-        session_id = request.data.get("session_id")
-        vital_data = request.data.get("vital_data")
-        
-        if not session_id or not vital_data:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Sessiya ID yoki vital ma'lumotlari kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        analysis = continuous_monitoring.record_vital_signs(session_id, vital_data)
-        
-        if 'error' in analysis:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": analysis['error'],
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        
-        return Response({
-            "success": True,
-            "data": analysis
-        })
-        
-    except Exception as e:
-        logger.exception("Error recording vital signs: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Vital belgilarni yozishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        analysis = continuous_monitoring.record_vital_signs(sid, vita)
+        if "error" in analysis:
+            return _err(400, analysis["error"])
+        return Response({"success": True, "data": analysis})
+    except Exception as exc:
+        logger.exception("Record vital signs error: %s", exc)
+        return _err(500, "Vital belgilarni yozishda xatolik")
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def stop_monitoring(request, session_id):
-    """Stop monitoring session"""
     try:
-        success = continuous_monitoring.stop_monitoring_session(session_id)
-        
-        if success:
-            return Response({
-                "success": True,
-                "data": {
-                    "message": "Monitoring sessiyasi to'xtatildi"
-                }
-            })
-        else:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_404_NOT_FOUND,
-                        "message": "Monitoring sessiyasi topilmadi",
-                    }
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        
-    except Exception as e:
-        logger.exception("Error stopping monitoring: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Monitoringni to'xtatishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        ok = continuous_monitoring.stop_monitoring_session(session_id)
+        if ok:
+            return Response({"success": True, "data": {"message": "Monitoring to'xtatildi"}})
+        return _err(404, "Monitoring sessiyasi topilmadi")
+    except Exception as exc:
+        logger.exception("Stop monitoring error: %s", exc)
+        return _err(500, "Monitoringni to'xtatishda xatolik")
 
+
+# ---------------------------------------------------------------------------
+# Learning endpoints
+# ---------------------------------------------------------------------------
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def record_treatment_outcome(request):
-    """Record treatment outcome for learning system"""
+    pid = request.data.get("protocol_id")
+    pd_ = request.data.get("patient_data")
+    out = request.data.get("outcome_data")
+    if not all([pid, pd_, out]):
+        return _err(400, "Kerakli ma'lumotlar to'liq emas")
     try:
-        protocol_id = request.data.get("protocol_id")
-        patient_data = request.data.get("patient_data")
-        outcome_data = request.data.get("outcome_data")
-        
-        if not all([protocol_id, patient_data, outcome_data]):
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Kerakli ma'lumotlar to'liq emas",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        analysis = self_learning_system.analyze_protocol_outcome(
-            protocol_id, patient_data, outcome_data
-        )
-        
-        return Response({
-            "success": True,
-            "data": analysis
-        })
-        
-    except Exception as e:
-        logger.exception("Error recording treatment outcome: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Natijalarni yozishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        return Response({"success": True, "data": self_learning_system.analyze_protocol_outcome(pid, pd_, out)})
+    except Exception as exc:
+        logger.exception("Record outcome error: %s", exc)
+        return _err(500, "Natijalarni yozishda xatolik")
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def get_improved_protocol(request):
-    """Get improved protocol based on learning"""
+    pd_  = request.data.get("patient_data")
+    base = request.data.get("base_protocol")
+    if not pd_ or not base:
+        return _err(400, "Bemor ma'lumotlari yoki asosiy protokol kiritilmagan")
     try:
-        patient_data = request.data.get("patient_data")
-        base_protocol = request.data.get("base_protocol")
-        
-        if not patient_data or not base_protocol:
-            return Response(
-                {
-                    "success": False,
-                    "error": {
-                        "code": status.HTTP_400_BAD_REQUEST,
-                        "message": "Bemor ma'lumotlari yoki asosiy protokol kiritilmagan",
-                    }
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        improved_protocol = self_learning_system.get_improved_protocol_template(
-            patient_data, base_protocol
-        )
-        
-        return Response({
-            "success": True,
-            "data": improved_protocol
-        })
-        
-    except Exception as e:
-        logger.exception("Error getting improved protocol: %s", e)
-        return Response(
-            {
-                "success": False,
-                "error": {
-                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    "message": "Yaxshilangan protokolni olishda xatolik yuz berdi",
-                }
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        return Response({"success": True, "data": self_learning_system.get_improved_protocol_template(pd_, base)})
+    except Exception as exc:
+        logger.exception("Improved protocol error: %s", exc)
+        return _err(500, "Yaxshilangan protokolni olishda xatolik")

@@ -1,18 +1,47 @@
+# ================================================================
+# Medora AI Backend — Dependencies
+# Python 3.11+  |  Azure VM: medora.ziyrak.org
+# ================================================================
+
+# ── Django core ──────────────────────────────────────────────────
 Django==5.0.1
 djangorestframework==3.14.0
 django-cors-headers==4.3.1
 django-environ==0.11.2
 djangorestframework-simplejwt==5.3.1
-Pillow>=10.4.0
 python-decouple==3.8
+
+# ── Database ─────────────────────────────────────────────────────
 psycopg2-binary>=2.9.9
-celery==5.3.4
-redis==5.0.1
+
+# ── Auth & Security ───────────────────────────────────────────────
+Pillow>=10.4.0
+
+# ── API & Filters ────────────────────────────────────────────────
 django-filter==23.5
 drf-yasg==1.21.7
+
+# ── Static & Media ───────────────────────────────────────────────
 whitenoise==6.6.0
+
+# ── Production Server ────────────────────────────────────────────
 gunicorn==21.2.0
+
+# ── HTTP ─────────────────────────────────────────────────────────
 requests==2.31.0
+
+# ── Cache & Queue ────────────────────────────────────────────────
+redis==5.0.1
 django-redis==5.4.0
+celery==5.3.4
+
+# ── Utilities ────────────────────────────────────────────────────
 setuptools>=69.0.0
-google-generativeai>=0.3.0
+
+# ── Azure AI Foundry (ASOSIY — Gemini o'rniga) ───────────────────
+openai>=1.55.0
+
+# ── Azure Speech Services (Jarvis STT/TTS — REST API orqali) ────
+# requests allaqachon mavjud — qo'shimcha kutubxona kerak emas.
+# Ixtiyoriy: to'liq Azure Speech SDK (native binaries talab qiladi)
+# azure-cognitiveservices-speech>=1.37.0
