@@ -196,9 +196,9 @@ CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default=(
         'http://localhost:3000,http://127.0.0.1:3000,'
-        'https://medora.ziyrak.org,http://20.82.115.71'
+        'https://medora.ziyrak.org,http://medora.ziyrak.org,http://20.82.115.71'
     ),
-    cast=lambda v: [s.strip() for s in v.split(',')]
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
 
 CORS_ALLOW_CREDENTIALS = True
@@ -263,8 +263,8 @@ AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='medora-gpt4o')
 
 # ── Production Security Settings ───────────────────────────────────────────
 if not DEBUG:
-    # HTTPS enforcement
-    SECURE_SSL_REDIRECT          = True
+    # HTTPS enforcement (set SECURE_SSL_REDIRECT=False in .env when using HTTP only)
+    SECURE_SSL_REDIRECT          = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
     SECURE_PROXY_SSL_HEADER      = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_HSTS_SECONDS          = 31536000   # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
