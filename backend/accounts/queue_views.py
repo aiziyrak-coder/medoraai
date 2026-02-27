@@ -33,17 +33,22 @@ def _get_queue_owner(request):
 
 def _item_to_frontend(item):
     """QueueItem -> frontend PatientQueueItem format."""
+    try:
+        at = item.arrival_time
+        arrival_time = at.strftime('%H:%M') if at else timezone.now().strftime('%H:%M')
+    except Exception:
+        arrival_time = timezone.now().strftime('%H:%M')
     return {
         'id': str(item.id),
-        'firstName': item.first_name,
-        'lastName': item.last_name,
-        'patientName': f"{item.last_name} {item.first_name}",
-        'age': item.age,
-        'address': item.address or '',
-        'complaints': item.complaints or '',
-        'status': item.status,
-        'ticketNumber': item.ticket_number,
-        'arrivalTime': item.arrival_time or timezone.now().strftime('%H:%M'),
+        'firstName': getattr(item, 'first_name', '') or '',
+        'lastName': getattr(item, 'last_name', '') or '',
+        'patientName': f"{getattr(item, 'last_name', '')} {getattr(item, 'first_name', '')}".strip() or '-',
+        'age': getattr(item, 'age', '') or '',
+        'address': getattr(item, 'address', '') or '',
+        'complaints': getattr(item, 'complaints', '') or '',
+        'status': getattr(item, 'status', 'waiting') or 'waiting',
+        'ticketNumber': getattr(item, 'ticket_number', 0) or 0,
+        'arrivalTime': arrival_time,
     }
 
 

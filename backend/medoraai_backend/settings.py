@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'medoraai_backend.middleware.CORSFallbackMiddleware',  # CORS for /health/, /api/ when corsheaders missed
     'medoraai_backend.middleware.SecurityHeadersMiddleware',  # Custom security headers
     'medoraai_backend.middleware.RateLimitMiddleware',  # Rate limiting
     'django.middleware.common.CommonMiddleware',

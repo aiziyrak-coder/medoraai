@@ -11,6 +11,19 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+class CORSFallbackMiddleware(MiddlewareMixin):
+    """Add CORS header for /health/ and /api/ if missing (e.g. error responses)."""
+    def process_response(self, request, response):
+        if not request.path.startswith('/api/') and not request.path.startswith('/health'):
+            return response
+        if response.get('Access-Control-Allow-Origin'):
+            return response
+        origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
+        origin = origins[0] if origins else 'https://medora.ziyrak.org'
+        response['Access-Control-Allow-Origin'] = origin
+        return response
+
+
 class SecurityHeadersMiddleware(MiddlewareMixin):
     """Add security headers to all responses"""
     
