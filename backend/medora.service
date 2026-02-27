@@ -1,26 +1,30 @@
 # /etc/systemd/system/medora.service
-# sudo systemctl enable medora && sudo systemctl start medora
 
 [Unit]
-Description=Medora AI – Gunicorn Django backend
+Description=Medora AI — Gunicorn Django Backend
 After=network.target
 
 [Service]
-Type=notify
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/medoraai/backend
-EnvironmentFile=/var/www/medoraai/backend/.env
-ExecStart=/var/www/medoraai/venv/bin/gunicorn \
-    --config /var/www/medoraai/backend/gunicorn_config.py \
+Type=simple
+User=cdcgroup
+Group=cdcgroup
+WorkingDirectory=/home/cdcgroup/medora_platform/app/backend
+EnvironmentFile=/home/cdcgroup/medora_platform/app/backend/.env
+ExecStart=/home/cdcgroup/medora_platform/venv/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --worker-class gthread \
+    --threads 4 \
+    --timeout 180 \
+    --graceful-timeout 30 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --access-logfile /home/cdcgroup/medora_platform/app/backend/logs/access.log \
+    --error-logfile  /home/cdcgroup/medora_platform/app/backend/logs/error.log \
+    --log-level info \
     medoraai_backend.wsgi:application
-ExecReload=/bin/kill -s HUP $MAINPID
 Restart=always
 RestartSec=5
-KillMode=mixed
-TimeoutStopSec=30
-StandardOutput=append:/var/log/gunicorn/medora.log
-StandardError=append:/var/log/gunicorn/medora_error.log
 
 [Install]
 WantedBy=multi-user.target

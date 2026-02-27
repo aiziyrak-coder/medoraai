@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   // Production uchun medora.ziyrak.org, dev uchun localhost
   const apiUrl = env.VITE_API_BASE_URL || (
     mode === 'production'
-      ? 'https://medora.ziyrak.org/api'
+      ? 'https://medoraapi.ziyrak.org/api'
       : 'http://localhost:8000/api'
   );
 
