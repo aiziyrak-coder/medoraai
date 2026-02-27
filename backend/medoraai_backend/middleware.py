@@ -16,11 +16,18 @@ class CORSFallbackMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         if not request.path.startswith('/api/') and not request.path.startswith('/health'):
             return response
-        if response.get('Access-Control-Allow-Origin'):
-            return response
-        origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
-        origin = origins[0] if origins else 'https://medora.ziyrak.org'
-        response['Access-Control-Allow-Origin'] = origin
+        origin = 'https://medora.ziyrak.org'
+        origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', None)
+        if origins:
+            origin = origins[0] if isinstance(origins, (list, tuple)) else str(origins)
+        if getattr(response, 'headers', None):
+            if response.headers.get('Access-Control-Allow-Origin'):
+                return response
+            response.headers['Access-Control-Allow-Origin'] = origin
+        else:
+            if response.get('Access-Control-Allow-Origin'):
+                return response
+            response['Access-Control-Allow-Origin'] = origin
         return response
 
 
