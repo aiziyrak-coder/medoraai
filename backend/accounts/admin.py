@@ -1,10 +1,15 @@
 """
 Admin configuration for accounts app
 """
+import logging
 from django.contrib import admin
+from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.db import transaction
 from django.utils import timezone
 from .models import User, SubscriptionPlan, SubscriptionPayment, ActiveSession
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(SubscriptionPlan)
@@ -62,7 +67,7 @@ class SubscriptionPaymentAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """Custom User Admin"""
+    """Custom User Admin — safe delete: clear JWT tokens first to avoid 500."""
     list_display = ['phone', 'name', 'role', 'subscription_status', 'subscription_expiry', 'is_active', 'date_joined']
     list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'date_joined']
     search_fields = ['phone', 'name']
@@ -83,3 +88,33 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('phone', 'name', 'password1', 'password2', 'role'),
         }),
     )
+
+    def _clear_user_tokens(self, user_ids):
+        """Remove JWT outstanding tokens for given user IDs so user delete does not fail."""
+        try:
+            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+            for uid in user_ids:
+                OutstandingToken.objects.filter(user_id=uid).delete()
+        except Exception as e:
+            logger.warning("Token cleanup before user delete: %s", e)
+
+    def delete_queryset(self, request, queryset):
+        """Bulk delete: clear JWT tokens first, then delete users."""
+        try:
+            with transaction.atomic():
+                user_ids = list(queryset.values_list('pk', flat=True))
+                self._clear_user_tokens(user_ids)
+                super().delete_queryset(request, queryset)
+        except Exception as e:
+            logger.exception("User admin delete_queryset: %s", e)
+            self.message_user(
+                request,
+                f"Foydalanuvchini o\'chirishda xatolik: {e}. Server loglarini tekshiring.",
+                level=messages.ERROR,
+            )
+
+    def delete_model(self, request, obj):
+        """Single-object delete: clear JWT tokens first, then delete user."""
+        with transaction.atomic():
+            self._clear_user_tokens([obj.pk])
+            super().delete_model(request, obj)
