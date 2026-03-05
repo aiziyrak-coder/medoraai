@@ -324,7 +324,23 @@ else:
         }
     }
 
-# Logging Configuration
+# Logging Configuration — file handlers only if logs dir exists and is writable (avoid startup crash)
+_LOGS_DIR = BASE_DIR / 'logs'
+def _logs_writable():
+    try:
+        _LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        (_LOGS_DIR / '.write_test').write_text('')
+        (_LOGS_DIR / '.write_test').unlink()
+        return True
+    except Exception:
+        return False
+
+_USE_FILE_LOGS = _logs_writable()
+_ROOT_HANDLERS = ['console', 'file'] if _USE_FILE_LOGS else ['console']
+_DJANGO_HANDLERS = ['console', 'file'] if _USE_FILE_LOGS else ['console']
+_REQUEST_HANDLERS = ['error_file'] if _USE_FILE_LOGS else ['console']
+_MEDORAI_HANDLERS = ['console', 'file', 'error_file'] if _USE_FILE_LOGS else ['console']
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -344,22 +360,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django_errors.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
@@ -367,27 +367,44 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': _ROOT_HANDLERS,
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': _DJANGO_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['error_file'],
+            'handlers': _REQUEST_HANDLERS,
             'level': 'ERROR',
             'propagate': False,
         },
         'medoraai_backend': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': _MEDORAI_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+if _USE_FILE_LOGS:
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': _LOGS_DIR / 'django.log',
+        'maxBytes': 1024 * 1024 * 10,
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
+    LOGGING['handlers']['error_file'] = {
+        'level': 'ERROR',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': _LOGS_DIR / 'django_errors.log',
+        'maxBytes': 1024 * 1024 * 10,
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
 
 # Business Logic Settings
 DOCTOR_TRIAL_DAYS = config('DOCTOR_TRIAL_DAYS', default=7, cast=int)
