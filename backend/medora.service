@@ -10,6 +10,7 @@ User=cdcgroup
 Group=cdcgroup
 WorkingDirectory=/home/cdcgroup/medora_platform/app/backend
 EnvironmentFile=/home/cdcgroup/medora_platform/app/backend/.env
+ExecStartPre=/bin/mkdir -p /home/cdcgroup/medora_platform/app/backend/logs
 ExecStart=/home/cdcgroup/medora_platform/venv/bin/gunicorn \
     --bind 127.0.0.1:8000 \
     --workers 4 \
