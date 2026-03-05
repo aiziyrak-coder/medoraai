@@ -1,9 +1,10 @@
-const CACHE_NAME = 'konsilium-cache-v6';
+const CACHE_NAME = 'konsilium-cache-v7';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon.svg',
+  '/icon-192x192.png',
 ];
 
 self.addEventListener('install', event => {
@@ -40,8 +41,14 @@ self.addEventListener('fetch', event => {
   }
   
   const url = new URL(request.url);
+  const sameOrigin = url.origin === self.location.origin;
 
-  // Never cache health or API — always network-only to avoid CORS/fetch errors in SW
+  // Cross-origin (e.g. API at medoraapi.ziyrak.org): do not intercept — let browser handle (CORS works normally)
+  if (!sameOrigin) {
+    return;
+  }
+
+  // Same-origin: never cache health or API paths
   if (url.pathname.startsWith('/health') || url.pathname.includes('/api/')) {
     event.respondWith(fetch(request).catch(() => new Response('', { status: 503, statusText: 'Service Unavailable' })));
     return;
