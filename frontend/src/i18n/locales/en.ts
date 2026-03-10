@@ -16,6 +16,8 @@ export const en = {
   error_try_again: 'An error occurred. Please try again.',
   error_no_data_found: 'Data not found.',
   error_page_not_found: 'Page not found',
+  smart_validation_critical: 'Please fill in the following required fields.',
+  smart_validation_suggestion: 'Suggestion: ',
 
   // Landing Page
   landing_hero_badge: 'Clinical Reasoning Revolution v1.0',
@@ -97,6 +99,8 @@ export const en = {
   auth_mode_doctor_desc: 'For individual practitioners.',
   auth_mode_staff: 'Reception',
   auth_mode_staff_desc: 'For queue management.',
+  auth_mode_monitoring: 'Monitoring',
+  auth_mode_monitoring_desc: 'Centralized patient vital signs monitoring.',
   auth_virtual_team: '10+ Virtual Specialist Team',
   
   auth_title: 'Expert-level Clinical Decision Support System',
@@ -107,7 +111,8 @@ export const en = {
   auth_clinic_login_help: 'Log in as an organization.',
   auth_doctor_login_help: 'Log in to your personal doctor cabinet.',
   auth_staff_login_help: 'Log in to the queue management section.',
-  
+  auth_monitoring_login_help: 'Log in to the patient monitoring dashboard.',
+
   auth_login_subtitle: 'Log in to your account or create a new one.',
   auth_register_subtitle: 'Fill in the details to create a new account.',
   auth_forgot_subtitle: 'Enter your phone number to reset your password.',

@@ -141,7 +141,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
             respirationRate: 'respirationRate'
         };
         
-        const validationType = vitalTypeMap[field];
+        const validationType = vitalTypeMap[field as string];
         if (validationType && value !== '') {
             const validation = validateVitalSign(value, validationType);
             if (!validation.isValid) {
@@ -171,7 +171,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         const newFiles = Array.from(e.target.files);
         const errors: Record<string, string> = {};
         
-        newFiles.forEach(file => {
+        newFiles.forEach((file: File) => {
             // Validate file size (max 10MB)
             const sizeValidation = validateFileSize(file, 10);
             if (!sizeValidation.isValid) {
@@ -188,7 +188,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         });
         
         // Only add files without errors
-        const validFiles = newFiles.filter(file => !errors[file.name]);
+        const validFiles = newFiles.filter((file: File) => !errors[file.name]);
         
         if (validFiles.length > 0) {
             setAttachments(prev => [...prev, ...validFiles]);

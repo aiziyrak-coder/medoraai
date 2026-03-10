@@ -87,7 +87,7 @@ const apiToPatientData = (patient: Patient): PatientData => {
     currentMedications: patient.current_medications,
     familyHistory: patient.family_history,
     additionalInfo: patient.additional_info,
-    structuredLabResults: patient.structured_lab_results,
+    structuredLabResults: patient.structured_lab_results as Record<string, { value: string; unit: string; trend?: 'up' | 'down' | 'stable'; }[]>,
     pharmacogenomicsReport: patient.pharmacogenomics_report,
     symptomTimeline: patient.symptom_timeline as PatientData['symptomTimeline'],
     mentalHealthScores: patient.mental_health_scores as PatientData['mentalHealthScores'],

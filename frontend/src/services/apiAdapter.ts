@@ -34,7 +34,7 @@ export const login = async (credentials: { phone: string; password?: string }): 
   // Try API first if available
   if (isApiAvailable()) {
     try {
-      const result = await apiAuthService.login(credentials);
+      const result = await apiAuthService.login({ phone: credentials.phone, password: credentials.password ?? '' });
       if (result.success) {
         return result;
       }

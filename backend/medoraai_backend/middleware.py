@@ -29,17 +29,18 @@ class RateLimitMiddleware(MiddlewareMixin):
     """Simple rate limiting middleware"""
     
     def process_request(self, request):
-        # Skip rate limiting for admin and static files
-        if request.path.startswith('/admin/') or request.path.startswith('/static/'):
+        # Skip rate limiting for admin, static, health
+        if (request.path.startswith('/admin/') or request.path.startswith('/static/')
+                or request.path.startswith('/health/')):
             return None
         
         # Get client IP
         ip = self.get_client_ip(request)
         cache_key = f'rate_limit:{ip}'
-        
-        # Check rate limit (100 requests per minute)
+        limit = 500 if getattr(settings, 'DEBUG', False) else 100
+        # Check rate limit (DEBUG: 500/min, else 100/min)
         requests = cache.get(cache_key, 0)
-        if requests >= 100:
+        if requests >= limit:
             return JsonResponse({
                 'success': False,
                 'error': {

@@ -99,6 +99,8 @@ export const uzL: TranslationSet = {
   auth_mode_doctor_desc: 'Yakka tartibdagi shifokorlar uchun.',
   auth_mode_staff: 'Registrator',
   auth_mode_staff_desc: 'Navbatni boshqarish uchun.',
+  auth_mode_monitoring: 'Monitoring',
+  auth_mode_monitoring_desc: 'Markazlashgan bemor monitoringi.',
   auth_virtual_team: '10+ Virtual Mutaxassislar Jamoasi',
   
   auth_title: 'Ekspert darajasidagi Klinik Qarorlarni Qo\'llab-quvvatlash Tizimi',
@@ -109,6 +111,7 @@ export const uzL: TranslationSet = {
   auth_clinic_login_help: 'Tashkilot sifatida tizimga kiring.',
   auth_doctor_login_help: 'Shaxsiy shifokor kabinetiga kiring.',
   auth_staff_login_help: 'Navbatni boshqarish bo\'limiga kiring.',
+  auth_monitoring_login_help: 'Bemor monitoring paneliga kiring.',
   
   auth_login_subtitle: 'Hisobingizga kiring yoki yangi hisob oching.',
   auth_register_subtitle: 'Yangi hisob yaratish uchun ma\'lumotlarni to\'ldiring.',

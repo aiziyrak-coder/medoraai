@@ -14,6 +14,7 @@ export interface ApiResponse<T = unknown> {
     message: string;
     details?: unknown;
   };
+  summary?: Record<string, unknown>;
   pagination?: {
     count: number;
     next: string | null;
@@ -136,14 +137,17 @@ export const apiRequest = async <T = unknown>(
       API_CONFIG.RETRY_DELAY
     );
 
-    // Handle 403 Forbidden
+    // Handle 403 Forbidden – use backend detail if present
     if (response.status === 403) {
+      const errData = await response.json().catch(() => ({}));
+      const msg =
+        (typeof errData.detail === 'string' ? errData.detail : null) ||
+        errData.error?.message ||
+        errData.message ||
+        "Ushbu amal uchun ruxsat yo'q. Iltimos, hisobingizni tekshiring.";
       return {
         success: false,
-        error: {
-          code: 403,
-          message: "Ushbu amal uchun ruxsat yo'q. Iltimos, hisobingizni tekshiring.",
-        },
+        error: { code: 403, message: msg },
       };
     }
 
@@ -188,14 +192,31 @@ export const apiRequest = async <T = unknown>(
           return handleResponse<T>(retryResponse);
         }
       }
-      // Refresh failed or session revoked (boshqa qurilmada ochilgan)
+      // Refresh failed or session revoked
       clearTokens();
+      const errData = await response.json().catch(() => ({}));
+      const msg =
+        (typeof errData.detail === 'string' ? errData.detail : null) ||
+        errData.error?.message ||
+        errData.message ||
+        'Sessiya tugadi yoki boshqa qurilmada ochildi. Iltimos, qayta kiring.';
       return {
         success: false,
-        error: {
-          code: 401,
-          message: 'Sessiya tugadi yoki boshqa qurilmada ochildi. Iltimos, qayta kiring.',
-        },
+        error: { code: 401, message: msg },
+      };
+    }
+
+    // 401 with no token – backend may return 401 or 403
+    if (response.status === 401) {
+      const errData = await response.json().catch(() => ({}));
+      const msg =
+        (typeof errData.detail === 'string' ? errData.detail : null) ||
+        errData.error?.message ||
+        errData.message ||
+        'Kirish talab qilinadi. Iltimos, qayta kiring.';
+      return {
+        success: false,
+        error: { code: 401, message: msg },
       };
     }
 
@@ -242,11 +263,17 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
   const data = await response.json();
 
   if (!response.ok) {
+    const message =
+      data.error?.message ||
+      data.message ||
+      (typeof data.detail === 'string' ? data.detail : null) ||
+      (Array.isArray(data.detail) ? data.detail.join('. ') : null) ||
+      'Xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.';
     return {
       success: false,
       error: {
         code: response.status,
-        message: data.error?.message || data.message || 'Xatolik yuz berdi',
+        message,
         details: data.error?.details || data.errors || data,
       },
     };
@@ -267,6 +294,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
       success: data.success,
       data: data.data as T,
       error: data.error,
+      summary: data.summary,
       pagination: data.pagination,
     };
   }

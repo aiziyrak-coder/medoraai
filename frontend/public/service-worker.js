@@ -3,9 +3,7 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  // Add other static assets if any
+  '/vite.svg',
 ];
 
 self.addEventListener('install', event => {

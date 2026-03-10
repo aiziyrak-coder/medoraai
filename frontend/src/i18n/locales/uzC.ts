@@ -18,6 +18,8 @@ export const uzC: TranslationSet = {
   error_try_again: 'Хатолик юз берди. Илтимос, қайта уриниб кўринг.',
   error_no_data_found: 'Маълумотлар топилмади.',
   error_page_not_found: 'Саҳифа топилмади',
+  smart_validation_critical: "Quyidagi maydonlarni to'ldiring",
+  smart_validation_suggestion: "Aqlli maslahat: ",
 
   // Landing Page
   landing_hero_badge: 'Клиник Тафаккур Инқилоби v1.0',
@@ -99,6 +101,8 @@ export const uzC: TranslationSet = {
   auth_mode_doctor_desc: 'Якка тартибдаги шифокорлар учун.',
   auth_mode_staff: 'Регистратор',
   auth_mode_staff_desc: 'Навбатни бошқариш учун.',
+  auth_mode_monitoring: 'Мониторинг',
+  auth_mode_monitoring_desc: 'Марказий бемор мониторинги.',
   auth_virtual_team: '10+ Виртуал Мутахассислар Жамоаси',
   
   auth_title: 'Эксперт даражасидаги Клиник Қарорларни Қўллаб-қувватлаш Тизими',
@@ -109,7 +113,8 @@ export const uzC: TranslationSet = {
   auth_clinic_login_help: 'Ташкилот сифатида тизимга киринг.',
   auth_doctor_login_help: 'Шахсий шифокор кабинетига киринг.',
   auth_staff_login_help: 'Навбатни бошқариш бўлимига киринг.',
-  
+  auth_monitoring_login_help: 'Бемор мониторинг панелига киринг.',
+
   auth_login_subtitle: 'Ҳисобингизга киринг ёки янги ҳисоб очинг.',
   auth_register_subtitle: 'Янги ҳисоб яратиш учун маълумотларни тўлдиринг.',
   auth_forgot_subtitle: 'Паролни тиклаш учун телефон рақамингизни киритинг.',

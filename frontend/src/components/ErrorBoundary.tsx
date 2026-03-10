@@ -11,7 +11,10 @@ interface State {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundaryClass extends Component<Props, State> {
+  declare state: State;
+  declare props: Props;
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -46,7 +49,7 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={() => {
-                this.setState({ hasError: false, error: null });
+                (this as React.Component<Props, State>).setState({ hasError: false, error: null });
                 window.location.reload();
               }}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors"
@@ -71,4 +74,5 @@ class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export default ErrorBoundary;
+export { ErrorBoundaryClass };
+export default ErrorBoundaryClass;

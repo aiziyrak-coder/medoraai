@@ -18,6 +18,8 @@ export const kaa: TranslationSet = {
   error_try_again: 'Qátelik júz berdi. Iltimas, qaytadan urınıp kóriń.',
   error_no_data_found: 'Maǵlıwmatlar tabılmadı.',
   error_page_not_found: 'Bet tabılmadı',
+  smart_validation_critical: "Quyidagi maydonlarni to'ldiring",
+  smart_validation_suggestion: "Aqlli maslahat: ",
 
   // Navigation
   nav_dashboard: 'Bas bet',
@@ -46,6 +48,8 @@ export const kaa: TranslationSet = {
   auth_mode_doctor_desc: 'Jeke tártiptegi shıpakerler ushın.',
   auth_mode_staff: 'Registrator',
   auth_mode_staff_desc: 'Nawbattı basqarıw ushın.',
+  auth_mode_monitoring: 'Monitoring',
+  auth_mode_monitoring_desc: 'Markazlashqan bemor monitoringi.',
   auth_virtual_team: '10+ Virtual Qánigeler Jámááti',
   
   auth_title: 'Ekspert dárejesindegi Klinikalıq Sheshimlerdi Qollap-quwatlaw Tizimi',
@@ -56,6 +60,7 @@ export const kaa: TranslationSet = {
   auth_clinic_login_help: 'Shólkem sıpatında tizimge kiriń.',
   auth_doctor_login_help: 'Jeke shıpaker kabinetine kiriń.',
   auth_staff_login_help: 'Nawbattı basqarıw bólimine kiriń.',
+  auth_monitoring_login_help: 'Bemor monitoring panelina kiriń.',
   
   auth_login_subtitle: 'Esabىڭızǵa kiriń yamasa jańa esap ashıń.',
   auth_register_subtitle: 'Jańa esap jaratıw ushın maǵlıwmatlardı toldırıń.',

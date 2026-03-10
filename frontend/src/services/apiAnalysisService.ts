@@ -36,7 +36,7 @@ const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
     id: api.id.toString(),
     patientId: api.patient_id,
     date: api.created_at,
-    patientData: api.patient_data as AnalysisRecord['patientData'],
+    patientData: api.patient_data as unknown as AnalysisRecord['patientData'],
     debateHistory: api.debate_history,
     finalReport: api.final_report,
     followUpHistory: api.follow_up_history,
@@ -51,7 +51,7 @@ const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
 const analysisRecordToApi = (record: Partial<AnalysisRecord>): Partial<ApiAnalysisRecord> => {
   return {
     patient_id: record.patientId || '',
-    patient_data: record.patientData || {},
+    patient_data: (record.patientData || {}) as Record<string, unknown>,
     debate_history: record.debateHistory || [],
     final_report: record.finalReport || {} as FinalReport,
     follow_up_history: record.followUpHistory || [],
@@ -81,7 +81,7 @@ export const getAnalyses = async (params?: AnalysisListParams): Promise<ApiRespo
     };
   }
   
-  return response as ApiResponse<AnalysisRecord[]>;
+  return response as unknown as ApiResponse<AnalysisRecord[]>;
 };
 
 /**
@@ -97,7 +97,7 @@ export const getAnalysis = async (id: number): Promise<ApiResponse<AnalysisRecor
     };
   }
   
-  return response as ApiResponse<AnalysisRecord>;
+  return response as unknown as ApiResponse<AnalysisRecord>;
 };
 
 /**
@@ -121,7 +121,7 @@ export const createAnalysis = async (
     };
   }
   
-  return response as ApiResponse<AnalysisRecord>;
+  return response as unknown as ApiResponse<AnalysisRecord>;
 };
 
 /**
@@ -142,7 +142,7 @@ export const updateAnalysis = async (
     };
   }
   
-  return response as ApiResponse<AnalysisRecord>;
+  return response as unknown as ApiResponse<AnalysisRecord>;
 };
 
 /**

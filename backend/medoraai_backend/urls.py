@@ -8,36 +8,44 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from rest_framework import permissions
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
 from .health import health_check, health_detailed
+
+try:
+    from drf_yasg.views import get_schema_view
+    from drf_yasg import openapi
+    _HAS_YASG = True
+except Exception:
+    _HAS_YASG = False
 
 @require_http_methods(["GET"])
 def root_view(request):
     """Root endpoint - redirects to API docs"""
+    endpoints = {
+        'health': '/health/',
+        'admin': '/admin/',
+        'api': '/api/'
+    }
+    if _HAS_YASG:
+        endpoints['api_docs'] = '/swagger/'
     return JsonResponse({
         'message': 'MedoraAI Backend API',
         'version': '1.0.0',
-        'endpoints': {
-            'health': '/health/',
-            'admin': '/admin/',
-            'api_docs': '/swagger/',
-            'api': '/api/'
-        }
+        'endpoints': endpoints,
     })
 
-schema_view = get_schema_view(
-   openapi.Info(
-      title="MEDORA AI Backend API",
-      default_version='v1',
-      description="Tibbiy Konsilium Tizimi - Django REST Framework API",
-      terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="contact@medoraai.local"),
-      license=openapi.License(name="BSD License"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-)
+if _HAS_YASG:
+    schema_view = get_schema_view(
+        openapi.Info(
+            title="MEDORA AI Backend API",
+            default_version='v1',
+            description="Tibbiy Konsilium Tizimi - Django REST Framework API",
+            terms_of_service="https://www.google.com/policies/terms/",
+            contact=openapi.Contact(email="contact@medoraai.local"),
+            license=openapi.License(name="BSD License"),
+        ),
+        public=True,
+        permission_classes=(permissions.AllowAny,),
+    )
 
 urlpatterns = [
     # Root
@@ -49,17 +57,22 @@ urlpatterns = [
     
     # Admin
     path('admin/', admin.site.urls),
-    
-    # API Documentation
-    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-    path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
-    
+]
+
+if _HAS_YASG:
+    urlpatterns += [
+        path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+        path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+        path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
+    ]
+
+urlpatterns += [
     # API Endpoints
     path('api/auth/', include('accounts.urls')),
     path('api/patients/', include('patients.urls')),
     path('api/analyses/', include('analyses.urls')),
     path('api/ai/', include('ai_services.urls')),
+    path('api/monitoring/', include('monitoring.urls')),
 ]
 
 # Serve media files in development

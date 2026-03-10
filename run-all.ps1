@@ -1,19 +1,23 @@
-# Kill processes on 8000 and 3000, then start backend and frontend
+# To'liq qayta ishga tushirish: 8000, 9000, 3000 portlarni tozalash, keyin Backend, Gateway, Frontend.
 $ErrorActionPreference = 'SilentlyContinue'
 
-Write-Host "Stopping existing processes on ports 8000 and 3000..."
-Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
-Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+Write-Host "Portlarni tozalash: 8000 (backend), 9000 (gateway), 3000 (frontend)..."
+foreach ($port in 8000, 9000, 3000) {
+    Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+}
 Start-Sleep -Seconds 2
 
 $root = $PSScriptRoot
 
-# Start backend in new window
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\backend'; if (Test-Path venv\Scripts\Activate.ps1) { .\venv\Scripts\Activate.ps1 }; Write-Host 'Backend: http://127.0.0.1:8000'; python manage.py runserver 8000"
-
+# 1) Backend (Django, 8000)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\backend'; `$env:DJANGO_SETTINGS_MODULE='medoraai_backend.settings'; if (Test-Path venv\Scripts\Activate.ps1) { .\venv\Scripts\Activate.ps1 }; Write-Host 'Backend: http://127.0.0.1:8000'; python manage.py runserver 0.0.0.0:8000"
 Start-Sleep -Seconds 2
 
-# Start frontend in new window
+# 2) Gateway (FastAPI 9000 + HL7 6006)
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root'; if (Test-Path backend\venv\Scripts\Activate.ps1) { .\backend\venv\Scripts\Activate.ps1 }; Write-Host 'Gateway: http://127.0.0.1:9000, HL7: 6006'; uvicorn monitoring_gateway.main:app --host 0.0.0.0 --port 9000"
+Start-Sleep -Seconds 2
+
+# 3) Frontend (Vite, 3000)
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$root\frontend'; Write-Host 'Frontend: http://localhost:3000'; npm run dev"
 
-Write-Host "Backend (8000) and Frontend (3000) started in separate windows."
+Write-Host "To'liq ishga tushirildi: Backend (8000), Gateway (9000, 6006), Frontend (3000)."

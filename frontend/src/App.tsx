@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import type { PatientData, ChatMessage, FinalReport, ProgressUpdate, User, AnalysisRecord, Diagnosis, DetectedMedication, DiagnosisFeedback, CriticalFinding, CMETopic, UserStats, AppView, PrognosisReport } from './types';
 import * as aiService from './services/aiCouncilService';
 import * as authService from './services/apiAuthService';
+import * as authServiceLocal from './services/authService';
 import * as caseService from './services/caseService';
 import * as tvLinkService from './services/tvLinkService'; // Import TV Service
 import { useTranslation } from './hooks/useTranslation';
@@ -17,6 +18,7 @@ import UserGuide from './components/UserGuide'; // New Import
 import SubscriptionPage from './components/SubscriptionPage';
 import DoctorDashboard from './components/DoctorDashboard';
 import StaffDashboard from './components/StaffDashboard';
+import MonitoringDashboard from './components/MonitoringDashboard';
 import TvDisplay from './components/TvDisplay';
 import DataInputForm from './components/DataInputForm';
 import HistoryView from './components/HistoryView';
@@ -206,16 +208,14 @@ const AppContent: React.FC = () => {
                         aiService.suggestCmeTopics(response.data, 'uz-L').then(setCmeTopics);
                     } else {
                         // Fallback to local
-                        const { getAnalyses: getLocalAnalyses } = require('./services/authService');
-                        const history = getLocalAnalyses(currentUser.phone);
+                        const history = authServiceLocal.getAnalyses(currentUser.phone);
                         setUserHistory(history);
                         setDashboardStats(caseService.getDashboardStats(history));
                         aiService.suggestCmeTopics(history, 'uz-L').then(setCmeTopics);
                     }
                 }).catch(() => {
                     // Fallback to local on error
-                    const { getAnalyses: getLocalAnalyses } = require('./services/authService');
-                    const history = getLocalAnalyses(currentUser.phone);
+                    const history = authServiceLocal.getAnalyses(currentUser.phone);
                     setUserHistory(history);
                     setDashboardStats(caseService.getDashboardStats(history));
                     aiService.suggestCmeTopics(history, 'uz-L').then(setCmeTopics);
@@ -299,18 +299,16 @@ const AppContent: React.FC = () => {
                                     }
                                 }).catch(() => {
                                     // Fallback to local
-                                    const { updateAnalysis: updateLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
-                                    updateLocal(currentUser.phone, newRecord);
-                                    const history = getLocalAnalyses(currentUser.phone);
+                                    authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
+                                    const history = authServiceLocal.getAnalyses(currentUser.phone);
                                     setUserHistory(history);
                                     setDashboardStats(caseService.getDashboardStats(history));
                                     setCurrentAnalysisRecord(newRecord);
                                 });
                             }).catch(() => {
                                 // Fallback to local
-                                const { updateAnalysis: updateLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
-                                updateLocal(currentUser.phone, newRecord);
-                                const history = getLocalAnalyses(currentUser.phone);
+                                authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
+                                const history = authServiceLocal.getAnalyses(currentUser.phone);
                                 setUserHistory(history);
                                 setDashboardStats(caseService.getDashboardStats(history));
                                 setCurrentAnalysisRecord(newRecord);
@@ -330,40 +328,36 @@ const AppContent: React.FC = () => {
                                                 }
                                             }).catch(() => {
                                                 // Fallback to local
-                                                const { saveAnalysis: saveLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
-                                                saveLocal(currentUser.phone, newRecord);
+                                                authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                                 caseService.addCaseToLibrary(newRecord);
-                                                const history = getLocalAnalyses(currentUser.phone);
+                                                const history = authServiceLocal.getAnalyses(currentUser.phone);
                                                 setUserHistory(history);
                                                 setDashboardStats(caseService.getDashboardStats(history));
                                                 setCurrentAnalysisRecord(newRecord);
                                             });
                                         }).catch(() => {
                                             // Fallback to local
-                                            const { saveAnalysis: saveLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
-                                            saveLocal(currentUser.phone, newRecord);
+                                            authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                             caseService.addCaseToLibrary(newRecord);
-                                            const history = getLocalAnalyses(currentUser.phone);
+                                            const history = authServiceLocal.getAnalyses(currentUser.phone);
                                             setUserHistory(history);
                                             setDashboardStats(caseService.getDashboardStats(history));
                                             setCurrentAnalysisRecord(newRecord);
                                         });
                                     } else {
                                         // Patient creation failed, fallback to local
-                                        const { saveAnalysis: saveLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
-                                        saveLocal(currentUser.phone, newRecord);
+                                        authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                         caseService.addCaseToLibrary(newRecord);
-                                        const history = getLocalAnalyses(currentUser.phone);
+                                        const history = authServiceLocal.getAnalyses(currentUser.phone);
                                         setUserHistory(history);
                                         setDashboardStats(caseService.getDashboardStats(history));
                                         setCurrentAnalysisRecord(newRecord);
                                     }
                                 }).catch(() => {
                                     // Fallback to local
-                                    const { saveAnalysis: saveLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
-                                    saveLocal(currentUser.phone, newRecord);
+                                    authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                     caseService.addCaseToLibrary(newRecord);
-                                    const history = getLocalAnalyses(currentUser.phone);
+                                    const history = authServiceLocal.getAnalyses(currentUser.phone);
                                     setUserHistory(history);
                                     setDashboardStats(caseService.getDashboardStats(history));
                                     setCurrentAnalysisRecord(newRecord);
@@ -372,14 +366,13 @@ const AppContent: React.FC = () => {
                         }
                     }).catch(() => {
                         // API not available, use local
-                        const { saveAnalysis: saveLocal, updateAnalysis: updateLocal, getAnalyses: getLocalAnalyses } = require('./services/authService');
                         if (currentAnalysisRecord?.id) {
-                            updateLocal(currentUser.phone, newRecord);
+                            authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
                         } else {
-                            saveLocal(currentUser.phone, newRecord);
+                            authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                             caseService.addCaseToLibrary(newRecord);
                         }
-                        const history = getLocalAnalyses(currentUser.phone);
+                        const history = authServiceLocal.getAnalyses(currentUser.phone);
                         setUserHistory(history);
                         setDashboardStats(caseService.getDashboardStats(history));
                         setCurrentAnalysisRecord(newRecord);
@@ -407,8 +400,7 @@ const AppContent: React.FC = () => {
                         aiService.suggestCmeTopics(response.data, language).then(setCmeTopics);
                     } else {
                         // Fallback to local
-                        const { getAnalyses: getLocalAnalyses } = require('./services/authService');
-                        const history = getLocalAnalyses(user.phone);
+                        const history = authServiceLocal.getAnalyses(user.phone);
                         setUserHistory(history);
                         setDashboardStats(caseService.getDashboardStats(history));
                         aiService.suggestCmeTopics(history, language).then(setCmeTopics);
@@ -416,8 +408,7 @@ const AppContent: React.FC = () => {
                     setAppView('dashboard');
                 }).catch(() => {
                     // Fallback to local on error
-                    const { getAnalyses: getLocalAnalyses } = require('./services/authService');
-                    const history = getLocalAnalyses(user.phone);
+                    const history = authServiceLocal.getAnalyses(user.phone);
                     setUserHistory(history);
                     setDashboardStats(caseService.getDashboardStats(history));
                     aiService.suggestCmeTopics(history, language).then(setCmeTopics);
@@ -745,6 +736,11 @@ const AppContent: React.FC = () => {
     // --- STAFF MODE ---
     if (currentUser.role === 'staff') {
         return <StaffDashboard user={currentUser} onLogout={handleLogout} />;
+    }
+
+    // --- MONITORING MODE (Bemor Monitoring Platform) ---
+    if (currentUser.role === 'monitoring') {
+        return <MonitoringDashboard user={currentUser} onLogout={handleLogout} />;
     }
     
     // --- CLINIC MODE (With Mobile Restriction) ---

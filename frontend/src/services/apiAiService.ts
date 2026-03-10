@@ -21,7 +21,7 @@ export const generateClarifyingQuestions = async (
 export const recommendSpecialists = async (
   patientData: PatientData
 ): Promise<ApiResponse<{ recommendations: Array<{ model: AIModel; reason: string }> }>> => {
-  const response = await apiPost<{ recommendations: Array<{ model: string; reason: string }> }>>(
+  const response = await apiPost<{ recommendations: Array<{ model: string; reason: string }> }>(
     '/ai/recommend-specialists/',
     { patient_data: patientData }
   );

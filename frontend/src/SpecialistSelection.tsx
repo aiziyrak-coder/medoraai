@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AIModel } from '../constants/specialists';
-import { AI_SPECIALISTS } from '../constants';
-import AIAvatar from './AIAvatar';
+import { AIModel } from './constants/specialists';
+import { AI_SPECIALISTS } from './constants';
+import AIAvatar from './components/AIAvatar';
 
 interface SpecialistSelectionProps {
     onConfirm: (selectedSpecialists: AIModel[]) => void;

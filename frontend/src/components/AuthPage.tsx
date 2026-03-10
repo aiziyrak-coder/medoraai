@@ -171,7 +171,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     const user = authService.getCurrentUser();
                     // Validation for correct role login
                     if (user && user.role !== role) {
-                        setError(`Siz noto'g'ri bo'limdasiz. Sizning rolingiz: ${user.role === 'clinic' ? 'Klinika' : user.role === 'doctor' ? 'Shifokor' : 'Registrator'}`);
+                        const roleLabel = user.role === 'clinic' ? 'Klinika' : user.role === 'doctor' ? 'Shifokor' : user.role === 'staff' ? 'Registrator' : user.role === 'monitoring' ? 'Monitoring' : user.role;
+                        setError(`Siz noto'g'ri bo'limdasiz. Sizning rolingiz: ${roleLabel}`);
                         authService.logout();
                     } else if (user) {
                         onLoginSuccess(user);
@@ -231,6 +232,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         } else if (selectedRole === 'staff') {
             setPhone('+998901112233'); // Demo for staff
             setPassword('staff_demo');
+        } else if (selectedRole === 'monitoring') {
+            setPhone('+998907000001'); // Demo for Bemor Monitoring
+            setPassword('monitoring_demo');
         }
     };
 
@@ -340,6 +344,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 <li>• <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
                                 <li>• <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
                                 <li>• <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
+                                <li>• <strong>{t('auth_mode_monitoring')}:</strong> {t('auth_mode_monitoring_desc')}</li>
                             </ul>
                         </div>
 
@@ -367,24 +372,30 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     <div className="max-w-sm w-full mx-auto space-y-4 animate-fade-in-up min-h-0">
                         
                         {/* Role Switcher */}
-                        <div className="bg-slate-800 p-1 rounded-xl flex mb-4 border border-slate-700">
+                        <div className="bg-slate-800 p-1 rounded-xl flex flex-wrap gap-1 mb-4 border border-slate-700">
                             <button
                                 onClick={() => handleRoleSelect('clinic')}
-                                className={`flex-1 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'clinic' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'clinic' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                             >
                                 {t('auth_mode_clinic')}
                             </button>
                             <button
                                 onClick={() => handleRoleSelect('doctor')}
-                                className={`flex-1 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'doctor' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'doctor' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                             >
                                 {t('auth_mode_doctor')}
                             </button>
                             <button
                                 onClick={() => handleRoleSelect('staff')}
-                                className={`flex-1 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                             >
                                 {t('auth_mode_staff')}
+                            </button>
+                            <button
+                                onClick={() => handleRoleSelect('monitoring')}
+                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'monitoring' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                {t('auth_mode_monitoring')}
                             </button>
                         </div>
 
@@ -396,6 +407,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 {role === 'clinic' && t('auth_clinic_login_help')}
                                 {role === 'doctor' && t('auth_doctor_login_help')}
                                 {role === 'staff' && t('auth_staff_login_help')}
+                                {role === 'monitoring' && t('auth_monitoring_login_help')}
                             </p>
                         </div>
 
@@ -546,7 +558,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         </form>
 
                         <div className="text-center pt-1">
-                            {role !== 'staff' && (
+                            {role !== 'staff' && role !== 'monitoring' && (
                                 <p className="text-xs text-slate-400 font-medium">
                                     {mode === 'login' ? t('auth_no_account_prompt') : t('auth_have_account_prompt')}{' '}
                                     <button 

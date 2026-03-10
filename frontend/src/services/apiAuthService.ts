@@ -38,7 +38,7 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
 
 /** Foydalanuvchining obunasi faolmi (trial yoki to'langan) */
 export function hasActiveSubscription(user: User): boolean {
-  if (user.role === 'staff') return true;
+  if (user.role === 'staff' || user.role === 'monitoring') return true;
   if (user.subscriptionStatus !== 'active') return false;
   const now = new Date();
   if (user.trialEndsAt && new Date(user.trialEndsAt) > now) return true;
@@ -57,7 +57,7 @@ export interface RegisterData {
   name: string;
   password: string;
   password_confirm?: string;
-  role: 'clinic' | 'doctor' | 'staff';
+  role: 'clinic' | 'doctor' | 'staff' | 'monitoring';
   specialties?: string[];
   linked_doctor?: string;
 }
@@ -85,7 +85,7 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
     
     if (response.success && response.data) {
       saveTokens(response.data.tokens.access, response.data.tokens.refresh);
-      saveUserData(normalizeUser(response.data.user as Record<string, unknown>));
+      saveUserData(normalizeUser(response.data.user as unknown as Record<string, unknown>));
       return {
         success: true,
         message: "Ro'yxatdan o'tish muvaffaqiyatli yakunlandi.",
@@ -138,7 +138,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
     
     if (response.success && response.data) {
       saveTokens(response.data.tokens.access, response.data.tokens.refresh);
-      saveUserData(normalizeUser(response.data.user as Record<string, unknown>));
+      saveUserData(normalizeUser(response.data.user as unknown as Record<string, unknown>));
       return {
         success: true,
         message: "Tizimga muvaffaqiyatli kirdingiz.",
@@ -284,7 +284,7 @@ export const requestPasswordReset = async (phone: string): Promise<{ success: bo
     
     return {
       success: response.success,
-      message: response.error?.message || response.data?.message || 
+      message: response.error?.message || (response.data as { message?: string } | null)?.message || 
         "Agar ushbu raqam uchun hisob mavjud bo'lsa, tiklash yo'riqnomasi yuborildi.",
     };
   } catch (error) {

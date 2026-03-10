@@ -298,7 +298,7 @@ const callGemini = async (
                 if (repaired == null) {
                     logger.error("Failed to parse JSON from Gemini:", candidate?.slice(0, 500));
                     const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
-                    (err as Error & { cause?: string }).curse = 'parse_json';
+                    (err as Error & { cause?: string }).cause = 'parse_json';
                     throw err;
                 }
                 parsed = repaired;
@@ -347,12 +347,11 @@ const buildMultimodalPrompt = (introText: string, data: PatientData) => {
     const textData = JSON.stringify(rest);
     const historyContext = getRelevantHistoryContext(data.complaints);
     
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-        { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` }
-    ];
+    const firstPart: { text: string } = { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` };
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [firstPart];
 
     if (attachments && attachments.length > 0) {
-        parts[0].text += `\n\n[IMPORTANT]: The patient has attached ${attachments.length} medical file(s). Analyze these precisely.`;
+        firstPart.text += `\n\n[IMPORTANT]: The patient has attached ${attachments.length} medical file(s). Analyze these precisely.`;
         attachments.forEach(att => {
             parts.push({
                 inlineData: {
@@ -370,11 +369,10 @@ const buildMultimodalPrompt = (introText: string, data: PatientData) => {
 const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
     const { attachments, ...rest } = data;
     const textData = JSON.stringify(rest);
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-        { text: `${introText}\n\nPATIENT: ${textData}` }
-    ];
+    const firstPart: { text: string } = { text: `${introText}\n\nPATIENT: ${textData}` };
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [firstPart];
     if (attachments && attachments.length > 0) {
-        parts[0].text += `\nAttachments: ${attachments.length}.`;
+        firstPart.text += `\nAttachments: ${attachments.length}.`;
         attachments.forEach(att => {
             parts.push({
                 inlineData: { mimeType: att.mimeType, data: att.base64Data }
@@ -591,7 +589,7 @@ export const getDynamicSuggestions = async (complaintText: string, language: Lan
             diagnosticQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
         }
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<{ relatedSymptoms: string[]; diagnosticQuestions: string[] }>;
 };
 
 export const generateClarifyingQuestions = async (data: PatientData, language: Language): Promise<string[]> => {
@@ -640,7 +638,7 @@ export const recommendSpecialists = async (data: PatientData, language: Language
         },
         required: ['recommendations'],
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<{ recommendations: { model: AIModel; reason: string }[] }>;
 };
 
 export const generateInitialDiagnoses = async (data: PatientData, language: Language): Promise<Diagnosis[]> => {
@@ -671,7 +669,7 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
             required: ['name', 'probability', 'justification', 'evidenceLevel', 'reasoningChain'],
         },
     };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr) as Promise<Diagnosis[]>;
 };
 
 const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData: PatientData, language: Language): Promise<PrognosisReport | null> => {
@@ -688,7 +686,7 @@ const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData
         }
     };
     try {
-        return await callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+        return await callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<PrognosisReport>;
     } catch (e) {
         return null;
     }
@@ -899,7 +897,7 @@ export const analyzeEcgImage = async (image: { base64Data: string, mimeType: str
         required: ['rhythm', 'heartRate', 'prInterval', 'qrsDuration', 'qtInterval', 'axis', 'morphology', 'interpretation']
     };
     
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<EcgReport>;
 };
 
 export const getIcd10Codes = async (diagnosis: string, language: Language): Promise<Icd10Code[]> => {
@@ -916,21 +914,22 @@ export const getIcd10Codes = async (diagnosis: string, language: Language): Prom
             required: ['code', 'description'],
         }
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<Icd10Code[]>;
 };
 
 export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
-    const result = await callGemini(prompt, 'gemini-3-flash-preview', undefined, true, systemInstr) as GenerateContentResponse;
+    const result = await callGemini(prompt, 'gemini-3-flash-preview', undefined, true, systemInstr) as GenerateContentResponse & { text?: string };
     
-    const sources = result.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: { uri?: string; chunk?: { text?: string } }) => ({
-        title: chunk.web.title || chunk.web.uri,
-        uri: chunk.web.uri
-    })) || [];
+    const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+    const sources = chunks.map((chunk: unknown) => {
+        const c = chunk as { web?: { title?: string; uri?: string }; uri?: string };
+        return { title: c.web?.title ?? c.web?.uri ?? '', uri: c.web?.uri ?? c.uri ?? '' };
+    });
     
     return {
-        summary: result.text,
+        summary: result.text ?? '',
         sources: sources,
     };
 };
@@ -980,7 +979,7 @@ export const calculatePediatricDose = async (drugName: string, weightKg: number,
         },
         required: ['drugName', 'dose', 'calculation', 'warnings'],
     };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr) as Promise<PediatricDose>;
 };
 
 export const calculateRiskScore = async (scoreType: string, patientData: PatientData, language: Language): Promise<RiskScore> => {
@@ -996,7 +995,7 @@ export const calculateRiskScore = async (scoreType: string, patientData: Patient
         },
         required: ['name', 'score', 'interpretation'],
     };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr) as Promise<RiskScore>;
 };
 
 export const generatePatientEducationContent = async (report: FinalReport, language: Language): Promise<PatientEducationTopic[]> => {
@@ -1014,7 +1013,7 @@ export const generatePatientEducationContent = async (report: FinalReport, langu
             required: ['title', 'content'],
         }
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<PatientEducationTopic[]>;
 };
 
 export const continueDebate = async (
@@ -1097,7 +1096,7 @@ export const suggestCmeTopics = async (history: AnalysisRecord[], language: Lang
             required: ['topic', 'relevance'],
         },
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr);
+    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<CMETopic[]>;
 };
 
 export const runResearchCouncilDebate = async (

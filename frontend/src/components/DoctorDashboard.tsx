@@ -898,16 +898,17 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            files.forEach(file => {
+            files.forEach((file: File) => {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
+                    const result = ev.target?.result;
                     setAttachments(prev => [...prev, {
                         file,
-                        preview: file.type.startsWith('image/') ? ev.target?.result as string : '',
+                        preview: file.type.startsWith('image/') && typeof result === 'string' ? result : '',
                         type: file.type.startsWith('image/') ? 'image' : 'doc'
                     }]);
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(file as Blob);
             });
         }
     };
@@ -926,7 +927,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             respiration: 'respirationRate'
         };
         
-        const validationType = vitalTypeMap[key];
+        const validationType = vitalTypeMap[key as string];
         if (validationType && value !== '') {
             const validation = validateVitalSign(value, validationType);
             if (!validation.isValid) {

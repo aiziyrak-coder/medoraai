@@ -18,6 +18,8 @@ export const ru: TranslationSet = {
   error_try_again: 'Произошла ошибка. Пожалуйста, попробуйте еще раз.',
   error_no_data_found: 'Данные не найдены.',
   error_page_not_found: 'Страница не найдена',
+  smart_validation_critical: 'Заполните обязательные поля.',
+  smart_validation_suggestion: 'Рекомендация: ',
 
   // Navigation
   nav_dashboard: 'Главная',
@@ -46,6 +48,8 @@ export const ru: TranslationSet = {
   auth_mode_doctor_desc: 'Для частнопрактикующих врачей.',
   auth_mode_staff: 'Регистратор',
   auth_mode_staff_desc: 'Для управления очередью.',
+  auth_mode_monitoring: 'Мониторинг',
+  auth_mode_monitoring_desc: 'Централизованный мониторинг витальных показателей.',
   auth_virtual_team: '10+ Команда виртуальных специалистов',
   
   auth_title: 'Система поддержки принятия клинических решений экспертного уровня',
@@ -56,7 +60,8 @@ export const ru: TranslationSet = {
   auth_clinic_login_help: 'Войдите как организация.',
   auth_doctor_login_help: 'Войдите в личный кабинет врача.',
   auth_staff_login_help: 'Войдите в раздел управления очередью.',
-  
+  auth_monitoring_login_help: 'Войдите в панель мониторинга пациентов.',
+
   auth_login_subtitle: 'Войдите в свою учетную запись или создайте новую.',
   auth_register_subtitle: 'Заполните данные для создания новой учетной записи.',
   auth_forgot_subtitle: 'Введите свой номер телефона, чтобы сбросить пароль.',

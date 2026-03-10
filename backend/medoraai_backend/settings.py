@@ -33,13 +33,20 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
-    'drf_yasg',
+]
+try:
+    import pkg_resources  # noqa: F401
+    INSTALLED_APPS += ['drf_yasg']
+except ImportError:
+    pass
+INSTALLED_APPS += [
     
     # Local apps
     'accounts',
     'patients',
     'analyses',
     'ai_services',
+    'monitoring',
 ]
 
 MIDDLEWARE = [
@@ -164,7 +171,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
+        'anon': '1000/hour',   # login + unauthenticated API (DEBUG da yetarli)
         'user': '1000/hour'
     }
 }
@@ -239,6 +246,9 @@ AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-3-pro-preview')
 # Telegram (payment receipts) - set in production .env, never expose to frontend
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 TELEGRAM_PAYMENT_GROUP_ID = config('TELEGRAM_PAYMENT_GROUP_ID', default='')
+
+# Monitoring gateway ingest (TCP -> Django). Gateway sends X-API-Key with this value.
+MONITORING_INGEST_API_KEY = config('MONITORING_INGEST_API_KEY', default='monitoring-ingest-secret-change-in-production')
 
 # Celery Configuration (for async tasks)
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
@@ -339,7 +349,7 @@ LOGGING = {
 
 # Business Logic Settings
 DOCTOR_TRIAL_DAYS = config('DOCTOR_TRIAL_DAYS', default=7, cast=int)
-LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=5, cast=int)
+LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=30 if DEBUG else 5, cast=int)
 LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=int)  # 15 min
 MAX_FILE_UPLOAD_SIZE = config('MAX_FILE_UPLOAD_SIZE_MB', default=5, cast=int) * 1024 * 1024
 ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf']
