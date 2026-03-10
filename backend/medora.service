@@ -1,0 +1,35 @@
+# /etc/systemd/system/medora.service
+
+[Unit]
+Description=Medora AI — Gunicorn Django Backend
+After=network.target
+
+[Service]
+Type=simple
+User=cdcgroup
+Group=cdcgroup
+WorkingDirectory=/home/cdcgroup/medora_platform/app/backend
+EnvironmentFile=/home/cdcgroup/medora_platform/app/backend/.env
+# Log papkasini yaratib, cdcgroup ga huquq bering (Gunicorn yozishi uchun)
+ExecStartPre=/bin/mkdir -p /home/cdcgroup/medora_platform/app/backend/logs
+ExecStartPre=/bin/chown cdcgroup:cdcgroup /home/cdcgroup/medora_platform/app/backend/logs
+StandardOutput=journal
+StandardError=journal
+ExecStart=/home/cdcgroup/medora_platform/venv/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --workers 4 \
+    --worker-class gthread \
+    --threads 4 \
+    --timeout 180 \
+    --graceful-timeout 30 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --access-logfile /home/cdcgroup/medora_platform/app/backend/logs/access.log \
+    --error-logfile  /home/cdcgroup/medora_platform/app/backend/logs/error.log \
+    --log-level info \
+    medoraai_backend.wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -15,6 +15,7 @@ const getUsers = (): UserStore => {
         const usersJSON = localStorage.getItem(USERS_KEY);
         const users = usersJSON ? JSON.parse(usersJSON) : {};
 
+        // Demo users: only for offline/demo when API is not configured. Do not rely on these in production with real API.
         // 1. Clinic (Admin) Demo - Always Active
         if (!users['+998901234567']) {
             users['+998901234567'] = {

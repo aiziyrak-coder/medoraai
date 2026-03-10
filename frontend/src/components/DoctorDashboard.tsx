@@ -44,6 +44,7 @@ import PatientsList from './PatientsList';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
 import DrugInteractionChecker from './tools/DrugInteractionChecker';
+import { ZiyrakDashboard } from './ziyrak/ZiyrakDashboard';
 
 interface DoctorDashboardProps {
     user: User;
@@ -733,7 +734,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     const { t, language, setLanguage } = useTranslation();
     
     // State
-    const [view, setView] = useState<'queue' | 'consultation' | 'assistant' | 'patients_list' | 'documents' | 'profile' | 'drug_tools'>('queue');
+    const [view, setView] = useState<'queue' | 'consultation' | 'assistant' | 'patients_list' | 'documents' | 'profile' | 'drug_tools' | 'ziyrak'>('queue');
     const [mode, setMode] = useState<'input' | 'processing' | 'result'>('input');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     
@@ -1649,6 +1650,19 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                     </div>
                 )}
 
+                {/* VIEW: ZIYRAK — Raqamli Tibbiy Yordamchi */}
+                {view === 'ziyrak' && (
+                    <div className="h-full overflow-y-auto custom-scrollbar">
+                        <div className="max-w-2xl mx-auto p-4 pb-28">
+                            <ZiyrakDashboard
+                                patientData={currentPatient ?? undefined}
+                                language={language as string}
+                                className="w-full"
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* VIEW: CONSULTATION (FULLSCREEN LOGIC) */}
                 {view === 'consultation' && currentPatient && (
                     <div className="flex flex-col h-full relative overflow-hidden">
@@ -1863,6 +1877,13 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                         <button type="button" onClick={() => setView('drug_tools')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'drug_tools' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
                             <PillIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'drug_tools' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />
                             <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">{t('nav_drugs')}</span>
+                        </button>
+                        <button type="button" onClick={() => setView('ziyrak')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 relative ${view === 'ziyrak' ? 'text-sky-400' : 'text-white/50 hover:text-white'}`}>
+                            {view !== 'ziyrak' && (
+                                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                            )}
+                            <span className={`text-base sm:text-lg flex-shrink-0 ${view === 'ziyrak' ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`}>🤖</span>
+                            <span className="text-[8px] sm:text-[9px] font-bold mt-0.5 sm:mt-1 tracking-wider truncate w-full text-center">Ziyrak</span>
                         </button>
                         <button type="button" onClick={() => setView('profile')} className={`flex flex-col items-center justify-center p-1 sm:p-2 transition-colors min-w-0 flex-1 ${view === 'profile' ? 'text-white' : 'text-white/50 hover:text-white'}`}>
                             <UserCircleIcon className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ${view === 'profile' ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : ''}`} />

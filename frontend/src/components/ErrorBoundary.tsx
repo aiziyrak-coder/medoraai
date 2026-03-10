@@ -27,10 +27,9 @@ class ErrorBoundaryClass extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
     
-    // In production, send to error tracking service (e.g., Sentry)
     if (import.meta.env.PROD) {
-      // TODO: Send to Sentry or other error tracking
-      // Sentry.captureException(error, { contexts: { react: errorInfo } });
+      logger.error('Production error (consider adding Sentry):', error?.message ?? error);
+      // To add Sentry: npm i @sentry/react && Sentry.captureException(error, { contexts: { react: errorInfo } });
     }
   }
 

@@ -15,6 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'medoraai_backend.settings')
 django.setup()
 
 from accounts.models import User
+from django.conf import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +24,11 @@ logger = logging.getLogger(__name__)
 ADMIN_PHONE = os.environ.get('ADMIN_PHONE', '+998901234567')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin2026!')
 ADMIN_NAME = os.environ.get('ADMIN_NAME', 'Admin')
+
+# Production: require explicit admin password (no default)
+if not getattr(settings, 'DEBUG', True) and (not ADMIN_PASSWORD or ADMIN_PASSWORD == 'Admin2026!'):
+    print("Xatolik: Production rejimida ADMIN_PASSWORD env orqali o'rnatilishi shart (default ishlatilmaydi).")
+    sys.exit(1)
 
 try:
     if User.objects.filter(phone=ADMIN_PHONE).exists():

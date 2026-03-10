@@ -25,6 +25,17 @@ from .models import User, SubscriptionPlan, SubscriptionPayment, ActiveSession
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+
+def _redact_phone(phone):
+    """Return redacted phone for logging (last 4 digits only)."""
+    if not phone or not isinstance(phone, str):
+        return "***"
+    s = phone.strip()
+    if len(s) <= 4:
+        return "****"
+    return "***" + s[-4:]
+
+
 # Login rate limit
 LOGIN_RATE_LIMIT_KEY = "login_attempts:{phone}"
 LOGIN_RATE_LIMIT_MAX = getattr(settings, 'LOGIN_RATE_LIMIT_MAX', 5)
@@ -78,14 +89,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except drf_serializers.ValidationError as e:
             cache.set(cache_key, attempts + 1, LOGIN_RATE_LIMIT_WINDOW)
             error_message = e.detail[0] if isinstance(e.detail, list) and len(e.detail) > 0 else str(e.detail) if hasattr(e, 'detail') else 'Telefon raqami yoki parol noto\'g\'ri'
-            logger.warning(f"Login validation error for {phone}: {error_message}")
+            logger.warning("Login validation error for %s: %s", _redact_phone(phone), error_message)
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': error_message},
             }, status=400)
         except (ValueError, TypeError) as e:
             cache.set(cache_key, attempts + 1, LOGIN_RATE_LIMIT_WINDOW)
-            logger.error(f"Login error for {phone}: {e}")
+            logger.error("Login error for %s: %s", _redact_phone(phone), e)
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': 'Telefon raqami yoki parol noto\'g\'ri'},
@@ -426,7 +437,17 @@ def send_payment_receipt(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     allowed_types = getattr(settings, 'ALLOWED_UPLOAD_TYPES', ['image/jpeg', 'image/png', 'image/jpg'])
+    allowed_extensions = getattr(settings, 'ALLOWED_UPLOAD_EXTENSIONS', ['.jpg', '.jpeg', '.png'])
     if file.content_type not in allowed_types:
+        return Response({
+            'success': False,
+            'error': {
+                'code': status.HTTP_400_BAD_REQUEST,
+                'message': 'Faqat rasm fayllari (JPG, PNG) qabul qilinadi'
+            }
+        }, status=status.HTTP_400_BAD_REQUEST)
+    name = getattr(file, 'name', '') or ''
+    if not any(name.lower().endswith(ext) for ext in allowed_extensions):
         return Response({
             'success': False,
             'error': {

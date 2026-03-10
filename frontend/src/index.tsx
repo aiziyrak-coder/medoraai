@@ -11,6 +11,12 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
+// Global unhandled rejection handler — log and avoid silent failures
+window.addEventListener('unhandledrejection', (event) => {
+  logger.error('Unhandled promise rejection:', event.reason);
+  // In production you can report to Sentry: Sentry.captureException(event.reason);
+});
+
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>

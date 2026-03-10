@@ -10,13 +10,24 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production-!@#$%^&*()')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+# SECURITY WARNING: keep the secret key used in production secret!
+# In production (DEBUG=False), SECRET_KEY must be set in env; no default.
+_default_secret = 'django-insecure-change-this-in-production-!@#$%^&*()'
+SECRET_KEY = config('SECRET_KEY', default=_default_secret)
+if not DEBUG and SECRET_KEY == _default_secret:
+    raise RuntimeError(
+        'SECRET_KEY must be set in environment when DEBUG=False. '
+        'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
+    )
+
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,medora.ziyrak.org,medoraapi.ziyrak.org,20.82.115.71',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -53,6 +64,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'medoraai_backend.middleware.CORSFallbackMiddleware',  # CORS for /health/, /api/ when corsheaders missed
     'medoraai_backend.middleware.SecurityHeadersMiddleware',  # Custom security headers
     'medoraai_backend.middleware.RateLimitMiddleware',  # Rate limiting
     'django.middleware.common.CommonMiddleware',
@@ -62,6 +74,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'medoraai_backend.middleware.RequestLoggingMiddleware',  # Request logging
+    'ai_services.anatomy_guard.AnatomyGuardMiddleware',     # Anatomy & Logic Guard
 ]
 
 ROOT_URLCONF = 'medoraai_backend.urls'
@@ -196,8 +209,11 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000',
-    cast=lambda v: [s.strip() for s in v.split(',')]
+    default=(
+        'http://localhost:3000,http://127.0.0.1:3000,'
+        'https://medora.ziyrak.org,http://medora.ziyrak.org,http://20.82.115.71'
+    ),
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
 
 CORS_ALLOW_CREDENTIALS = True
@@ -239,9 +255,45 @@ SWAGGER_SETTINGS = {
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 
-# AI Service Configuration
-GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-3-pro-preview')
+# Azure AI Foundry Configuration
+AZURE_OPENAI_ENDPOINT   = config('AZURE_OPENAI_ENDPOINT',   default='')
+AZURE_OPENAI_API_KEY    = config('AZURE_OPENAI_API_KEY',    default='')
+AZURE_OPENAI_API_VERSION = config('AZURE_OPENAI_API_VERSION', default='2024-12-01-preview')
+
+# Azure Speech Services (Medora-Jarvis)
+AZURE_SPEECH_KEY      = config('AZURE_SPEECH_KEY',      default='')
+AZURE_SPEECH_REGION   = config('AZURE_SPEECH_REGION',   default='swedencentral')
+AZURE_SPEECH_ENDPOINT = config('AZURE_SPEECH_ENDPOINT', default='https://swedencentral.api.cognitive.microsoft.com/')
+
+# Azure deployment names
+AZURE_DEPLOY_GPT4O = config('AZURE_DEPLOY_GPT4O', default='medora-gpt4o')
+AZURE_DEPLOY_DEEPSEEK = config('AZURE_DEPLOY_DEEPSEEK', default='medora-deepseek')
+AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='medora-llama')
+AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='medora-mistral')
+AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='medora-mini')
+
+# Legacy (kept for backwards-compat, not used for AI calls)
+GEMINI_API_KEY   = config('GEMINI_API_KEY',   default='')
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='medora-gpt4o')
+
+# ── Production Security Settings ───────────────────────────────────────────
+if not DEBUG:
+    # HTTPS enforcement (set SECURE_SSL_REDIRECT=False in .env when using HTTP only)
+    SECURE_SSL_REDIRECT          = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+    SECURE_PROXY_SSL_HEADER      = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS          = 31536000   # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD          = True
+    SECURE_CONTENT_TYPE_NOSNIFF  = True
+    SECURE_BROWSER_XSS_FILTER    = True
+    SESSION_COOKIE_SECURE        = True
+    SESSION_COOKIE_HTTPONLY      = True
+    CSRF_COOKIE_SECURE           = True
+    CSRF_COOKIE_HTTPONLY         = True
+    X_FRAME_OPTIONS              = 'DENY'
+
+# Static files (production: WhiteNoise)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Telegram (payment receipts) - set in production .env, never expose to frontend
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
@@ -282,7 +334,23 @@ else:
         }
     }
 
-# Logging Configuration
+# Logging Configuration — file handlers only if logs dir exists and is writable (avoid startup crash)
+_LOGS_DIR = BASE_DIR / 'logs'
+def _logs_writable():
+    try:
+        _LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        (_LOGS_DIR / '.write_test').write_text('')
+        (_LOGS_DIR / '.write_test').unlink()
+        return True
+    except Exception:
+        return False
+
+_USE_FILE_LOGS = _logs_writable()
+_ROOT_HANDLERS = ['console', 'file'] if _USE_FILE_LOGS else ['console']
+_DJANGO_HANDLERS = ['console', 'file'] if _USE_FILE_LOGS else ['console']
+_REQUEST_HANDLERS = ['error_file'] if _USE_FILE_LOGS else ['console']
+_MEDORAI_HANDLERS = ['console', 'file', 'error_file'] if _USE_FILE_LOGS else ['console']
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -302,22 +370,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'django_errors.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
@@ -325,27 +377,44 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': _ROOT_HANDLERS,
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': _DJANGO_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['error_file'],
+            'handlers': _REQUEST_HANDLERS,
             'level': 'ERROR',
             'propagate': False,
         },
         'medoraai_backend': {
-            'handlers': ['console', 'file', 'error_file'],
+            'handlers': _MEDORAI_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+if _USE_FILE_LOGS:
+    LOGGING['handlers']['file'] = {
+        'level': 'INFO',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': _LOGS_DIR / 'django.log',
+        'maxBytes': 1024 * 1024 * 10,
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
+    LOGGING['handlers']['error_file'] = {
+        'level': 'ERROR',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': _LOGS_DIR / 'django_errors.log',
+        'maxBytes': 1024 * 1024 * 10,
+        'backupCount': 5,
+        'formatter': 'verbose',
+    }
 
 # Business Logic Settings
 DOCTOR_TRIAL_DAYS = config('DOCTOR_TRIAL_DAYS', default=7, cast=int)

@@ -87,7 +87,19 @@ class PatientViewSet(viewsets.ModelViewSet):
                     'message': 'Faqat rasm (JPG, PNG), PDF yoki Word/Excel fayllari qabul qilinadi'
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+        allowed_extensions = (
+            '.jpg', '.jpeg', '.png', '.gif', '.pdf',
+            '.doc', '.docx', '.xls', '.xlsx',
+        )
+        name = getattr(file, 'name', '') or ''
+        if not any(name.lower().endswith(ext) for ext in allowed_extensions):
+            return Response({
+                'success': False,
+                'error': {
+                    'code': status.HTTP_400_BAD_REQUEST,
+                    'message': 'Faqat rasm (JPG, PNG), PDF yoki Word/Excel fayllari qabul qilinadi'
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
         # Sanitize filename
         filename = os.path.basename(file.name)
         if len(filename) > 255:

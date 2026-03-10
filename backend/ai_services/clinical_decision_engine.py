@@ -10,7 +10,11 @@ from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
 
-from .gemini_utils import _call_gemini, GEMINI_PRO, GEMINI_FLASH
+from .azure_utils import _call_gemini, DEPLOY_GPT4O, DEPLOY_MINI
+
+# Backwards-compat aliases
+GEMINI_PRO = DEPLOY_GPT4O()
+GEMINI_FLASH = DEPLOY_MINI()
 from .autonomous_protocol_generator import autonomous_generator
 from .self_learning_system import self_learning_system
 

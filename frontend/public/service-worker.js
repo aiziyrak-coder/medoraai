@@ -1,4 +1,4 @@
-const CACHE_NAME = 'konsilium-cache-v4'; // Incremented cache version
+const CACHE_NAME = 'konsilium-cache-v7';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,11 +9,10 @@ const urlsToCache = [
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache and caching essential assets');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('Opened cache and caching essential assets');
+      return Promise.allSettled(urlsToCache.map(url => cache.add(url).catch(() => {})));
+    })
   );
 });
 
@@ -41,10 +40,21 @@ self.addEventListener('fetch', event => {
   }
   
   const url = new URL(request.url);
+  const sameOrigin = url.origin === self.location.origin;
 
-  // Use network-first for navigation and API calls
-  // This ensures the user gets the freshest data, with an offline fallback.
-  if (request.mode === 'navigate' || url.pathname.includes('/api/')) { // Assuming API calls could be identified
+  // Cross-origin (e.g. API at medoraapi.ziyrak.org): do not intercept — let browser handle (CORS works normally)
+  if (!sameOrigin) {
+    return;
+  }
+
+  // Same-origin: never cache health or API paths
+  if (url.pathname.startsWith('/health') || url.pathname.includes('/api/')) {
+    event.respondWith(fetch(request).catch(() => new Response('', { status: 503, statusText: 'Service Unavailable' })));
+    return;
+  }
+
+  // Use network-first for navigation
+  if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then(response => {
@@ -75,13 +85,15 @@ self.addEventListener('fetch', event => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(request).then(networkResponse => {
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, responseToCache);
-        });
-        return networkResponse;
-      });
+      return fetch(request)
+        .then(networkResponse => {
+          if (networkResponse.ok) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, responseToCache));
+          }
+          return networkResponse;
+        })
+        .catch(() => new Response('', { status: 504, statusText: 'Gateway Timeout' }));
     })
   );
 });

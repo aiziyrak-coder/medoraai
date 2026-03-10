@@ -11,6 +11,41 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+class CORSFallbackMiddleware(MiddlewareMixin):
+    """Add CORS header for /health/ and /api/ if missing (e.g. error responses)."""
+    def process_response(self, request, response):
+        if not request.path.startswith('/api/') and not request.path.startswith('/health'):
+            return response
+        origin = None
+        req_origin = request.META.get('HTTP_ORIGIN', '').strip()
+        origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', None)
+        if req_origin and origins and req_origin in origins:
+            origin = req_origin
+        elif not req_origin and origins:
+            # No Origin header (e.g. same-origin or server): allow first configured origin
+            origin = origins[0] if isinstance(origins, (list, tuple)) else str(origins)
+        # Health endpoint: always allow frontend origin if missing (so health check never blocked)
+        if origin is None and request.path.startswith('/health'):
+            origin = 'https://medora.ziyrak.org'
+        if origin is None:
+            return response
+        if getattr(response, 'headers', None):
+            if response.headers.get('Access-Control-Allow-Origin'):
+                return response
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'DELETE, GET, OPTIONS, PATCH, POST, PUT'
+            response.headers['Access-Control-Allow-Headers'] = 'accept, authorization, content-type'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+        else:
+            if response.get('Access-Control-Allow-Origin'):
+                return response
+            response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Methods'] = 'DELETE, GET, OPTIONS, PATCH, POST, PUT'
+            response['Access-Control-Allow-Headers'] = 'accept, authorization, content-type'
+            response['Access-Control-Allow-Credentials'] = 'true'
+        return response
+
+
 class SecurityHeadersMiddleware(MiddlewareMixin):
     """Add security headers to all responses"""
     

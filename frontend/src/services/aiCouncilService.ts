@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+import OpenAI from "openai";
 import type {
     PatientData,
     Diagnosis,
@@ -30,22 +30,44 @@ import { handleError, getUserFriendlyError } from '../utils/errorHandler';
 import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
 
-// --- INITIALIZATION (lazy: brauzerda kalit bo'lmasa sahifa yopilmaydi) ---
-const getGeminiApiKey = (): string => {
-  // Vite replaces import.meta.env.VITE_* at build time (must be direct access, no optional chaining)
-  const key = import.meta.env.VITE_GEMINI_API_KEY || '';
-  return key;
+// --- AZURE AI FOUNDRY INITIALIZATION ---
+const getAzureConfig = () => {
+  const endpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT || '';
+  const apiKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY || '';
+  const apiVersion = import.meta.env.VITE_AZURE_API_VERSION || '2024-12-01-preview';
+  return { endpoint, apiKey, apiVersion };
 };
-const apiKey = getGeminiApiKey();
-const validKey = apiKey && apiKey !== 'no-key-set';
 
-let _aiInstance: InstanceType<typeof GoogleGenAI> | null = null;
-function getAI(): InstanceType<typeof GoogleGenAI> {
+const azureCfg = getAzureConfig();
+const validKey = !!(azureCfg.endpoint && azureCfg.apiKey && azureCfg.apiKey !== 'your-azure-key-here');
+
+let _azureClient: OpenAI | null = null;
+function getAI(): OpenAI {
   if (!validKey) {
-    throw new Error('AI xizmati hozircha sozlanmagan. Iltimos, keyinroq urinib ko\'ring yoki administrator bilan bog\'laning.');
+    throw new Error('Azure AI xizmati hozircha sozlanmagan. Iltimos, VITE_AZURE_OPENAI_ENDPOINT va VITE_AZURE_OPENAI_API_KEY ni .env faylga kiriting.');
   }
-  if (!_aiInstance) _aiInstance = new GoogleGenAI({ apiKey: apiKey! });
-  return _aiInstance;
+  if (!_azureClient) {
+    _azureClient = new OpenAI({
+      apiKey: azureCfg.apiKey,
+      baseURL: `${azureCfg.endpoint}/openai/deployments`,
+      defaultHeaders: { 'api-key': azureCfg.apiKey },
+      defaultQuery: { 'api-version': azureCfg.apiVersion },
+      dangerouslyAllowBrowser: true,
+    });
+  }
+  return _azureClient;
+}
+
+// Azure deployment names (VITE_ env vars orqali yoki default)
+const DEPLOY_FAST = import.meta.env.VITE_AZURE_DEPLOY_MINI || 'medora-mini';
+const DEPLOY_PRO = import.meta.env.VITE_AZURE_DEPLOY_GPT4O || 'medora-gpt4o';
+
+/** Map old Gemini model names → Azure deployments */
+function mapModel(geminiModel: string): string {
+  const m = geminiModel.toLowerCase();
+  if (m.includes('flash-lite') || m.includes('mini') || m.includes('flash')) return DEPLOY_FAST;
+  if (m.includes('pro') || m.includes('preview')) return DEPLOY_PRO;
+  return DEPLOY_PRO;
 }
 
 const langMap: Record<Language, string> = {
@@ -237,83 +259,103 @@ const getRelevantHistoryContext = (currentComplaints: string): string => {
     }
 };
 
-interface GeminiConfig {
-    systemInstruction?: string;
-    temperature?: number;
-    maxOutputTokens?: number;
-    responseMimeType?: string;
-    responseSchema?: unknown;
-    tools?: Array<{ googleSearch: Record<string, never> }>;
-}
-
+/**
+ * Core Azure OpenAI call – replaces callGemini.
+ * Supports text & multimodal (images via base64 inlineData).
+ */
 const callGemini = async (
     prompt: string | { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> },
-    model: string = 'gemini-3-flash-preview',
+    model: string = 'medora-gpt4o',
     responseSchema?: unknown,
-    useSearch: boolean = false,
+    _useSearch: boolean = false,    // Azure supports no Google Search grounding
     systemInstruction: string = '',
     shouldRetry: boolean = true,
     maxOutputTokens?: number
-) => {
+): Promise<unknown> => {
+    const deployment = mapModel(model);
+    const wantJson = !!responseSchema;
+
+    const buildMessages = (): OpenAI.Chat.ChatCompletionMessageParam[] => {
+        const sysContent = systemInstruction || (
+            "Siz professional tibbiy AI yordamchisiz. O'zbekiston SSV klinik protokollariga muvofiq javob bering."
+        );
+        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+            { role: 'system', content: sysContent },
+        ];
+
+        // Build user message: text-only or multimodal
+        if (typeof prompt === 'string') {
+            const userText = wantJson
+                ? `${prompt}\n\nMuhim: Javobni FAQAT toza JSON formatida qaytaring.`
+                : prompt;
+            messages.push({ role: 'user', content: userText });
+        } else {
+            // Multimodal: { parts: [{text}, {inlineData}] }
+            const contentParts: OpenAI.Chat.ChatCompletionContentPart[] = [];
+            for (const part of prompt.parts) {
+                if ('text' in part) {
+                    const t = wantJson
+                        ? `${part.text}\n\nMuhim: Javobni FAQAT toza JSON formatida qaytaring.`
+                        : part.text;
+                    contentParts.push({ type: 'text', text: t });
+                } else if ('inlineData' in part) {
+                    // Azure OpenAI GPT-4o supports base64 images
+                    contentParts.push({
+                        type: 'image_url',
+                        image_url: {
+                            url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
+                        },
+                    });
+                }
+            }
+            messages.push({ role: 'user', content: contentParts });
+        }
+        return messages;
+    };
+
     const executeCall = async (): Promise<unknown> => {
-        const config: GeminiConfig = {
-            systemInstruction: systemInstruction,
+        const messages = buildMessages();
+        const reqParams: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+            model: deployment,
+            messages,
             temperature: 0.15,
+            max_tokens: maxOutputTokens ?? 4096,
         };
-        if (maxOutputTokens != null) config.maxOutputTokens = maxOutputTokens;
-        if (responseSchema) {
-            config.responseMimeType = "application/json";
-            config.responseSchema = responseSchema;
-        }
-        if (useSearch) {
-            config.tools = [{ googleSearch: {} }];
+        if (wantJson) {
+            reqParams.response_format = { type: 'json_object' };
         }
 
-        const finalContents = prompt;
-        
-        const result: GenerateContentResponse = await getAI().models.generateContent({
-            model: model,
-            contents: finalContents,
-            config: Object.keys(config).length > 0 ? config : undefined,
-        });
+        const response = await getAI().chat.completions.create(reqParams);
+        const text = response.choices[0]?.message?.content ?? '';
 
-        const text = result.text;
-        
-        if (responseSchema) {
-            // 1. Kod bloklarini va izohlarni inkor etib, faqat JSON bo'lagini ajratib olish
-            const cleaned = text.replace(/```[\s\S]*?```/g, (m) => m); // avval o'z holida qoldiramiz
+        if (wantJson) {
+            // Strip markdown fences if present
+            let cleaned = text.trim();
+            if (cleaned.startsWith('```')) {
+                cleaned = cleaned.replace(/^```[a-z]*\n?/, '').replace(/```\s*$/, '').trim();
+            }
             const jsonStart = Math.min(
-                ...['{', '[']
-                    .map(ch => cleaned.indexOf(ch))
-                    .filter(idx => idx >= 0)
+                ...['{', '['].map(ch => cleaned.indexOf(ch)).filter(i => i >= 0)
             );
-            const candidate = jsonStart >= 0 ? cleaned.slice(jsonStart).trim() : cleaned.trim();
-
-            let parsed: unknown;
+            const candidate = jsonStart >= 0 ? cleaned.slice(jsonStart) : cleaned;
             try {
-                parsed = JSON.parse(candidate);
+                return JSON.parse(candidate);
             } catch {
-                // Agar hali ham bo'lmasa – kesilgan/izohlangan bo'lishi mumkin, qo'shimcha patch bilan urinib ko'ramiz
                 const repaired = tryRepairTruncatedJson(candidate);
                 if (repaired == null) {
-                    logger.error("Failed to parse JSON from Gemini:", candidate?.slice(0, 500));
+                    logger.error('Failed to parse JSON from Azure:', candidate?.slice(0, 500));
                     const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
                     (err as Error & { cause?: string }).cause = 'parse_json';
                     throw err;
                 }
-                parsed = repaired;
+                return repaired;
             }
-            return parsed;
-        }
-        
-        if (useSearch) {
-            return result;
         }
 
+        // _useSearch is not supported on Azure – return plain text
         return text;
     };
-    
-    // Retry logic: tarmoq xatolari, 503, va mobilda "javob to'liq kelmadi" / JSON parse xatolarida ham qayta urinish
+
     if (shouldRetry) {
         const mobile = isMobile();
         try {
@@ -322,23 +364,49 @@ const callGemini = async (
                 initialDelay: mobile ? 3000 : 2000,
                 retryableErrors: [
                     'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
-                    'parse_json', "noto'g'ri", 'javob', 'invalid json', 'failed to parse'
-                ]
+                    'parse_json', "noto'g'ri", 'javob', 'invalid json', 'failed to parse',
+                    'rate_limit_exceeded', '429',
+                ],
             });
         } catch (error) {
-            logger.error(`Error calling Gemini API with model ${model} (after retries):`, error);
-            const friendlyError = getUserFriendlyError(error, "AI xizmati bilan muammo yuz berdi.");
-            throw new Error(friendlyError);
+            logger.error(`Error calling Azure OpenAI (deployment=${deployment}) after retries:`, error);
+            throw new Error(getUserFriendlyError(error, 'AI xizmati bilan muammo yuz berdi.'));
         }
     }
-    
+
     try {
         return await executeCall();
     } catch (error) {
-        logger.error(`Error calling Gemini API with model ${model}:`, error);
-        const friendlyError = getUserFriendlyError(error, "AI xizmati bilan muammo yuz berdi.");
-        throw new Error(friendlyError);
+        logger.error(`Error calling Azure OpenAI (deployment=${deployment}):`, error);
+        throw new Error(getUserFriendlyError(error, 'AI xizmati bilan muammo yuz berdi.'));
     }
+};
+
+/**
+ * Build OpenAI messages array from system instruction and multimodal prompt parts.
+ * Used for streaming calls.
+ */
+const buildMultimodalMessages = (
+    systemInstr: string,
+    prompt: { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> },
+    wantJson: boolean
+): OpenAI.Chat.ChatCompletionMessageParam[] => {
+    const contentParts: OpenAI.Chat.ChatCompletionContentPart[] = [];
+    for (const part of prompt.parts) {
+        if ('text' in part) {
+            const t = wantJson ? `${part.text}\n\nMuhim: Javobni FAQAT toza JSON formatida qaytaring.` : part.text;
+            contentParts.push({ type: 'text', text: t });
+        } else if ('inlineData' in part) {
+            contentParts.push({
+                type: 'image_url',
+                image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` },
+            });
+        }
+    }
+    return [
+        { role: 'system', content: systemInstr },
+        { role: 'user', content: contentParts },
+    ];
 };
 
 // Helper to construct multimodal prompts (Text + Images)
@@ -347,11 +415,12 @@ const buildMultimodalPrompt = (introText: string, data: PatientData) => {
     const textData = JSON.stringify(rest);
     const historyContext = getRelevantHistoryContext(data.complaints);
     
-    const firstPart: { text: string } = { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` };
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [firstPart];
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+        { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` }
+    ];
 
     if (attachments && attachments.length > 0) {
-        firstPart.text += `\n\n[IMPORTANT]: The patient has attached ${attachments.length} medical file(s). Analyze these precisely.`;
+        parts[0].text += `\n\n[IMPORTANT]: The patient has attached ${attachments.length} medical file(s). Analyze these precisely.`;
         attachments.forEach(att => {
             parts.push({
                 inlineData: {
@@ -369,10 +438,11 @@ const buildMultimodalPrompt = (introText: string, data: PatientData) => {
 const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
     const { attachments, ...rest } = data;
     const textData = JSON.stringify(rest);
-    const firstPart: { text: string } = { text: `${introText}\n\nPATIENT: ${textData}` };
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [firstPart];
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+        { text: `${introText}\n\nPATIENT: ${textData}` }
+    ];
     if (attachments && attachments.length > 0) {
-        firstPart.text += `\nAttachments: ${attachments.length}.`;
+        parts[0].text += `\nAttachments: ${attachments.length}.`;
         attachments.forEach(att => {
             parts.push({
                 inlineData: { mimeType: att.mimeType, data: att.base64Data }
@@ -399,40 +469,40 @@ export const generateFastDoctorConsultation = async (
     const promptText = `Tashxis (name, probability, justification 2 jumla, reasoningChain 3 band, uzbekProtocolMatch). treatmentPlan 3-5 qadam. medications: name, dosage, frequency, duration, timing, instructions (qanday ichish, 1 jumla). recommendedTests, criticalFinding agar kerak. Til: ${langMap[language]}. JSON.`;
 
     const finalReportSchema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
             primaryDiagnosis: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    name: { type: Type.STRING },
-                    probability: { type: Type.NUMBER },
-                    justification: { type: Type.STRING },
-                    reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    uzbekProtocolMatch: { type: Type.STRING }
+                    name: { type: 'string' },
+                    probability: { type: 'number' },
+                    justification: { type: 'string' },
+                    reasoningChain: { type: 'array', items: { type: 'string' } },
+                    uzbekProtocolMatch: { type: 'string' }
                 }
             },
-            treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
+            treatmentPlan: { type: 'array', items: { type: 'string' } },
             medications: {
-                type: Type.ARRAY,
+                type: 'array',
                 items: {
-                    type: Type.OBJECT,
+                    type: 'object',
                     properties: {
-                        name: { type: Type.STRING },
-                        dosage: { type: Type.STRING },
-                        frequency: { type: Type.STRING },
-                        duration: { type: Type.STRING },
-                        timing: { type: Type.STRING },
-                        instructions: { type: Type.STRING }
+                        name: { type: 'string' },
+                        dosage: { type: 'string' },
+                        frequency: { type: 'string' },
+                        duration: { type: 'string' },
+                        timing: { type: 'string' },
+                        instructions: { type: 'string' }
                     }
                 }
             },
-            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
+            recommendedTests: { type: 'array', items: { type: 'string' } },
             criticalFinding: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    finding: { type: Type.STRING },
-                    implication: { type: Type.STRING },
-                    urgency: { type: Type.STRING }
+                    finding: { type: 'string' },
+                    implication: { type: 'string' },
+                    urgency: { type: 'string' }
                 }
             }
         },
@@ -441,7 +511,7 @@ export const generateFastDoctorConsultation = async (
 
     const multimodalPrompt = buildFastDoctorPrompt(promptText, patientData);
 
-    const DOCTOR_FAST_MODEL = 'gemini-2.5-flash-lite';
+    const DOCTOR_FAST_MODEL = DEPLOY_FAST;
     const runWithTokens = (maxTok: number) =>
         callGemini(multimodalPrompt, DOCTOR_FAST_MODEL, finalReportSchema, false, systemInstr, true, maxTok) as Promise<Record<string, unknown>>;
 
@@ -509,17 +579,17 @@ export const generateFastDoctorConsultationStream = async (
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     let fullText = '';
     try {
-        const stream = await getAI().models.generateContentStream({
-            model: 'gemini-3-flash-preview',
-            contents: multimodalPrompt,
-            config: {
-                systemInstruction: systemInstr,
-                temperature: 0.15,
-                maxOutputTokens: 1024,
-            },
+        const messages = buildMultimodalMessages(systemInstr, multimodalPrompt, true);
+        const stream = await getAI().chat.completions.create({
+            model: DEPLOY_FAST,
+            messages,
+            temperature: 0.15,
+            max_tokens: 1024,
+            response_format: { type: 'json_object' },
+            stream: true,
         });
         for await (const chunk of stream) {
-            const t = (chunk as { text?: string }).text ?? '';
+            const t = chunk.choices[0]?.delta?.content ?? '';
             if (t) {
                 fullText += t;
                 onChunk(fullText);
@@ -573,7 +643,7 @@ export const generateFastDoctorConsultationStream = async (
 export const structureDictatedNotes = async (notes: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Take the following unstructured clinical notes and organize them into clear, standard medical sections (Complaints, History, Objective, etc.). Correct any obvious transcription errors but preserve the original medical meaning. Notes: "${notes}". Output MUST be in ${langMap[language]}.`;
-    return callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const getDynamicSuggestions = async (complaintText: string, language: Language): Promise<{ relatedSymptoms: string[], diagnosticQuestions: string[] }> => {
@@ -583,13 +653,13 @@ export const getDynamicSuggestions = async (complaintText: string, language: Lan
     const systemInstr = getSystemInstruction(language);
     const prompt = `Based on the patient's complaints: "${complaintText}", suggest 3 related symptoms and 3 key diagnostic questions a doctor might ask. Return JSON { "relatedSymptoms": ["..."], "diagnosticQuestions": ["..."] }. Output MUST be in ${langMap[language]}.`;
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            relatedSymptoms: { type: Type.ARRAY, items: { type: Type.STRING } },
-            diagnosticQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            relatedSymptoms: { type: 'array', items: { type: 'string' } },
+            diagnosticQuestions: { type: 'array', items: { type: 'string' } },
         }
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<{ relatedSymptoms: string[]; diagnosticQuestions: string[] }>;
+    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const generateClarifyingQuestions = async (data: PatientData, language: Language): Promise<string[]> => {
@@ -608,8 +678,8 @@ export const generateClarifyingQuestions = async (data: PatientData, language: L
         `,
         data
     );
-    const schema = { type: Type.ARRAY, items: { type: Type.STRING } };
-    const result = await callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as string[];
+    const schema = { type: 'array', items: { type: 'string' } };
+    const result = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr) as string[];
     return result.length > 0 ? result : [];
 };
 
@@ -622,15 +692,15 @@ export const recommendSpecialists = async (data: PatientData, language: Language
     );
     
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
             recommendations: {
-                type: Type.ARRAY,
+                type: 'array',
                 items: {
-                    type: Type.OBJECT,
+                    type: 'object',
                     properties: {
-                        model: { type: Type.STRING, enum: Object.values(AIModel) },
-                        reason: { type: Type.STRING },
+                        model: { type: 'string', enum: Object.values(AIModel) },
+                        reason: { type: 'string' },
                     },
                     required: ['model', 'reason'],
                 },
@@ -638,7 +708,7 @@ export const recommendSpecialists = async (data: PatientData, language: Language
         },
         required: ['recommendations'],
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<{ recommendations: { model: AIModel; reason: string }[] }>;
+    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const generateInitialDiagnoses = async (data: PatientData, language: Language): Promise<Diagnosis[]> => {
@@ -655,21 +725,21 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
     );
 
     const schema = {
-        type: Type.ARRAY,
+        type: 'array',
         items: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
-                name: { type: Type.STRING },
-                probability: { type: Type.NUMBER },
-                justification: { type: Type.STRING },
-                evidenceLevel: { type: Type.STRING },
-                reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } },
-                uzbekProtocolMatch: { type: Type.STRING }
+                name: { type: 'string' },
+                probability: { type: 'number' },
+                justification: { type: 'string' },
+                evidenceLevel: { type: 'string' },
+                reasoningChain: { type: 'array', items: { type: 'string' } },
+                uzbekProtocolMatch: { type: 'string' }
             },
             required: ['name', 'probability', 'justification', 'evidenceLevel', 'reasoningChain'],
         },
     };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr) as Promise<Diagnosis[]>;
+    return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData: PatientData, language: Language): Promise<PrognosisReport | null> => {
@@ -677,16 +747,16 @@ const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData
     const { attachments, ...cleanData } = patientData;
     const prompt = `Based on patient data and debate history, update prognosis. Consider O'zbekiston SSV klinik protokollari va mahalliy davolash imkoniyatlari. Return JSON. Output Language: ${langMap[language]}. Debate: ${JSON.stringify(debateHistory.slice(-5))}. Patient: ${JSON.stringify(cleanData)}.`;
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            shortTermPrognosis: { type: Type.STRING },
-            longTermPrognosis: { type: Type.STRING },
-            keyFactors: { type: Type.ARRAY, items: { type: Type.STRING } },
-            confidenceScore: { type: Type.NUMBER }
+            shortTermPrognosis: { type: 'string' },
+            longTermPrognosis: { type: 'string' },
+            keyFactors: { type: 'array', items: { type: 'string' } },
+            confidenceScore: { type: 'number' }
         }
     };
     try {
-        return await callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<PrognosisReport>;
+        return await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
     } catch (e) {
         return null;
     }
@@ -718,7 +788,7 @@ export const runCouncilDebate = async (
 
     // Orchestrator Intro
     const introContentPrompt = `Generate a short intro message for the Council Chair (System) starting the medical council debate. Mention: the goal is to find the best diagnosis and treatment in accordance with Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved clinical protocols and legislation; only drugs registered and available in Uzbekistan will be recommended. Output Language: ${langMap[language]}.`;
-    const introContent = await callGemini(introContentPrompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+    const introContent = await callGemini(introContentPrompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
     
     const orchestratorIntro: ChatMessage = { id: `sys-intro-${Date.now()}`, author: AIModel.SYSTEM, content: introContent, isSystemMessage: true };
     onProgress({ type: 'message', message: orchestratorIntro });
@@ -727,7 +797,7 @@ export const runCouncilDebate = async (
 
     const DEBATE_ROUNDS = 3;
     let currentTopicPrompt = `Summarize the initial state: Patient data and initial diagnoses: ${JSON.stringify(diagnoses)}. Ask specialists for their initial evaluation and Red Flags. Output Language: ${langMap[language]}.`;
-    let currentTopic = await callGemini(currentTopicPrompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+    let currentTopic = await callGemini(currentTopicPrompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
 
     for (let round = 1; round <= DEBATE_ROUNDS; round++) {
         const roundMessages: Record<Language, string> = {
@@ -786,7 +856,7 @@ export const runCouncilDebate = async (
             const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData);
             
             try {
-                const responseText = await callGemini(specialistMultimodalPrompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as string;
+                const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
                 const specialistMessage: ChatMessage = { id: `${spec.role}-${Date.now()}`, author: spec.role, content: responseText };
                 onProgress({ type: 'message', message: specialistMessage });
                 debateHistory.push(specialistMessage);
@@ -809,7 +879,7 @@ export const runCouncilDebate = async (
                 LANGUAGE: ${langMap[language]}.
                 History: ${JSON.stringify(debateHistory)}
             `;
-            currentTopic = await callGemini(summarizationPrompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+            currentTopic = await callGemini(summarizationPrompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
         }
     }
 
@@ -824,24 +894,24 @@ export const runCouncilDebate = async (
     await sleep(2000);
 
     const finalReportSchema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
             criticalFinding: {
-                type: Type.OBJECT,
-                properties: { finding: { type: Type.STRING }, implication: { type: Type.STRING }, urgency: { type: Type.STRING } },
+                type: 'object',
+                properties: { finding: { type: 'string' }, implication: { type: 'string' }, urgency: { type: 'string' } },
             },
-            consensusDiagnosis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, probability: { type: Type.NUMBER }, justification: { type: Type.STRING }, evidenceLevel: { type: Type.STRING }, reasoningChain: { type: Type.ARRAY, items: { type: Type.STRING } }, uzbekProtocolMatch: { type: Type.STRING } } } },
-            rejectedHypotheses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, reason: { type: Type.STRING } }}},
-            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
-            treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
-            medicationRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, dosage: { type: Type.STRING }, notes: { type: Type.STRING }, localAvailability: { type: Type.STRING }, priceEstimate: { type: Type.STRING } }}},
-            unexpectedFindings: { type: Type.STRING },
-            uzbekistanLegislativeNote: { type: Type.STRING }, 
+            consensusDiagnosis: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, probability: { type: 'number' }, justification: { type: 'string' }, evidenceLevel: { type: 'string' }, reasoningChain: { type: 'array', items: { type: 'string' } }, uzbekProtocolMatch: { type: 'string' } } } },
+            rejectedHypotheses: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, reason: { type: 'string' } }}},
+            recommendedTests: { type: 'array', items: { type: 'string' } },
+            treatmentPlan: { type: 'array', items: { type: 'string' } },
+            medicationRecommendations: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' }, priceEstimate: { type: 'string' } }}},
+            unexpectedFindings: { type: 'string' },
+            uzbekistanLegislativeNote: { type: 'string' }, 
             imageAnalysis: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    findings: { type: Type.STRING },
-                    correlation: { type: Type.STRING }
+                    findings: { type: 'string' },
+                    correlation: { type: 'string' }
                 }
             }
         },
@@ -864,7 +934,7 @@ export const runCouncilDebate = async (
     const finalReportMultimodalPrompt = buildMultimodalPrompt(finalReportTextPrompt, patientData);
 
     try {
-        const finalReport = await callGemini(finalReportMultimodalPrompt, 'gemini-3-pro-preview', finalReportSchema, false, systemInstr) as FinalReport;
+        const finalReport = await callGemini(finalReportMultimodalPrompt, DEPLOY_PRO, finalReportSchema, false, systemInstr) as FinalReport;
         
         if (finalReport.criticalFinding && finalReport.criticalFinding.finding) {
             onProgress({ type: 'critical_finding', data: finalReport.criticalFinding });
@@ -883,103 +953,97 @@ export const analyzeEcgImage = async (image: { base64Data: string, mimeType: str
     const prompt = { parts: [textPart, imagePart] };
 
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            rhythm: { type: Type.STRING },
-            heartRate: { type: Type.STRING },
-            prInterval: { type: Type.STRING },
-            qrsDuration: { type: Type.STRING },
-            qtInterval: { type: Type.STRING },
-            axis: { type: Type.STRING },
-            morphology: { type: Type.STRING },
-            interpretation: { type: Type.STRING },
+            rhythm: { type: 'string' },
+            heartRate: { type: 'string' },
+            prInterval: { type: 'string' },
+            qrsDuration: { type: 'string' },
+            qtInterval: { type: 'string' },
+            axis: { type: 'string' },
+            morphology: { type: 'string' },
+            interpretation: { type: 'string' },
         },
         required: ['rhythm', 'heartRate', 'prInterval', 'qrsDuration', 'qtInterval', 'axis', 'morphology', 'interpretation']
     };
     
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<EcgReport>;
+    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const getIcd10Codes = async (diagnosis: string, language: Language): Promise<Icd10Code[]> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Provide ICD-10 codes for "${diagnosis}". ICD-10 is used in Uzbekistan (O'zbekiston) for official statistics and documentation. Return JSON array [{code, description}]. Output Language: ${langMap[language]}.`;
     const schema = {
-        type: Type.ARRAY,
+        type: 'array',
         items: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
-                code: { type: Type.STRING },
-                description: { type: Type.STRING },
+                code: { type: 'string' },
+                description: { type: 'string' },
             },
             required: ['code', 'description'],
         }
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<Icd10Code[]>;
+    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
-    const result = await callGemini(prompt, 'gemini-3-flash-preview', undefined, true, systemInstr) as GenerateContentResponse & { text?: string };
-    
-    const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
-    const sources = chunks.map((chunk: unknown) => {
-        const c = chunk as { web?: { title?: string; uri?: string }; uri?: string };
-        return { title: c.web?.title ?? c.web?.uri ?? '', uri: c.web?.uri ?? c.uri ?? '' };
-    });
-    
+    // Azure OpenAI doesn't support Google Search grounding – plain text call
+    const summary = await callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
     return {
-        summary: result.text ?? '',
-        sources: sources,
+        summary,
+        sources: [],
     };
 };
 
 export const interpretLabValue = async (labValue: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Interpret lab value: "${labValue}". Explain clinical significance. Use O'zbekiston LITS (Laboratoriya-indekslar va tibbiy standartlar) va SI birliklariga mos izoh bering; agar birlik ko'rsatilmasa, O'zbekistonda qo'llaniladigan odatiy birliklarni nazarda tuting. Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generatePatientExplanation = async (clinicalText: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Translate clinical text to simple patient language. Text: "${clinicalText}". Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const expandAbbreviation = async (abbreviation: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Expand medical abbreviation "${abbreviation}". Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateDischargeSummary = async (patientData: PatientData, finalReport: FinalReport, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Generate Discharge Summary. Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateInsurancePreAuth = async (patientData: PatientData, finalReport: FinalReport, procedure: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Write Insurance Pre-Auth letter for "${procedure}". Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const calculatePediatricDose = async (drugName: string, weightKg: number, language: Language): Promise<PediatricDose> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Calculate pediatric dose for ${drugName}, weight ${weightKg}kg. Return JSON {drugName, dose, calculation, warnings}. Output Language: ${langMap[language]}.`;
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            drugName: { type: Type.STRING },
-            dose: { type: Type.STRING },
-            calculation: { type: Type.STRING },
-            warnings: { type: Type.ARRAY, items: { type: Type.STRING } },
+            drugName: { type: 'string' },
+            dose: { type: 'string' },
+            calculation: { type: 'string' },
+            warnings: { type: 'array', items: { type: 'string' } },
         },
         required: ['drugName', 'dose', 'calculation', 'warnings'],
     };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr) as Promise<PediatricDose>;
+    return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 export const calculateRiskScore = async (scoreType: string, patientData: PatientData, language: Language): Promise<RiskScore> => {
@@ -987,33 +1051,33 @@ export const calculateRiskScore = async (scoreType: string, patientData: Patient
     const { attachments, ...rest } = patientData;
     const prompt = `Calculate ${scoreType} score. Patient: ${JSON.stringify(rest)}. Return JSON {name, score, interpretation}. Output Language: ${langMap[language]}.`;
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            name: { type: Type.STRING },
-            score: { type: Type.STRING },
-            interpretation: { type: Type.STRING },
+            name: { type: 'string' },
+            score: { type: 'string' },
+            interpretation: { type: 'string' },
         },
         required: ['name', 'score', 'interpretation'],
     };
-    return callGemini(prompt, 'gemini-3-pro-preview', schema, false, systemInstr) as Promise<RiskScore>;
+    return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 export const generatePatientEducationContent = async (report: FinalReport, language: Language): Promise<PatientEducationTopic[]> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Create 3-4 patient education topics based on report. Return JSON array [{title, content}]. Output Language: ${langMap[language]}.`;
     const schema = {
-        type: Type.ARRAY,
+        type: 'array',
         items: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
-                title: { type: Type.STRING },
-                content: { type: Type.STRING },
-                language: { type: Type.STRING },
+                title: { type: 'string' },
+                content: { type: 'string' },
+                language: { type: 'string' },
             },
             required: ['title', 'content'],
         }
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<PatientEducationTopic[]>;
+    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const continueDebate = async (
@@ -1032,7 +1096,7 @@ export const continueDebate = async (
     `;
     
     const prompt = buildMultimodalPrompt(promptText, patientData);
-    const response = await callGemini(prompt, 'gemini-3-flash-preview', undefined, false, systemInstr) as string;
+    const response = await callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
     
     return {
         id: `sys-continue-${Date.now()}`,
@@ -1059,26 +1123,26 @@ export const runScenarioAnalysis = async (
     const prompt = buildMultimodalPrompt(promptText, patientData);
 
     const finalReportSchema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            consensusDiagnosis: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, probability: { type: Type.NUMBER }, justification: { type: Type.STRING }, evidenceLevel: { type: Type.STRING } } } },
-            treatmentPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
-            medicationRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, dosage: { type: Type.STRING }, notes: { type: Type.STRING } } } },
-            rejectedHypotheses: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, reason: { type: Type.STRING } }}},
-            recommendedTests: { type: Type.ARRAY, items: { type: Type.STRING } },
-            unexpectedFindings: { type: Type.STRING },
-            uzbekistanLegislativeNote: { type: Type.STRING },
+            consensusDiagnosis: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, probability: { type: 'number' }, justification: { type: 'string' }, evidenceLevel: { type: 'string' } } } },
+            treatmentPlan: { type: 'array', items: { type: 'string' } },
+            medicationRecommendations: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' } } } },
+            rejectedHypotheses: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, reason: { type: 'string' } }}},
+            recommendedTests: { type: 'array', items: { type: 'string' } },
+            unexpectedFindings: { type: 'string' },
+            uzbekistanLegislativeNote: { type: 'string' },
         },
     };
 
-    return callGemini(prompt, 'gemini-3-pro-preview', finalReportSchema, false, systemInstr) as Promise<FinalReport>;
+    return callGemini(prompt, DEPLOY_PRO, finalReportSchema, false, systemInstr) as Promise<FinalReport>;
 };
 
 export const explainRationale = async (message: ChatMessage, patientData: PatientData, debateHistory: ChatMessage[], language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Explain medical rationale for message: "${message.content}". Reference symptoms and protocols. LANGUAGE: ${langMap[language]}. Patient: ${JSON.stringify(rest)}.`;
-    return callGemini(prompt, 'gemini-3-pro-preview', undefined, false, systemInstr) as Promise<string>;
+    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const suggestCmeTopics = async (history: AnalysisRecord[], language: Language): Promise<CMETopic[]> => {
@@ -1086,17 +1150,17 @@ export const suggestCmeTopics = async (history: AnalysisRecord[], language: Lang
     const systemInstr = getSystemInstruction(language);
     const prompt = `Suggest 2-3 CME topics based on history. Return JSON array [{topic, relevance}]. LANGUAGE: ${langMap[language]}. History: ${JSON.stringify(history.map(r => r.finalReport.consensusDiagnosis[0]?.name))}.`;
     const schema = {
-        type: Type.ARRAY,
+        type: 'array',
         items: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
-                topic: { type: Type.STRING },
-                relevance: { type: Type.STRING },
+                topic: { type: 'string' },
+                relevance: { type: 'string' },
             },
             required: ['topic', 'relevance'],
         },
     };
-    return callGemini(prompt, 'gemini-3-flash-preview', schema, false, systemInstr) as Promise<CMETopic[]>;
+    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const runResearchCouncilDebate = async (
@@ -1110,7 +1174,7 @@ export const runResearchCouncilDebate = async (
 
     const specialists = [AIModel.GPT, AIModel.LLAMA, AIModel.CLAUDE];
     for (const model of specialists) {
-        const translatedIntro = await callGemini(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, 'gemini-3-flash-preview', undefined, false, systemInstr);
+        const translatedIntro = await callGemini(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, DEPLOY_FAST, undefined, false, systemInstr);
         onProgress({ type: 'message', message: { id: `${model}-${Date.now()}`, author: model, content: translatedIntro as string, isThinking: false } });
         await sleep(500);
     }
@@ -1121,44 +1185,44 @@ export const runResearchCouncilDebate = async (
     const prompt = `Provide detailed research report on "${diseaseName}". Use web search for latest data. Return ONLY valid JSON (no markdown, no extra text). The JSON must have these fields: diseaseName, summary, epidemiology {prevalence, incidence, keyRiskFactors[]}, pathophysiology, emergingBiomarkers [{name, type, description}], clinicalGuidelines [{guidelineTitle, source, recommendations [{category, details[]}]}], potentialStrategies [{name, mechanism, evidence, pros[], cons[], riskBenefit {risk, benefit}, developmentRoadmap [{stage, duration, cost}], molecularTarget {name, pdbId}, ethicalConsiderations[], requiredCollaborations[], companionDiagnosticNeeded}], pharmacogenomics {relevantGenes [{gene, mutation, impact}], targetSubgroup}, patentLandscape {competingPatents [{patentId, title, assignee}], whitespaceOpportunities[]}, relatedClinicalTrials [{trialId, title, status, url}], strategicConclusion, sources [{title, uri}]. LANGUAGE: ${langMap[language]}.`;
 
     const researchReportSchema = {
-      type: Type.OBJECT,
+      type: 'object',
       properties: {
-        diseaseName: { type: Type.STRING },
-        summary: { type: Type.STRING },
+        diseaseName: { type: 'string' },
+        summary: { type: 'string' },
         epidemiology: {
-          type: Type.OBJECT,
+          type: 'object',
           properties: {
-            prevalence: { type: Type.STRING },
-            incidence: { type: Type.STRING },
-            keyRiskFactors: { type: Type.ARRAY, items: { type: Type.STRING } },
+            prevalence: { type: 'string' },
+            incidence: { type: 'string' },
+            keyRiskFactors: { type: 'array', items: { type: 'string' } },
           },
         },
-        pathophysiology: { type: Type.STRING },
+        pathophysiology: { type: 'string' },
         emergingBiomarkers: {
-          type: Type.ARRAY,
+          type: 'array',
           items: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
-              name: { type: Type.STRING },
-              type: { type: Type.STRING },
-              description: { type: Type.STRING },
+              name: { type: 'string' },
+              type: { type: 'string' },
+              description: { type: 'string' },
             },
           },
         },
         clinicalGuidelines: {
-            type: Type.ARRAY,
+            type: 'array',
             items: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    guidelineTitle: { type: Type.STRING },
-                    source: { type: Type.STRING },
+                    guidelineTitle: { type: 'string' },
+                    source: { type: 'string' },
                     recommendations: {
-                        type: Type.ARRAY,
+                        type: 'array',
                         items: {
-                            type: Type.OBJECT,
+                            type: 'object',
                             properties: {
-                                category: { type: Type.STRING },
-                                details: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                category: { type: 'string' },
+                                details: { type: 'array', items: { type: 'string' } },
                             },
                         },
                     },
@@ -1166,100 +1230,100 @@ export const runResearchCouncilDebate = async (
             },
         },
         potentialStrategies: {
-          type: Type.ARRAY,
+          type: 'array',
           items: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
-              name: { type: Type.STRING },
-              mechanism: { type: Type.STRING },
-              evidence: { type: Type.STRING },
-              pros: { type: Type.ARRAY, items: { type: Type.STRING } },
-              cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+              name: { type: 'string' },
+              mechanism: { type: 'string' },
+              evidence: { type: 'string' },
+              pros: { type: 'array', items: { type: 'string' } },
+              cons: { type: 'array', items: { type: 'string' } },
               riskBenefit: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                  risk: { type: Type.STRING },
-                  benefit: { type: Type.STRING },
+                  risk: { type: 'string' },
+                  benefit: { type: 'string' },
                 },
               },
               developmentRoadmap: {
-                type: Type.ARRAY,
+                type: 'array',
                 items: {
-                    type: Type.OBJECT,
+                    type: 'object',
                     properties: {
-                        stage: { type: Type.STRING },
-                        duration: { type: Type.STRING },
-                        cost: { type: Type.STRING },
+                        stage: { type: 'string' },
+                        duration: { type: 'string' },
+                        cost: { type: 'string' },
                     }
                 }
               },
               molecularTarget: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    name: { type: Type.STRING },
-                    pdbId: { type: Type.STRING }
+                    name: { type: 'string' },
+                    pdbId: { type: 'string' }
                 }
               },
-              ethicalConsiderations: { type: Type.ARRAY, items: { type: Type.STRING } },
-              requiredCollaborations: { type: Type.ARRAY, items: { type: Type.STRING } },
-              companionDiagnosticNeeded: { type: Type.STRING },
+              ethicalConsiderations: { type: 'array', items: { type: 'string' } },
+              requiredCollaborations: { type: 'array', items: { type: 'string' } },
+              companionDiagnosticNeeded: { type: 'string' },
             },
           },
         },
         pharmacogenomics: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
                 relevantGenes: {
-                    type: Type.ARRAY,
+                    type: 'array',
                     items: {
-                        type: Type.OBJECT,
+                        type: 'object',
                         properties: {
-                            gene: { type: Type.STRING },
-                            mutation: { type: Type.STRING },
-                            impact: { type: Type.STRING },
+                            gene: { type: 'string' },
+                            mutation: { type: 'string' },
+                            impact: { type: 'string' },
                         }
                     }
                 },
-                targetSubgroup: { type: Type.STRING },
+                targetSubgroup: { type: 'string' },
             }
         },
         patentLandscape: {
-            type: Type.OBJECT,
+            type: 'object',
             properties: {
                 competingPatents: {
-                    type: Type.ARRAY,
+                    type: 'array',
                     items: {
-                        type: Type.OBJECT,
+                        type: 'object',
                         properties: {
-                            patentId: { type: Type.STRING },
-                            title: { type: Type.STRING },
-                            assignee: { type: Type.STRING },
+                            patentId: { type: 'string' },
+                            title: { type: 'string' },
+                            assignee: { type: 'string' },
                         }
                     }
                 },
-                whitespaceOpportunities: { type: Type.ARRAY, items: { type: Type.STRING } }
+                whitespaceOpportunities: { type: 'array', items: { type: 'string' } }
             }
         },
         relatedClinicalTrials: {
-            type: Type.ARRAY,
+            type: 'array',
             items: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    trialId: { type: Type.STRING },
-                    title: { type: Type.STRING },
-                    status: { type: Type.STRING },
-                    url: { type: Type.STRING },
+                    trialId: { type: 'string' },
+                    title: { type: 'string' },
+                    status: { type: 'string' },
+                    url: { type: 'string' },
                 }
             }
         },
-        strategicConclusion: { type: Type.STRING },
+        strategicConclusion: { type: 'string' },
         sources: {
-            type: Type.ARRAY,
+            type: 'array',
             items: {
-                type: Type.OBJECT,
+                type: 'object',
                 properties: {
-                    title: { type: Type.STRING },
-                    uri: { type: Type.STRING },
+                    title: { type: 'string' },
+                    uri: { type: 'string' },
                 }
             }
         }
@@ -1267,18 +1331,14 @@ export const runResearchCouncilDebate = async (
     };
 
     try {
-        // useSearch=true va responseSchema birga ishlamaydi (callGemini ichida schema birinchi tekshiriladi).
-        // Shuning uchun schema'siz chaqiramiz, raw response olamiz, keyin JSON parse qilamiz.
-        const result = await callGemini(prompt, 'gemini-3-pro-preview', undefined, true, systemInstr) as GenerateContentResponse;
-        
-        const rawText = result?.text || '';
-        const cleanedText = rawText.replace(/^```json\s*|```\s*$/g, '').trim();
-        
+        // Azure OpenAI – JSON response (no grounding/web search available)
+        const rawText = await callGemini(prompt, DEPLOY_PRO, {}, false, systemInstr) as string;
+        const cleanedText = (rawText || '').replace(/^```json\s*|```\s*$/g, '').trim();
+
         let reportData: ResearchReport;
         try {
             reportData = JSON.parse(cleanedText);
         } catch {
-            // JSON parse xatosi — truncated bo'lishi mumkin
             const repaired = tryRepairTruncatedJson(cleanedText);
             if (repaired) {
                 reportData = repaired as ResearchReport;
@@ -1286,21 +1346,8 @@ export const runResearchCouncilDebate = async (
                 throw new Error("Tadqiqot hisoboti JSON formatida kelmadi.");
             }
         }
-
-        // Grounding sources — null-safe access
-        const groundingChunks = result?.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        if (groundingChunks && Array.isArray(groundingChunks)) {
-            reportData.sources = groundingChunks
-                .filter((chunk: Record<string, unknown>) => chunk?.web)
-                .map((chunk: Record<string, unknown>) => {
-                    const web = chunk.web as { title?: string; uri?: string } | undefined;
-                    return {
-                        title: web?.title || web?.uri || '',
-                        uri: web?.uri || ''
-                    };
-                })
-                .filter((v: { uri?: string }) => v.uri) || [];
-        }
+        // No grounding sources from Azure
+        if (!reportData.sources) reportData.sources = [];
 
         onProgress({ type: 'report', data: reportData });
     } catch (e) {
@@ -1350,16 +1397,16 @@ JSON formatda faqat quyidagilarni qaytaring (batafsil matnlar bilan):
 Output Language: ${langMap[language]}.`;
 
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            severity: { type: Type.STRING, enum: ['High', 'Moderate', 'Low', 'None'] },
-            description: { type: Type.STRING },
-            clinicalSignificance: { type: Type.STRING },
-            recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+            severity: { type: 'string', enum: ['High', 'Moderate', 'Low', 'None'] },
+            description: { type: 'string' },
+            clinicalSignificance: { type: 'string' },
+            recommendations: { type: 'array', items: { type: 'string' } }
         }
     };
 
-    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 896) as Record<string, unknown>;
+    const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 896) as Record<string, unknown>;
 
     const sevRaw = String((raw as any).severity || '').toLowerCase();
     let severityUz = 'Xavf aniqlanmadi';
@@ -1392,7 +1439,7 @@ Talablar:
 Faqat soddalashtirilgan matn yozing, hech qanday ro'yxat, bullet, JSON yoki kod ishlatmang.
 Javob tili: ${langMap[language]}.
 `;
-                description = await callGemini(descPrompt, 'gemini-2.5-flash', undefined, false, getSystemInstruction(language)) as string;
+                description = await callGemini(descPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
             } catch {
                 description = `Quyidagi dorilar kombinatsiyasi (${drugs.join(', ')}) uchun AI aniq mexanizmni qaytarmadi, lekin xavf darajasi "${severityUz}". Klinik holatga qarab ehtiyotkorlik bilan qo'llash va qo'shimcha manbalarni ko'rib chiqish zarur.`;
             }
@@ -1417,7 +1464,7 @@ Talablar:
 Faqat izoh matnini yozing, ro'yxat va JSON ishlatmang.
 Javob tili: ${langMap[language]}.
 `;
-                clinicalSignificance = await callGemini(signifPrompt, 'gemini-2.5-flash', undefined, false, getSystemInstruction(language)) as string;
+                clinicalSignificance = await callGemini(signifPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
             } catch {
                 clinicalSignificance = `Ushbu kombinatsiya (${drugs.join(', ')}) uchun "${severityUz}" xavf darajasi taxmin qilinmoqda. Ayniqsa xavf guruhi hisoblangan bemorlarda (keksa yosh, ko'p dori qabul qiladiganlar, yurak yoki buyrak/jigar yetishmovchiligi borlar) yaqin monitoring va dozani ehtiyotkorlik bilan tanlash zarur.`;
             }
@@ -1464,21 +1511,21 @@ JSON formatda faqat quyidagilarni qaytaring:
 O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar ma'lumotlarini bering. Output Language: ${langMap[language]}.`;
 
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            name: { type: Type.STRING },
-            activeIngredient: { type: Type.STRING },
-            dosage: { type: Type.STRING },
-            indications: { type: Type.ARRAY, items: { type: Type.STRING } },
-            contraindications: { type: Type.ARRAY, items: { type: Type.STRING } },
-            sideEffects: { type: Type.ARRAY, items: { type: Type.STRING } },
-            dosageInstructions: { type: Type.STRING },
-            availabilityInUzbekistan: { type: Type.STRING },
-            priceRange: { type: Type.STRING }
+            name: { type: 'string' },
+            activeIngredient: { type: 'string' },
+            dosage: { type: 'string' },
+            indications: { type: 'array', items: { type: 'string' } },
+            contraindications: { type: 'array', items: { type: 'string' } },
+            sideEffects: { type: 'array', items: { type: 'string' } },
+            dosageInstructions: { type: 'string' },
+            availabilityInUzbekistan: { type: 'string' },
+            priceRange: { type: 'string' }
         }
     };
 
-    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 640) as Record<string, unknown>;
     const toArray = (v: unknown): string[] => {
         if (!v) return [];
         if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);
@@ -1545,21 +1592,21 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot ber
     };
 
     const schema = {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-            name: { type: Type.STRING },
-            activeIngredient: { type: Type.STRING },
-            dosage: { type: Type.STRING },
-            indications: { type: Type.ARRAY, items: { type: Type.STRING } },
-            contraindications: { type: Type.ARRAY, items: { type: Type.STRING } },
-            sideEffects: { type: Type.ARRAY, items: { type: Type.STRING } },
-            dosageInstructions: { type: Type.STRING },
-            availabilityInUzbekistan: { type: Type.STRING },
-            priceRange: { type: Type.STRING }
+            name: { type: 'string' },
+            activeIngredient: { type: 'string' },
+            dosage: { type: 'string' },
+            indications: { type: 'array', items: { type: 'string' } },
+            contraindications: { type: 'array', items: { type: 'string' } },
+            sideEffects: { type: 'array', items: { type: 'string' } },
+            dosageInstructions: { type: 'string' },
+            availabilityInUzbekistan: { type: 'string' },
+            priceRange: { type: 'string' }
         }
     };
 
-    const raw = await callGemini(prompt, 'gemini-2.5-flash', schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 640) as Record<string, unknown>;
     const toArray = (v: unknown): string[] => {
         if (!v) return [];
         if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);

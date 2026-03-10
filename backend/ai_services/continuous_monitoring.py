@@ -19,7 +19,10 @@ except ImportError:
     get_channel_layer = None
     async_to_sync = None
 
-from .gemini_utils import _call_gemini, GEMINI_PRO, GEMINI_FLASH
+from .azure_utils import _call_gemini, DEPLOY_GPT4O, DEPLOY_MINI
+
+GEMINI_PRO = DEPLOY_GPT4O()
+GEMINI_FLASH = DEPLOY_MINI()
 from .clinical_decision_engine import clinical_decision_engine
 from .self_learning_system import self_learning_system
 
