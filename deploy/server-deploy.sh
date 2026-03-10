@@ -26,6 +26,12 @@ npm install --silent 2>/dev/null || npm install
 export VITE_API_BASE_URL=https://medoraai.cdcgroup.uz/api
 npm run build
 
+# Nginx (www-data) /root/medoraai/dist ni o'qishi uchun huquq
+chmod 755 /root 2>/dev/null || true
+chmod 755 "$APP_DIR" "$APP_DIR/dist" 2>/dev/null || true
+chmod -R o+rX "$APP_DIR/dist" 2>/dev/null || true
+chmod -R o+rX "$APP_DIR/backend/staticfiles" "$APP_DIR/backend/media" 2>/dev/null || true
+
 echo "=== 4. Gateway dependencies (backend venv) ==="
 cd "$APP_DIR/backend" && source venv/bin/activate
 pip install -q -r ../monitoring_gateway/requirements.txt
