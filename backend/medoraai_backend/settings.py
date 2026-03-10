@@ -23,9 +23,9 @@ if not DEBUG and SECRET_KEY == _default_secret:
         'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
     )
 
-# ALLOWED_HOSTS: barcha Host qabul qilinsin (400 Bad Request to'liq bartaraf)
-# Keyinchalik xavfsizlik uchun ro'yxatni qisqartirish mumkin: ['medora.cdcgroup.uz', 'localhost', ...]
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS: env dan (systemd .service) yoki barcha hostlar ['*']
+_raw = os.environ.get('ALLOWED_HOSTS', '').strip()
+ALLOWED_HOSTS = [h.strip() for h in _raw.split(',') if h.strip()] if _raw else ['*']
 
 # Application definition
 INSTALLED_APPS = [
