@@ -39,6 +39,8 @@ try:
 except Exception:
     _env_hosts = ['localhost', '127.0.0.1']
 ALLOWED_HOSTS = _required_hosts + [h for h in _env_hosts if h not in _required_hosts]
+if 'medora.cdcgroup.uz' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = list(ALLOWED_HOSTS) + ['medora.cdcgroup.uz']
 
 # Application definition
 INSTALLED_APPS = [
