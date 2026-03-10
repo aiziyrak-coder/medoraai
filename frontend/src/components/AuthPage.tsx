@@ -177,7 +177,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     const user = authService.getCurrentUser();
                     // Validation for correct role login
                     if (user && user.role !== role) {
-                        const roleLabel = user.role === 'clinic' ? 'Klinika' : user.role === 'doctor' ? 'Shifokor' : user.role === 'staff' ? 'Registrator' : user.role === 'monitoring' ? 'Monitoring' : user.role;
+                        const roleLabel = user.role === 'clinic' ? 'Klinika' : user.role === 'doctor' ? 'Shifokor' : user.role === 'staff' ? 'Registrator' : user.role;
                         setError(`Siz noto'g'ri bo'limdasiz. Sizning rolingiz: ${roleLabel}`);
                         authService.logout();
                     } else if (user) {
@@ -242,9 +242,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         } else if (selectedRole === 'staff') {
             setPhone('+998901112233'); // Demo for staff
             setPassword('staff_demo');
-        } else if (selectedRole === 'monitoring') {
-            setPhone('');
-            setPassword('');
         }
     };
 
@@ -354,7 +351,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 <li>• <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
                                 <li>• <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
                                 <li>• <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
-                                <li>• <strong>{t('auth_mode_monitoring')}:</strong> {t('auth_mode_monitoring_desc')}</li>
                             </ul>
                         </div>
 
@@ -401,12 +397,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                             >
                                 {t('auth_mode_staff')}
                             </button>
-                            <button
-                                onClick={() => handleRoleSelect('monitoring')}
-                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'monitoring' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                {t('auth_mode_monitoring')}
-                            </button>
                         </div>
 
                         <div className="text-center lg:text-left">
@@ -417,7 +407,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 {role === 'clinic' && t('auth_clinic_login_help')}
                                 {role === 'doctor' && t('auth_doctor_login_help')}
                                 {role === 'staff' && t('auth_staff_login_help')}
-                                {role === 'monitoring' && t('auth_monitoring_login_help')}
                             </p>
                         </div>
 

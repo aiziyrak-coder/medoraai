@@ -19,14 +19,6 @@ from .views import (
     stop_monitoring,
     record_treatment_outcome,
     get_improved_protocol,
-    monitoring_ai_risk_score,
-    monitoring_ai_explain_alarm,
-    monitoring_ai_daily_summary,
-    monitoring_ai_draft_note,
-    monitoring_ai_trend_prediction,
-    monitoring_ai_early_warning,
-    monitoring_ai_suggest_thresholds,
-    monitoring_ai_mortality_prediction,
 )
 
 app_name = "ai_services"
@@ -58,13 +50,4 @@ urlpatterns = [
     path("learning/outcome/", record_treatment_outcome, name="record_treatment_outcome"),
     path("learning/improve/", get_improved_protocol,    name="get_improved_protocol"),
 
-    # ── Monitoring AI (vitals/alarms — Gemini tahlil) ───
-    path("monitoring/risk-score/",         monitoring_ai_risk_score,         name="monitoring_ai_risk_score"),
-    path("monitoring/explain-alarm/",     monitoring_ai_explain_alarm,     name="monitoring_ai_explain_alarm"),
-    path("monitoring/daily-summary/",     monitoring_ai_daily_summary,     name="monitoring_ai_daily_summary"),
-    path("monitoring/draft-note/",        monitoring_ai_draft_note,        name="monitoring_ai_draft_note"),
-    path("monitoring/trend-prediction/",   monitoring_ai_trend_prediction,   name="monitoring_ai_trend_prediction"),
-    path("monitoring/early-warning/",      monitoring_ai_early_warning,      name="monitoring_ai_early_warning"),
-    path("monitoring/suggest-thresholds/", monitoring_ai_suggest_thresholds, name="monitoring_ai_suggest_thresholds"),
-    path("monitoring/mortality-prediction/", monitoring_ai_mortality_prediction, name="monitoring_ai_mortality_prediction"),
 ]

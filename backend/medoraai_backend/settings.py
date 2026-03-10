@@ -60,7 +60,6 @@ INSTALLED_APPS += [
     'patients',
     'analyses',
     'ai_services',
-    'monitoring',
 ]
 
 MIDDLEWARE = [
@@ -311,9 +310,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Telegram (payment receipts) - set in production .env, never expose to frontend
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 TELEGRAM_PAYMENT_GROUP_ID = config('TELEGRAM_PAYMENT_GROUP_ID', default='')
-
-# Monitoring gateway ingest (TCP -> Django). Gateway sends X-API-Key with this value.
-MONITORING_INGEST_API_KEY = config('MONITORING_INGEST_API_KEY', default='monitoring-ingest-secret-change-in-production')
 
 # Celery Configuration (for async tasks)
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')

@@ -11,7 +11,6 @@ export default defineConfig(({ mode }) => {
     mode === 'production' ? 'https://medoraapi.ziyrak.org/api' : 'http://localhost:8000/api'
   );
   const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
-  const monitoringWsUrl = env.VITE_MONITORING_WS_URL || '';
   const azureEndpoint   = env.VITE_AZURE_OPENAI_ENDPOINT   || '';
   const azureApiKey     = env.VITE_AZURE_OPENAI_API_KEY   || '';
   const azureApiVersion = env.VITE_AZURE_API_VERSION     || '2024-12-01-preview';
@@ -34,7 +33,6 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiUrl),
-      'import.meta.env.VITE_MONITORING_WS_URL': JSON.stringify(monitoringWsUrl),
       'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
       'import.meta.env.VITE_AZURE_OPENAI_ENDPOINT': JSON.stringify(azureEndpoint),
       'import.meta.env.VITE_AZURE_OPENAI_API_KEY': JSON.stringify(azureApiKey),

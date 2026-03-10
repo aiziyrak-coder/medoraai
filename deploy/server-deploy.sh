@@ -17,9 +17,6 @@ fi
 source venv/bin/activate
 pip install -q -r requirements.txt
 python manage.py migrate --noinput
-python manage.py remove_monitoring_demo_user 2>/dev/null || true
-python manage.py clear_monitoring_demo_vitals 2>/dev/null || true
-python manage.py create_monitoring_demo_data 2>/dev/null || true
 python manage.py collectstatic --noinput 2>/dev/null || true
 deactivate
 # Backend restart — yangi ALLOWED_HOSTS/settings uchun (400 Bad Request bartaraf)
@@ -44,11 +41,6 @@ if [ ! -f "$APP_DIR/dist/index.html" ]; then
   exit 1
 fi
 echo "  dist/index.html mavjud ($(wc -c < "$APP_DIR/dist/index.html") bayt)"
-
-echo "=== 4. Gateway dependencies (backend venv) ==="
-cd "$APP_DIR/backend" && source venv/bin/activate
-pip install -q -r ../monitoring_gateway/requirements.txt
-deactivate
 
 # Serverni .env da ALLOWED_HOSTS override qilishini o'chirish (DisallowedHost bartaraf)
 if [ -f "$APP_DIR/backend/.env" ]; then
@@ -125,24 +117,7 @@ else
   echo "Nginx sites-available yo'q."
 fi
 
-echo "=== 7. Monitoring Gateway (port 9000 + HL7 6006) ==="
-# K12 serverga ulanishi uchun 6006 port ochiq bo'lishi kerak
-if command -v ufw >/dev/null 2>&1; then
-  ufw allow 6006/tcp 2>/dev/null && echo "  ufw: 6006/tcp ochiq (K12 HL7 ulanishi uchun)." || true
-fi
-mkdir -p "$APP_DIR/monitoring_gateway/logs"
-if [ ! -f "$APP_DIR/monitoring_gateway/.env" ]; then
-  cp "$APP_DIR/monitoring_gateway/.env.example" "$APP_DIR/monitoring_gateway/.env"
-  echo "  Gateway .env .env.example dan yaratildi."
-fi
-cp "$APP_DIR/deploy/medoraai-gateway-9000.service" /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable medoraai-gateway-9000.service 2>/dev/null || true
-systemctl restart medoraai-gateway-9000.service 2>/dev/null || true
-sleep 2
-curl -s http://127.0.0.1:9000/health 2>/dev/null | head -c 80 && echo "" || echo "  Gateway 9000 hali javob bermadi (keyin tekshiring)."
-
-echo "=== 8. Tekshirish ==="
+echo "=== 7. Tekshirish ==="
 sleep 2
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/ && echo " Backend 8001 OK" || echo " Backend 8001 javob bermadi"
 systemctl is-active --quiet medoraai-backend-8001.service && echo "medoraai-backend-8001: active" || echo "medoraai-backend-8001: FAIL"

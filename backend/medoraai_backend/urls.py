@@ -72,7 +72,6 @@ urlpatterns += [
     path('api/patients/', include('patients.urls')),
     path('api/analyses/', include('analyses.urls')),
     path('api/ai/', include('ai_services.urls')),
-    path('api/monitoring/', include('monitoring.urls')),
     path('api/ziyrak/', include('ai_services.ziyrak_urls')),
 ]
 

@@ -18,7 +18,6 @@ import UserGuide from './components/UserGuide'; // New Import
 import SubscriptionPage from './components/SubscriptionPage';
 import DoctorDashboard from './components/DoctorDashboard';
 import StaffDashboard from './components/StaffDashboard';
-import MonitoringDashboard from './components/MonitoringDashboard';
 import TvDisplay from './components/TvDisplay';
 import DataInputForm from './components/DataInputForm';
 import HistoryView from './components/HistoryView';
@@ -738,11 +737,6 @@ const AppContent: React.FC = () => {
         return <StaffDashboard user={currentUser} onLogout={handleLogout} />;
     }
 
-    // --- MONITORING MODE (Bemor Monitoring Platform) ---
-    if (currentUser.role === 'monitoring') {
-        return <MonitoringDashboard user={currentUser} onLogout={handleLogout} />;
-    }
-    
     // --- CLINIC MODE (With Mobile Restriction) ---
     if (isMobile) {
         return <MobileBlocker onLogout={handleLogout} />;

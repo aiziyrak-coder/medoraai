@@ -38,7 +38,7 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
 
 /** Foydalanuvchining obunasi faolmi (trial yoki to'langan) */
 export function hasActiveSubscription(user: User): boolean {
-  if (user.role === 'staff' || user.role === 'monitoring') return true;
+  if (user.role === 'staff') return true;
   if (user.subscriptionStatus !== 'active') return false;
   const now = new Date();
   if (user.trialEndsAt && new Date(user.trialEndsAt) > now) return true;
@@ -57,7 +57,7 @@ export interface RegisterData {
   name: string;
   password: string;
   password_confirm?: string;
-  role: 'clinic' | 'doctor' | 'staff' | 'monitoring';
+  role: 'clinic' | 'doctor' | 'staff';
   specialties?: string[];
   linked_doctor?: string;
 }

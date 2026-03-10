@@ -137,7 +137,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('clinic', 'Klinika'),
         ('doctor', 'Shifokor'),
         ('staff', 'Registrator'),
-        ('monitoring', 'Bemor monitoring'),
     ]
     
     SUBSCRIPTION_STATUS_CHOICES = [
@@ -239,12 +238,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         return False
 
     def max_concurrent_sessions(self):
-        """Bitta obunani bir nechta odam ishlatishini oldini olish: shifokor 1, klinika 2, staff 1, monitoring 2."""
+        """Bitta obunani bir nechta odam ishlatishini oldini olish: shifokor 1, klinika 2, staff 1."""
         if self.role == 'doctor':
             return 1
         if self.role == 'clinic':
-            return 2
-        if self.role == 'monitoring':
             return 2
         return 1  # staff
 
