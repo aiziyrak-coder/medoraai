@@ -1472,7 +1472,7 @@ const ManagementView: React.FC<{
                         <td className="px-4 py-3 text-slate-400">{d.host && d.port ? `${d.host}:${d.port}` : '—'}</td>
                         <td className="px-4 py-3">{d.room_name || '—'}</td>
                         <td className="px-4 py-3">
-                          <span className={d.status === 'online' ? 'text-green-400' : 'text-slate-400'}>{d.status}</span>
+                          <span className={(d.effective_status ?? d.status) === 'online' ? 'text-green-400' : 'text-slate-400'}>{(d.effective_status ?? d.status)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <button type="button" onClick={() => { setEditingDeviceId(d.id); setDeviceSerial(d.serial_number); setDeviceModel(d.model); setDeviceRoomId(d.room != null ? String(d.room) : ''); setDeviceHost(d.host || ''); setDevicePort(d.port != null ? String(d.port) : ''); setShowDeviceForm(true); }} className="text-blue-400 hover:text-blue-300 text-sm mr-2">Tahrirlash</button>

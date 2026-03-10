@@ -18,7 +18,7 @@ from .models import (
     MonitoringAuditLog, MonitoringNote,
     MonitoringMedication, MonitoringLabResult, FamilyViewToken,
 )
-from .services import evaluate_vital_alarms, get_vital_status
+from .services import evaluate_vital_alarms, get_vital_status, effective_device_status
 from .serializers import (
     WardSerializer, RoomSerializer, DeviceSerializer, DeviceRegisterSerializer,
     PatientMonitorSerializer, VitalReadingSerializer, AlarmThresholdSerializer, AlarmSerializer,
@@ -477,7 +477,7 @@ class DashboardSummary(APIView):
                 'room_name': pm.room.name,
                 'ward_name': pm.room.ward.name if pm.room.ward else None,
                 'device_serial': pm.device.serial_number,
-                'device_status': pm.device.status,
+                'device_status': effective_device_status(pm.device),
                 'bed_status': pm.bed_status,
                 'assigned_to': pm.assigned_to_id,
                 'assigned_to_name': pm.assigned_to.name if pm.assigned_to else None,

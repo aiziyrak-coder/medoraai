@@ -24,18 +24,24 @@ class RoomSerializer(serializers.ModelSerializer):
 
 class DeviceSerializer(serializers.ModelSerializer):
     room_name = serializers.SerializerMethodField()
+    effective_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Device
         fields = [
             'id', 'model', 'serial_number', 'room', 'room_name',
             'host', 'port',
-            'status', 'last_seen_at', 'meta', 'is_active', 'created_at', 'updated_at'
+            'status', 'effective_status', 'last_seen_at', 'meta', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['status', 'last_seen_at']
 
     def get_room_name(self, obj):
         return obj.room.name if obj.room_id else None
+
+    def get_effective_status(self, obj):
+        """Online if last_seen_at within last 2 minutes, else offline."""
+        from .services import effective_device_status
+        return effective_device_status(obj)
 
 
 class DeviceRegisterSerializer(serializers.ModelSerializer):

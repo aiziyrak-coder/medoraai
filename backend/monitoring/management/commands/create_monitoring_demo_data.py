@@ -87,6 +87,22 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"Bemor monitorida allaqachon {count_before} ta vital bor; demo qo'shilmadi.")
 
+        # Barcha boshqa bemor monitorlari (vitals=0) uchun ham bitta demo vital — kartochkada "--" o'rniga raqamlar chiqadi
+        for other_pm in PatientMonitor.objects.filter(is_active=True).exclude(pk=pm.pk):
+            if VitalReading.objects.filter(patient_monitor=other_pm).exists():
+                continue
+            VitalReading.objects.create(
+                patient_monitor=other_pm,
+                timestamp=timezone.now(),
+                heart_rate=75,
+                spo2=97,
+                nibp_systolic=118,
+                nibp_diastolic=78,
+                respiration_rate=16,
+                temperature=36.5,
+            )
+            self.stdout.write(self.style.SUCCESS(f"Demo vital qo'shildi: {other_pm.patient_name or other_pm.bed_label} (id={other_pm.id})."))
+
         self.stdout.write("")
         self.stdout.write("Platformada (Monitoring dashboard) endi bitta kartochka ko'rinadi.")
         self.stdout.write("Haqiqiy qurilma ma'lumotlari uchun: Gateway ishga tushiring, Device.serial_number = gateway device_id (masalan K12_01).")

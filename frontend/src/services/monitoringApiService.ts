@@ -37,6 +37,8 @@ export interface Device {
   host?: string;
   port?: number | null;
   status: 'online' | 'offline' | 'maintenance';
+  /** Computed: online if last_seen_at within 2 min, else offline */
+  effective_status?: 'online' | 'offline';
   last_seen_at: string | null;
   meta: Record<string, unknown>;
   is_active: boolean;

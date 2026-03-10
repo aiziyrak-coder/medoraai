@@ -9,6 +9,18 @@ from .models import VitalReading, Alarm, AlarmThreshold
 
 logger = logging.getLogger(__name__)
 
+# Qurilma "online" hisoblash: oxirgi 2 daqiqada ma'lumot kelsa
+DEVICE_ONLINE_THRESHOLD_SECONDS = 120
+
+
+def effective_device_status(device) -> str:
+    """Return 'online' if device sent data in last DEVICE_ONLINE_THRESHOLD_SECONDS, else 'offline'."""
+    if not getattr(device, 'last_seen_at', None):
+        return 'offline'
+    delta = timezone.now() - device.last_seen_at
+    return 'online' if delta.total_seconds() <= DEVICE_ONLINE_THRESHOLD_SECONDS else 'offline'
+
+
 # Default critical thresholds (hospital-grade)
 DEFAULT_SPO2_CRITICAL_MIN = 90
 DEFAULT_HR_CRITICAL_HIGH = 130
