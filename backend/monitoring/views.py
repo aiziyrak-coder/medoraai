@@ -97,9 +97,34 @@ class DeviceRegister(APIView):
     permission_classes = [MonitoringPermission]
 
     def post(self, request):
-        ser = DeviceRegisterSerializer(data=request.data)
+        # JSON yoki form data: bitta qiymatli listlarni oddiy qiymatga olish
+        raw = request.data
+        data = {}
+        for k, v in raw.items():
+            if isinstance(v, list) and len(v) == 1:
+                data[k] = v[0]
+            else:
+                data[k] = v
+        if data.get('host') in ('', None):
+            data['host'] = ''
+        if data.get('port') in ('', None):
+            data['port'] = None
+        if data.get('room') in ('', None):
+            data['room'] = None
+        ser = DeviceRegisterSerializer(data=data)
         if not ser.is_valid():
-            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+            errors = ser.errors
+            parts = []
+            for field, msgs in errors.items():
+                if isinstance(msgs, list):
+                    parts.extend(f"{field}: {m}" for m in msgs)
+                else:
+                    parts.append(f"{field}: {msgs}")
+            message = " ".join(parts) if parts else "Ma'lumotlar noto'g'ri."
+            return Response({
+                'error': {'message': message, 'details': errors},
+                'details': errors,
+            }, status=status.HTTP_400_BAD_REQUEST)
         device = ser.save()
         return Response(DeviceSerializer(device).data, status=status.HTTP_201_CREATED)
 

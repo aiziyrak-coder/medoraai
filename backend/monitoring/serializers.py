@@ -46,6 +46,10 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 class DeviceRegisterSerializer(serializers.ModelSerializer):
     """POST /api/v1/devices/register – yangi monitor qoʻshish."""
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all(), required=False, allow_null=True)
+    host = serializers.CharField(required=False, allow_blank=True, default='')
+    port = serializers.IntegerField(required=False, allow_null=True)
+
     class Meta:
         model = Device
         fields = ['model', 'serial_number', 'room', 'host', 'port', 'meta']

@@ -245,6 +245,18 @@ export const apiRequest = async <T = unknown>(
 };
 
 /**
+ * Format Django REST framework validation errors (field -> list of messages) into one string.
+ */
+function formatDrfErrors(errors: Record<string, string[] | unknown>): string {
+  const parts: string[] = [];
+  for (const [field, value] of Object.entries(errors)) {
+    if (Array.isArray(value)) parts.push(...value.map((m) => `${field}: ${m}`));
+    else if (typeof value === 'string') parts.push(`${field}: ${value}`);
+  }
+  return parts.length ? parts.join('. ') : '';
+}
+
+/**
  * Handle API response
  */
 const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
@@ -258,13 +270,17 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
 
   if (!response.ok) {
     const errObj = data?.error as { message?: string; details?: unknown } | undefined;
+    const drfErrors = data && typeof data === 'object' && !data?.error && !data?.message && !data?.detail
+      ? formatDrfErrors(data as Record<string, string[]>)
+      : null;
     const message =
       errObj?.message ||
       (data?.message as string | undefined) ||
+      drfErrors ||
       (typeof data?.detail === 'string' ? data.detail : null) ||
       (Array.isArray(data?.detail) ? (data.detail as string[]).join('. ') : null) ||
       (response.status === 400
-        ? "Ma'lumotlar noto'g'ri. Telefon, parol va boshqa maydonlarni tekshiring."
+        ? "Ma'lumotlar noto'g'ri. Maydonlarni tekshiring."
         : "Xatolik yuz berdi. Iltimos, keyinroq urinib ko'ring.");
     if (response.status === 400 && !errObj?.message && Object.keys(data).length === 0 && typeof console !== 'undefined' && console.warn) {
       console.warn('[MedoraAI] 400 javob (server tanasi bo\'sh):', response.url);

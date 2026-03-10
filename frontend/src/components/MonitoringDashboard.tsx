@@ -1379,9 +1379,14 @@ const ManagementView: React.FC<{
                   + Qurilma qo‘shish
                 </button>
               </div>
-              <div className="mb-4 p-3 bg-slate-800/80 border border-slate-600 rounded-lg text-slate-300 text-sm">
-                <p className="font-medium text-slate-200 mb-1">Qanday ulanadi?</p>
-                <p><strong>Platforma monitorga ulanadi (TCP):</strong> quyida <strong>IP manzil</strong> va <strong>Port</strong> kiriting — gateway shu manzilga ulanib ma’lumot oladi. <strong>Monitor bizga ulanadi (HL7/K12):</strong> IP va Portni bo‘sh qoldiring; monitor o‘z ekranida Server IP (gateway manzili) va Port 6006 ni sozlaydi. TCP qurilmalar qo‘shilgach gateway ni qayta ishga tushiring.</p>
+              <div className="mb-4 p-4 bg-slate-800/80 border border-slate-600 rounded-lg text-slate-300 text-sm">
+                <p className="font-medium text-amber-200 mb-1">Haqiqiy ma&apos;lumot olish uchun (demo/mock yo&apos;q):</p>
+                <ol className="list-decimal list-inside space-y-1 text-slate-300">
+                  <li><strong>Gateway</strong> serverda ishlashi kerak (port 9000). Deploy qilganda avtomatik ishga tushadi.</li>
+                  <li><strong>HL7 rejim (K12 sizga ulanadi):</strong> Qurilma qo&apos;shishda IP va Portni <strong>bo&apos;sh</strong> qoldiring. K12 da Sozlamalar → Tarmoq: <strong>Server IP</strong> = 167.71.53.238, <strong>Port</strong> = 6006. Saqlang.</li>
+                  <li><strong>TCP rejim:</strong> Quyida IP va Port kiriting. Gateway va qurilma bir tarmoqda bo&apos;lishi kerak.</li>
+                  <li>Qurilma qo&apos;shilgach serverda: <code className="bg-slate-700 px-1 rounded">sudo systemctl restart medoraai-gateway-9000</code></li>
+                </ol>
               </div>
               {showDeviceForm && (
                 <form onSubmit={handleRegisterDevice} className="mb-6 p-4 bg-slate-800 rounded-xl border border-slate-600 space-y-3">

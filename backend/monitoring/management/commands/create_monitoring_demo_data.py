@@ -1,11 +1,10 @@
 """
-Platformada qurilma ma'lumotlarini ko'rsatish uchun demo ma'lumot: 1 qanot, 1 xona, 1 qurilma, 1 bemor monitori, demo vitals.
+Faqat tuzilma: qanot, xona, qurilma, bemor monitori. Demo/mock vitals YARATILMAYDI — faqat haqiqiy qurilma ma'lumoti ko'rsatiladi.
 Ishlatish: python manage.py create_monitoring_demo_data
-Gateway (K12/HL7) device_id = K12_01 bo'lsa, shu qurilma orqali kelgan ma'lumotlar ham shu kartochkada chiqadi.
+Gateway (K12/HL7) device_id = K12_01 bo'lsa, shu qurilma orqali kelgan haqiqiy ma'lumotlar shu kartochkada chiqadi.
 """
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from monitoring.models import Ward, Room, Device, PatientMonitor, VitalReading
+from monitoring.models import Ward, Room, Device, PatientMonitor
 
 
 DEMO_WARD_CODE = "DEMO"
@@ -16,7 +15,7 @@ DEMO_PATIENT_NAME = "Demo bemor"
 
 
 class Command(BaseCommand):
-    help = "Bemor monitoring uchun demo qanot, xona, qurilma, bemor va demo vitals yaratadi (platformada ma'lumot chiqishi uchun)"
+    help = "Bemor monitoring tuzilmasi: qanot, xona, qurilma, bemor (demo vitals yo'q — faqat haqiqiy ma'lumot)"
 
     def handle(self, *args, **options):
         ward, _ = Ward.objects.get_or_create(
@@ -70,39 +69,6 @@ class Command(BaseCommand):
             pm.is_active = True
             pm.save(update_fields=["room", "bed_label", "patient_name", "is_active"])
 
-        # Demo vitals – platformada ko'rinishi uchun (qurilma haqiqiy ma'lumot yubormaguncha)
-        count_before = VitalReading.objects.filter(patient_monitor=pm).count()
-        if count_before == 0:
-            VitalReading.objects.create(
-                patient_monitor=pm,
-                timestamp=timezone.now(),
-                heart_rate=72,
-                spo2=98,
-                nibp_systolic=120,
-                nibp_diastolic=80,
-                respiration_rate=16,
-                temperature=36.6,
-            )
-            self.stdout.write(self.style.SUCCESS("Demo vitals yozuvi qo'shildi (HR, SpO2, NIBP, temp)."))
-        else:
-            self.stdout.write(f"Bemor monitorida allaqachon {count_before} ta vital bor; demo qo'shilmadi.")
-
-        # Barcha boshqa bemor monitorlari (vitals=0) uchun ham bitta demo vital — kartochkada "--" o'rniga raqamlar chiqadi
-        for other_pm in PatientMonitor.objects.filter(is_active=True).exclude(pk=pm.pk):
-            if VitalReading.objects.filter(patient_monitor=other_pm).exists():
-                continue
-            VitalReading.objects.create(
-                patient_monitor=other_pm,
-                timestamp=timezone.now(),
-                heart_rate=75,
-                spo2=97,
-                nibp_systolic=118,
-                nibp_diastolic=78,
-                respiration_rate=16,
-                temperature=36.5,
-            )
-            self.stdout.write(self.style.SUCCESS(f"Demo vital qo'shildi: {other_pm.patient_name or other_pm.bed_label} (id={other_pm.id})."))
-
         self.stdout.write("")
-        self.stdout.write("Platformada (Monitoring dashboard) endi bitta kartochka ko'rinadi.")
-        self.stdout.write("Haqiqiy qurilma ma'lumotlari uchun: Gateway ishga tushiring, Device.serial_number = gateway device_id (masalan K12_01).")
+        self.stdout.write("Demo/mock vitals yaratilmaydi — faqat haqiqiy qurilma ma'lumoti ko'rsatiladi.")
+        self.stdout.write("K12 ulanish: Gateway ishlashi kerak; K12 da Server IP = server manzili, Port = 6006 sozlang.")
