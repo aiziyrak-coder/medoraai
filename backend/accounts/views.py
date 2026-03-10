@@ -254,11 +254,21 @@ def register(request):
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     logger.warning(f"Register validation failed: {serializer.errors}")
+    # Flatten first error so client can show it even if details are not parsed
+    flat_msg = 'Ma\'lumotlar noto\'g\'ri'
+    if serializer.errors:
+        for field, errs in serializer.errors.items():
+            if isinstance(errs, list) and errs:
+                flat_msg = errs[0] if isinstance(errs[0], str) else str(errs[0])
+                break
+            if isinstance(errs, str):
+                flat_msg = errs
+                break
     return Response({
         'success': False,
         'error': {
             'code': status.HTTP_400_BAD_REQUEST,
-            'message': 'Ma\'lumotlar noto\'g\'ri',
+            'message': flat_msg,
             'details': serializer.errors
         }
     }, status=status.HTTP_400_BAD_REQUEST)

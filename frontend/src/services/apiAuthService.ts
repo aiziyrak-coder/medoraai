@@ -96,8 +96,9 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
     }
 
     if (response.error) {
-      const detailsMsg = formatErrorDetails((response.error as { details?: unknown }).details);
-      const message = detailsMsg || response.error.message || "Ma'lumotlar noto'g'ri.";
+      const err = response.error as { message?: string; details?: unknown };
+      const detailsMsg = formatErrorDetails(err.details);
+      const message = err.message || detailsMsg || "Ma'lumotlar noto'g'ri. Telefon va parolni tekshiring.";
       return { success: false, message };
     }
     

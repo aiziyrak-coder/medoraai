@@ -248,33 +248,27 @@ export const apiRequest = async <T = unknown>(
  * Handle API response
  */
 const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> => {
-  const contentType = response.headers.get('content-type');
-  
-  if (!contentType || !contentType.includes('application/json')) {
-    return {
-      success: false,
-      error: {
-        code: response.status,
-        message: `Server xatolik qaytardi: ${response.statusText}`,
-      },
-    };
+  let data: Record<string, unknown> = {};
+  try {
+    const text = await response.text();
+    if (text) data = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    // body not JSON or empty
   }
-
-  const data = await response.json();
 
   if (!response.ok) {
     const message =
-      data.error?.message ||
-      data.message ||
-      (typeof data.detail === 'string' ? data.detail : null) ||
-      (Array.isArray(data.detail) ? data.detail.join('. ') : null) ||
-      'Xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.';
+      (data?.error as { message?: string } | undefined)?.message ||
+      (data?.message as string | undefined) ||
+      (typeof data?.detail === 'string' ? data.detail : null) ||
+      (Array.isArray(data?.detail) ? (data.detail as string[]).join('. ') : null) ||
+      (response.status === 400 ? 'Ma\'lumotlar noto\'g\'ri. Telefon yoki parolni tekshiring.' : 'Xatolik yuz berdi. Iltimos, keyinroq urinib ko\'ring.');
     return {
       success: false,
       error: {
         code: response.status,
         message,
-        details: data.error?.details || data.errors || data,
+        details: (data?.error as { details?: unknown } | undefined)?.details ?? data?.errors ?? data,
       },
     };
   }
