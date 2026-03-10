@@ -81,3 +81,19 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
+
+def handler404(request, exception=None):
+    """404 — har doim JSON (API va barcha so'rovlar)."""
+    return JsonResponse({
+        'success': False,
+        'error': {'code': 404, 'message': 'Sahifa topilmadi.', 'details': {}}
+    }, status=404, content_type='application/json; charset=utf-8')
+
+
+def handler500(request):
+    """500 — har doim JSON (aslo HTML xato chiqmasin)."""
+    return JsonResponse({
+        'success': False,
+        'error': {'code': 500, 'message': "Server xatoligi. Iltimos, keyinroq urinib ko'ring.", 'details': {}}
+    }, status=500, content_type='application/json; charset=utf-8')
+

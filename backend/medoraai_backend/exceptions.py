@@ -43,7 +43,7 @@ def custom_exception_handler(exc, context):
         response['Content-Type'] = 'application/json; charset=utf-8'
         logger.error("API Error: %s", exc, exc_info=True)
     else:
-        # Handle unexpected errors (500)
+        # Handle unexpected errors (500) — har doim JSON
         custom_response_data = {
             'success': False,
             'error': {
@@ -53,6 +53,7 @@ def custom_exception_handler(exc, context):
             }
         }
         response = Response(custom_response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        response['Content-Type'] = 'application/json; charset=utf-8'
         logger.error("Unexpected Error: %s", exc, exc_info=True)
 
     return response

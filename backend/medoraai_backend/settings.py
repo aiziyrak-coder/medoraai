@@ -211,13 +211,20 @@ CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default=(
         'http://localhost:3000,http://127.0.0.1:3000,'
-        'https://medora.ziyrak.org,http://medora.ziyrak.org,http://20.82.115.71,'
-        'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz'
+        'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
+        'https://medoraai.cdcgroup.uz,https://medoraapi.cdcgroup.uz,'
+        'https://medora.ziyrak.org,http://medora.ziyrak.org,http://20.82.115.71'
     ),
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
 
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF (Django 4+): ishonchli originlar
+CSRF_TRUSTED_ORIGINS = [
+    'https://medora.cdcgroup.uz', 'https://medoraai.cdcgroup.uz', 'https://medoraapi.cdcgroup.uz',
+    'http://medora.cdcgroup.uz', 'http://localhost:3000', 'http://127.0.0.1:3000',
+]
 
 CORS_ALLOW_METHODS = [
     'DELETE',
