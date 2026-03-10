@@ -20,9 +20,10 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput 2>/dev/null || true
 deactivate
 
-echo "=== 3. Frontend build ==="
+echo "=== 3. Frontend build (API: medoraai.cdcgroup.uz) ==="
 cd "$APP_DIR/frontend"
 npm install --silent 2>/dev/null || npm install
+export VITE_API_BASE_URL=https://medoraai.cdcgroup.uz/api
 npm run build
 
 echo "=== 4. Gateway dependencies (backend venv) ==="
@@ -36,10 +37,12 @@ systemctl daemon-reload
 systemctl enable medoraai-backend-8001.service
 systemctl restart medoraai-backend-8001.service
 
-echo "=== 6. Nginx ==="
+echo "=== 6. Nginx (167.71.53.238 + medora.cdcgroup.uz, medoraai.cdcgroup.uz) ==="
 if [ -d /etc/nginx/sites-available ]; then
-  cp "$APP_DIR/deploy/nginx-medoraai-ip.conf" /etc/nginx/sites-available/medoraai
-  ln -sf /etc/nginx/sites-available/medoraai /etc/nginx/sites-enabled/medoraai 2>/dev/null || true
+  cp "$APP_DIR/deploy/nginx-medoraai-ip.conf" /etc/nginx/sites-available/medoraai-ip
+  cp "$APP_DIR/deploy/nginx-cdcgroup.conf" /etc/nginx/sites-available/medoraai-cdcgroup
+  ln -sf /etc/nginx/sites-available/medoraai-ip /etc/nginx/sites-enabled/medoraai-ip 2>/dev/null || true
+  ln -sf /etc/nginx/sites-available/medoraai-cdcgroup /etc/nginx/sites-enabled/medoraai-cdcgroup 2>/dev/null || true
   nginx -t && systemctl reload nginx
 else
   echo "Nginx sites-available yo'q; configni qo'lda qo'ying."
@@ -51,4 +54,4 @@ curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/ && echo " B
 systemctl is-active --quiet medoraai-backend-8001.service && echo "medoraai-backend-8001: active" || echo "medoraai-backend-8001: FAIL"
 
 echo ""
-echo "Tugadi. Frontend: http://167.71.53.238  API: http://167.71.53.238/api/"
+echo "Tugadi. Frontend: http://medora.cdcgroup.uz  API: http://medoraai.cdcgroup.uz  (IP: http://167.71.53.238)"
