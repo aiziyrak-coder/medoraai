@@ -24,9 +24,12 @@ class CORSFallbackMiddleware(MiddlewareMixin):
         elif not req_origin and origins:
             # No Origin header (e.g. same-origin or server): allow first configured origin
             origin = origins[0] if isinstance(origins, (list, tuple)) else str(origins)
-        # Health endpoint: always allow frontend origin if missing (so health check never blocked)
+        # Health endpoint: allow request host as origin if missing (same-origin)
         if origin is None and request.path.startswith('/health'):
-            origin = 'https://medora.ziyrak.org'
+            try:
+                origin = request.build_absolute_uri('/').rstrip('/')
+            except Exception:
+                origin = 'https://medora.cdcgroup.uz'
         if origin is None:
             return response
         if getattr(response, 'headers', None):

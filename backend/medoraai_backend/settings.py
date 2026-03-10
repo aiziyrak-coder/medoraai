@@ -25,8 +25,8 @@ if not DEBUG and SECRET_KEY == _default_secret:
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1,medora.ziyrak.org,medoraapi.ziyrak.org,20.82.115.71',
-    cast=lambda v: [s.strip() for s in v.split(',')]
+    default='localhost,127.0.0.1,medora.ziyrak.org,medoraapi.ziyrak.org,medora.cdcgroup.uz,medoraai.cdcgroup.uz,20.82.115.71,167.71.53.238',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
 
 # Application definition
@@ -211,7 +211,8 @@ CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default=(
         'http://localhost:3000,http://127.0.0.1:3000,'
-        'https://medora.ziyrak.org,http://medora.ziyrak.org,http://20.82.115.71'
+        'https://medora.ziyrak.org,http://medora.ziyrak.org,http://20.82.115.71,'
+        'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz'
     ),
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
