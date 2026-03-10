@@ -49,6 +49,12 @@ cd "$APP_DIR/backend" && source venv/bin/activate
 pip install -q -r ../monitoring_gateway/requirements.txt
 deactivate
 
+# Serverni .env da ALLOWED_HOSTS override qilishini o'chirish (DisallowedHost bartaraf)
+if [ -f "$APP_DIR/backend/.env" ]; then
+  sed -i.bak '/^ALLOWED_HOSTS=/d' "$APP_DIR/backend/.env" 2>/dev/null || true
+  echo "  .env dan ALLOWED_HOSTS o'chirildi (agar bor edi)."
+fi
+
 echo "=== 5. Systemd: MedoraAI backend 8001 ==="
 cp "$APP_DIR/deploy/medoraai-backend-8001.service" /etc/systemd/system/
 systemctl daemon-reload
