@@ -29,18 +29,8 @@ if not DEBUG and SECRET_KEY == _default_secret:
         'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
     )
 
-# ALLOWED_HOSTS: medoraapi.cdcgroup.uz va kerakli domenlar HAR DOIM qo'shiladi
-_REQUIRED_ALLOWED_HOSTS = [
-    '*',
-    'medoraapi.cdcgroup.uz',
-    'medora.cdcgroup.uz',
-    'medoraai.cdcgroup.uz',
-    'localhost',
-    '127.0.0.1',
-]
-_env_hosts = config('ALLOWED_HOSTS', default='')
-_env_list = [s.strip() for s in _env_hosts.split(',') if s.strip()]
-ALLOWED_HOSTS = list(dict.fromkeys(_REQUIRED_ALLOWED_HOSTS + _env_list))
+# ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish — faqat *
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [

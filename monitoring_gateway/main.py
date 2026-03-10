@@ -2,6 +2,13 @@
 Monitoring Gateway – TCP monitors -> parse -> Django API + WebSocket.
 Run: uvicorn monitoring_gateway.main:app --host 0.0.0.0 --port 9000
 """
+from pathlib import Path
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+except ImportError:
+    pass
+
 import asyncio
 import json
 import logging

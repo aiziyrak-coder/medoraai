@@ -57,6 +57,10 @@ fi
 # wsgi.py da patch borligini tekshirish
 grep -q "HttpRequest.get_host = _safe_get_host\|_req_mod.HttpRequest.get_host" "$APP_DIR/backend/medoraai_backend/wsgi.py" 2>/dev/null && echo "  wsgi.py: get_host patch mavjud." || echo "  DIQQAT: wsgi.py da get_host patch yo'q!"
 
+# Eski (qo'lda ishga tushirilgan) medoraai gunicorn ni to'xtatish — faqat systemd bitta instance ishlashi uchun
+pkill -f "gunicorn.*medoraai_backend.wsgi" 2>/dev/null || true
+sleep 1
+
 echo "=== 5. Systemd: MedoraAI backend 8001 ==="
 cp "$APP_DIR/deploy/medoraai-backend-8001.service" /etc/systemd/system/
 systemctl daemon-reload
@@ -120,7 +124,20 @@ else
   echo "Nginx sites-available yo'q."
 fi
 
-echo "=== 7. Tekshirish ==="
+echo "=== 7. Monitoring Gateway (port 9000) ==="
+mkdir -p "$APP_DIR/monitoring_gateway/logs"
+if [ ! -f "$APP_DIR/monitoring_gateway/.env" ]; then
+  cp "$APP_DIR/monitoring_gateway/.env.example" "$APP_DIR/monitoring_gateway/.env"
+  echo "  Gateway .env .env.example dan yaratildi."
+fi
+cp "$APP_DIR/deploy/medoraai-gateway-9000.service" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable medoraai-gateway-9000.service 2>/dev/null || true
+systemctl restart medoraai-gateway-9000.service 2>/dev/null || true
+sleep 2
+curl -s http://127.0.0.1:9000/health 2>/dev/null | head -c 80 && echo "" || echo "  Gateway 9000 hali javob bermadi (keyin tekshiring)."
+
+echo "=== 8. Tekshirish ==="
 sleep 2
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/ && echo " Backend 8001 OK" || echo " Backend 8001 javob bermadi"
 systemctl is-active --quiet medoraai-backend-8001.service && echo "medoraai-backend-8001: active" || echo "medoraai-backend-8001: FAIL"

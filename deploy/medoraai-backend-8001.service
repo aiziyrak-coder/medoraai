@@ -11,8 +11,6 @@ User=root
 Group=root
 WorkingDirectory=/root/medoraai/backend
 Environment=DJANGO_SETTINGS_MODULE=medoraai_backend.settings
-# 400 Bad Request bartaraf: Host har doim qabul qilinsin (.env dan mustaqil)
-Environment=ALLOWED_HOSTS=medora.cdcgroup.uz,medoraai.cdcgroup.uz,medoraapi.cdcgroup.uz,167.71.53.238,.cdcgroup.uz,localhost,127.0.0.1
 ExecStart=/root/medoraai/backend/venv/bin/gunicorn \
     --bind 127.0.0.1:8001 \
     --workers 2 \
