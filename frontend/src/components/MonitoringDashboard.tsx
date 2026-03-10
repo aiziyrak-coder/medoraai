@@ -1380,13 +1380,19 @@ const ManagementView: React.FC<{
                 </button>
               </div>
               <div className="mb-4 p-4 bg-slate-800/80 border border-slate-600 rounded-lg text-slate-300 text-sm">
-                <p className="font-medium text-amber-200 mb-1">Haqiqiy ma&apos;lumot olish uchun (100+ qurilma, serverda nano/.env kerak emas):</p>
+                <p className="font-medium text-amber-200 mb-1">Haqiqiy ma&apos;lumot olish uchun (masofadan telefon orqali ham ko&apos;rish mumkin — bitta tarmoq shart emas):</p>
+                <p className="text-slate-400 text-xs mb-2">K12 da ikki xil IP bor: <strong className="text-slate-300">Server IP</strong> (qayerga ulanadi) va <strong className="text-slate-300">Lokal IP</strong> (qurilmaning o&apos;z manzili). Quyida qayerga nima yozish aniq.</p>
                 <ol className="list-decimal list-inside space-y-1.5 text-slate-300">
                   <li><strong>Gateway</strong> serverda ishlashi kerak (port 9000 va 6006). Deploy qilganda avtomatik ishga tushadi.</li>
-                  <li><strong>Har bir K12 ga statik IP bering</strong> (masalan 192.168.0.1, 192.168.0.2, … 192.168.0.100). Router yoki tarmoq sozlamalarida qurilmalarga tartib bilan statik IP qo&apos;ying.</li>
-                  <li><strong>Platformada qurilma qo&apos;shish:</strong> Seriya (masalan K12_001), <strong>IP</strong> = shu qurilmaning statik IP (masalan 192.168.0.1), <strong>Port</strong> = 6006. Saqlang — serverda hech qanday .env yoki nano o&apos;zgartirish kerak emas.</li>
-                  <li><strong>Har bir K12 da:</strong> Sozlamalar → Tarmoq: <strong>Server IP</strong> = 167.71.53.238, <strong>Port</strong> = 6006. Saqlang. Qurilma platformaga ulanadi; qurilma IP orqali avtomatik aniqlanadi.</li>
-                  <li><strong>TCP rejim</strong> (gateway qurilmaga ulanadi): IP va Portni kiriting; gateway va qurilma bir tarmoqda bo&apos;lishi kerak.</li>
+                  <li><strong>K12 qurilmasida (Sozlamalar → Tarmoq):</strong><br />
+                    · <strong>Server IP</strong> = 167.71.53.238 — bu platforma serveri (qurilma shu manzilga ulanadi).<br />
+                    · <strong>Port</strong> = 6006.<br />
+                    · <strong>Lokal IP</strong> — qurilmaning o&apos;z tarmog&apos;idagi manzili (router beradi). Bunı platformaga kiritish shart emas.<br />
+                    · Agar K12 da <strong>Sending Application</strong> / <strong>Sending Facility</strong> (yoki qurilma ID) sozlash mumkin bo&apos;lsa, uni platformadagi <strong>Seriya</strong> bilan bir xil qiling (masalan K12_001). Platforma qurilmani HL7 xabari orqali shu ID bilan tanidi.
+                  </li>
+                  <li><strong>Platformada qurilma qo&apos;shish:</strong> <strong>Seriya</strong> = K12_001 (yoki har bir qurilma uchun bitta). <strong>IP va Port</strong> — bo&apos;sh qoldirishingiz mumkin: qurilma HL7 da o&apos;zini tanitadi. Agar qurilma HL7 da ID yubormasa va gateway bilan bir tarmoqda bo&apos;lsa, <strong>IP</strong> ga shu qurilmaning <strong>lokal IP</strong>sini kiriting, Port = 6006.</li>
+                  <li><strong>Masofadan ko&apos;rish:</strong> Brauzer yoki telefonda <strong>https://medora.cdcgroup.uz</strong> oching — ma&apos;lumotlar serverda, qurilma va siz bir tarmoqda bo&apos;lishingiz shart emas.</li>
+                  <li><strong>TCP rejim</strong> (gateway qurilmaga ulanadi): IP = qurilma manzili, Port kiriting; gateway va qurilma bir tarmoqda bo&apos;lishi kerak.</li>
                 </ol>
               </div>
               {showDeviceForm && (
@@ -1411,26 +1417,26 @@ const ManagementView: React.FC<{
                       required={!editingDeviceId}
                       readOnly={!!editingDeviceId}
                     />
-                    <p className="mt-1 text-xs text-slate-500">HL7 rejimda qurilma IP orqali avtomatik aniqlanadi — platformada kiritilgan IP (qurilma statik IP) va Seriya mos bo‘lishi kerak.</p>
+                    <p className="mt-1 text-xs text-slate-500">HL7 da qurilma o&apos;zini MSH (Sending Application/Facility) orqali tanitadi — Seriya shu ID ga mos bo&apos;lishi kerak. IP faqat TCP rejimda yoki HL7 da ID bo&apos;lmasa kerak.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Qurilma statik IP (HL7: ulanish aniqlash; TCP: manzil)</label>
+                      <label className="block text-xs text-slate-400 mb-1">Lokal IP (ixtiyoriy — TCP rejimda yoki HL7 da ID bo&apos;lmasa)</label>
                       <input
                         type="text"
                         value={deviceHost}
                         onChange={(e) => setDeviceHost(e.target.value)}
-                        placeholder="192.168.0.1, 192.168.0.2, …"
+                        placeholder="Bo&apos;sh qoldirish mumkin"
                         className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Port (HL7 da odatda 6006)</label>
+                      <label className="block text-xs text-slate-400 mb-1">Port (ixtiyoriy, TCP da 6006)</label>
                       <input
                         type="text"
                         value={devicePort}
                         onChange={(e) => setDevicePort(e.target.value)}
-                        placeholder="6006"
+                        placeholder="Bo&apos;sh qoldirish mumkin"
                         className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400"
                       />
                     </div>
@@ -1988,7 +1994,7 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ user, onLogou
                 {sortedCards.length > 0 && !vitalsHelpDismissed && !sortedCards.some((c) => c.last_vital && (c.last_vital.heart_rate != null || c.last_vital.spo2 != null)) && (
                   <div className="mb-4 p-3 rounded-xl bg-amber-900/30 border border-amber-600/50 text-amber-200 text-sm flex flex-wrap items-start gap-2">
                     <div className="flex-1 min-w-0">
-                      <strong>Vitals hali ko‘rinmayapti.</strong> Qurilma platformada qo‘shilganmi (Seriya, Qurilma statik IP, Port 6006)? Har bir K12 da Server IP = 167.71.53.238, Port = 6006 qo‘yilganmi? Gateway ishlayaptimi (9000, 6006)? Bemor monitori qurilmaga biriktirilganmi? Backend va gateway loglarini tekshiring.
+                      <strong>Vitals hali ko‘rinmayapti.</strong> Qurilma platformada Seriya bilan qo‘shilganmi? K12 da Server IP = 167.71.53.238, Port = 6006 qo‘yilganmi? (Lokal IP platformaga kiritish shart emas.) Gateway ishlayaptimi (9000, 6006)? Bemor monitori qurilmaga biriktirilganmi? Backend va gateway loglarini tekshiring.
                     </div>
                     <button
                       type="button"
