@@ -59,7 +59,8 @@ INSTALLED_APPS += [
 ]
 
 MIDDLEWARE = [
-    'medoraai_backend.middleware.NormalizeHostMiddleware',  # first: avoid 400 for cdcgroup.uz Host
+    'medoraai_backend.middleware.EarlyHealthMiddleware',  # very first: /health/ -> 200, no Host check
+    'medoraai_backend.middleware.NormalizeHostMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',

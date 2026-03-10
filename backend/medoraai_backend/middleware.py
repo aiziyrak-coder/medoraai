@@ -4,11 +4,29 @@ Custom Middleware for Security and Performance
 import time
 import logging
 from django.utils.deprecation import MiddlewareMixin
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.cache import cache
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+# Health uchun minimal javob (Host/ALLOWED_HOSTS tekshirilmaydi)
+HEALTH_BODY = b'{"status":"healthy","service":"medoraai-backend"}'
+
+
+class EarlyHealthMiddleware(MiddlewareMixin):
+    """
+    Eng birinchi: GET /health/ uchun darhol 200 qaytaradi.
+    Host va boshqa hech narsa tekshirilmaydi — 400 to'liq oldini oladi.
+    """
+    def process_request(self, request):
+        if request.method in ('GET', 'OPTIONS') and request.path.rstrip('/') == '/health':
+            r = HttpResponse(HEALTH_BODY, content_type='application/json', status=200)
+            r['Access-Control-Allow-Origin'] = '*'
+            r['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+            r['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            return r
+        return None
 
 
 class NormalizeHostMiddleware(MiddlewareMixin):
