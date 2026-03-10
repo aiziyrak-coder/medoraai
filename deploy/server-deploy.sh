@@ -32,6 +32,13 @@ chmod 755 "$APP_DIR" "$APP_DIR/dist" 2>/dev/null || true
 chmod -R o+rX "$APP_DIR/dist" 2>/dev/null || true
 chmod -R o+rX "$APP_DIR/backend/staticfiles" "$APP_DIR/backend/media" 2>/dev/null || true
 
+# Dist tekshiruv: index.html borligi
+if [ ! -f "$APP_DIR/dist/index.html" ]; then
+  echo "XATO: $APP_DIR/dist/index.html topilmadi. Build chiqishi: $(ls -la $APP_DIR/dist 2>/dev/null | head -5)"
+  exit 1
+fi
+echo "  dist/index.html mavjud ($(wc -c < "$APP_DIR/dist/index.html") bayt)"
+
 echo "=== 4. Gateway dependencies (backend venv) ==="
 cd "$APP_DIR/backend" && source venv/bin/activate
 pip install -q -r ../monitoring_gateway/requirements.txt
@@ -70,6 +77,9 @@ echo "=== 7. Tekshirish ==="
 sleep 2
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/ && echo " Backend 8001 OK" || echo " Backend 8001 javob bermadi"
 systemctl is-active --quiet medoraai-backend-8001.service && echo "medoraai-backend-8001: active" || echo "medoraai-backend-8001: FAIL"
+# medora.cdcgroup.uz localda 200 qaytarsa — nginx to'g'ri; 404 bo'lsa — config yoki root muammo
+HTTP_FRONT=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: medora.cdcgroup.uz" http://127.0.0.1/)
+echo "  medora.cdcgroup.uz (local): HTTP $HTTP_FRONT (200 bo'lishi kerak; 404 bo'lsa DNS boshqa serverga yo'naltirilgan bo'lishi mumkin)"
 
 echo ""
-echo "Tugadi. Frontend: http://medora.cdcgroup.uz  API: http://medoraai.cdcgroup.uz  (IP: http://167.71.53.238)"
+echo "Tugadi. Frontend: http://medora.cdcgroup.uz  API: http://medoraai.cdcgroup.uz  (DNS 167.71.53.238 ga yo'naltirilgan bo'lishi kerak)"
