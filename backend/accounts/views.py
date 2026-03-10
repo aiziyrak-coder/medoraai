@@ -66,12 +66,26 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        phone = (request.data.get('phone') or '').strip()
+        data = {}
+        try:
+            raw = getattr(request, 'data', None)
+            if raw and (isinstance(raw, dict) or hasattr(raw, 'keys')):
+                data = dict(raw) if not isinstance(raw, dict) else raw.copy()
+            if not data and getattr(request, 'body', None):
+                try:
+                    body = request.body.decode('utf-8') if isinstance(request.body, bytes) else str(request.body)
+                    if body.strip():
+                        data = json.loads(body)
+                except Exception:
+                    pass
+            phone = (data.get('phone') or '').strip() if isinstance(data, dict) else ''
+        except Exception:
+            phone = ''
         if not phone:
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': 'Telefon raqami kiritilishi shart'}
-            }, status=400)
+            }, status=400, content_type='application/json')
 
         # Login rate limit: bir xil telefon uchun juda ko'p urinish
         cache_key = LOGIN_RATE_LIMIT_KEY.format(phone=phone)
@@ -83,9 +97,9 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     'code': 429,
                     'message': "Juda ko'p noto'g'ri urinishlar. Iltimos, 15 daqiqadan keyin qayta urinib ko'ring.",
                 }
-            }, status=429)
+            }, status=429, content_type='application/json')
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
         except drf_serializers.ValidationError as e:
@@ -95,14 +109,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': error_message},
-            }, status=400)
+            }, status=400, content_type='application/json')
         except (ValueError, TypeError) as e:
             cache.set(cache_key, attempts + 1, LOGIN_RATE_LIMIT_WINDOW)
             logger.error("Login error for %s: %s", _redact_phone(phone), e)
             return Response({
                 'success': False,
                 'error': {'code': 400, 'message': 'Telefon raqami yoki parol noto\'g\'ri'},
-            }, status=400)
+            }, status=400, content_type='application/json')
 
         user = serializer.validated_data['user']
         refresh = RefreshToken.for_user(user)
@@ -142,7 +156,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     'refresh': str(refresh),
                 }
             }
-        })
+        }, content_type='application/json')
 
 
 def _register_session_for_tokens(user, refresh):
