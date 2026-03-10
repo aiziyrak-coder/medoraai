@@ -16,20 +16,24 @@ HEALTH_BODY = b'{"status":"healthy","service":"medoraai-backend"}'
 
 class EarlyHealthMiddleware(MiddlewareMixin):
     """
-    Eng birinchi: GET /health/ uchun darhol 200 qaytaradi.
-    Host va boshqa hech narsa tekshirilmaydi — 400 to'liq oldini oladi.
-    DisallowedHost bartaraf: har so'rovda ALLOWED_HOSTS = ['*'] (server .env override bo'lsa ham).
+    Eng birinchi: DisallowedHost bartaraf + GET /health/ darhol 200.
+    Har so'rovda get_host() va ALLOWED_HOSTS o'rnatiladi — 400 umuman chiqmasin.
     """
     def process_request(self, request):
-        # 1) DisallowedHost to'liq bartaraf: get_host() ni override qilamiz (CommonMiddleware dan oldin)
         _meta = request.META
-        _fallback_host = 'medora.cdcgroup.uz'
-        request.get_host = lambda: (_meta.get('HTTP_HOST') or _fallback_host).split('#')[0].strip()
-        # 2) ALLOWED_HOSTS va HTTP_HOST ham o'rnatamiz (qo'shimcha)
+        _fallback = 'medora.cdcgroup.uz'
+        # 1) get_host() ni instance da override (CommonMiddleware DisallowedHost tashlamaydi)
+        def _safe_get_host():
+            h = (_meta.get('HTTP_HOST') or _fallback).strip().split('#')[0].strip()
+            return h.split(':')[0] if ':' in h else h
+        request.get_host = _safe_get_host
+        # 2) ALLOWED_HOSTS majburan *
         settings.ALLOWED_HOSTS = ['*']
-        host = (_meta.get('HTTP_HOST') or '').strip().split(':')[0].lower()
-        if host and 'cdcgroup.uz' in host:
-            _meta['HTTP_HOST'] = 'medora.cdcgroup.uz'
+        # 3) cdcgroup.uz hostni normalize qilish
+        host_raw = (_meta.get('HTTP_HOST') or '').strip().split(':')[0].lower()
+        if host_raw and 'cdcgroup.uz' in host_raw:
+            _meta['HTTP_HOST'] = _fallback
+        # 4) /health/ uchun darhol 200
         if request.method in ('GET', 'OPTIONS') and request.path.rstrip('/') == '/health':
             r = HttpResponse(HEALTH_BODY, content_type='application/json', status=200)
             r['Access-Control-Allow-Origin'] = '*'
