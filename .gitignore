@@ -37,6 +37,10 @@ yarn-error.log*
 dist/
 .DS_Store
 
+# Deploy SSH key (private) — do not commit
+deploy/deploy_key
+deploy/deploy_key.pub
+
 # IDE
 .vscode/
 .idea/
