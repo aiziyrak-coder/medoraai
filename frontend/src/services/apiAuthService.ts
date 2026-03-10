@@ -75,12 +75,15 @@ export interface AuthResponse {
  */
 export const register = async (data: RegisterData): Promise<{ success: boolean; message: string }> => {
   try {
-    // Ensure password_confirm is set
     const registerData = {
-      ...data,
-      password_confirm: data.password_confirm || data.password,
+      phone: data.phone,
+      name: data.name,
+      password: data.password,
+      password_confirm: data.password_confirm ?? data.password,
+      role: data.role,
+      specialties: Array.isArray(data.specialties) ? data.specialties : [],
+      linked_doctor: data.linked_doctor ?? undefined,
     };
-    
     const response = await apiPost<AuthResponse>('/auth/register/', registerData);
     
     if (response.success && response.data) {

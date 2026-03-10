@@ -36,10 +36,16 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Serializer for user registration"""
+    """Serializer for user registration (clinic, doctor, staff, monitoring)."""
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True, required=True)
     linked_doctor = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    specialties = serializers.ListField(
+        child=serializers.CharField(allow_blank=True),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
 
     class Meta:
         model = User
@@ -54,18 +60,24 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if len(attrs['password']) < 8:
             raise serializers.ValidationError({"password": "Parol kamida 8 ta belgidan iborat bo'lishi kerak"})
         return attrs
-    
+
+    def validate_role(self, value):
+        allowed = [c[0] for c in User.ROLE_CHOICES]
+        if value not in allowed:
+            raise serializers.ValidationError(f"Rol quyidagilardan biri bo'lishi kerak: {', '.join(allowed)}")
+        return value
+
     def validate_phone(self, value):
-        # Basic phone validation - allow any format for flexibility
         if not value or len(value) < 9:
             raise serializers.ValidationError("Telefon raqami to'liq kiritilishi kerak")
-        # Normalize phone number
         cleaned = value.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
         if not cleaned.startswith('+'):
             if cleaned.startswith('998'):
                 cleaned = '+' + cleaned
             else:
                 cleaned = '+998' + cleaned
+        if User.objects.filter(phone=cleaned).exists():
+            raise serializers.ValidationError("Bu telefon raqami allaqachon ro'yxatdan o'tgan.")
         return cleaned
     
     def create(self, validated_data):
