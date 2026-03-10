@@ -4,6 +4,7 @@ Authentication and User Management Views
 import json
 import logging
 from datetime import datetime, timedelta
+from django.db import IntegrityError
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -225,20 +226,34 @@ class CustomTokenRefreshView(TokenRefreshView):
 def register(request):
     """User registration endpoint — har doim JSON qaytaradi."""
     try:
-        if hasattr(request, 'data') and request.data:
-            data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-        else:
-            try:
-                body = request.body.decode('utf-8') if request.body else '{}'
+        data = {}
+        try:
+            body = request.body.decode('utf-8') if request.body else '{}'
+            if body.strip():
                 data = json.loads(body)
-            except Exception:
-                data = {}
+        except Exception:
+            pass
+        if not data and hasattr(request, 'data') and request.data:
+            raw = request.data
+            data = dict(raw) if hasattr(raw, 'items') else (raw.copy() if hasattr(raw, 'copy') else {})
         if data.get('linked_doctor') in ('', None):
             data.pop('linked_doctor', None)
+        if data.get('password') and not data.get('password_confirm'):
+            data['password_confirm'] = data['password']
+        if 'specialties' not in data or data.get('specialties') is None:
+            data['specialties'] = []
         logger.info(f"Register attempt: role={data.get('role')}, phone={data.get('phone')}")
         serializer = UserCreateSerializer(data=data)
         if serializer.is_valid():
-            user = serializer.save()
+            try:
+                user = serializer.save()
+            except IntegrityError as e:
+                if 'phone' in str(e).lower() or 'unique' in str(e).lower():
+                    return Response({
+                        'success': False,
+                        'error': {'code': status.HTTP_400_BAD_REQUEST, 'message': "Bu telefon raqami allaqachon ro'yxatdan o'tgan.", 'details': {'phone': ["Bu telefon raqami allaqachon ro'yxatdan o'tgan."]}}
+                    }, status=status.HTTP_400_BAD_REQUEST, content_type='application/json')
+                raise
             refresh = RefreshToken.for_user(user)
             _register_session_for_tokens(user, refresh)
             return Response({
