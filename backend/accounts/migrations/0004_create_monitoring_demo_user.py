@@ -1,27 +1,28 @@
 # Data migration: ensure monitoring demo user exists (login +998907000001 / monitoring_demo)
 
 from django.db import migrations
+from django.contrib.auth.hashers import make_password
 
 
 def create_demo_user(apps, schema_editor):
     User = apps.get_model('accounts', 'User')
     phone = '+998907000001'
-    if not User.objects.filter(phone=phone).exists():
-        user = User.objects.create_user(
-            phone=phone,
-            password='monitoring_demo',
-            name='Monitoring Operator',
-            role='monitoring',
-        )
-        user.subscription_status = 'active'
-        user.save(update_fields=['subscription_status'])
-    else:
-        user = User.objects.get(phone=phone)
-        user.set_password('monitoring_demo')
-        user.role = 'monitoring'
-        user.name = 'Monitoring Operator'
-        user.subscription_status = 'active'
-        user.save(update_fields=['password', 'role', 'name', 'subscription_status'])
+    password_hashed = make_password('monitoring_demo')
+    defaults = {
+        'name': 'Monitoring Operator',
+        'role': 'monitoring',
+        'subscription_status': 'active',
+    }
+    user, created = User.objects.get_or_create(
+        phone=phone,
+        defaults={**defaults, 'password': password_hashed},
+    )
+    if not created:
+        user.password = password_hashed
+        user.name = defaults['name']
+        user.role = defaults['role']
+        user.subscription_status = defaults['subscription_status']
+        user.save(update_fields=['password', 'name', 'role', 'subscription_status'])
 
 
 def noop(apps, schema_editor):
