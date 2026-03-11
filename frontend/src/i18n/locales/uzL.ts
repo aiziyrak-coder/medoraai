@@ -1,4 +1,4 @@
-
+﻿
 import type { TranslationSet } from './en';
 
 export const uzL: TranslationSet = {
@@ -557,7 +557,7 @@ export const uzL: TranslationSet = {
   // Legal & marketing extended content
   legal_terms_title: 'Foydalanish Shartlari va Ommaviy Oferta',
   legal_terms_p1: '1. Umumiy qoidalar: Ushbu platforma faqat tibbiy ma’lumotga ega bo‘lgan mutaxassislar (shifokorlar, rezidentlar, talabalar) uchun mo‘ljallangan yordamchi vositadir.',
-  legal_terms_p2: '2. Mas’uliyatni cheklash: Farg'ona jamoat salomatligi tibbiyot instituti "AiDoktor" tizimi (keyingi o‘rinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor o‘rnini bosmaydi. Yakuniy klinik qaror uchun to‘liq javobgarlik foydalanuvchi (shifokor) zimmasidadir.',
+  legal_terms_p2: '2. Mas’uliyatni cheklash: Farg\'ona jamoat salomatligi tibbiyot instituti "AiDoktor" tizimi (keyingi o‘rinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor o‘rnini bosmaydi. Yakuniy klinik qaror uchun to‘liq javobgarlik foydalanuvchi (shifokor) zimmasidadir.',
   legal_terms_p3: '3. Ma’lumotlar xavfsizligi: Biz foydalanuvchi kiritgan bemor ma’lumotlarini (F.I.Sh va boshqa shaxsiy identifikatorlar) anonimlashtirishga harakat qilamiz, ammo internet tarmog‘ida xavfsizlik uchun mutlaq kafolat berilmaydi.',
   legal_terms_p4: '4. Rozilik: Tizimdan foydalanish orqali siz sun’iy intellekt tomonidan yuzaga kelishi mumkin bo‘lgan xatoliklar (gallyutsinatsiyalar) ehtimolini tushunasiz va qabul qilasiz.',
 
