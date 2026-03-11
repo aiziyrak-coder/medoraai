@@ -148,7 +148,6 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
     const lines = s.split('\n');
     while (lines.length > 0) {
         const last = lines[lines.length - 1].trim();
-        // agar oxirgi qatorda ':' yoki '}' yoki ']' bo'lmasa, ehtimol keraksiz bo'lak вЂ” olib tashlaymiz
         if (last && !last.includes(':') && !last.includes('}') && !last.includes(']')) {
             lines.pop();
             continue;
@@ -158,39 +157,56 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
     s = lines.join('\n').trim();
     if (!s) return null;
 
+    const fixBrackets = (text: string): string => {
+        let fixed = text;
+        const openCurly = (fixed.match(/{/g) || []).length;
+        const closeCurly = (fixed.match(/}/g) || []).length;
+        for (let i = 0; i < openCurly - closeCurly; i++) fixed += '}';
+        const openSquare = (fixed.match(/\[/g) || []).length;
+        const closeSquare = (fixed.match(/]/g) || []).length;
+        for (let i = 0; i < openSquare - closeSquare; i++) fixed += ']';
+        return fixed;
+    };
+
+    // 0.5) Kesilgan string ichida: oxirida ochiq qator (masalan justification: "…оксидла)
+    if (s.startsWith('[') || s.startsWith('{')) {
+        const trimmed = s.replace(/,\s*$/, '');
+        const inString = (str: string): boolean => {
+            let inStr = false;
+            let escaped = false;
+            for (let i = 0; i < str.length; i++) {
+                if (escaped) { escaped = false; continue; }
+                if (str[i] === '\\') { escaped = true; continue; }
+                if ((str[i] === '"') && !escaped) inStr = !inStr;
+            }
+            return inStr;
+        };
+        if (/[\w\u0400-\u04FF\u0000-\u007F]\s*$/.test(trimmed) && inString(trimmed)) {
+            const closed = fixBrackets(trimmed + '"');
+            try {
+                return JSON.parse(closed);
+            } catch {
+                //
+            }
+        }
+    }
+
     // 1) Umumiy tuzatish: oxiridagi vergulni olib tashlash va figurali/qavslarni yopish
     if (s.startsWith('{') || s.startsWith('[')) {
-        // Oxirgi vergulni olib tashlash: { "name": "Qupen",
         s = s.replace(/,\s*$/, '');
-
-        const fixBrackets = (text: string): string => {
-            let fixed = text;
-            const openCurly = (fixed.match(/{/g) || []).length;
-            const closeCurly = (fixed.match(/}/g) || []).length;
-            for (let i = 0; i < openCurly - closeCurly; i++) {
-                fixed += '}';
-            }
-            const openSquare = (fixed.match(/\[/g) || []).length;
-            const closeSquare = (fixed.match(/]/g) || []).length;
-            for (let i = 0; i < openSquare - closeSquare; i++) {
-                fixed += ']';
-            }
-            return fixed;
-        };
-
         const genericFixed = fixBrackets(s);
         try {
             return JSON.parse(genericFixed);
         } catch {
-            // pastga tushamiz
+            //
         }
     }
 
-    // 2) Kesilgan massiv: oxirida ochiq qator (differensial tashxis ro'yxati va boshqalar)
+    // 2) Kesilgan massiv: oxirida ochiq qator (differensial tashxis ro'yxati)
     if (s.startsWith('[')) {
         const closeRepairs = [
             (s.trimEnd().replace(/,\s*$/, '') || s) + ']',
-            s + '"]}]',  // ochiq qator + yopish object + array
+            s + '"]}]',
             s + '"]',
             s + ']',
         ];
@@ -200,6 +216,12 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
             } catch {
                 continue;
             }
+        }
+        const withClosedString = /[\w\u0400-\u04FF]\s*$/.test(s) ? fixBrackets(s + '"') : s;
+        try {
+            return JSON.parse(fixBrackets(withClosedString + (withClosedString === s ? ']' : '')));
+        } catch {
+            //
         }
     }
 
@@ -827,13 +849,13 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
     const systemInstr = getSystemInstruction(language);
     const prompt = buildMultimodalPrompt(
         `Analyze the patient data. Generate 3-5 most likely differential diagnoses. O'ZBEKISTON KONTEKSTI MAJBURIY.
-        MANDATORY FIELDS:
-        1. "name": Diagnosis name in ${langMap[language]} (aniq, o'zbekcha).
-        2. "justification": Scientific reasoning — nega shunday tashxis; dalil asosida (umumiy iboralardan saqlaning).
-        3. "reasoningChain": Step-by-step logic — har qadamda "nima uchun" javob; simptom → ehtimol sabab → tashxis.
-        4. "uzbekProtocolMatch": SSV klinik protokoliga muvofiqlik — aniq protokol nomi yoki yo'nalishi (masalan: "Arterial gipertenziya bo'yicha SSV klinik protokoliga muvofiq"). Agar tegishli SSV protokol yo'nalishi bo'lsa, ko'rsating.
-        ANIQLIK: probability ni dalil kuchiga mos qo'ying; ma'lumot yetishmasa pastroq bering. Eng ehtimolini birinchi qo'ying. Taxminiy tashxisni yakuniy deb yozmang.
-        Output Language: ${langMap[language]}.`,
+        MANDATORY FIELDS (keep each string SHORT to avoid truncation):
+        1. "name": Diagnosis name in ${langMap[language]} (aniq, qisqa).
+        2. "justification": 1-2 jumla — nega shunday tashxis; dalil asosida.
+        3. "reasoningChain": 2-3 qisqa qadam: simptom → sabab → tashxis.
+        4. "uzbekProtocolMatch": SSV protokol nomi yoki yo'nalishi (qisqa).
+        ANIQLIK: probability ni dalil kuchiga mos qo'ying. Eng ehtimolini birinchi qo'ying.
+        Output Language: ${langMap[language]}. Return ONLY valid JSON array.`,
         data
     );
 
@@ -853,7 +875,7 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
         },
     };
     try {
-        const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 4096);
+        const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 8192);
         const arr = Array.isArray(raw) ? raw : [];
         return arr.map((item: Record<string, unknown>) => ({
             name: String(item?.name ?? ''),
