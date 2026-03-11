@@ -312,6 +312,12 @@ export const ru: TranslationSet = {
   clarification_submit_button: 'Начать консилиум',
   clarification_not_answered: 'Без ответа',
   clarification_additional_qa: 'Дополнительные вопросы и ответы',
+  
+  // AI Error Messages (Сообщения об ошибках ИИ)
+  ai_json_parse_error: "Получен неверный ответ от сервиса ИИ. Пожалуйста, попробуйте снова.",
+  ai_service_unavailable: 'Сервис ИИ временно недоступен. Пожалуйста, попробуйте позже.',
+  ai_timeout_error: 'Время ожидания запроса ИИ истекло. Пожалуйста, попробуйте снова.',
+  ai_generic_error: 'Произошла ошибка при обработке запроса ИИ. Пожалуйста, попробуйте снова.',
 
   // Team Recommendation View
   team_recommendation_title: 'Рекомендуемая команда: «Консилиум сильнейших»',

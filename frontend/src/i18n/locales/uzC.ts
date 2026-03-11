@@ -293,6 +293,12 @@ export const uzC: TranslationSet = {
   clarification_submit_button: 'Консилиумни Бошлаш',
   clarification_not_answered: 'Жавоб берилмаган',
   clarification_additional_qa: 'Қўшимча савол-жавоблар',
+  
+  // АИ Хатолик Хабарлари (AI Error Messages)
+  ai_json_parse_error: "АИ хизматидан нотоғри жавоб олинди. Илтимос, қайта уриниб кўринг.",
+  ai_service_unavailable: 'АИ хизмати вақтинча мавжуд емас. Кейинроқ қайта уриниб кўринг.',
+  ai_timeout_error: 'АИ сўрови вақти тугади. Илтимос, қайта уриниб кўринг.',
+  ai_generic_error: 'АИ сўровини бажаришда хатолик юз берди. Илтимос, қайта уриниб кўринг.',
   // Team Recommendation View
   team_recommendation_title: 'Тавсийа Етилган Жамоа: "Енг Кучлилар Консилиуми"',
   team_recommendation_subtitle: 'Тизим бемор ма\'лумотларига асосланиб, енг муҳим мутахассисларни танлади. Жамоани тасдиқланг йоки ўзгартиринг.',
