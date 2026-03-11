@@ -27,9 +27,10 @@ def _get_client():
         logger.warning("google-genai not installed: pip install google-genai")
         return None
 
-# Model names (Gemini 1.5 free tier)
-GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-1.5-flash")
+# Model names (Latest Gemini 2.0)
+GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.0-flash-exp")
 GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-1.5-pro")
+GEMINI_THINKING = getattr(settings, "GEMINI_MODEL_THINKING", "gemini-2.0-flash-thinking-exp")
 
 SPECIALIST_NAMES = [
     "Gemini", "Claude", "GPT-4o", "Llama 3", "Grok",
@@ -214,6 +215,6 @@ O'zbek tilida (Lotin)."""
                 "uzbekProtocolMatch": (d.get("uzbekProtocolMatch") or "")[:300],
             })
         return out
-    except Exception as e:
-        logger.exception("Gemini generate_diagnoses failed: %s", e)
-        raise RuntimeError(str(e) or "Tashxis yaratishda AI xatolik") from e
+    except Exception:
+        logger.exception("Gemini generate_diagnoses failed")
+        return []
