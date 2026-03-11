@@ -465,8 +465,7 @@ const AppContent: React.FC = () => {
     };
 
     /** Savollar faqat AI orqali shikoyatdan generatsiya qilinadi; oldindan kiritilgan ro'yxat ishlatilmaydi. */
-    const handleDataSubmit = async (data: PatientData) => {
-        setPatientData(data);
+    const handleGenerateClarificationQuestions = async (data: PatientData) => {
         setError(null);
         setIsProcessing(true);
         setAppView('clarification');
@@ -480,7 +479,16 @@ const AppContent: React.FC = () => {
                 questions = response.data;
             } else {
                 if (response.success === false && response.error?.message) {
-                    backendErrorMessage = response.error.message;
+                    // Translate AI error codes
+                    if (response.error.message.includes('AI_JSON_PARSE_ERROR')) {
+                        backendErrorMessage = t('ai_json_parse_error');
+                    } else if (response.error.message.includes('timeout')) {
+                        backendErrorMessage = t('ai_timeout_error');
+                    } else if (response.error.message.includes('unavailable')) {
+                        backendErrorMessage = t('ai_service_unavailable');
+                    } else {
+                        backendErrorMessage = response.error.message;
+                    }
                     setError(backendErrorMessage);
                 }
                 try {
@@ -492,16 +500,30 @@ const AppContent: React.FC = () => {
             }
         } catch (e) {
             const errMsg = e instanceof Error ? e.message : null;
+            // Translate AI error codes
+            let translatedError: string | null = null;
+            if (errMsg?.includes('AI_JSON_PARSE_ERROR')) {
+                translatedError = t('ai_json_parse_error');
+            } else if (errMsg?.includes('timeout')) {
+                translatedError = t('ai_timeout_error');
+            } else if (errMsg?.includes('unavailable')) {
+                translatedError = t('ai_service_unavailable');
+            }
             try {
                 questions = await aiService.generateClarifyingQuestions(data, language);
                 if (questions.length) setError(null);
             } catch {
-                setError(backendErrorMessage || errMsg || t('clarification_question_error'));
+                setError(backendErrorMessage || translatedError || errMsg || t('clarification_question_error'));
             }
         }
         setClarificationQuestions(questions);
         if (questions.length) setError(null);
         setIsProcessing(false);
+    };
+    
+    const handleDataSubmit = async (data: PatientData) => {
+        setPatientData(data);
+        await handleGenerateClarificationQuestions(data);
     };
     
     const handleClarificationSubmit = async (answers: Record<string, string>) => {

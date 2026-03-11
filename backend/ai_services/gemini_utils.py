@@ -145,12 +145,23 @@ Javobni faqat JSON massiv: ["Savol 1?", "Savol 2?"]. O'zbek tilida (Lotin)."""
         raise last_exc
     if not raw:
         return []
-    raw = (raw or "").replace("```json", "").replace("```", "").strip()
+    # Clean up markdown code blocks and extra whitespace
+    raw = (raw or "").replace("```json", "").replace("```", "").replace("```text", "").strip()
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
-        logger.warning("Gemini clarifying_questions: invalid JSON, raw=%s", raw[:300])
-        return []
+    except json.JSONDecodeError as e:
+        logger.warning("Gemini clarifying_questions: invalid JSON (error=%s), raw=%s", e, raw[:500])
+        # Try to extract array from text using regex
+        import re
+        match = re.search(r'\[[\s\S]*\]', raw)
+        if match:
+            try:
+                data = json.loads(match.group(0))
+                logger.info("Successfully extracted JSON array from malformed response")
+            except json.JSONDecodeError:
+                return []
+        else:
+            return []
     if isinstance(data, list):
         return [str(q) for q in data if q][:8]
     if isinstance(data, dict) and "questions" in data:
@@ -179,8 +190,24 @@ O'zbek tilida (Lotin)."""
                     prompt, model_name,
                     response_mime_type="application/json" if use_json else None,
                 )
-                raw = (raw or "").replace("```json", "").replace("```", "").strip()
-                data = json.loads(raw)
+                # Clean up markdown code blocks and extra whitespace
+                raw = (raw or "").replace("```json", "").replace("```", "").replace("```text", "").strip()
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError as e:
+                    logger.warning("Gemini recommend_specialists: invalid JSON (error=%s), raw=%s", e, raw[:500])
+                    # Try to extract object from text using regex
+                    import re
+                    match = re.search(r'\{[\s\S]*\}', raw)
+                    if match:
+                        try:
+                            data = json.loads(match.group(0))
+                            logger.info("Successfully extracted JSON object from malformed response")
+                        except json.JSONDecodeError:
+                            raise
+                    else:
+                        raise
+                
                 recs = (data or {}).get("recommendations") or []
                 out = []
                 for r in recs:
@@ -225,8 +252,24 @@ O'zbek tilida (Lotin)."""
                 prompt, GEMINI_FLASH,
                 response_mime_type="application/json" if use_json else None,
             )
-            raw = (raw or "").replace("```json", "").replace("```", "").strip()
-            data = json.loads(raw)
+            # Clean up markdown code blocks and extra whitespace
+            raw = (raw or "").replace("```json", "").replace("```", "").replace("```text", "").strip()
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError as e:
+                logger.warning("Gemini generate_diagnoses: invalid JSON (error=%s), raw=%s", e, raw[:500])
+                # Try to extract array from text using regex
+                import re
+                match = re.search(r'\[[\s\S]*\]', raw)
+                if match:
+                    try:
+                        data = json.loads(match.group(0))
+                        logger.info("Successfully extracted JSON array from malformed response")
+                    except json.JSONDecodeError:
+                        continue
+                else:
+                    continue
+            
             if not isinstance(data, list):
                 data = [data] if isinstance(data, dict) else []
             out = []

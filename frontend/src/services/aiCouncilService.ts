@@ -334,7 +334,7 @@ const callGemini = async (
                 const repaired = tryRepairTruncatedJson(candidate);
                 if (repaired == null) {
                     logger.error('Failed to parse JSON from Gemini:', candidate?.slice(0, 500));
-                    const err = new Error("AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.");
+                    const err = new Error("AI_JSON_PARSE_ERROR");
                     (err as Error & { cause?: string }).cause = 'parse_json';
                     throw err;
                 }

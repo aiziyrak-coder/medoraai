@@ -313,6 +313,12 @@ export const uzL: TranslationSet = {
   clarification_submit_button: 'Konsiliumni Boshlash',
   clarification_not_answered: 'Javob berilmagan',
   clarification_additional_qa: 'Qo\'shimcha savol-javoblar',
+  
+  // AI Xatolik Xabarlari
+  ai_json_parse_error: "AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.",
+  ai_service_unavailable: 'AI xizmati vaqtincha mavjud emas. Keyinroq qayta urinib ko\'ring.',
+  ai_timeout_error: 'AI so\'rovi vaqt tugadi. Iltimos, qayta urinib ko\'ring.',
+  ai_generic_error: 'AI so\'rovini bajarishda xatolik yuz berdi. Iltimos, qayta urinib ko\'ring.',
 
   // Team Recommendation View
   team_recommendation_title: 'Tavsiya Etilgan Jamoa: "Eng Kuchlilar Konsiliumi"',

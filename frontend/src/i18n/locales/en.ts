@@ -310,6 +310,12 @@ export const en = {
   clarification_submit_button: 'Start Konsilium',
   clarification_not_answered: 'Not answered',
   clarification_additional_qa: 'Additional Q&A',
+  
+  // AI Error Messages
+  ai_json_parse_error: "AI service returned an incorrect response. Please try again.",
+  ai_service_unavailable: 'AI service is temporarily unavailable. Please try again later.',
+  ai_timeout_error: 'AI request timed out. Please try again.',
+  ai_generic_error: 'An error occurred while processing AI request. Please try again.',
 
   // Team Recommendation View
   team_recommendation_title: 'Recommended Team: "The A-Team Konsilium"',
