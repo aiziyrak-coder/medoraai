@@ -284,9 +284,9 @@ AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='medora-llama')
 AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='medora-mistral')
 AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='medora-mini')
 
-# Legacy (kept for backwards-compat, not used for AI calls)
-GEMINI_API_KEY   = config('GEMINI_API_KEY',   default='')
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='medora-gpt4o')
+# AI: faqat Gemini (kalit .env dan, bo'sh joy/newline olib tashlanadi)
+GEMINI_API_KEY   = (config('GEMINI_API_KEY', default='') or '').strip()
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-1.5-pro')
 
 # ── Production Security Settings ───────────────────────────────────────────
 if not DEBUG:
