@@ -60,7 +60,7 @@ const PatientsList: React.FC<PatientsListProps> = ({ queue }) => {
                                         {patient.patientName}
                                     </h4>
                                     <p className="text-xs text-slate-400">
-                                        {patient.arrivalTime} • {patient.age} {t('age_label').toLowerCase()} • {patient.address}
+                                        {patient.arrivalTime} вЂў {patient.age} {t('age_label').toLowerCase()} вЂў {patient.address}
                                     </p>
                                 </div>
                             </div>
@@ -95,4 +95,3 @@ const PatientsList: React.FC<PatientsListProps> = ({ queue }) => {
 };
 
 export default PatientsList;
--NoNewline

@@ -46,4 +46,3 @@ export const LIMITS = {
   MAX_COMPLAINT_LENGTH: 2000,
   MAX_NOTE_LENGTH: 5000,
 } as const;
--NoNewline

@@ -85,4 +85,4 @@ const DischargeSummaryTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
     );
 };
 
-export default DischargeSummaryTool;-NoNewline
+export default DischargeSummaryTool;

@@ -99,4 +99,4 @@ const InsurancePreAuthTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
     );
 };
 
-export default InsurancePreAuthTool;-NoNewline
+export default InsurancePreAuthTool;

@@ -6,4 +6,4 @@ const BellIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) =
     </svg>
 );
 
-export default BellIcon;-NoNewline
+export default BellIcon;

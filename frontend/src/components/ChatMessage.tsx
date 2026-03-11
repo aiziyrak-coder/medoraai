@@ -86,4 +86,4 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     );
 };
 
-export default ChatMessage;-NoNewline
+export default ChatMessage;

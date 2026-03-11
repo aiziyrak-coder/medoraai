@@ -170,13 +170,13 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
                                         <div>
                                             <h5 className="font-semibold text-sm text-green-500 flex items-center gap-2"><CheckIcon /> Afzalliklari:</h5>
                                             <ul className="list-none space-y-1 mt-1 text-sm text-text-primary">
-                                                {strategy.pros.map((pro, i) => <li key={i} className="flex items-start gap-2"><span className="text-green-500 mt-1">▪</span><span>{pro}</span></li>)}
+                                                {strategy.pros.map((pro, i) => <li key={i} className="flex items-start gap-2"><span className="text-green-500 mt-1">в–Є</span><span>{pro}</span></li>)}
                                             </ul>
                                         </div>
                                          <div>
                                             <h5 className="font-semibold text-sm text-red-500 flex items-center gap-2"><XIcon /> Kamchiliklari:</h5>
                                              <ul className="list-none space-y-1 mt-1 text-sm text-text-primary">
-                                                {strategy.cons.map((con, i) => <li key={i} className="flex items-start gap-2"><span className="text-red-500 mt-1">▪</span><span>{con}</span></li>)}
+                                                {strategy.cons.map((con, i) => <li key={i} className="flex items-start gap-2"><span className="text-red-500 mt-1">в–Є</span><span>{con}</span></li>)}
                                             </ul>
                                         </div>
                                     </div>
@@ -277,4 +277,3 @@ const ResearchReportCard: React.FC<{ report: ResearchReport }> = ({ report }) =>
 };
 
 export default ResearchReportCard;
--NoNewline

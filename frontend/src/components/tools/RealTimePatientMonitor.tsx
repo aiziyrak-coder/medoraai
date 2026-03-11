@@ -63,7 +63,7 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
                 />
                 <VitalDisplay
                     icon={<OxygenIcon />}
-                    label="SpO₂"
+                    label="SpOв‚‚"
                     value={vitals?.spO2 ?? '--'}
                     unit="%"
                     colorClass="text-cyan-400"
@@ -116,4 +116,3 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
 };
 
 export default RealTimePatientMonitor;
--NoNewline

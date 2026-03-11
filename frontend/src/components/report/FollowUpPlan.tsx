@@ -42,4 +42,3 @@ const FollowUpPlan: React.FC<FollowUpPlanProps> = ({ tasks }) => {
 };
 
 export default FollowUpPlan;
--NoNewline

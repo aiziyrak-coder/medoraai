@@ -6,4 +6,4 @@ const UploadCloudIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
-export default UploadCloudIcon;-NoNewline
+export default UploadCloudIcon;

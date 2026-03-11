@@ -8,4 +8,4 @@ const AcademicCapIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-
     </svg>
 );
 
-export default AcademicCapIcon;-NoNewline
+export default AcademicCapIcon;

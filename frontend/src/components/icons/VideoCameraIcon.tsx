@@ -6,4 +6,4 @@ const VideoCameraIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-
     </svg>
 );
 
-export default VideoCameraIcon;-NoNewline
+export default VideoCameraIcon;

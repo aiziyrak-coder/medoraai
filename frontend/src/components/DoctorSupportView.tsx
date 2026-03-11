@@ -1,5 +1,5 @@
 /**
- * DoctorSupportView – Doktorlar uchun Tezkor Yordamchi
+ * DoctorSupportView вЂ“ Doktorlar uchun Tezkor Yordamchi
  * GPT-4o + O'zbekiston SSV protokollari + real-time SSE streaming
  */
 import React, { useState, useRef, useCallback } from 'react';
@@ -24,12 +24,12 @@ interface Props {
 }
 
 const TASK_OPTIONS: Array<{ value: DoctorTaskType; label: string; icon: string; desc: string }> = [
-  { value: TASK_QUICK_CONSULT,  icon: '⚡', label: 'Tezkor Maslahat',    desc: 'Tez tashxis va choralar' },
-  { value: TASK_DIAGNOSIS,      icon: '🔍', label: 'Differensial Tashxis', desc: '3–5 ta tashxis + ehtimollik' },
-  { value: TASK_TREATMENT,      icon: '💊', label: 'Davolash Rejasi',     desc: 'To\'liq SSV protokol rejasi' },
-  { value: TASK_DRUG_CHECK,     icon: '⚗',  label: 'Dori Tekshiruvi',     desc: 'O\'zaro ta\'sir + xavfsizlik' },
-  { value: TASK_LAB_INTERPRET,  icon: '🧪', label: 'Lab Tahlili',         desc: 'Laboratoriya natijalarini izohlash' },
-  { value: TASK_FOLLOW_UP,      icon: '📅', label: 'Kuzatuv Rejasi',      desc: 'Keyingi qabul va ogohlantirishlar' },
+  { value: TASK_QUICK_CONSULT,  icon: 'вљЎ', label: 'Tezkor Maslahat',    desc: 'Tez tashxis va choralar' },
+  { value: TASK_DIAGNOSIS,      icon: 'рџ”Ќ', label: 'Differensial Tashxis', desc: '3вЂ“5 ta tashxis + ehtimollik' },
+  { value: TASK_TREATMENT,      icon: 'рџ’Љ', label: 'Davolash Rejasi',     desc: 'To\'liq SSV protokol rejasi' },
+  { value: TASK_DRUG_CHECK,     icon: 'вљ—',  label: 'Dori Tekshiruvi',     desc: 'O\'zaro ta\'sir + xavfsizlik' },
+  { value: TASK_LAB_INTERPRET,  icon: 'рџ§Є', label: 'Lab Tahlili',         desc: 'Laboratoriya natijalarini izohlash' },
+  { value: TASK_FOLLOW_UP,      icon: 'рџ“…', label: 'Kuzatuv Rejasi',      desc: 'Keyingi qabul va ogohlantirishlar' },
 ];
 
 function ResultCard({ result }: { result: DoctorSupportResult }) {
@@ -38,7 +38,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
   if (result.error) {
     return (
       <div className="rounded-2xl bg-red-950/40 border border-red-500/40 p-4 text-red-300 text-sm">
-        ⚠ {result.error}
+        вљ  {result.error}
       </div>
     );
   }
@@ -48,7 +48,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Critical Alert */}
       {result.critical_alert?.present && (
         <div className="rounded-2xl bg-red-950/50 border border-red-500/60 p-4">
-          <p className="font-bold text-red-300 mb-1">🚨 Shoshilinch Holat</p>
+          <p className="font-bold text-red-300 mb-1">рџљЁ Shoshilinch Holat</p>
           <p className="text-red-200 text-sm">{result.critical_alert.message}</p>
         </div>
       )}
@@ -58,7 +58,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
         <>
           {result.summary && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-sky-300 mb-2">📋 Xulosa</h4>
+              <h4 className="font-semibold text-sky-300 mb-2">рџ“‹ Xulosa</h4>
               <p className="text-slate-200 text-sm">{result.summary}</p>
               {result.primary_diagnosis && (
                 <p className="mt-2 text-white font-medium">
@@ -70,7 +70,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
           )}
           {result.immediate_actions && result.immediate_actions.length > 0 && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-amber-300 mb-2">⚡ Darhol Choralar</h4>
+              <h4 className="font-semibold text-amber-300 mb-2">вљЎ Darhol Choralar</h4>
               <ol className="space-y-1">
                 {result.immediate_actions.map((a, i) => (
                   <li key={i} className="text-slate-200 text-sm flex gap-2">
@@ -86,7 +86,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Diagnosis */}
       {task === TASK_DIAGNOSIS && result.diagnoses && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-sky-300 mb-3">🔍 Differensial Tashxislar</h4>
+          <h4 className="font-semibold text-sky-300 mb-3">рџ”Ќ Differensial Tashxislar</h4>
           <div className="space-y-3">
             {result.diagnoses.map((d, i) => (
               <div key={i} className="p-3 rounded-xl bg-slate-700/50">
@@ -96,15 +96,15 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
                 </div>
                 <p className="text-slate-400 text-xs">{d.justification}</p>
                 {d.uzbek_protocol && (
-                  <p className="text-sky-500 text-xs mt-1">📌 {d.uzbek_protocol}</p>
+                  <p className="text-sky-500 text-xs mt-1">рџ“Њ {d.uzbek_protocol}</p>
                 )}
               </div>
             ))}
           </div>
           {result.red_flags && result.red_flags.length > 0 && (
             <div className="mt-3 p-2 rounded-xl bg-red-950/40 border border-red-500/30">
-              <p className="text-red-300 text-xs font-semibold">🚩 Qizil Bayroqlar:</p>
-              {result.red_flags.map((f, i) => <p key={i} className="text-red-200 text-xs">• {f}</p>)}
+              <p className="text-red-300 text-xs font-semibold">рџљ© Qizil Bayroqlar:</p>
+              {result.red_flags.map((f, i) => <p key={i} className="text-red-200 text-xs">вЂў {f}</p>)}
             </div>
           )}
         </div>
@@ -115,7 +115,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
         <>
           {result.treatment_plan && result.treatment_plan.length > 0 && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-emerald-300 mb-2">📋 Davolash Rejasi</h4>
+              <h4 className="font-semibold text-emerald-300 mb-2">рџ“‹ Davolash Rejasi</h4>
               <ol className="space-y-1">
                 {result.treatment_plan.map((step, i) => (
                   <li key={i} className="text-slate-200 text-sm flex gap-2">
@@ -126,7 +126,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
             </div>
           )}
           {result.uzbek_protocol_ref && (
-            <p className="text-sky-500 text-xs px-1">📌 {result.uzbek_protocol_ref}</p>
+            <p className="text-sky-500 text-xs px-1">рџ“Њ {result.uzbek_protocol_ref}</p>
           )}
         </>
       )}
@@ -140,13 +140,13 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
               result.overall_safety === 'CAUTION'   ? 'bg-amber-950/40 border border-amber-500/40 text-amber-300' :
                                                       'bg-red-950/40 border border-red-500/40 text-red-300'
             }`}>
-              {result.overall_safety === 'SAFE' ? '✅' : result.overall_safety === 'CAUTION' ? '⚠' : '🚫'}{' '}
+              {result.overall_safety === 'SAFE' ? 'вњ…' : result.overall_safety === 'CAUTION' ? 'вљ ' : 'рџљ«'}{' '}
               Umumiy xavfsizlik: {result.overall_safety}
             </div>
           )}
           {result.interactions && result.interactions.length > 0 && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-amber-300 mb-2">⚗ O'zaro Ta'sirlar</h4>
+              <h4 className="font-semibold text-amber-300 mb-2">вљ— O'zaro Ta'sirlar</h4>
               {result.interactions.map((it, i) => (
                 <div key={i} className="mb-2 p-2 rounded-lg bg-slate-700/50">
                   <p className="text-white text-xs font-medium">{it.drugs.join(' + ')}</p>
@@ -166,11 +166,11 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Medications (shared) */}
       {result.medications && result.medications.length > 0 && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-white mb-2">💊 Dori-darmonlar</h4>
+          <h4 className="font-semibold text-white mb-2">рџ’Љ Dori-darmonlar</h4>
           <div className="space-y-2">
             {result.medications.map((med, i) => (
               <div key={i} className="p-2 rounded-lg bg-slate-700/50">
-                <p className="text-white text-sm font-medium">{med.name} — {med.dosage}</p>
+                <p className="text-white text-sm font-medium">{med.name} вЂ” {med.dosage}</p>
                 <p className="text-slate-400 text-xs">{med.frequency}, {med.duration}</p>
                 {med.instructions && <p className="text-slate-400 text-xs italic">{med.instructions}</p>}
               </div>
@@ -182,9 +182,9 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Recommended tests */}
       {result.recommended_tests && result.recommended_tests.length > 0 && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-sky-300 mb-2">🧪 Tavsiya Etilgan Tekshiruvlar</h4>
+          <h4 className="font-semibold text-sky-300 mb-2">рџ§Є Tavsiya Etilgan Tekshiruvlar</h4>
           {result.recommended_tests.map((t, i) => (
-            <p key={i} className="text-slate-300 text-sm">• {t}</p>
+            <p key={i} className="text-slate-300 text-sm">вЂў {t}</p>
           ))}
         </div>
       )}
@@ -192,7 +192,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Follow-up */}
       {result.follow_up && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-slate-300 mb-1">📅 Kuzatuv</h4>
+          <h4 className="font-semibold text-slate-300 mb-1">рџ“… Kuzatuv</h4>
           <p className="text-slate-400 text-sm">{result.follow_up}</p>
         </div>
       )}
@@ -263,9 +263,9 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
     <div className="flex flex-col gap-4">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-white">⚡ Doktor Yordamchi</h2>
+        <h2 className="text-xl font-bold text-white">вљЎ Doktor Yordamchi</h2>
         <p className="text-sm text-slate-400 mt-0.5">
-          GPT-4o · O'zbekiston SSV Protokollari · Tezkor tahlil
+          GPT-4o В· O'zbekiston SSV Protokollari В· Tezkor tahlil
         </p>
       </div>
 
@@ -305,7 +305,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           className="flex-1 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500
                      text-white font-semibold transition-all active:scale-95 disabled:opacity-50"
         >
-          {streaming ? '⟳ Javob kelmoqda...' : '▶ Streaming Tahlil'}
+          {streaming ? 'вџі Javob kelmoqda...' : 'в–¶ Streaming Tahlil'}
         </button>
         <button
           onClick={handleSync}
@@ -313,14 +313,14 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           className="px-4 py-3 rounded-2xl bg-slate-700 hover:bg-slate-600
                      text-white font-medium transition-all active:scale-95 disabled:opacity-50"
         >
-          {loading ? '⟳' : '📥'}
+          {loading ? 'вџі' : 'рџ“Ґ'}
         </button>
         {streaming && (
           <button
             onClick={handleStop}
             className="px-4 py-3 rounded-2xl bg-red-700 hover:bg-red-600 text-white transition-all"
           >
-            ■
+            в– 
           </button>
         )}
       </div>
@@ -328,7 +328,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
       {/* Streaming text output */}
       {streamText && (
         <div className="rounded-2xl bg-slate-900/80 border border-slate-600/30 p-4 max-h-64 overflow-y-auto">
-          <p className="text-xs text-slate-500 mb-2 font-mono">● Javob kelmoqda...</p>
+          <p className="text-xs text-slate-500 mb-2 font-mono">в—Џ Javob kelmoqda...</p>
           <pre className="text-slate-300 text-xs whitespace-pre-wrap font-mono leading-relaxed">
             {streamText}
           </pre>
@@ -342,4 +342,3 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
 };
 
 export default DoctorSupportView;
--NoNewline

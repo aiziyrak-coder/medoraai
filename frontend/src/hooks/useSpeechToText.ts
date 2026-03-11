@@ -99,4 +99,4 @@ export const useSpeechToText = () => {
     };
 
     return { isListening, transcript, startListening, stopListening };
-};-NoNewline
+};

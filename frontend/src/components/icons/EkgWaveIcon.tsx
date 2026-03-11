@@ -35,4 +35,3 @@ const EkgWaveIcon: React.FC<{ className?: string }> = ({ className }) => {
 };
 
 export default EkgWaveIcon;
--NoNewline

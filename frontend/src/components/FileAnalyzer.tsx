@@ -4,4 +4,4 @@ const FileAnalyzer: React.FC = () => {
     return null;
 };
 
-export default FileAnalyzer;-NoNewline
+export default FileAnalyzer;

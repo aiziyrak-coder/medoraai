@@ -8,4 +8,3 @@ const StethoscopeIcon: React.FC<{ className?: string }> = ({ className = "w-8 h-
 );
 
 export default StethoscopeIcon;
--NoNewline

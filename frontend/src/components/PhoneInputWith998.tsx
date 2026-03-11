@@ -1,6 +1,6 @@
 /**
  * Telefon input: +998 doim ko'rinadi, foydalanuvchi faqat 9 ta raqam kiritadi.
- * value/onChange — to'liq raqam: +998XXXXXXXXX (konfliktlarsiz barcha joyda bir xil).
+ * value/onChange вЂ” to'liq raqam: +998XXXXXXXXX (konfliktlarsiz barcha joyda bir xil).
  */
 import React from 'react';
 
@@ -76,4 +76,3 @@ export const PhoneInputWith998: React.FC<PhoneInputWith998Props> = ({
     </div>
   );
 };
--NoNewline

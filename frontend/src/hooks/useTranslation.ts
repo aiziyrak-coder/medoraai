@@ -28,4 +28,3 @@ export const useTranslation = () => {
 
   return { t, setLanguage, language };
 };
--NoNewline

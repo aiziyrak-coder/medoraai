@@ -90,4 +90,4 @@ const PatientExplanationGenerator: React.FC = () => {
     );
 };
 
-export default PatientExplanationGenerator;-NoNewline
+export default PatientExplanationGenerator;

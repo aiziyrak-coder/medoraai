@@ -37,4 +37,4 @@ const AIAvatar: React.FC<AIAvatarProps> = ({ model, size = 'md' }) => {
     );
 };
 
-export default AIAvatar;-NoNewline
+export default AIAvatar;

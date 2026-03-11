@@ -63,4 +63,3 @@ const PatientEducationPortal: React.FC<PatientEducationPortalProps> = ({ report,
 };
 
 export default PatientEducationPortal;
--NoNewline

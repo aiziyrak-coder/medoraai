@@ -425,9 +425,9 @@ export const en = {
   drug_checking: 'Checking...',
   drug_safe: 'Safe',
   drug_severity_label: 'Risk Level:',
-  drug_clinical_significance: '🔬 Clinical Significance:',
-  drug_recommendations: '📋 Recommendations:',
-  drug_tools_title: '🧪 Drug Tools',
+  drug_clinical_significance: 'рџ”¬ Clinical Significance:',
+  drug_recommendations: 'рџ“‹ Recommendations:',
+  drug_tools_title: 'рџ§Є Drug Tools',
   
   // Doctor Dashboard
   walk_in_admission: 'Walk-in Admission',
@@ -471,10 +471,10 @@ export const en = {
   report_additional_tests: 'Additional Tests',
   report_no_medication: 'No medication recommended.',
   report_uzbekistan_badge: 'Uzbekistan',
-  report_dosage: '💊 Dosage',
-  report_frequency: '🔁 Frequency',
-  report_timing: '⏰ Timing',
-  report_duration: '📅 Duration',
+  report_dosage: 'рџ’Љ Dosage',
+  report_frequency: 'рџ”Ѓ Frequency',
+  report_timing: 'вЏ° Timing',
+  report_duration: 'рџ“… Duration',
   report_instructions: 'Instructions:',
   report_disclaimer: 'Note: This electronic prescription is advisory.',
   doc_no_documents: 'No documents available.',
@@ -527,7 +527,7 @@ export const en = {
   vitals_label_sys: 'SYS',
   vitals_label_dia: 'DIA',
   vitals_label_puls: 'Pulse',
-  vitals_label_temp: 't°',
+  vitals_label_temp: 'tВ°',
   vitals_label_spo2: 'SpO2',
   vitals_label_resp: 'Respiration',
   alert_tv_wrong_code: 'Wrong code. Contact admin.',
@@ -599,11 +599,10 @@ export const en = {
   testimonial_1_text: 'AiDoktorAi is an excellent tool for getting a second opinion in complex cases. The ECG analysis in particular is very accurate and fast.',
   testimonial_2_name: 'Dr. S. Umarova',
   testimonial_2_role: 'Neurologist',
-  testimonial_2_text: 'It helps save time in diagnosing rare diseases. The research section is a real treasure — the latest articles are always at hand.',
+  testimonial_2_text: 'It helps save time in diagnosing rare diseases. The research section is a real treasure вЂ” the latest articles are always at hand.',
   testimonial_3_name: 'Association of Doctors',
   testimonial_3_role: 'Partner',
   testimonial_3_text: 'We recommend this platform to all clinics in Uzbekistan. The future of modern medicine is exactly here.',
 };
 
 export type TranslationSet = typeof en;
--NoNewline

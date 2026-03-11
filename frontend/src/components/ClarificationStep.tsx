@@ -4,4 +4,4 @@ const ClarificationStep: React.FC = () => {
     return null;
 };
 
-export default ClarificationStep;-NoNewline
+export default ClarificationStep;

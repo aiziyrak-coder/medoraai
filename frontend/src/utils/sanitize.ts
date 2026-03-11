@@ -56,4 +56,3 @@ export const sanitizeEmail = (email: string): string => {
     // Basic email sanitization
     return email.trim().toLowerCase().replace(/[^\w@.-]/g, '');
 };
--NoNewline

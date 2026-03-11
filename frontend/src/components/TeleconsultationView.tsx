@@ -160,4 +160,4 @@ const TeleconsultationView: React.FC = () => {
     );
 };
 
-export default TeleconsultationView;-NoNewline
+export default TeleconsultationView;

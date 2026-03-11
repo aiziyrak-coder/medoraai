@@ -1,5 +1,5 @@
 /**
- * Navbat API — server orqali navbat (barcha qurilmalarda sinxron).
+ * Navbat API вЂ” server orqali navbat (barcha qurilmalarda sinxron).
  * queueService.ts API mavjud va token bor bo'lsa shu xizmatni chaqiradi.
  */
 import type { PatientQueueItem } from '../types';
@@ -62,4 +62,3 @@ export const apiRemoveFromQueue = async (itemId: string): Promise<{ ok: boolean;
   }
   return { ok: true };
 };
--NoNewline

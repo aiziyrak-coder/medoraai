@@ -104,4 +104,4 @@ export const generateDocxReport = async (
         logger.error("Could not generate DOCX file.", e);
         alert("DOCX faylini yaratishda xatolik yuz berdi.");
     }
-};-NoNewline
+};

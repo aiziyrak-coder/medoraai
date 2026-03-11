@@ -6,4 +6,4 @@ const ShieldWarningIcon: React.FC<{ className?: string }> = ({ className = "h-7 
     </svg>
 );
 
-export default ShieldWarningIcon;-NoNewline
+export default ShieldWarningIcon;

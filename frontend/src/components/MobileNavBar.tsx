@@ -67,4 +67,3 @@ const MobileNavBar: React.FC<MobileNavBarProps> = ({ activeView, onNavigate }) =
 };
 
 export default MobileNavBar;
--NoNewline

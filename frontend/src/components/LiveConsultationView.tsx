@@ -208,4 +208,4 @@ const LiveConsultationView: React.FC<LiveConsultationViewProps> = ({ analysisRec
     );
 };
 
-export default LiveConsultationView;-NoNewline
+export default LiveConsultationView;

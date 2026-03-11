@@ -51,4 +51,4 @@ const RationaleModal: React.FC<RationaleModalProps> = ({ message, patientData, d
     );
 };
 
-export default RationaleModal;-NoNewline
+export default RationaleModal;

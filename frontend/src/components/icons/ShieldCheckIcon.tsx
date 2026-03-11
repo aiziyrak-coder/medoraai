@@ -7,4 +7,3 @@ const ShieldCheckIcon: React.FC<{ className?: string }> = ({ className = "h-7 w-
 );
 
 export default ShieldCheckIcon;
--NoNewline

@@ -8,4 +8,3 @@ const FileCodeIcon: React.FC<{ className?: string }> = ({ className = "w-8 h-8" 
 );
 
 export default FileCodeIcon;
--NoNewline

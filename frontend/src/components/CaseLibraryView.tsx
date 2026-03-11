@@ -72,4 +72,3 @@ const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatien
 };
 
 export default CaseLibraryView;
--NoNewline

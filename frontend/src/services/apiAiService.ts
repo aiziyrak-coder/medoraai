@@ -1,15 +1,15 @@
 /**
- * AI Services API — Azure AI Foundry
+ * AI Services API вЂ” Azure AI Foundry
  *
  * Ikki asosiy rejim:
- *   1. Consilium Mode  → /api/ai/consilium/     (5 professor, 3 faza)
- *   2. Doctor Support  → /api/ai/doctor-support/ (GPT-4o, tezkor)
- *   3. Doctor Stream   → /api/ai/doctor-stream/  (SSE)
+ *   1. Consilium Mode  в†’ /api/ai/consilium/     (5 professor, 3 faza)
+ *   2. Doctor Support  в†’ /api/ai/doctor-support/ (GPT-4o, tezkor)
+ *   3. Doctor Stream   в†’ /api/ai/doctor-stream/  (SSE)
  */
 import { apiPost, API_BASE_URL, type ApiResponse } from './api';
 import type { PatientData, Diagnosis, AIModel } from '../types';
 
-// ─── Task type constants ──────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ Task type constants в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export const TASK_QUICK_CONSULT  = 'quick_consult';
 export const TASK_DIAGNOSIS      = 'diagnosis';
 export const TASK_TREATMENT      = 'treatment_plan';
@@ -25,7 +25,7 @@ export type DoctorTaskType =
   | typeof TASK_LAB_INTERPRET
   | typeof TASK_FOLLOW_UP;
 
-// ─── Consilium types ──────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ Consilium types в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export interface DebateMessage {
   id:          string;
   author:      string;
@@ -73,7 +73,7 @@ export interface ConsiliumResult {
   completed_at: string;
 }
 
-// ─── Doctor Support types ────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ Doctor Support types в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export interface DoctorSupportResult {
   _task_type:   string;
   _language:    string;
@@ -109,16 +109,16 @@ export interface DoctorSupportResult {
   error?:                string;
 }
 
-// ─── Filter error type ───────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ Filter error type в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 export interface FilteredError {
   filtered:      boolean;
   filter_level:  string;
   message:       string;
 }
 
-// ─── API calls ───────────────────────────────────────────────────────────
+// в”Ђв”Ђв”Ђ API calls в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-/** Multi-Agent Medical Consilium (3 faza: Independent → Debate → Consensus) */
+/** Multi-Agent Medical Consilium (3 faza: Independent в†’ Debate в†’ Consensus) */
 export const runConsilium = async (
   patientData: PatientData,
   language: string = 'uz-L',
@@ -129,7 +129,7 @@ export const runConsilium = async (
   });
 };
 
-/** Doctor Support Mode – synchronous (GPT-4o) */
+/** Doctor Support Mode вЂ“ synchronous (GPT-4o) */
 export const runDoctorSupport = async (
   patientData: PatientData,
   options: {
@@ -147,7 +147,7 @@ export const runDoctorSupport = async (
 };
 
 /**
- * Doctor Support Mode – SSE streaming.
+ * Doctor Support Mode вЂ“ SSE streaming.
  * onChunk(text) har token kelganda chaqiriladi.
  * onDone() stream tugaganda chaqiriladi.
  */
@@ -220,7 +220,7 @@ export const runDoctorSupportStream = (
   return () => { aborted = true; };
 };
 
-// ─── Legacy endpoints (backwards-compat) ────────────────────────────────
+// в”Ђв”Ђв”Ђ Legacy endpoints (backwards-compat) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 export const generateClarifyingQuestions = async (
   patientData: PatientData,
@@ -255,7 +255,7 @@ export const generateInitialDiagnoses = async (
   return apiPost<Diagnosis[]>('/ai/generate-diagnoses/', { patient_data: patientData });
 };
 
-/** Backwards-compat – now calls consilium */
+/** Backwards-compat вЂ“ now calls consilium */
 export const runCouncilDebate = async (
   patientData: PatientData,
   _diagnoses: Diagnosis[],
@@ -264,4 +264,3 @@ export const runCouncilDebate = async (
 ): Promise<ApiResponse<{ status: string; message: string }>> => {
   return apiPost('/ai/council-debate/', { patient_data: patientData });
 };
--NoNewline

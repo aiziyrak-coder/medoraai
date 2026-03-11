@@ -36,4 +36,3 @@ const PrognosisCard: React.FC<PrognosisCardProps> = ({ prognosis, isLoading }) =
 };
 
 export default PrognosisCard;
--NoNewline

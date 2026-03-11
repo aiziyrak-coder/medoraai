@@ -225,4 +225,3 @@ const UserGuide: React.FC<UserGuideProps> = ({ onBack }) => {
 };
 
 export default UserGuide;
--NoNewline

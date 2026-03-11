@@ -143,4 +143,4 @@ const ToolsDashboard: React.FC = () => {
     );
 };
 
-export default ToolsDashboard;-NoNewline
+export default ToolsDashboard;

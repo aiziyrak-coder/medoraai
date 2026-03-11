@@ -30,4 +30,4 @@ const AdBanner: React.FC<AdBannerProps> = ({ title, description, slim = false })
     );
 };
 
-export default AdBanner;-NoNewline
+export default AdBanner;

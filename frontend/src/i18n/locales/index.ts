@@ -13,4 +13,3 @@ export const translations: Record<Language, TranslationSet> = {
     'uz-L': uzL,
     'kaa': kaa,
 };
--NoNewline

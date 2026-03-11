@@ -74,4 +74,4 @@ const AbbreviationExpander: React.FC = () => {
     );
 };
 
-export default AbbreviationExpander;-NoNewline
+export default AbbreviationExpander;

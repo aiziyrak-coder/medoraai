@@ -348,9 +348,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 {t('auth_mode_select')}
                             </h4>
                             <ul className="text-slate-300 text-xs space-y-0.5">
-                                <li>• <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
-                                <li>• <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
-                                <li>• <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
+                                <li>вЂў <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
+                                <li>вЂў <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
+                                <li>вЂў <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
                             </ul>
                         </div>
 
@@ -594,4 +594,3 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 };
 
 export default AuthPage;
--NoNewline

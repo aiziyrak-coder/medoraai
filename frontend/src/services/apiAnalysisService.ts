@@ -176,4 +176,3 @@ export const getAnalysisStats = async (): Promise<ApiResponse<{
 }>> => {
   return apiGet('/analyses/stats/');
 };
--NoNewline

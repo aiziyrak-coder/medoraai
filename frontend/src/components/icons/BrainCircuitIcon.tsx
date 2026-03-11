@@ -9,4 +9,4 @@ const BrainCircuitIcon: React.FC<{ className?: string }> = ({ className = "h-7 w
     </svg>
 );
 
-export default BrainCircuitIcon;-NoNewline
+export default BrainCircuitIcon;

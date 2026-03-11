@@ -7,4 +7,3 @@ const PrescriptionIcon: React.FC<{ className?: string }> = ({ className = "w-5 h
 );
 
 export default PrescriptionIcon;
--NoNewline

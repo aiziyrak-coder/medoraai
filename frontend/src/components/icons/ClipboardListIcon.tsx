@@ -6,4 +6,4 @@ const ClipboardListIcon: React.FC<{ className?: string }> = ({ className = "h-7 
     </svg>
 );
 
-export default ClipboardListIcon;-NoNewline
+export default ClipboardListIcon;

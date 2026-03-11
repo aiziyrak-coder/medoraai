@@ -8,4 +8,4 @@ const GlobeIcon: React.FC<{ className?: string }> = ({ className = "h-7 w-7 text
     </svg>
 );
 
-export default GlobeIcon;-NoNewline
+export default GlobeIcon;

@@ -768,7 +768,7 @@ const AppContent: React.FC = () => {
             {isApiConfigured() && !apiHealthy && (
                 <div className="flex-none flex items-center justify-center gap-3 py-2 px-4 bg-amber-500/90 text-white text-sm font-medium z-40">
                     {healthStatus === 400 ? (
-                        <span>Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup AiDoktor.fargana.uz</code> → <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
+                        <span>Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup AiDoktor.fargana.uz</code> в†’ <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
                     ) : (
                         <span>Server bilan bog&apos;lanish yo&apos;q. Ma&apos;lumotlar mahalliy saqlanadi.</span>
                     )}
@@ -832,4 +832,3 @@ const App: React.FC = () => (
 );
 
 export default App;
--NoNewline

@@ -41,7 +41,7 @@ export function validatePatientDataSmart(data: Partial<PatientData> | null): Sma
     result.valid = false;
   }
   if (EMPTY(data.age)) {
-    result.warnings.push('Yosh kiritilmagan – dozani hisoblashda muhim');
+    result.warnings.push('Yosh kiritilmagan вЂ“ dozani hisoblashda muhim');
   }
 
   // Xavfsizlik: allergiya va dori-darmonlar
@@ -50,17 +50,17 @@ export function validatePatientDataSmart(data: Partial<PatientData> | null): Sma
     result.valid = false;
   }
   if (EMPTY(data.currentMedications)) {
-    result.warnings.push('Joriy dori-darmonlar – aralashuv xavfi uchun kiritish tavsiya etiladi');
+    result.warnings.push('Joriy dori-darmonlar вЂ“ aralashuv xavfi uchun kiritish tavsiya etiladi');
   }
 
   // Aqlli maslahatlar
   if (data.complaints && data.complaints.length > 10 && EMPTY(data.history)) {
     result.suggestions.push('Anamnez qo\'shilsa tashxis aniqroq bo\'ladi');
   }
-  if (data.complaints && /og'riq|ogriq|болит|pain/i.test(data.complaints) && EMPTY(data.objectiveData)) {
+  if (data.complaints && /og'riq|ogriq|Р±РѕР»РёС‚|pain/i.test(data.complaints) && EMPTY(data.objectiveData)) {
     result.suggestions.push('Ob\'ektiv tekshiruv (JAR, palpatsiya) natijasini qo\'shing');
   }
-  if (data.complaints && /isitma|temperatura|лихорад|fever/i.test(data.complaints)) {
+  if (data.complaints && /isitma|temperatura|Р»РёС…РѕСЂР°Рґ|fever/i.test(data.complaints)) {
     result.suggestions.push('Harorat va pulsni ko\'rsatish foydali');
   }
   if (data.age && parseInt(data.age, 10) < 18 && EMPTY(data.familyHistory)) {
@@ -88,4 +88,3 @@ export function getSmartValidationMessage(
   }
   return null;
 }
--NoNewline

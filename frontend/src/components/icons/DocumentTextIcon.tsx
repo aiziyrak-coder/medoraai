@@ -6,4 +6,4 @@ const DocumentTextIcon: React.FC<{ className?: string }> = ({ className = "h-7 w
     </svg>
 );
 
-export default DocumentTextIcon;-NoNewline
+export default DocumentTextIcon;

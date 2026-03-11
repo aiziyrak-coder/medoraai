@@ -187,7 +187,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                     <div key={model} className="flex items-center gap-2 p-1.5 bg-white rounded border border-blue-100">
                                         <AIAvatar model={model} size="xs" />
                                         <p className="text-xs font-semibold text-blue-900 flex-1 truncate">{spec.name.split('(')[0].trim()}</p>
-                                        <button onClick={() => toggleSpecialist(model)} className="text-red-500 hover:text-red-700 text-xs">✕</button>
+                                        <button onClick={() => toggleSpecialist(model)} className="text-red-500 hover:text-red-700 text-xs">вњ•</button>
                                     </div>
                                 );
                             })}
@@ -214,4 +214,3 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
 };
 
 export default TeamRecommendationView;
--NoNewline

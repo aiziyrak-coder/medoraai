@@ -44,4 +44,3 @@ export function useApiHealth(): {
 
   return { apiHealthy, healthStatus, checkNow };
 }
--NoNewline

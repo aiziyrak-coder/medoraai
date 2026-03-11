@@ -6,4 +6,4 @@ const InformationCircleIcon: React.FC<{ className?: string }> = ({ className = "
     </svg>
 );
 
-export default InformationCircleIcon;-NoNewline
+export default InformationCircleIcon;

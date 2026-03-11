@@ -67,7 +67,7 @@ export const generatePdfReport = (
             if (isListItem) {
                 lineX += 5;
                 if (index === 0) {
-                    doc.text('•', margin, y);
+                    doc.text('вЂў', margin, y);
                 }
             }
             doc.text(line, lineX, y);
@@ -215,4 +215,4 @@ export const generatePdfReport = (
 
     // --- Save the PDF ---
     doc.save(`Tibbiy_Xulosa_${patientData.lastName}_${patientData.firstName}.pdf`);
-};-NoNewline
+};

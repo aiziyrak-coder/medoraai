@@ -10,7 +10,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
     const [settings, setSettings] = useState<settingsService.TvSettings>({
         isUnlocked: false,
         videoUrl: '',
-        scrollingText: "Klinikamizda yangi kardiologiya bo'limi ochildi! • Chegirmalar haftaligi davom etmoqda!"
+        scrollingText: "Klinikamizda yangi kardiologiya bo'limi ochildi! вЂў Chegirmalar haftaligi davom etmoqda!"
     });
     
     // Video Playlist State
@@ -212,7 +212,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
                             alt="Medical Promo"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-16">
-                            <h2 className="text-5xl font-bold text-white mb-6 leading-tight">Salomatligingiz — <br/>Bizning Oliy Maqsadimiz</h2>
+                            <h2 className="text-5xl font-bold text-white mb-6 leading-tight">Salomatligingiz вЂ” <br/>Bizning Oliy Maqsadimiz</h2>
                             <p className="text-2xl text-slate-300 max-w-2xl font-light">
                                 Eng zamonaviy tibbiy xizmatlar va xalqaro darajadagi mutaxassislar sizning xizmatingizda.
                             </p>
@@ -232,7 +232,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
                         <div className="absolute -right-4 top-0 bottom-0 w-8 bg-gradient-to-r from-blue-600 to-transparent"></div>
                     </div>
                     <div className="animate-marquee inline-block pl-10 text-lg font-medium text-white">
-                        {settings.scrollingText} ••• DIQQAT: "Kutishda" (Sariq rang) turgan bemorlar qaytib kelganda navbatsiz (birinchi o'rinda) kirish huquqiga ega! •••
+                        {settings.scrollingText} вЂўвЂўвЂў DIQQAT: "Kutishda" (Sariq rang) turgan bemorlar qaytib kelganda navbatsiz (birinchi o'rinda) kirish huquqiga ega! вЂўвЂўвЂў
                     </div>
                 </div>
             </div>
@@ -251,4 +251,3 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
 };
 
 export default TvDisplay;
--NoNewline

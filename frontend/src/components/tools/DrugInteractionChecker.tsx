@@ -78,7 +78,7 @@ const DrugInteractionChecker: React.FC = () => {
             <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
-                        <span className="text-2xl">💊</span>
+                        <span className="text-2xl">рџ’Љ</span>
                     </div>
                     <div>
                         <h2 className="text-xl font-bold text-white">{t('drug_interaction_title')}</h2>
@@ -106,7 +106,7 @@ const DrugInteractionChecker: React.FC = () => {
                                     onClick={() => handleRemoveDrug(index)}
                                     className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 font-bold transition"
                                 >
-                                    ✕
+                                    вњ•
                                 </button>
                             )}
                         </div>
@@ -172,4 +172,3 @@ const DrugInteractionChecker: React.FC = () => {
 };
 
 export default DrugInteractionChecker;
--NoNewline

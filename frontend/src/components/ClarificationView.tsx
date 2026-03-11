@@ -129,4 +129,4 @@ const ClarificationView: React.FC<ClarificationViewProps> = ({ isGenerating, que
     );
 };
 
-export default ClarificationView;-NoNewline
+export default ClarificationView;

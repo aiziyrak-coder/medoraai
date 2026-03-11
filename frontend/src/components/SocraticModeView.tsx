@@ -112,4 +112,3 @@ const SocraticModeView: React.FC<SocraticModeViewProps> = ({ onBack }) => {
 };
 
 export default SocraticModeView;
--NoNewline

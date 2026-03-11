@@ -6,4 +6,4 @@ const ChartBarIcon: React.FC<{ className?: string }> = ({ className = "h-7 w-7 t
     </svg>
 );
 
-export default ChartBarIcon;-NoNewline
+export default ChartBarIcon;

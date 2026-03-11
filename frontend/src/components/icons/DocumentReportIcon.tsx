@@ -7,4 +7,4 @@ const DocumentReportIcon: React.FC<{ className?: string }> = ({ className }) => 
     </svg>
 );
 
-export default DocumentReportIcon;-NoNewline
+export default DocumentReportIcon;

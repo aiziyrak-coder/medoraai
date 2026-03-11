@@ -10,4 +10,4 @@ const MicrophoneIcon: React.FC<{ className?: string, isMuted?: boolean }> = ({ c
     </svg>
 );
 
-export default MicrophoneIcon;-NoNewline
+export default MicrophoneIcon;

@@ -4,10 +4,10 @@ import ChevronDownIcon from './icons/ChevronDownIcon';
 import type { Language } from '../i18n/LanguageContext';
 
 const languageOptions: { id: Language; label: string; short: string; }[] = [
-    { id: 'uz-C', label: "Ўзбекча (Кирилл)", short: "ЎЗБ" },
+    { id: 'uz-C', label: "РЋР·Р±РµРєС‡Р° (РљРёСЂРёР»Р»)", short: "РЋР—Р‘" },
     { id: 'uz-L', label: "O'zbekcha (Lotin)", short: "O'ZB" },
     { id: 'kaa', label: "Qaraqalpaq tili", short: "QQP" },
-    { id: 'ru', label: "Русский", short: "РУС" },
+    { id: 'ru', label: "Р СѓСЃСЃРєРёР№", short: "Р РЈРЎ" },
     { id: 'en', label: "English", short: "ENG" },
 ];
 
@@ -66,7 +66,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ language, onLanguag
                                         }`}
                                 >
                                     <span>{option.label}</span>
-                                    {language === option.id && <span className="text-white">✓</span>}
+                                    {language === option.id && <span className="text-white">вњ“</span>}
                                 </button>
                             </li>
                         ))}
@@ -78,4 +78,3 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ language, onLanguag
 };
 
 export default LanguageSwitcher;
--NoNewline

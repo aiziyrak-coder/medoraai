@@ -50,4 +50,4 @@ const DocumentGeneratorHub: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
     );
 };
 
-export default DocumentGeneratorHub;-NoNewline
+export default DocumentGeneratorHub;

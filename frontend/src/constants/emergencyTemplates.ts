@@ -35,4 +35,3 @@ export const emergencyTemplates: EmergencyTemplate[] = [
     }
   }
 ];
--NoNewline

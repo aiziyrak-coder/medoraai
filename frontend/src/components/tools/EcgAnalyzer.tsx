@@ -118,7 +118,7 @@ const EcgAnalyzer: React.FC = () => {
                         <>
                             <dl className="space-y-2">
                                 <ReportItem label="Ritm" value={report.rhythm} />
-                                <ReportItem label="Yurak Urish Sonı (HR)" value={report.heartRate} />
+                                <ReportItem label="Yurak Urish SonД± (HR)" value={report.heartRate} />
                                 <ReportItem label="PR Interval" value={report.prInterval} />
                                 <ReportItem label="QRS Davomiyligi" value={report.qrsDuration} />
                                 <ReportItem label="QT/QTc Interval" value={report.qtInterval} />
@@ -144,4 +144,4 @@ const EcgAnalyzer: React.FC = () => {
     );
 };
 
-export default EcgAnalyzer;-NoNewline
+export default EcgAnalyzer;

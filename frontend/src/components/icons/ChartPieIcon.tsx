@@ -7,4 +7,4 @@ const ChartPieIcon: React.FC<{ className?: string }> = ({ className = "h-7 w-7 t
     </svg>
 );
 
-export default ChartPieIcon;-NoNewline
+export default ChartPieIcon;

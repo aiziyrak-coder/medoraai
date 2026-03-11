@@ -30,4 +30,3 @@ const AudioVisualizer: React.FC<{ isListening: boolean }> = ({ isListening }) =>
 };
 
 export default AudioVisualizer;
--NoNewline

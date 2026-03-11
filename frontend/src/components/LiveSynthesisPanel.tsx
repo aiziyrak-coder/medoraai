@@ -61,4 +61,3 @@ const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 
 export default LiveSynthesisPanel;
--NoNewline

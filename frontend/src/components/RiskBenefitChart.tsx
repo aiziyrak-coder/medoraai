@@ -53,4 +53,3 @@ const RiskBenefitChart: React.FC<{ strategies: TreatmentStrategy[] }> = ({ strat
 };
 
 export default RiskBenefitChart;
--NoNewline

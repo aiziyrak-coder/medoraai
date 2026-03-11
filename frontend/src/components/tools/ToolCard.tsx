@@ -28,4 +28,4 @@ const ToolCard: React.FC<ToolCardProps> = ({ title, description, icon, onClick, 
     );
 };
 
-export default ToolCard;-NoNewline
+export default ToolCard;

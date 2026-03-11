@@ -6,4 +6,4 @@ const LightBulbIcon: React.FC<{ className?: string }> = ({ className = "h-5 w-5"
     </svg>
 );
 
-export default LightBulbIcon;-NoNewline
+export default LightBulbIcon;

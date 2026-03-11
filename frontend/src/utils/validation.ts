@@ -68,7 +68,7 @@ export const validateName = (name: string, minLength: number = 2): ValidationRes
   }
   
   // Check for valid characters (letters, spaces, hyphens, apostrophes)
-  const nameRegex = /^[a-zA-Zа-яА-ЯёЁўЎқҚғҒҳҲ\s'-]+$/u;
+  const nameRegex = /^[a-zA-ZР°-СЏРђ-РЇС‘РЃСћРЋТ›ТљТ“Т’ТіТІ\s'-]+$/u;
   if (!nameRegex.test(name.trim())) {
     return { isValid: false, error: "Ismda faqat harflar, probellar va tire ishlatilishi mumkin." };
   }
@@ -207,8 +207,8 @@ export const validateVitalSign = (
     temperature: { 
       min: 35.0, 
       max: 42.0, 
-      unit: '°C',
-      errorMessage: 'Tana harorati 35.0-42.0°C oralig\'ida bo\'lishi kerak. 45°C kabi qiymat hayotiy holat emas.'
+      unit: 'В°C',
+      errorMessage: 'Tana harorati 35.0-42.0В°C oralig\'ida bo\'lishi kerak. 45В°C kabi qiymat hayotiy holat emas.'
     },
     spO2: { 
       min: 50, 
@@ -242,4 +242,3 @@ export const validateVitalSign = (
   
   return { isValid: true };
 };
--NoNewline

@@ -8,4 +8,4 @@ const TargetIcon: React.FC<{ className?: string }> = ({ className = "h-7 w-7 tex
     </svg>
 );
 
-export default TargetIcon;-NoNewline
+export default TargetIcon;

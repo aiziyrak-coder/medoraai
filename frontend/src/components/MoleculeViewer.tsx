@@ -39,4 +39,3 @@ const MoleculeViewer: React.FC<MoleculeViewerProps> = ({ target }) => {
 }
 
 export default MoleculeViewer;
--NoNewline

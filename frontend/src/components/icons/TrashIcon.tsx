@@ -6,4 +6,4 @@ const TrashIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) 
     </svg>
 );
 
-export default TrashIcon;-NoNewline
+export default TrashIcon;

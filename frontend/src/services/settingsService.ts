@@ -15,7 +15,7 @@ export const getTvSettings = (doctorId: string): TvSettings => {
         return data ? JSON.parse(data) : {
             isUnlocked: false,
             videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4, https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-            scrollingText: "Klinikamizda yangi kardiologiya bo'limi ochildi! • Chegirmalar haftaligi davom etmoqda!"
+            scrollingText: "Klinikamizda yangi kardiologiya bo'limi ochildi! вЂў Chegirmalar haftaligi davom etmoqda!"
         };
     } catch (e) {
         return { isUnlocked: false, videoUrl: '', scrollingText: '' };
@@ -49,4 +49,3 @@ export const subscribeToSettingsUpdates = (doctorId: string, callback: (settings
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
 };
--NoNewline

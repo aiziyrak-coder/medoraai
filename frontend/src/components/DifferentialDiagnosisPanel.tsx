@@ -122,4 +122,4 @@ const DifferentialDiagnosisPanel: React.FC<DifferentialDiagnosisPanelProps> = ({
     );
 };
 
-export default DifferentialDiagnosisPanel;-NoNewline
+export default DifferentialDiagnosisPanel;

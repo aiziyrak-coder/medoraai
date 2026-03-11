@@ -46,4 +46,3 @@ const UserStatsComponent: React.FC<UserStatsProps> = ({ stats }) => {
 };
 
 export default UserStatsComponent;
--NoNewline

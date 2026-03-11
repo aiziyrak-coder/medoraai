@@ -81,4 +81,3 @@ export const logout = (): void => {
   apiAuthService.logout();
   localAuthService.logout();
 };
--NoNewline

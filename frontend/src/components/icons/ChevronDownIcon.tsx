@@ -6,4 +6,4 @@ const ChevronDownIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-
     </svg>
 );
 
-export default ChevronDownIcon;-NoNewline
+export default ChevronDownIcon;

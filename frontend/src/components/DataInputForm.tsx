@@ -15,7 +15,7 @@ interface DataInputFormProps {
     onSubmit: (data: PatientData) => void;
 }
 
-// Ultra-compact Input component (label/placeholder yaxshi ko‘rinishi uchun qorong‘u matn)
+// Ultra-compact Input component (label/placeholder yaxshi koвЂrinishi uchun qorongвЂu matn)
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string }> = ({ id, label, className, ...props }) => (
     <div className={`flex flex-col ${className}`}>
         <label htmlFor={id} className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
@@ -268,7 +268,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         const objectiveString = [
             `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
             `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
-            `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} °C`,
+            `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} В°C`,
             `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
             `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
         ].join('\n');
@@ -473,7 +473,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                 <VitalInput id="vital-bp-systolic" label={t('data_form_vitals_bp_sys')} unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
                                 <VitalInput id="vital-bp-diastolic" label={t('data_form_vitals_bp_dia')} unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
                                 <VitalInput id="vital-heart-rate" label={t('data_form_vitals_pulse')} unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} error={vitalErrors.heartRate} />
-                                <VitalInput id="vital-temperature" label={t('data_form_vitals_temp')} unit="°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} error={vitalErrors.temperature} />
+                                <VitalInput id="vital-temperature" label={t('data_form_vitals_temp')} unit="В°C" value={vitals.temperature} onChange={e => handleVitalChange('temperature', e.target.value)} error={vitalErrors.temperature} />
                                 <VitalInput id="vital-spo2" label={t('data_form_vitals_spo2')} unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} error={vitalErrors.spO2} />
                                 <VitalInput id="vital-respiration" label={t('data_form_vitals_resp')} unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
@@ -534,4 +534,3 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 };
 
 export default DataInputForm;
--NoNewline

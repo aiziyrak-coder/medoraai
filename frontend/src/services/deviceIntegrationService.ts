@@ -41,4 +41,3 @@ export const disconnect = () => {
 export const onData = (callback: (vitals: VitalSigns) => void) => {
     dataCallback = callback;
 };
--NoNewline

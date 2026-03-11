@@ -412,4 +412,3 @@ export interface VitalSigns {
     bpDiastolic: number;
     respirationRate: number;
 }
--NoNewline

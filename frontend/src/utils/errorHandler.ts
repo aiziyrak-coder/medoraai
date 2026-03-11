@@ -41,7 +41,7 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
 
     // 503 / model overloaded / UNAVAILABLE
     if (message.includes('503') || message.includes('overloaded') || message.includes('unavailable')) {
-      return "AI server hozir band. Iltimos, 10–15 soniyadan keyin qayta urinib ko'ring.";
+      return "AI server hozir band. Iltimos, 10вЂ“15 soniyadan keyin qayta urinib ko'ring.";
     }
 
     // Invalid/truncated JSON response
@@ -125,4 +125,3 @@ export const withErrorHandling = <T extends (...args: unknown[]) => Promise<unkn
     }
   }) as T;
 };
--NoNewline

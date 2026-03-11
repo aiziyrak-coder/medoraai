@@ -7,4 +7,4 @@ const PlusCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
     </svg>
 );
 
-export default PlusCircleIcon;-NoNewline
+export default PlusCircleIcon;

@@ -1,5 +1,5 @@
 /**
- * ZiyrakSurgery — Operatsiya Xonasi Rejimi
+ * ZiyrakSurgery вЂ” Operatsiya Xonasi Rejimi
  * ==========================================
  * Hands-free, faqat ovoz bilan boshqariladi.
  * Favqulodda protokollar darhol taqdim etiladi.
@@ -46,11 +46,11 @@ const OPERATION_TYPES = [
 ];
 
 const EMERGENCY_TYPES = [
-  { key: "qon_ketish",           label: "🩸 Qon Ketish",          color: "border-red-600 text-red-300" },
-  { key: "anesteziya_muammosi",  label: "💉 Anesteziya Asorat",    color: "border-orange-600 text-orange-300" },
-  { key: "yurak_toxtatish",      label: "💔 Yurak To'xtashi",      color: "border-red-700 text-red-200" },
-  { key: "nafas_etishmovchiligi",label: "🫁 Nafas Etishmovchiligi",color: "border-amber-600 text-amber-300" },
-  { key: "septik_shok",          label: "🦠 Septik Shok",          color: "border-violet-600 text-violet-300" },
+  { key: "qon_ketish",           label: "рџ©ё Qon Ketish",          color: "border-red-600 text-red-300" },
+  { key: "anesteziya_muammosi",  label: "рџ’‰ Anesteziya Asorat",    color: "border-orange-600 text-orange-300" },
+  { key: "yurak_toxtatish",      label: "рџ’” Yurak To'xtashi",      color: "border-red-700 text-red-200" },
+  { key: "nafas_etishmovchiligi",label: "рџ«Ѓ Nafas Etishmovchiligi",color: "border-amber-600 text-amber-300" },
+  { key: "septik_shok",          label: "рџ¦  Septik Shok",          color: "border-violet-600 text-violet-300" },
 ];
 
 export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChange }) => {
@@ -149,7 +149,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
     setBgListening(true);
   }, [language, token, bgListening]);
 
-  // Ovozli buyruq — Press-to-command
+  // Ovozli buyruq вЂ” Press-to-command
   const startCommand = useCallback(async () => {
     if (isListening) return;
 
@@ -310,7 +310,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
       <div className="flex flex-col gap-4">
         <div className="rounded-2xl bg-red-950/20 border border-red-700/40 p-4">
           <h3 className="font-bold text-red-300 mb-2 flex items-center gap-2">
-            🩺 Operatsiya Xonasiga Kirish
+            рџ©є Operatsiya Xonasiga Kirish
           </h3>
           <p className="text-slate-400 text-xs mb-3">
             Ziyrak operatsiya davomida fon tinglash va hands-free yordam rejimiga o'tadi.
@@ -334,7 +334,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
           className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-700 to-red-600
                      text-white font-bold text-base hover:opacity-90 active:scale-95 transition-all"
         >
-          🩺 Operatsiya Xonasiga Kirish
+          рџ©є Operatsiya Xonasiga Kirish
         </button>
 
         <p className="text-xs text-slate-500 text-center">
@@ -350,7 +350,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
       <div className="rounded-2xl bg-red-950/30 border border-red-700/40 p-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-bold text-red-300 text-sm">🩺 Operatsiya Rejimi — FAOL</p>
+            <p className="font-bold text-red-300 text-sm">рџ©є Operatsiya Rejimi вЂ” FAOL</p>
             <p className="text-slate-400 text-xs">{opType}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -360,7 +360,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
                 Fon eshitmoqda
               </span>
             )}
-            <button onClick={stopAudio} className="text-xs text-slate-500 hover:text-white">⏹</button>
+            <button onClick={stopAudio} className="text-xs text-slate-500 hover:text-white">вЏ№</button>
           </div>
         </div>
       </div>
@@ -375,7 +375,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
       {/* Last response */}
       {lastResponse && (
         <div className="rounded-xl bg-slate-800/60 border border-slate-700/30 p-3">
-          <p className="text-xs text-slate-500 mb-1">🤖 Ziyrak:</p>
+          <p className="text-xs text-slate-500 mb-1">рџ¤– Ziyrak:</p>
           <p className="text-slate-200 text-sm">{lastResponse}</p>
         </div>
       )}
@@ -395,15 +395,15 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
           } disabled:opacity-50`}
       >
         {isListening
-          ? "🔴 Eshitmoqda... (qo'yib yuboring)"
+          ? "рџ”ґ Eshitmoqda... (qo'yib yuboring)"
           : isProcessing
-            ? "⟳ Jarayonda..."
-            : "🎙 BUYRUQ BERISH\n(Bosib tuting)"}
+            ? "вџі Jarayonda..."
+            : "рџЋ™ BUYRUQ BERISH\n(Bosib tuting)"}
       </button>
 
       {/* Emergency buttons */}
       <div>
-        <p className="text-xs text-slate-500 mb-2 font-medium">⚡ FAVQULODDA PROTOKOLLAR:</p>
+        <p className="text-xs text-slate-500 mb-2 font-medium">вљЎ FAVQULODDA PROTOKOLLAR:</p>
         <div className="grid grid-cols-2 gap-2">
           {EMERGENCY_TYPES.map(et => (
             <button
@@ -424,15 +424,15 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
       {emergency && (
         <div className="rounded-2xl bg-red-950/50 border-2 border-red-500 p-4 space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-red-200 text-sm">🚨 {emergency.protocol_name}</h4>
-            <button onClick={() => setEmergency(null)} className="text-slate-500 text-lg">×</button>
+            <h4 className="font-bold text-red-200 text-sm">рџљЁ {emergency.protocol_name}</h4>
+            <button onClick={() => setEmergency(null)} className="text-slate-500 text-lg">Г—</button>
           </div>
           <div className="space-y-1">
             {emergency.steps.slice(0,5).map((step, i) => (
               <p key={i} className="text-red-100 text-xs bg-red-900/30 rounded-lg px-2 py-1">{step}</p>
             ))}
           </div>
-          <p className="text-red-300 font-bold text-sm">📞 {emergency.emergency_call}</p>
+          <p className="text-red-300 font-bold text-sm">рџ“ћ {emergency.emergency_call}</p>
           {emergency.detailed_response && (
             <p className="text-slate-300 text-xs border-t border-red-800/50 pt-2">
               {emergency.detailed_response}
@@ -444,7 +444,7 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
       {/* Surgery Log */}
       {log.length > 0 && (
         <div>
-          <p className="text-xs text-slate-500 mb-1">📋 Operatsiya Logi ({log.length}):</p>
+          <p className="text-xs text-slate-500 mb-1">рџ“‹ Operatsiya Logi ({log.length}):</p>
           <div ref={logScrollRef}
             className="max-h-40 overflow-y-auto rounded-xl bg-slate-900/60 border border-slate-700/30 p-2 space-y-1">
             {log.slice(-20).map((entry, i) => (
@@ -465,4 +465,3 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
     </div>
   );
 };
--NoNewline

@@ -31,4 +31,3 @@ const CriticalFindingAlert: React.FC<CriticalFindingAlertProps> = ({ finding, on
 };
 
 export default CriticalFindingAlert;
--NoNewline

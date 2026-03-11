@@ -31,4 +31,3 @@ const RoadmapTimeline: React.FC<RoadmapTimelineProps> = ({ roadmap }) => {
 }
 
 export default RoadmapTimeline;
--NoNewline

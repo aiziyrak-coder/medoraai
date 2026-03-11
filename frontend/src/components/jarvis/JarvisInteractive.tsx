@@ -1,5 +1,5 @@
 /**
- * JarvisInteractive — Interaktiv Ovoz Yordamchi Rejimi
+ * JarvisInteractive вЂ” Interaktiv Ovoz Yordamchi Rejimi
  * =====================================================
  * Doktor Jarvis bilan bevosita gaplashadi.
  * Ikki chiqish rejimi: Ovozli | Faqat matnli.
@@ -78,7 +78,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
       const jarvisId = `msg-${Date.now()}-jarvis`;
 
       setMessages(prev => [...prev, {
-        id: jarvisId, role: 'jarvis', text: '▋',
+        id: jarvisId, role: 'jarvis', text: 'в–‹',
         time: new Date().toLocaleTimeString(),
         speaking: true,
       }]);
@@ -88,7 +88,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
         (chunk) => {
           fullText = chunk;
           setMessages(prev => prev.map(m =>
-            m.id === jarvisId ? { ...m, text: fullText + '▋' } : m
+            m.id === jarvisId ? { ...m, text: fullText + 'в–‹' } : m
           ));
         },
         async (final, isCritical) => {
@@ -205,7 +205,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
           {/* Jarvis avatar */}
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl
             ${jarvisIsActive ? 'bg-sky-600 animate-pulse' : 'bg-slate-700'}`}>
-            🤖
+            рџ¤–
           </div>
           <div>
             <p className="font-bold text-white text-sm leading-none">AiDoktor-Jarvis</p>
@@ -213,8 +213,8 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
               isTalking ? 'text-sky-400' : isThinking ? 'text-amber-400' :
               isListening ? 'text-emerald-400' : 'text-slate-500'
             }`}>
-              {isTalking ? '🔊 Gapirmoqda...' : isThinking ? '💭 O\'ylayapti...' :
-               isListening ? '🎙 Eshitmoqda...' : '● Tayyor'}
+              {isTalking ? 'рџ”Љ Gapirmoqda...' : isThinking ? 'рџ’­ O\'ylayapti...' :
+               isListening ? 'рџЋ™ Eshitmoqda...' : 'в—Џ Tayyor'}
             </p>
           </div>
         </div>
@@ -227,7 +227,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
               outputMode === 'voice' ? 'bg-sky-600 text-white' : 'text-slate-400'
             }`}
           >
-            🔊 Ovozli
+            рџ”Љ Ovozli
           </button>
           <button
             onClick={() => { setOutputMode('text'); stopSpeaking(); }}
@@ -235,7 +235,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
               outputMode === 'text' ? 'bg-slate-600 text-white' : 'text-slate-400'
             }`}
           >
-            📝 Matnli
+            рџ“ќ Matnli
           </button>
         </div>
       </div>
@@ -270,7 +270,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
           <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
             {msg.role === 'jarvis' && (
               <span className="w-6 h-6 rounded-full bg-sky-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                🤖
+                рџ¤–
               </span>
             )}
             <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
@@ -281,14 +281,14 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
                   : 'bg-slate-800/80 text-slate-200 rounded-tl-sm'
             }`}>
               {msg.critical && (
-                <p className="text-red-400 text-xs font-bold mb-1">🚨 SHOSHILINCH</p>
+                <p className="text-red-400 text-xs font-bold mb-1">рџљЁ SHOSHILINCH</p>
               )}
               <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
               <p className="text-xs opacity-40 mt-1 text-right">{msg.time}</p>
             </div>
             {msg.role === 'user' && (
               <span className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0 mt-0.5">
-                👨‍⚕️
+                рџ‘ЁвЂЌвљ•пёЏ
               </span>
             )}
           </div>
@@ -298,7 +298,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
         {interimText && (
           <div className="flex justify-end">
             <div className="bg-slate-700/60 rounded-2xl rounded-tr-sm px-3 py-2 text-sm text-slate-400 italic max-w-[80%]">
-              {interimText}▋
+              {interimText}в–‹
             </div>
           </div>
         )}
@@ -317,13 +317,13 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
               className={`flex-1 py-1.5 rounded-xl text-xs font-medium ${
                 inputMode === 'mic' ? 'bg-sky-700 text-white' : 'bg-slate-800 text-slate-400'
               }`}>
-              🎙 Mikrofon
+              рџЋ™ Mikrofon
             </button>
             <button onClick={() => setInputMode('keyboard')}
               className={`flex-1 py-1.5 rounded-xl text-xs font-medium ${
                 inputMode === 'keyboard' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400'
               }`}>
-              ⌨️ Klaviatura
+              вЊЁпёЏ Klaviatura
             </button>
           </div>
 
@@ -343,12 +343,12 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
                     : 'bg-sky-600 hover:bg-sky-500 text-white'
                 } disabled:opacity-40`}
               >
-                {isListening ? '🔴 Tinglayapti... (bosing to\'xtatish uchun)' : '🎙 Savol Berish'}
+                {isListening ? 'рџ”ґ Tinglayapti... (bosing to\'xtatish uchun)' : 'рџЋ™ Savol Berish'}
               </button>
               {(isThinking || isTalking) && (
                 <button onClick={handleInterrupt}
                   className="px-4 rounded-2xl bg-amber-700 hover:bg-amber-600 text-white text-sm">
-                  ⏹
+                  вЏ№
                 </button>
               )}
             </div>
@@ -374,7 +374,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
                 className="px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white
                            disabled:opacity-40 transition-all"
               >
-                ▶
+                в–¶
               </button>
             </div>
           )}
@@ -385,4 +385,3 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
 };
 
 export default JarvisInteractive;
--NoNewline

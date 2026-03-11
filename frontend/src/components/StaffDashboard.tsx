@@ -439,4 +439,3 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
 };
 
 export default StaffDashboard;
--NoNewline

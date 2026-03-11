@@ -1,5 +1,5 @@
 /**
- * ZiyrakInteractive — Interaktiv Ziyrak Chat
+ * ZiyrakInteractive вЂ” Interaktiv Ziyrak Chat
  * Wake word faollashganda avtomatik ochiladi.
  * Ovozli + matnli rejim.
  */
@@ -101,7 +101,7 @@ export const ZiyrakInteractive: React.FC<Props> = ({
     onStateChange?.('active');
 
     const ziyrakId = `m-${Date.now()}-z`;
-    setMessages(p => [...p, { id: ziyrakId, role: 'ziyrak', text: '▋', time: new Date().toLocaleTimeString() }]);
+    setMessages(p => [...p, { id: ziyrakId, role: 'ziyrak', text: 'в–‹', time: new Date().toLocaleTimeString() }]);
 
     const token = localStorage.getItem('access_token') || '';
     let fullText = '';
@@ -142,7 +142,7 @@ export const ZiyrakInteractive: React.FC<Props> = ({
           if (obj.error) { onError(obj.error); break; }
           if (obj.chunk) {
             fullText += obj.chunk;
-            setMessages(p => p.map(m => m.id === ziyrakId ? { ...m, text: fullText + '▋' } : m));
+            setMessages(p => p.map(m => m.id === ziyrakId ? { ...m, text: fullText + 'в–‹' } : m));
           }
           if (obj.done) {
             const isCrit = obj.is_critical || false;
@@ -209,12 +209,12 @@ export const ZiyrakInteractive: React.FC<Props> = ({
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-base
             ${isThinking ? "bg-amber-700 animate-pulse" : "bg-sky-700"}`}>
-            🤖
+            рџ¤–
           </div>
           <div>
             <p className="font-semibold text-white text-sm">Ziyrak</p>
             <p className={`text-xs ${isListening ? "text-emerald-400" : isThinking ? "text-amber-400" : "text-slate-500"}`}>
-              {isListening ? "🎙 Eshitmoqda" : isThinking ? "💭 O'ylayapti" : "Tayyor"}
+              {isListening ? "рџЋ™ Eshitmoqda" : isThinking ? "рџ’­ O'ylayapti" : "Tayyor"}
             </p>
           </div>
         </div>
@@ -225,7 +225,7 @@ export const ZiyrakInteractive: React.FC<Props> = ({
               className={`px-3 py-1 rounded-lg text-xs font-medium ${
                 outputMode === mode ? "bg-sky-600 text-white" : "text-slate-400"
               }`}>
-              {mode === "voice" ? "🔊 Ovozli" : "📝 Matnli"}
+              {mode === "voice" ? "рџ”Љ Ovozli" : "рџ“ќ Matnli"}
             </button>
           ))}
         </div>
@@ -248,7 +248,7 @@ export const ZiyrakInteractive: React.FC<Props> = ({
         {messages.map(msg => (
           <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? "justify-end" : ""}`}>
             {msg.role === 'ziyrak' && (
-              <span className="w-6 h-6 rounded-full bg-sky-700 flex items-center justify-center text-xs shrink-0 mt-0.5">🤖</span>
+              <span className="w-6 h-6 rounded-full bg-sky-700 flex items-center justify-center text-xs shrink-0 mt-0.5">рџ¤–</span>
             )}
             <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
               msg.role === 'user'
@@ -257,19 +257,19 @@ export const ZiyrakInteractive: React.FC<Props> = ({
                   ? "bg-red-950/60 border border-red-500/50 text-red-200 rounded-tl-sm"
                   : "bg-slate-800/80 text-slate-200 rounded-tl-sm"
             }`}>
-              {msg.critical && <p className="text-red-400 text-xs font-bold mb-1">🚨 SHOSHILINCH</p>}
+              {msg.critical && <p className="text-red-400 text-xs font-bold mb-1">рџљЁ SHOSHILINCH</p>}
               <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
               <p className="text-xs opacity-40 mt-1 text-right">{msg.time}</p>
             </div>
             {msg.role === 'user' && (
-              <span className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0 mt-0.5">👨‍⚕️</span>
+              <span className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs shrink-0 mt-0.5">рџ‘ЁвЂЌвљ•пёЏ</span>
             )}
           </div>
         ))}
         {interim && (
           <div className="flex justify-end">
             <div className="bg-slate-700/50 rounded-2xl rounded-tr-sm px-3 py-2 text-sm text-slate-400 italic max-w-[80%]">
-              {interim}▋
+              {interim}в–‹
             </div>
           </div>
         )}
@@ -287,7 +287,7 @@ export const ZiyrakInteractive: React.FC<Props> = ({
                   ? "bg-red-600 text-white animate-pulse"
                   : "bg-sky-600 hover:bg-sky-500 text-white"
               } disabled:opacity-40`}>
-              {isListening ? "🔴 Eshitmoqda..." : "🎙 Savol Berish"}
+              {isListening ? "рџ”ґ Eshitmoqda..." : "рџЋ™ Savol Berish"}
             </button>
           </div>
           <div className="flex gap-2">
@@ -300,7 +300,7 @@ export const ZiyrakInteractive: React.FC<Props> = ({
             />
             <button onClick={() => { sendMessage(textInput); setTextInput(''); }}
               disabled={!textInput.trim() || isThinking}
-              className="px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-40">▶</button>
+              className="px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-40">в–¶</button>
           </div>
         </div>
       ) : (
@@ -309,4 +309,3 @@ export const ZiyrakInteractive: React.FC<Props> = ({
     </div>
   );
 };
--NoNewline

@@ -13,4 +13,3 @@ export const getSubscriptionPlans = async (): Promise<ApiResponse<SubscriptionPl
 export const getMySubscription = async (): Promise<ApiResponse<MySubscription>> => {
   return apiGet<MySubscription>('/auth/subscription/');
 };
--NoNewline

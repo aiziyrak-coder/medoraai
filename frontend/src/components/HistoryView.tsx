@@ -76,4 +76,4 @@ const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, o
     );
 };
 
-export default HistoryView;-NoNewline
+export default HistoryView;

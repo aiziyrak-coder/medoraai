@@ -38,4 +38,4 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record }) => {
     );
 };
 
-export default DownloadPanel;-NoNewline
+export default DownloadPanel;

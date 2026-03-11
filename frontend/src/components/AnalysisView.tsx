@@ -103,7 +103,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                     <div className="p-4 bg-white/40 rounded-2xl border border-white/40 shadow-sm">
                         <p className="text-2xl font-bold text-text-primary">{patientDisplayName}</p>
                         <p className="text-text-secondary mt-1">
-                            {pd.age ? `${pd.age} yosh` : 'Yosh kiritilmagan'} • {pd.gender === 'male' ? 'Erkak' : pd.gender === 'female' ? 'Ayol' : 'Kiritilmagan'}
+                            {pd.age ? `${pd.age} yosh` : 'Yosh kiritilmagan'} вЂў {pd.gender === 'male' ? 'Erkak' : pd.gender === 'female' ? 'Ayol' : 'Kiritilmagan'}
                         </p>
                     </div>
 
@@ -242,4 +242,3 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
 };
 
 export default AnalysisView;
--NoNewline

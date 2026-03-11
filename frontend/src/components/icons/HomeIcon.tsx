@@ -6,4 +6,4 @@ const HomeIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) =
     </svg>
 );
 
-export default HomeIcon;-NoNewline
+export default HomeIcon;

@@ -79,4 +79,3 @@ export const getDashboardStats = (history: AnalysisRecord[]): UserStats => {
 };
 
 export { getAnonymizedCases };
--NoNewline

@@ -7,4 +7,4 @@ const CopyrightIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4"
     </svg>
 );
 
-export default CopyrightIcon;-NoNewline
+export default CopyrightIcon;

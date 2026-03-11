@@ -7,4 +7,3 @@ const SearchIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" })
 );
 
 export default SearchIcon;
--NoNewline

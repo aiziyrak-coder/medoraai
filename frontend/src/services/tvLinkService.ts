@@ -64,4 +64,3 @@ export const getTvUrl = (code: string): string => {
     url.hash = ''; // Clear hash if present to ensure clean URL
     return url.toString();
 };
--NoNewline

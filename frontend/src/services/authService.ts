@@ -258,4 +258,3 @@ export const getAnalyses = (phone: string): AnalysisRecord[] => {
     const allAnalyses = getAllAnalyses();
     return allAnalyses[phone] || [];
 };
--NoNewline

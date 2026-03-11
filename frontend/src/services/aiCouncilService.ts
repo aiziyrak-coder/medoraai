@@ -69,7 +69,7 @@ const getSystemInstruction = (language: Language): string => {
     Vazifangiz: shifokorga ENG ANIQ, DALILLI va XAVFSIZ yechim taqdim etish.
     
     AQLIYAT QOIDALARI:
-    1. Har bir xulosa uchun QADAMMA-QADAM MANTIQIY ZANJIR (chain-of-thought) yozing: "Sabab A → natija B → shuning uchun C."
+    1. Har bir xulosa uchun QADAMMA-QADAM MANTIQIY ZANJIR (chain-of-thought) yozing: "Sabab A в†’ natija B в†’ shuning uchun C."
     2. Differensial tashxisda har bir variant uchun "Nega bu ehtimol?" va "Nega boshqasi kamroq?" javob bering.
     3. Ishonch darajasini aniq bering (yuqori/o'rta/past) va qaysi ma'lumot yetishmasligi aniqlikni kamaytirishini ayting.
     4. XAVFSIZLIK: Bemor allergiyasi, joriy dori-darmonlar va buyrak/jigar funksiyasi bo'yicha har doim o'ylab bering; xavfli aralashuvlarni darhol bildiring.
@@ -79,7 +79,7 @@ const getSystemInstruction = (language: Language): string => {
        - bunday joylashuvga asoslangan tashxis/davolash bermang;
        - bemor/shifokorga muloyimlik bilan bu anatomik jihatdan mumkin emasligini tushuntiring va kerak bo'lsa to'g'ri joylashuvni aniqlashtirish uchun savol bering.
     7. FIZIOLOGIYA VA FIZIONOMIYA: Har bir holatda bemorning YOSHI, JINSI, VAZNI, VITAL KO'RSATKICHLARI (BP, yurak urishi, harorat, SpO2, nafas soni) va umumiy ko'rinishi (kaxeksiya, semizlik, shish, sianoz, rangparlik, dismorfik belgilar) NI INOBATGA OLING. 
-       - Pediatr bemorlar (0–18 yosh) va keksalar (65+ yosh) uchun fiziologik chegaralar va dori dozalari boshqacha bo'lishini hisobga oling.
+       - Pediatr bemorlar (0вЂ“18 yosh) va keksalar (65+ yosh) uchun fiziologik chegaralar va dori dozalari boshqacha bo'lishini hisobga oling.
        - Homiladorlik, buyrak/jigar yetishmovchiligi, yurak yetishmovchiligi, diabet va boshqa surunkali kasalliklar fonida dori tanlash va dozalashni moslashtiring.
        - FIZIONOMIK BELGILAR (teri rangi, shish, nafas qisilishi, qiyofadagi og'riq ifodasi, nevrologik holat va h.k.) tashxis ehtimolini oshirishi yoki kamaytirishini mantiqan izohlab bering, lekin hech qachon diskriminatsion xulosa chiqarmang.
     8. MANTIQIY TROLLING VA MOS KELMASLIK: Agar foydalanuvchi ataylab chalg'ituvchi, o'zaro zid yoki fiziologik/anatomik jihatdan bir-biriga to'g'ri kelmaydigan ma'lumotlar kiritsa:
@@ -96,19 +96,19 @@ const getSystemInstruction = (language: Language): string => {
         TERMINOLOGIYA: O'zbek tibbiyot terminologiyasi va SSV qabul qilgan atamalar.
         `,
         'uz-C': `
-        ТИЛ: Барча жавобларингиз қатъий Ўзбек тилида (Кирилл графикасида) бўлиши ШАРТ.
-        ЎЗБЕКИСТОН КОНТЕКСТИ (МАЖБУРИЙ): Ташхис, даволаш режаси ва дори-дармонлар фақат Ўзбекистон Республикаси қонунчилиги ва ССВ тасдиқлаган клиник протоколларга мувофиқ бўлсин. Дори-дармонлар фақат Ўзбекистонда рўйхатдан ўтган ва аптекаларда мавжуд савдо номлари билан.
-        ТЕРМИНОЛОГИЯ: Ўзбек тиббиёт терминологияси ва ССВ қабул қилган атамалар.
+        РўРР›: Р‘Р°СЂС‡Р° Р¶Р°РІРѕР±Р»Р°СЂРёРЅРіРёР· Т›Р°С‚СЉРёР№ РЋР·Р±РµРє С‚РёР»РёРґР° (РљРёСЂРёР»Р» РіСЂР°С„РёРєР°СЃРёРґР°) Р±СћР»РёС€Рё РЁРђР Рў.
+        РЋР—Р‘Р•РљРРЎРўРћРќ РљРћРќРўР•РљРЎРўР (РњРђР–Р‘РЈР РР™): РўР°С€С…РёСЃ, РґР°РІРѕР»Р°С€ СЂРµР¶Р°СЃРё РІР° РґРѕСЂРё-РґР°СЂРјРѕРЅР»Р°СЂ С„Р°Т›Р°С‚ РЋР·Р±РµРєРёСЃС‚РѕРЅ Р РµСЃРїСѓР±Р»РёРєР°СЃРё Т›РѕРЅСѓРЅС‡РёР»РёРіРё РІР° РЎРЎР’ С‚Р°СЃРґРёТ›Р»Р°РіР°РЅ РєР»РёРЅРёРє РїСЂРѕС‚РѕРєРѕР»Р»Р°СЂРіР° РјСѓРІРѕС„РёТ› Р±СћР»СЃРёРЅ. Р”РѕСЂРё-РґР°СЂРјРѕРЅР»Р°СЂ С„Р°Т›Р°С‚ РЋР·Р±РµРєРёСЃС‚РѕРЅРґР° СЂСћР№С…Р°С‚РґР°РЅ СћС‚РіР°РЅ РІР° Р°РїС‚РµРєР°Р»Р°СЂРґР° РјР°РІР¶СѓРґ СЃР°РІРґРѕ РЅРѕРјР»Р°СЂРё Р±РёР»Р°РЅ.
+        РўР•Р РњРРќРћР›РћР“РРЇ: РЋР·Р±РµРє С‚РёР±Р±РёС‘С‚ С‚РµСЂРјРёРЅРѕР»РѕРіРёСЏСЃРё РІР° РЎРЎР’ Т›Р°Р±СѓР» Т›РёР»РіР°РЅ Р°С‚Р°РјР°Р»Р°СЂ.
         `,
         'kaa': `
-        TIL: Barlıq juwaplarıńız qatań Qaraqalpaq tilinde (Lotin grafikasında) bolıwı SHÁRT.
-        ÓZBEKISTAN KONTEKSTI (MAJBÚRI): Tashxis, emlew rejasi hám dári-darmonlar tek Ózbekistan Respublikası qonunshılıǵı hám SSV tasdıqlagan klinikalıq protokollarga sáykes bolsın. Dári-darmonlar tek Ózbekistonda dizimnen ótken hám aptekalarda bar savdo atları menen.
-        TERMINOLOGIYA: Qaraqalpaq/O'zbek medicinalıq terminologiyası.
+        TIL: BarlД±q juwaplarД±Е„Д±z qataЕ„ Qaraqalpaq tilinde (Lotin grafikasД±nda) bolД±wД± SHГЃRT.
+        Г“ZBEKISTAN KONTEKSTI (MAJBГљRI): Tashxis, emlew rejasi hГЎm dГЎri-darmonlar tek Г“zbekistan RespublikasД± qonunshД±lД±ЗµД± hГЎm SSV tasdД±qlagan klinikalД±q protokollarga sГЎykes bolsД±n. DГЎri-darmonlar tek Г“zbekistonda dizimnen Гіtken hГЎm aptekalarda bar savdo atlarД± menen.
+        TERMINOLOGIYA: Qaraqalpaq/O'zbek medicinalД±q terminologiyasД±.
         `,
         'ru': `
-        ЯЗЫК: Все ваши ответы ДОЛЖНЫ быть строго на Русском языке.
-        КОНТЕКСТ УЗБЕКИСТАНА (ОБЯЗАТЕЛЬНО): Диагноз, план лечения и препараты – строго в соответствии с законодательством Республики Узбекистан и клиническими протоколами, утверждёнными Минздравом (ССВ). Препараты – только зарегистрированные в Узбекистане и доступные в аптеках (торговые названия: Нимисил, Сумамед, Аугментин, Метформин, Эналаприл и т.д.).
-        ТЕРМИНОЛОГИЯ: Профессиональная медицинская терминология на русском; при необходимости – термины, принятые в Узбекистане.
+        РЇР—Р«Рљ: Р’СЃРµ РІР°С€Рё РѕС‚РІРµС‚С‹ Р”РћР›Р–РќР« Р±С‹С‚СЊ СЃС‚СЂРѕРіРѕ РЅР° Р СѓСЃСЃРєРѕРј СЏР·С‹РєРµ.
+        РљРћРќРўР•РљРЎРў РЈР—Р‘Р•РљРРЎРўРђРќРђ (РћР‘РЇР—РђРўР•Р›Р¬РќРћ): Р”РёР°РіРЅРѕР·, РїР»Р°РЅ Р»РµС‡РµРЅРёСЏ Рё РїСЂРµРїР°СЂР°С‚С‹ вЂ“ СЃС‚СЂРѕРіРѕ РІ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРё СЃ Р·Р°РєРѕРЅРѕРґР°С‚РµР»СЊСЃС‚РІРѕРј Р РµСЃРїСѓР±Р»РёРєРё РЈР·Р±РµРєРёСЃС‚Р°РЅ Рё РєР»РёРЅРёС‡РµСЃРєРёРјРё РїСЂРѕС‚РѕРєРѕР»Р°РјРё, СѓС‚РІРµСЂР¶РґС‘РЅРЅС‹РјРё РњРёРЅР·РґСЂР°РІРѕРј (РЎРЎР’). РџСЂРµРїР°СЂР°С‚С‹ вЂ“ С‚РѕР»СЊРєРѕ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅРЅС‹Рµ РІ РЈР·Р±РµРєРёСЃС‚Р°РЅРµ Рё РґРѕСЃС‚СѓРїРЅС‹Рµ РІ Р°РїС‚РµРєР°С… (С‚РѕСЂРіРѕРІС‹Рµ РЅР°Р·РІР°РЅРёСЏ: РќРёРјРёСЃРёР», РЎСѓРјР°РјРµРґ, РђСѓРіРјРµРЅС‚РёРЅ, РњРµС‚С„РѕСЂРјРёРЅ, Р­РЅР°Р»Р°РїСЂРёР» Рё С‚.Рґ.).
+        РўР•Р РњРРќРћР›РћР“РРЇ: РџСЂРѕС„РµСЃСЃРёРѕРЅР°Р»СЊРЅР°СЏ РјРµРґРёС†РёРЅСЃРєР°СЏ С‚РµСЂРјРёРЅРѕР»РѕРіРёСЏ РЅР° СЂСѓСЃСЃРєРѕРј; РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё вЂ“ С‚РµСЂРјРёРЅС‹, РїСЂРёРЅСЏС‚С‹Рµ РІ РЈР·Р±РµРєРёСЃС‚Р°РЅРµ.
         `,
         'en': `
         LANGUAGE: All your responses MUST be strictly in English.
@@ -141,7 +141,7 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
     const lines = s.split('\n');
     while (lines.length > 0) {
         const last = lines[lines.length - 1].trim();
-        // agar oxirgi qatorda ':' yoki '}' yoki ']' bo'lmasa, ehtimol keraksiz bo'lak — olib tashlaymiz
+        // agar oxirgi qatorda ':' yoki '}' yoki ']' bo'lmasa, ehtimol keraksiz bo'lak вЂ” olib tashlaymiz
         if (last && !last.includes(':') && !last.includes('}') && !last.includes(']')) {
             lines.pop();
             continue;
@@ -210,7 +210,7 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
     return null;
 }
 
-/** Mobil qurilma (telefon) — sekin tarmoq va kesilishlarda ko'proq qayta urinish kerak */
+/** Mobil qurilma (telefon) вЂ” sekin tarmoq va kesilishlarda ko'proq qayta urinish kerak */
 const isMobile = (): boolean => {
     if (typeof navigator === 'undefined') return false;
     const ua = navigator.userAgent || '';
@@ -370,7 +370,7 @@ const buildMultimodalPrompt = (introText: string, data: PatientData) => {
     return { parts };
 };
 
-/** Doktor tez tahlili uchun: tarix kontekstisiz, minimal prompt — maksimal tezlik */
+/** Doktor tez tahlili uchun: tarix kontekstisiz, minimal prompt вЂ” maksimal tezlik */
 const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
     const { attachments, ...rest } = data;
     const textData = JSON.stringify(rest);
@@ -389,8 +389,8 @@ const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
 };
 
 
-// --- SINGLE DOCTOR MODE (TEZKOR — faqat doktor profilida) ---
-/** Tez tahlil: qisqa tizim — tez qaytish uchun */
+// --- SINGLE DOCTOR MODE (TEZKOR вЂ” faqat doktor profilida) ---
+/** Tez tahlil: qisqa tizim вЂ” tez qaytish uchun */
 const getFastDoctorSystemInstruction = (language: Language): string => {
     const til = langMap[language];
     return `Tibbiy AI. Javob: ${til}, faqat JSON. Tashxis asosi, reja, dori (qanday ichish). O'zbekiston dorilari, SSV.`;
@@ -697,9 +697,9 @@ export const runCouncilDebate = async (
     const systemInstr = getSystemInstruction(language);
     const introMessages: Record<Language, string> = {
         'uz-L': 'O\'zbekiston yetakchi tibbiyot mutaxassislari yig\'ilmoqda...',
-        'uz-C': 'Ўзбекистон етакчи тиббиёт мутахассислари йиғилмоқда...',
-        'kaa': 'Qaraqalpaqstan jetekshi medicina qaniygelari jıynalmaqta...',
-        'ru': 'Ведущие медицинские специалисты собираются...',
+        'uz-C': 'РЋР·Р±РµРєРёСЃС‚РѕРЅ РµС‚Р°РєС‡Рё С‚РёР±Р±РёС‘С‚ РјСѓС‚Р°С…Р°СЃСЃРёСЃР»Р°СЂРё Р№РёТ“РёР»РјРѕТ›РґР°...',
+        'kaa': 'Qaraqalpaqstan jetekshi medicina qaniygelari jД±ynalmaqta...',
+        'ru': 'Р’РµРґСѓС‰РёРµ РјРµРґРёС†РёРЅСЃРєРёРµ СЃРїРµС†РёР°Р»РёСЃС‚С‹ СЃРѕР±РёСЂР°СЋС‚СЃСЏ...',
         'en': 'Leading medical specialists are gathering...'
     };
     
@@ -725,9 +725,9 @@ export const runCouncilDebate = async (
     for (let round = 1; round <= DEBATE_ROUNDS; round++) {
         const roundMessages: Record<Language, string> = {
             'uz-L': `${round}-bosqich munozarasi boshlanmoqda...`,
-            'uz-C': `${round}-босқич мунозараси бошланмоқда...`,
-            'kaa': `${round}-basqısh munozarası baslanbaqta...`,
-            'ru': `Начинается ${round}-й раунд обсуждения...`,
+            'uz-C': `${round}-Р±РѕСЃТ›РёС‡ РјСѓРЅРѕР·Р°СЂР°СЃРё Р±РѕС€Р»Р°РЅРјРѕТ›РґР°...`,
+            'kaa': `${round}-basqД±sh munozarasД± baslanbaqta...`,
+            'ru': `РќР°С‡РёРЅР°РµС‚СЃСЏ ${round}-Р№ СЂР°СѓРЅРґ РѕР±СЃСѓР¶РґРµРЅРёСЏ...`,
             'en': `Round ${round} of debate starting...`
         };
         onProgress({ type: 'status', message: roundMessages[language] });
@@ -808,9 +808,9 @@ export const runCouncilDebate = async (
 
     const finalizingMessages: Record<Language, string> = {
         'uz-L': 'Yakuniy hisobot tayyorlanmoqda...',
-        'uz-C': 'Якуний ҳисобот тайёрланмоқда...',
-        'kaa': 'Juwmaqlawshı esabat tayarlanbaqta...',
-        'ru': 'Подготовка итогового отчета...',
+        'uz-C': 'РЇРєСѓРЅРёР№ ТіРёСЃРѕР±РѕС‚ С‚Р°Р№С‘СЂР»Р°РЅРјРѕТ›РґР°...',
+        'kaa': 'JuwmaqlawshД± esabat tayarlanbaqta...',
+        'ru': 'РџРѕРґРіРѕС‚РѕРІРєР° РёС‚РѕРіРѕРІРѕРіРѕ РѕС‚С‡РµС‚Р°...',
         'en': 'Preparing final report...'
     };
     onProgress({ type: 'status', message: finalizingMessages[language] });
@@ -913,7 +913,7 @@ export const getIcd10Codes = async (diagnosis: string, language: Language): Prom
 export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
-    // Azure OpenAI doesn't support Google Search grounding – plain text call
+    // Azure OpenAI doesn't support Google Search grounding вЂ“ plain text call
     const summary = await callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
     return {
         summary,
@@ -1254,7 +1254,7 @@ export const runResearchCouncilDebate = async (
     };
 
     try {
-        // Azure OpenAI – JSON response (no grounding/web search available)
+        // Azure OpenAI вЂ“ JSON response (no grounding/web search available)
         const rawText = await callGemini(prompt, DEPLOY_PRO, {}, false, systemInstr) as string;
         const cleanedText = (rawText || '').replace(/^```json\s*|```\s*$/g, '').trim();
 
@@ -1357,7 +1357,7 @@ Talablar:
 - Har bir dori nomini matnda qayta tilga oling.
 - O'zaro ta'sirning asosiy farmakodinamik va/yoki farmakokinetik mexanizmini tushuntiring.
 - Klinik misol(lar) keltiring: qaysi holatlarda ayniqsa xavfli bo'ladi.
-- Kamida 3–4 jumla yozing.
+- Kamida 3вЂ“4 jumla yozing.
 
 Faqat soddalashtirilgan matn yozing, hech qanday ro'yxat, bullet, JSON yoki kod ishlatmang.
 Javob tili: ${langMap[language]}.
@@ -1382,7 +1382,7 @@ Talablar:
 - Qaysi bemor guruhlari uchun (yoshi katta, surunkali buyrak/jigar yetishmovchiligi, yurak yetishmovchiligi va h.k.) xavf yuqori bo'lishi mumkinligini aniq yozing.
 - Qanday monitoring zarur: qon bosimi, yurak urishi, EKG, INR, buyrak/jigar funksiyasi va h.k.
 - Qachon dozani o'zgartirish yoki dori(lar)ni almashtirish kerak bo'lishi mumkinligini tushuntiring.
-- Kamida 3–4 jumla yozing.
+- Kamida 3вЂ“4 jumla yozing.
 
 Faqat izoh matnini yozing, ro'yxat va JSON ishlatmang.
 Javob tili: ${langMap[language]}.
@@ -1560,4 +1560,3 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot ber
         priceRange,
     };
 };
--NoNewline

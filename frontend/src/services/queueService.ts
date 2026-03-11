@@ -14,7 +14,7 @@ function isQueueApiMode(): boolean {
   return isApiConfigured() && !!getAuthToken();
 }
 
-/** Navbat ro'yxati — API bo'lsa cache, aks holda localStorage */
+/** Navbat ro'yxati вЂ” API bo'lsa cache, aks holda localStorage */
 export const getQueue = (doctorId: string): PatientQueueItem[] => {
   if (isQueueApiMode()) return [...queueCache];
   try {
@@ -25,7 +25,7 @@ export const getQueue = (doctorId: string): PatientQueueItem[] => {
   }
 };
 
-/** Serverdan navbatni yuklash (API rejimida), yoki localStorage (API yo‘q bo‘lsa) */
+/** Serverdan navbatni yuklash (API rejimida), yoki localStorage (API yoвЂq boвЂlsa) */
 export const loadQueueFromServer = async (doctorId: string): Promise<PatientQueueItem[]> => {
   if (!isQueueApiMode()) return getQueue(doctorId);
   const res = await apiQueue.apiGetQueue();
@@ -178,4 +178,3 @@ export const subscribeToQueueUpdates = (
     clearInterval(interval);
   };
 };
--NoNewline

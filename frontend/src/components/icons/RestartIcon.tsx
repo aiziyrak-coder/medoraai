@@ -6,4 +6,4 @@ const RestartIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }
     </svg>
 );
 
-export default RestartIcon;-NoNewline
+export default RestartIcon;

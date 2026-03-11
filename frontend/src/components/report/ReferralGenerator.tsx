@@ -56,4 +56,3 @@ KONSILIUM Tizimi / Davolovchi Shifokor
 };
 
 export default ReferralGenerator;
--NoNewline

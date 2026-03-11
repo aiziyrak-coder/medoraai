@@ -386,7 +386,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                             <div key={i} className="p-8 md:p-10 bg-white/5 rounded-[2rem] border border-white/5 hover:bg-white/10 transition-colors relative">
                                 <div className="absolute -top-6 left-8 text-6xl text-blue-500 opacity-30 font-serif">"</div>
                                 <div className="flex gap-1 mb-6 text-yellow-500">
-                                    {[1,2,3,4,5].map(s => <span key={s}>★</span>)}
+                                    {[1,2,3,4,5].map(s => <span key={s}>в…</span>)}
                                 </div>
                                 <p className="text-slate-300 mb-8 italic text-lg leading-relaxed">"{review.text}"</p>
                                 <div className="flex items-center gap-4">
@@ -547,4 +547,3 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
 };
 
 export default LandingPage;
--NoNewline

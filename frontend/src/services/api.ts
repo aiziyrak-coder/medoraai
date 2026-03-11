@@ -137,7 +137,7 @@ export const apiRequest = async <T = unknown>(
       API_CONFIG.RETRY_DELAY
     );
 
-    // Handle 403 Forbidden – use backend detail if present
+    // Handle 403 Forbidden вЂ“ use backend detail if present
     if (response.status === 403) {
       const errData = await response.json().catch(() => ({}));
       const msg =
@@ -206,7 +206,7 @@ export const apiRequest = async <T = unknown>(
       };
     }
 
-    // 401 with no token – backend may return 401 or 403
+    // 401 with no token вЂ“ backend may return 401 or 403
     if (response.status === 401) {
       const errData = await response.json().catch(() => ({}));
       const msg =
@@ -464,4 +464,3 @@ export const checkApiHealth = async (): Promise<HealthCheckResult> => {
     return { ok: false };
   }
 };
--NoNewline
