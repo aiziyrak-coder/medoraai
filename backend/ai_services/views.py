@@ -222,11 +222,11 @@ def test_gemini(request):
 
 
 # ---------------------------------------------------------------------------
-# Basic AI endpoints (used by old frontend code)
+# Basic AI endpoints (used by analysis flow; AllowAny so flow works before login)
 # ---------------------------------------------------------------------------
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def generate_clarifying_questions(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
@@ -234,15 +234,16 @@ def generate_clarifying_questions(request):
     if not _gemini_ok():
         return _ai_not_configured()
     try:
-        return Response({"success": True, "data": gemini_utils.generate_clarifying_questions(patient_data)})
+        questions = gemini_utils.generate_clarifying_questions(patient_data)
+        return Response({"success": True, "data": questions})
     except Exception as exc:
         logger.exception("Clarifying questions error: %s", exc)
-        msg = str(exc) if str(exc).strip() else "Savollar yaratishda xatolik"
-        return _err(500, msg)
+        # Return 200 with empty list so flow continues; frontend can show fallback
+        return Response({"success": True, "data": [], "warning": str(exc)[:200]})
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def recommend_specialists(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
@@ -252,12 +253,11 @@ def recommend_specialists(request):
     try:
         recs = gemini_utils.recommend_specialists(patient_data)
         if not recs:
-            return _err(503, "AI tavsiya qaytarmadi. GEMINI_API_KEY ni .env da tekshiring.")
+            return Response({"success": True, "data": {"recommendations": []}, "warning": "AI tavsiya qaytarmadi."})
         return Response({"success": True, "data": {"recommendations": recs}})
     except Exception as exc:
         logger.exception("Recommend specialists error: %s", exc)
-        msg = str(exc).strip() if str(exc).strip() else "AI tavsiya vaqtincha mavjud emas."
-        return _err(503, msg)
+        return Response({"success": True, "data": {"recommendations": []}, "warning": str(exc)[:200]})
 
 
 @api_view(["POST"])
