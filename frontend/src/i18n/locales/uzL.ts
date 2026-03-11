@@ -398,7 +398,6 @@ export const uzL: TranslationSet = {
   specialist_name_allergist: 'Allergist',
   specialty_allergist: 'Allergologiya va immunologiya',
   specialist_name_anesthesiology: 'Anesteziolog',
-  specialty_anesthesiology: 'Anesteziologiya',
   specialist_name_dermatologist: 'Dermatolog',
   specialty_dermatologist: 'Dermatologiya',
   specialist_name_emergency: 'Shoshilinch tibbiy yordam shifokori',
