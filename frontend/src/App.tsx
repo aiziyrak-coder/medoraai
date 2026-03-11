@@ -462,31 +462,38 @@ const AppContent: React.FC = () => {
         else setAppView(view);
     };
 
+    const defaultClarifyingQuestions: string[] = [
+        "Shikoyatlar qachondan boshlandi?",
+        "Allergiya yoki dori-darmonlarga nojo'ya ta'sir bormi?",
+        "Hozirgi yoki so'nggi davolanish qanday bo'ldi?",
+        "Qon bosimi, puls, harorat o'lchadingizmi?",
+        "Oila a'zolarida shunga o'xshash kasallik bormi?",
+    ];
+
     const handleDataSubmit = async (data: PatientData) => {
         setPatientData(data);
         setIsProcessing(true);
         setAppView('clarification');
         setStatusMessage(t('clarification_generating_questions'));
+        let questions: string[] = [];
         try {
             const { generateClarifyingQuestions } = await import('./services/apiAiService');
             const response = await generateClarifyingQuestions(data);
             if (response.success && response.data?.length) {
-                setClarificationQuestions(response.data);
+                questions = response.data;
             } else {
-                const questions = await aiService.generateClarifyingQuestions(data, language);
-                setClarificationQuestions(questions);
+                questions = await aiService.generateClarifyingQuestions(data, language);
             }
         } catch (e) {
             try {
-                const questions = await aiService.generateClarifyingQuestions(data, language);
-                setClarificationQuestions(questions);
+                questions = await aiService.generateClarifyingQuestions(data, language);
                 setError(null);
             } catch (fallbackErr) {
                 setError(t('clarification_question_error'));
-                setClarificationQuestions([]);
             }
-        } 
-        finally { setIsProcessing(false); }
+        }
+        setClarificationQuestions(questions.length ? questions : defaultClarifyingQuestions);
+        setIsProcessing(false);
     };
     
     const handleClarificationSubmit = async (answers: Record<string, string>) => {

@@ -27,10 +27,9 @@ def _get_client():
         logger.warning("google-genai not installed: pip install google-genai")
         return None
 
-# Model names (Latest Gemini 2.0)
-GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.0-flash-exp")
+# Barqaror modellar (barcha API kalitlarida ishlaydi)
+GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-1.5-flash")
 GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-1.5-pro")
-GEMINI_THINKING = getattr(settings, "GEMINI_MODEL_THINKING", "gemini-2.0-flash-thinking-exp")
 
 SPECIALIST_NAMES = [
     "Gemini", "Claude", "GPT-4o", "Llama 3", "Grok",
@@ -126,18 +125,18 @@ PRIORITY 3: Simptomlar davomiyligi, oldingi o'xshash epizodlar, oila anamnezi.
 Mavjud ma'lumotlar uchun savol bermang. Javobni faqat JSON massiv sifatida qaytaring, masalan: ["Savol 1?", "Savol 2?"].
 O'zbek tilida (Lotin)."""
     raw = None
-    for use_json in (True, False):
-        try:
-            raw = _call_gemini(
-                prompt, GEMINI_FLASH,
-                response_mime_type="application/json" if use_json else None,
-            )
+    for model in (GEMINI_FLASH, GEMINI_PRO):
+        for use_json in (False, True):
+            try:
+                raw = _call_gemini(
+                    prompt, model,
+                    response_mime_type="application/json" if use_json else None,
+                )
+                break
+            except Exception as e:
+                logger.warning("Gemini clarifying_questions (model=%s, use_json=%s) failed: %s", model, use_json, e)
+        if raw:
             break
-        except Exception as e:
-            logger.warning("Gemini clarifying_questions (use_json=%s) failed: %s", use_json, e)
-            if use_json:
-                continue
-            return []
     if not raw:
         return []
     raw = (raw or "").replace("```json", "").replace("```", "").strip()
