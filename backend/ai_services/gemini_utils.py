@@ -68,7 +68,14 @@ def _call_gemini(prompt, model_name=GEMINI_FLASH, response_mime_type=None):
     config = {"temperature": 0.1}
     if response_mime_type:
         config["response_mime_type"] = response_mime_type
-    response = model.generate_content(prompt, generation_config=config)
+    try:
+        response = model.generate_content(prompt, generation_config=config)
+    except Exception as e:
+        if response_mime_type and "response_mime_type" in str(e).lower():
+            config.pop("response_mime_type", None)
+            response = model.generate_content(prompt, generation_config=config)
+        else:
+            raise
     if not response.text:
         raise ValueError("Gemini bo'sh javob qaytardi")
     return response.text.strip()
@@ -77,18 +84,11 @@ def _call_gemini(prompt, model_name=GEMINI_FLASH, response_mime_type=None):
 def generate_clarifying_questions(patient_data):
     """
     Generate 3-8 clarifying questions based on patient data.
-    
-    Args:
-        patient_data (dict): Patient clinical data
-    
-    Returns:
-        list[str]: List of clarifying questions in Uzbek
-    
-    Raises:
-        RuntimeError: If Gemini API fails
+    Returns empty list on any failure so the frontend can continue without 500.
     """
-    text = _patient_text(patient_data)
-    prompt = f"""Siz tibbiy yordamchi AI siz. Bemor ma'lumotlari:
+    try:
+        text = _patient_text(patient_data)
+        prompt = f"""Siz tibbiy yordamchi AI siz. Bemor ma'lumotlari:
 {text}
 
 Quyidagilarga asoslangan holda 3–5 ta QISQA, ANIQ aniqlashtiruvchi savol yozing.
@@ -98,16 +98,18 @@ PRIORITY 3: Simptomlar davomiyligi, oldingi o'xshash epizodlar, oila anamnezi.
 
 Mavjud ma'lumotlar uchun savol bermang. Javobni faqat JSON massiv sifatida qaytaring, masalan: ["Savol 1?", "Savol 2?"].
 O'zbek tilida (Lotin)."""
-    raw = _call_gemini(prompt, GEMINI_FLASH, response_mime_type="application/json")
-    raw = raw.replace("```json", "").replace("```", "").strip()
-    try:
+        raw = _call_gemini(prompt, GEMINI_FLASH, response_mime_type="application/json")
+        raw = (raw or "").replace("```json", "").replace("```", "").strip()
         data = json.loads(raw)
-    except json.JSONDecodeError:
-        logger.warning("Gemini clarifying_questions: invalid JSON %s", raw[:200])
+        if isinstance(data, list):
+            return [str(q) for q in data if q][:8]
         return []
-    if isinstance(data, list):
-        return [str(q) for q in data if q][:8]
-    return []
+    except json.JSONDecodeError:
+        logger.warning("Gemini clarifying_questions: invalid JSON")
+        return []
+    except Exception:
+        logger.exception("Gemini clarifying_questions failed")
+        return []
 
 
 def recommend_specialists(patient_data):

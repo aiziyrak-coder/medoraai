@@ -226,7 +226,7 @@ def recommend_specialists(request):
     if not _gemini_ok():
         return _ai_not_configured()
     try:
-        recs = azure_recommend(patient_data)
+        recs = gemini_utils.recommend_specialists(patient_data)
         return Response({"success": True, "data": {"recommendations": recs}})
     except Exception as exc:
         logger.exception("Recommend specialists error: %s", exc)
