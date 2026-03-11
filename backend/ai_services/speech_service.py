@@ -307,7 +307,7 @@ def synthesize_speech(
         "Ocp-Apim-Subscription-Key": _key(),
         "Content-Type":              "application/ssml+xml",
         "X-Microsoft-OutputFormat":  fmt,
-        "User-Agent":                "MedoraJarvis/3.0",
+        "User-Agent":                "AiDoktorJarvis/3.0",
     }
 
     try:

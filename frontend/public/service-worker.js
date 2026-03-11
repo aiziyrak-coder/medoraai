@@ -41,7 +41,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   const sameOrigin = url.origin === self.location.origin;
 
-  // Cross-origin (e.g. API at medoraapi.ziyrak.org): do not intercept — let browser handle (CORS works normally)
+  // Cross-origin (e.g. API): do not intercept — let browser handle (CORS works normally)
   if (!sameOrigin) {
     return;
   }

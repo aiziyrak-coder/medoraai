@@ -1,7 +1,7 @@
 {
-  "short_name": "MedoraAi",
-  "name": "MedoraAi - Tibbiy Ekspertiza Platformasi",
-  "description": "Murakkab klinik holatlarni tahlil qilish va tashxis qo'yish uchun ilg'or raqamli texnologiyalar asosidagi tibbiy konsilium.",
+  "short_name": "AiDoktor",
+  "name": "AiDoktor — Farg'ona jamoat salomatligi tibbiyot instituti",
+  "description": "Farg'ona jamoat salomatligi tibbiyot instituti. Murakkab klinik holatlarni tahlil qilish va tashxis qo'yish uchun ilg'or AI asosidagi tibbiy konsilium platformasi.",
   "start_url": "/",
   "background_color": "#f8fafc",
   "display": "standalone",

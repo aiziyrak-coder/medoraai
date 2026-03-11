@@ -11,7 +11,7 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 # Health uchun minimal javob (Host/ALLOWED_HOSTS tekshirilmaydi)
-HEALTH_BODY = b'{"status":"healthy","service":"medoraai-backend"}'
+HEALTH_BODY = b'{"status":"healthy","service":"aidoktor-backend"}'
 
 
 class EarlyHealthMiddleware(MiddlewareMixin):

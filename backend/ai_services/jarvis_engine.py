@@ -1,5 +1,5 @@
-﻿"""
-Medora-Ziyrak AI Engine
+"""
+AiDoktor-Jarvis AI Engine
 ========================
 Ikki rejim:
   1. ConsultationMonitor  вЂ” passiv tinglash, auto-diagnosis
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _ZIYRAK_SYSTEM = """\
-Siz "Medora-Ziyrak" вЂ” tibbiy yordamchi AI siz.
+Siz "AiDoktor-Jarvis" вЂ” tibbiy yordamchi AI siz.
 Siz shifokorning ishonchli yordamchisi siz, bemor emas, SHIFOKORGA yordam berasiz.
 
 VAZIFALARINGIZ:

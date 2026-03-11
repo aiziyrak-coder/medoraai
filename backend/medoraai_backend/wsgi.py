@@ -21,7 +21,7 @@ from django.core.wsgi import get_wsgi_application
 from django.core.exceptions import DisallowedHost
 
 _app = get_wsgi_application()
-_SAFE_BODY = b'{"message":"MedoraAI Backend API","version":"1.0.0","endpoints":{"health":"/health/","admin":"/admin/","api":"/api/"}}'
+_SAFE_BODY = b'{"message":"AiDoktor Backend API","version":"1.0.0","endpoints":{"health":"/health/","admin":"/admin/","api":"/api/"}}'
 
 def application(environ, start_response):
     try:

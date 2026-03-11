@@ -283,7 +283,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
         ? "Ma'lumotlar noto'g'ri. Maydonlarni tekshiring."
         : "Xatolik yuz berdi. Iltimos, keyinroq urinib ko'ring.");
     if (response.status === 400 && !errObj?.message && Object.keys(data).length === 0 && typeof console !== 'undefined' && console.warn) {
-      console.warn('[MedoraAI] 400 javob (server tanasi bo\'sh):', response.url);
+      console.warn('[AiDoktor] 400 javob (server tanasi bo\'sh):', response.url);
     }
     return {
       success: false,

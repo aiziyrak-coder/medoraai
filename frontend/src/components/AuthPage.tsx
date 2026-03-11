@@ -327,10 +327,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     <div className="animate-fade-in-up">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 backdrop-blur-md mb-4">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_8px_#60a5fa]"></span>
-                            <span className="text-[10px] font-bold text-blue-100 tracking-wide uppercase">MedoraAi Tizimi v1.0</span>
+                            <span className="text-[10px] font-bold text-blue-100 tracking-wide uppercase">AiDoktor — Farg'ona jamoat salomatligi tibbiyot instituti v1.0</span>
                         </div>
                         <h1 className="text-4xl xl:text-6xl font-black text-white tracking-tighter mb-3 drop-shadow-xl uppercase">
-                            MEDORA AI
+                            AiDoktor
                         </h1>
                         <p className="text-xl text-blue-100 font-light border-l-4 border-blue-500 pl-4">
                             {t('auth_marketing_title')}

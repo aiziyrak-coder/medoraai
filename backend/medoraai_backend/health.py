@@ -42,7 +42,7 @@ def health_check(request):
         return _add_cors(r, request)
     r = JsonResponse({
         'status': 'healthy',
-        'service': 'medoraai-backend',
+        'service': 'aidoktor-backend',
     })
     return _add_cors(r, request)
 
@@ -56,7 +56,7 @@ def health_detailed(request):
         return _add_cors(r, request)
     checks = {
         'status': 'healthy',
-        'service': 'medoraai-backend',
+        'service': 'aidoktor-backend',
         'checks': {}
     }
     

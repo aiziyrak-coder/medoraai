@@ -1,7 +1,8 @@
 
 export const en = {
   // General
-  appName: 'MedoraAi',
+  appName: 'AiDoktor',
+  instituteName: 'Fergana Public Health Medical Institute',
   logout: 'Logout',
   back: 'Back',
   submit: 'Submit',
@@ -32,7 +33,7 @@ export const en = {
   landing_stats_experts: 'AI Specialists',
   
   landing_features_title: 'Limitless Capabilities',
-  landing_features_desc: 'MedoraAi helps doctors solve the most complex tasks encountered in daily practice.',
+  landing_features_desc: 'AiDoktor helps doctors solve the most complex tasks encountered in daily practice.',
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Consult in real-time with Cardiologists, Neurologists, Oncologists, and 10+ other virtual specialists.',
   landing_feature_safe: 'Safe & Accurate',
@@ -60,7 +61,7 @@ export const en = {
   landing_partners_title: 'Clinics That Trust Us',
   
   landing_cta_bottom_title: 'Transform Your Medical Practice Today',
-  landing_cta_bottom_desc: 'Start working with MedoraAi and provide high-accuracy diagnoses for every patient.',
+  landing_cta_bottom_desc: 'Start working with AiDoktor and provide high-accuracy diagnoses for every patient.',
   landing_cta_bottom_btn: 'Login to System',
   
   landing_footer_platform: 'Platform',
@@ -91,7 +92,7 @@ export const en = {
 
   // Auth Page & Marketing
   auth_marketing_title: 'Clinical Reasoning Revolution.',
-  auth_marketing_desc: 'MedoraAi is not just a digital assistant, it is a new era of medicine. We have combined thousands of clinical protocols, global medical research, and an international expertise base into a single intellectual ecosystem.',
+  auth_marketing_desc: 'AiDoktor is not just a digital assistant, it is a new era of medicine. Fergana Public Health Medical Institute has combined thousands of clinical protocols, global medical research, and an international expertise base into a single intellectual ecosystem.',
   auth_mode_select: 'Select Mode:',
   auth_mode_clinic: 'Clinic',
   auth_mode_clinic_desc: 'For organizations and consultations.',
@@ -555,7 +556,7 @@ export const en = {
   // Legal & marketing extended content
   legal_terms_title: 'Terms of Use and Public Offer',
   legal_terms_p1: '1. General provisions: This platform is an assistant tool intended only for medical professionals (doctors, residents, students) with appropriate clinical knowledge.',
-  legal_terms_p2: '2. Limitation of liability: Any diagnosis, treatment plan or recommendation provided by the "MedoraAi" system (hereinafter, the "System") is for informational purposes only and does not replace clinical judgment. The System does not substitute a physician. Full responsibility for the final clinical decision rests with the user (physician).',
+  legal_terms_p2: '2. Limitation of liability: Any diagnosis, treatment plan or recommendation provided by the "AiDoktor" system (hereinafter, the "System") of Fergana Public Health Medical Institute is for informational purposes only and does not replace clinical judgment. The System does not substitute a physician. Full responsibility for the final clinical decision rests with the user (physician).',
   legal_terms_p3: '3. Data security: We strive to anonymize patient-identifying data (full name and other identifiers) entered by users, but absolute security on the internet cannot be guaranteed.',
   legal_terms_p4: '4. Consent: By using the System, you understand and accept the possibility of AI errors (hallucinations) and agree to use all outputs only as clinical support, not as final medical decisions.',
 
@@ -596,7 +597,7 @@ export const en = {
 
   testimonial_1_name: 'Dr. A. Karimov',
   testimonial_1_role: 'Cardiologist, 15 years of experience',
-  testimonial_1_text: 'MedoraAi is an excellent tool for getting a second opinion in complex cases. The ECG analysis in particular is very accurate and fast.',
+  testimonial_1_text: 'AiDoktor is an excellent tool for getting a second opinion in complex cases. The ECG analysis in particular is very accurate and fast.',
   testimonial_2_name: 'Dr. S. Umarova',
   testimonial_2_role: 'Neurologist',
   testimonial_2_text: 'It helps save time in diagnosing rare diseases. The research section is a real treasure — the latest articles are always at hand.',

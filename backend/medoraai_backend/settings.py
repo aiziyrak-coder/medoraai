@@ -272,7 +272,7 @@ AZURE_OPENAI_ENDPOINT   = config('AZURE_OPENAI_ENDPOINT',   default='')
 AZURE_OPENAI_API_KEY    = config('AZURE_OPENAI_API_KEY',    default='')
 AZURE_OPENAI_API_VERSION = config('AZURE_OPENAI_API_VERSION', default='2024-12-01-preview')
 
-# Azure Speech Services (Medora-Jarvis)
+# Azure Speech Services (AiDoktor-Jarvis)
 AZURE_SPEECH_KEY      = config('AZURE_SPEECH_KEY',      default='')
 AZURE_SPEECH_REGION   = config('AZURE_SPEECH_REGION',   default='swedencentral')
 AZURE_SPEECH_ENDPOINT = config('AZURE_SPEECH_ENDPOINT', default='https://swedencentral.api.cognitive.microsoft.com/')

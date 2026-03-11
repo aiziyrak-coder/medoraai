@@ -1,5 +1,5 @@
 /**
- * JarvisDashboard — Medora-Jarvis Asosiy UI
+ * JarvisDashboard — AiDoktor-Jarvis Asosiy UI
  * ===========================================
  * Doktor panelida ikki tab: Konsultatsiya Monitor | Interaktiv Jarvis
  * Konsilium bilan ma'lumot almashinuvi (Sync).
@@ -172,7 +172,7 @@ export const JarvisDashboard: React.FC<Props> = ({
           🤖
         </div>
         <div>
-          <h2 className="text-base font-bold text-white">Medora-Jarvis</h2>
+          <h2 className="text-base font-bold text-white">AiDoktor-Jarvis</h2>
           <p className="text-xs text-slate-400">Azure Speech · GPT-4o</p>
         </div>
         {sessionId && (

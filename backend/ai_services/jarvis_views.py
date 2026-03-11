@@ -1,5 +1,5 @@
-﻿"""
-Medora-Ziyrak API Views
+"""
+AiDoktor-Jarvis API Views
 ========================
 Endpoint'lar:
 

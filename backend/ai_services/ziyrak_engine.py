@@ -1,12 +1,12 @@
 """
-Medora-Ziyrak AI Engine
+AiDoktor-Ziyrak AI Engine
 ========================
 Ikki rejim:
   1. ConsultationMonitor  - passiv tinglash, auto-diagnosis
   2. ZiyrakChat           - interaktiv suhbat, kontekst xotirasi
 
 O'zini tanishtirish:
-  "Men Medora platformasining raqamli yordamchisi - Ziyrakman."
+  "Men AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) platformasining raqamli yordamchisi — Ziyrakman."
 
 Context management:
   - Har bir sessiya uchun suhbat tarixi (rolling window: 20 xabar)
@@ -40,13 +40,13 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 _ZIYRAK_INTRO = (
-    "Men Medora platformasining raqamli yordamchisi - Ziyrakman. "
+    "Men AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) platformasining raqamli yordamchisi — Ziyrakman. "
     "Sizga tibbiy masalalarda yordam beraman."
 )
 
 _ZIYRAK_SYSTEM = """\
-Siz "Medora-Ziyrak" — Medora platformasining raqamli tibbiy yordamchisi siz.
-O'zingizni shu tarzda tanishtirasiz: "Men Medora platformasining raqamli yordamchisi - Ziyrakman."
+Siz "AiDoktor-Ziyrak" — AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) platformasining raqamli tibbiy yordamchisi siz.
+O'zingizni shu tarzda tanishtirasiz: "Men AiDoktor platformasining raqamli yordamchisi — Ziyrakman."
 
 Siz shifokorning ishonchli yordamchisi siz, SHIFOKORGA yordam berasiz.
 

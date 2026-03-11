@@ -232,7 +232,7 @@ def create_surgery_session(
 
     lang_hint = {"uz-L": "O'zbek", "ru": "Rus", "en": "Ingliz"}.get(language, "O'zbek")
     greeting  = (
-        f"Men Ziyrak — Medora platformasining raqamli yordamchisi. "
+        f"Men Ziyrak — AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) platformasining raqamli yordamchisi. "
         f"Operatsiya xonasida sizga xizmatdaman. "
         f"Operatsiya turi: {operation_type}. "
         f"Javoblar {lang_hint} tilida."
@@ -408,7 +408,7 @@ def get_surgery_log(session_id: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _SURGERY_SYSTEM = """\
-Siz Ziyrak — Medora platformasining raqamli yordamchisi.
+Siz Ziyrak — AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) platformasining raqamli yordamchisi.
 Hozir OPERATSIYA XONASIDA jarrohga yordamasiz.
 
 OPERATSIYA XONASI QOIDALARI:

@@ -1,4 +1,4 @@
-"""Medora-Jarvis URL patterns."""
+"""AiDoktor-Jarvis URL patterns."""
 from django.urls import path
 from .jarvis_views import (
     session_create, session_end, session_info,

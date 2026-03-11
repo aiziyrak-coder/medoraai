@@ -1,5 +1,5 @@
-﻿/**
- * Medora-Jarvis Speech Service
+/**
+ * AiDoktor-Jarvis Speech Service
  * =============================
  * Azure Speech Services bilan ishlash:
  *   вЂў STT (Speech-to-Text) вЂ“ browser mic в†’ matn

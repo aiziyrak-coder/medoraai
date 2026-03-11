@@ -3,7 +3,8 @@ import type { TranslationSet } from './en';
 
 export const uzL: TranslationSet = {
   // General
-  appName: 'MedoraAi',
+  appName: 'AiDoktor',
+  instituteName: 'Farg\'ona jamoat salomatligi tibbiyot instituti',
   logout: 'Chiqish',
   back: 'Orqaga',
   submit: 'Yuborish',
@@ -32,7 +33,7 @@ export const uzL: TranslationSet = {
   landing_stats_experts: 'AI Mutaxassislar',
   
   landing_features_title: 'Imkoniyatlar Chegarasiz',
-  landing_features_desc: 'MedoraAi shifokorlarga kundalik faoliyatida duch keladigan eng murakkab vazifalarni hal qilishda yordam beradi.',
+  landing_features_desc: 'AiDoktor shifokorlarga kundalik faoliyatida duch keladigan eng murakkab vazifalarni hal qilishda yordam beradi.',
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Kardiolog, Nevrolog, Onkolog va boshqa 10+ virtual mutaxassislar bilan real vaqtda maslahatlashing.',
   landing_feature_safe: 'Xavfsiz & Aniq',
@@ -60,7 +61,7 @@ export const uzL: TranslationSet = {
   landing_partners_title: 'Bizga ishonadigan klinikalar',
   
   landing_cta_bottom_title: 'Tibbiy Amaliyotingizni Bugun O\'zgartiring',
-  landing_cta_bottom_desc: 'MedoraAi bilan ishlashni boshlang va har bir bemorga yuqori aniqlikdagi tashxis qo\'ying.',
+  landing_cta_bottom_desc: 'AiDoktor bilan ishlashni boshlang va har bir bemorga yuqori aniqlikdagi tashxis qo\'ying.',
   landing_cta_bottom_btn: 'Tizimga Kirish',
   
   landing_footer_platform: 'Platforma',
@@ -91,7 +92,7 @@ export const uzL: TranslationSet = {
 
   // Auth Page & Marketing
   auth_marketing_title: 'Klinik tafakkur inqilobi.',
-  auth_marketing_desc: 'MedoraAi — bu shunchaki raqamli yordamchi emas, bu tibbiyotning yangi davri. Biz minglab klinik protokollar, global tibbiy tadqiqotlar va xalqaro ekspertiza bazasini yagona intellektual ekotizimga birlashtirdik. Tizim har bir bemorga individual yondashib, murakkab diagnostik jumboqlarni yechishda, davolash taktikasini optimallashtirishda va tibbiy xatolarni minimallashtirishda shifokorning eng ishonchli hamkoriga aylanadi.',
+  auth_marketing_desc: 'AiDoktor — bu shunchaki raqamli yordamchi emas, bu tibbiyotning yangi davri. Farg\'ona jamoat salomatligi tibbiyot instituti minglab klinik protokollar, global tibbiy tadqiqotlar va xalqaro ekspertiza bazasini yagona intellektual ekotizimga birlashtirdi. Tizim har bir bemorga individual yondashib, murakkab diagnostik jumboqlarni yechishda, davolash taktikasini optimallashtirishda va tibbiy xatolarni minimallashtirishda shifokorning eng ishonchli hamkoriga aylanadi.',
   auth_mode_select: 'Rejimni tanlang:',
   auth_mode_clinic: 'Klinika',
   auth_mode_clinic_desc: 'Tashkilotlar va konsilium uchun.',
@@ -556,7 +557,7 @@ export const uzL: TranslationSet = {
   // Legal & marketing extended content
   legal_terms_title: 'Foydalanish Shartlari va Ommaviy Oferta',
   legal_terms_p1: '1. Umumiy qoidalar: Ushbu platforma faqat tibbiy ma’lumotga ega bo‘lgan mutaxassislar (shifokorlar, rezidentlar, talabalar) uchun mo‘ljallangan yordamchi vositadir.',
-  legal_terms_p2: '2. Mas’uliyatni cheklash: "MedoraAi" tizimi (keyingi o‘rinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor o‘rnini bosmaydi. Yakuniy klinik qaror uchun to‘liq javobgarlik foydalanuvchi (shifokor) zimmasidadir.',
+  legal_terms_p2: '2. Mas’uliyatni cheklash: Farg'ona jamoat salomatligi tibbiyot instituti "AiDoktor" tizimi (keyingi o‘rinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor o‘rnini bosmaydi. Yakuniy klinik qaror uchun to‘liq javobgarlik foydalanuvchi (shifokor) zimmasidadir.',
   legal_terms_p3: '3. Ma’lumotlar xavfsizligi: Biz foydalanuvchi kiritgan bemor ma’lumotlarini (F.I.Sh va boshqa shaxsiy identifikatorlar) anonimlashtirishga harakat qilamiz, ammo internet tarmog‘ida xavfsizlik uchun mutlaq kafolat berilmaydi.',
   legal_terms_p4: '4. Rozilik: Tizimdan foydalanish orqali siz sun’iy intellekt tomonidan yuzaga kelishi mumkin bo‘lgan xatoliklar (gallyutsinatsiyalar) ehtimolini tushunasiz va qabul qilasiz.',
 
@@ -597,7 +598,7 @@ export const uzL: TranslationSet = {
 
   testimonial_1_name: 'Dr. A. Karimov',
   testimonial_1_role: 'Kardiolog, 15 yillik tajriba',
-  testimonial_1_text: 'MedoraAi murakkab holatlarda ikkinchi fikrni olish uchun ajoyib vosita. Ayniqsa EKG tahlili juda aniq va tezkor.',
+  testimonial_1_text: 'AiDoktor murakkab holatlarda ikkinchi fikrni olish uchun ajoyib vosita. Ayniqsa EKG tahlili juda aniq va tezkor.',
   testimonial_2_name: 'Dr. S. Umarova',
   testimonial_2_role: 'Nevrolog',
   testimonial_2_text: 'Noyob kasalliklarni tashxislashda vaqtni tejashga yordam beradi. Tadqiqot bo\'limi shunchaki xazina, eng so\'nggi maqolalar doim qo\'l ostida.',

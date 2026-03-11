@@ -23,7 +23,7 @@ Multi-Agent Medical Consilium System  —  Production-Ready v3
 
   PHASE 3 – Weighted Consensus
       Orchestrator har bir agentga refutation kuchiga qarab WEIGHT beradi.
-      Eng kuchli dalillar asosida YAKUNIY Medora Konsilium Xulosasi.
+      Eng kuchli dalillar asosida YAKUNIY AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) Konsilium Xulosasi.
 
 Xavfsizlik:
   - PhysiologyFilter views.py da OLDIN chaqiriladi.
@@ -423,7 +423,7 @@ PHASE 1 – Mustaqil tashxislar:
 PHASE 2 – Debate va refutation'lar:
 {phase2_json}
 
-Quyidagi JSON formatida YAKUNIY MEDORA KONSILIUM XULOSASINI bering:
+Quyidagi JSON formatida YAKUNIY AiDoktor KONSILIUM XULOSASINI bering:
 {{
   "consensus_diagnosis": {{
     "name": "Asosiy tashxis nomi",
@@ -633,7 +633,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
             }
             for a in AGENTS
         ],
-        "generatedBy": "Medora Multi-Agent Consilium v3 (Azure AI Foundry)",
+        "generatedBy": "AiDoktor Multi-Agent Consilium v3 (Farg'ona jamoat salomatligi tibbiyot instituti)",
     }
 
 

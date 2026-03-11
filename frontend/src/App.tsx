@@ -58,7 +58,7 @@ const MobileBlocker: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
         </div>
         <h2 className="text-2xl font-bold text-white mb-4">Qurilma mos kelmadi</h2>
         <p className="text-slate-300 text-lg leading-relaxed max-w-md">
-            Hurmatli foydalanuvchi, <strong>MEDORA AI</strong> (Klinika) tizimining to'liq funksionalidan foydalanish uchun, iltimos, 
+            Hurmatli foydalanuvchi, <strong>AiDoktor</strong> (Farg'ona jamoat salomatligi tibbiyot instituti — Klinika) tizimining to'liq funksionalidan foydalanish uchun, iltimos, 
             <span className="text-blue-400 font-bold"> Kompyuter</span> yoki <span className="text-blue-400 font-bold">Planshet</span> orqali kiring.
         </p>
         <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-white/10">
@@ -786,7 +786,7 @@ const AppContent: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1">
                             <CopyrightIcon className="w-3.5 h-3.5 opacity-70" />
-                            <span>Since 2025 {t('appName')}. {t('footer_rights')}</span>
+                            <span>Since 2025 {t('appName')}. {t('instituteName')}. {t('footer_rights')}</span>
                         </span>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 bg-white/40 px-4 py-1.5 rounded-full border border-white/40 shadow-sm">

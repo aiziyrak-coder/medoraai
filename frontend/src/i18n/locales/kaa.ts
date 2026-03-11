@@ -3,7 +3,8 @@ import type { TranslationSet } from './en';
 
 export const kaa: TranslationSet = {
   // General
-  appName: 'MEDORA AI',
+  appName: 'AiDoktor',
+  instituteName: 'Farg\'ona jamoat salomatligi tibbiyot instituti',
   logout: 'Shıǵıw',
   back: 'Artqa',
   submit: 'Jiberiw',
@@ -40,7 +41,7 @@ export const kaa: TranslationSet = {
 
   // Auth Page & Marketing
   auth_marketing_title: 'Klinikalıq pikirlew revolyuciyası.',
-  auth_marketing_desc: 'MedoraAi — bul ápiwayı sanlı járdemshi emes, bul medicinanıń jańa dáwiri. Biz mıńlaǵan klinikalıq protokollar, global medicinalıq izertlewler hám xalıqaralıq ekspertiza bazasın birden-bir intellektual ekotizimge birlestirdik. Tizim hár bir nawqasqa individual jandasip, quramalı diagnostikalıq jumbaqlardı sheshiwde, emlew taktikasın optimallastırıwda hám medicinalıq qátelerdi minimallastırıwda shıpakerdiń eń isenimli serigine aylanadı.',
+  auth_marketing_desc: 'AiDoktor — bul ápiwayı sanlı járdemshi emes, bul medicinanıń jańa dáwiri. Farg\'ona jamoat salomatligi tibbiyot instituti mıńlaǵan klinikalıq protokollar, global medicinalıq izertlewler hám xalıqaralıq ekspertiza bazasın birden-bir intellektual ekotizimge birlestirdi. Tizim hár bir nawqasqa individual jandasip, quramalı diagnostikalıq jumbaqlardı sheshiwde, emlew taktikasın optimallastırıwda hám medicinalıq qátelerdi minimallastırıwda shıpakerdiń eń isenimli serigine aylanadı.',
   auth_mode_select: 'Rejimni tańlań:',
   auth_mode_clinic: 'Klinika',
   auth_mode_clinic_desc: 'Shólkemler hám konsilium ushın.',
@@ -366,7 +367,7 @@ export const kaa: TranslationSet = {
   landing_stats_experts: 'AI Qánigeler',
   
   landing_features_title: 'Imkaniyatlar Sheksiz',
-  landing_features_desc: 'MedoraAi shıpakerlerge kúndelik xızmetinde dus keletuǵın eń quramalı wazıypalardı sheshiwde járdem beredi.',
+  landing_features_desc: 'AiDoktor shıpakerlerge kúndelik xızmetinde dus keletuǵın eń quramalı wazıypalardı sheshiwde járdem beredi.',
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Kardiolog, Nevrolog, Onkolog hám basqa 10+ virtual qánigeler menen real waqıtta máslahátlesiń.',
   landing_feature_safe: 'Qáwipsiz & Anıq',
@@ -394,7 +395,7 @@ export const kaa: TranslationSet = {
   landing_partners_title: 'Bizge isenetuǵın klinikalar',
   
   landing_cta_bottom_title: 'Medicinalıq Ámeliyatıńızdı Búgin Ózgertiń',
-  landing_cta_bottom_desc: 'MedoraAi menen islewdi baslań hám hár bir nawqasqa joqarı anıqlıqtaǵı diagnoz qoyıń.',
+  landing_cta_bottom_desc: 'AiDoktor menen islewdi baslań hám hár bir nawqasqa joqarı anıqlıqtaǵı diagnoz qoyıń.',
   landing_cta_bottom_btn: 'Tizimge Kiriw',
   
   landing_footer_platform: 'Platforma',
@@ -555,7 +556,7 @@ export const kaa: TranslationSet = {
   // Legal & marketing extended content
   legal_terms_title: 'Paydalanıw Shartları hám Jumalıq Oferta',
   legal_terms_p1: '1. Umumiy qaǵıydalar: Usı platforma faqat medicinalıq bilimge iye qánigeler (shıpakerler, rezidentler, studentler) úshin járdemshi qural esaplanadı.',
-  legal_terms_p2: '2. Juwapkershilikti sheklew: "MedoraAi" tizimi (keyingi orınlarda "Tizim") tárepinen usınılǵan hár qanday diagnoz, emlew rejasi yamasa tawsıya faqat maǵlıwmatlıq máńige iye. Tizim shıpaker ornın baspaydı. Juwmaqlawshı klinikalıq sheshim ushın tolıq juwapkershilik paydalanıwshı (shıpaker) moynında.',
+  legal_terms_p2: '2. Juwapkershilikti sheklew: Farg\'ona jamoat salomatligi tibbiyot instituti "AiDoktor" tizimi (keyingi orınlarda "Tizim") tárepinen usınılǵan hár qanday diagnoz, emlew rejasi yamasa tawsıya faqat maǵlıwmatlıq máńige iye. Tizim shıpaker ornın baspaydı. Juwmaqlawshı klinikalıq sheshim ushın tolıq juwapkershilik paydalanıwshı (shıpaker) moynında.',
   legal_terms_p3: '3. Maǵlıwmatlar xawfsizligi: Biz paydalanıwshı kirgen nawqas maǵlıwmatların (Aty-jóni hám basqa identifikatorlar) anonimlestiriwge urınamız, biroq internet jelisinde tolıq xawfsizlikke kafolat berip bolmaydı.',
   legal_terms_p4: '4. Rızalıq: Tizimnen paydalanıw arqalı siz jasama intellekt tárepinen júzge kelesi múmkin bolǵan qátelikler (gallyucinaciyalar) qáwipin túsinesiz hám qabul etesiz.',
 
@@ -596,7 +597,7 @@ export const kaa: TranslationSet = {
 
   testimonial_1_name: 'Dr. A. Karimov',
   testimonial_1_role: 'Kardiolog, 15 jıllıq tájiriybe',
-  testimonial_1_text: 'MedoraAi quramalı jaǵdaylarda ekinshi pikir alıw ushın ájayıp qural. Ásirese EKG tahlili juda anıq hám tez.',
+  testimonial_1_text: 'AiDoktor quramalı jaǵdaylarda ekinshi pikir alıw ushın ájayıp qural. Ásirese EKG tahlili juda anıq hám tez.',
   testimonial_2_name: 'Dr. S. Umarova',
   testimonial_2_role: 'Nevrolog',
   testimonial_2_text: 'Noyob keselliklerdi diagnoz qoyıwda waqıtnı tejewge járdem beredi. Izertlew bólimi naxız hazına – eń sońǵı maqalalar hár waqıt qol astında.',

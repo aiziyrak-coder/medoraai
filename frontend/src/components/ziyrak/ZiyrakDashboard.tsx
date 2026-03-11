@@ -1,5 +1,5 @@
 /**
- * ZiyrakDashboard — Medora-Ziyrak Asosiy UI
+ * ZiyrakDashboard — AiDoktor-Ziyrak Asosiy UI
  * ============================================
  * 3 tab: Konsultatsiya Monitor | Interaktiv Ziyrak | Operatsiya Xonasi
  * "Salom Ziyrak" wake word orqali faollashadi.
@@ -73,7 +73,7 @@ function WakeBanner({ onDismiss }: { onDismiss: () => void }) {
         <div className="text-4xl mb-3">🤖</div>
         <p className="text-sky-300 font-bold text-xl">Ziyrak Faollashdi!</p>
         <p className="text-sky-400/80 text-sm mt-1">
-          Men Medora platformasining raqamli yordamchisi — Ziyrakman.
+          Men AiDoktor (Farg'ona jamoat salomatligi tibbiyot instituti) platformasining raqamli yordamchisi — Ziyrakman.
         </p>
         {/* Pulse ring */}
         <div className="mt-4 flex justify-center">
@@ -216,7 +216,7 @@ export const ZiyrakDashboard: React.FC<Props> = ({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="font-bold text-white text-base">Medora-Ziyrak</h2>
+            <h2 className="font-bold text-white text-base">AiDoktor-Ziyrak</h2>
             <span className="text-xs text-slate-500 font-mono">v3.0</span>
           </div>
           <WakeIndicator state={ziyrakState} />

@@ -1,6 +1,6 @@
-# MEDORA AI - Tibbiy Konsilium Tizimi
+# AiDoktor — Farg'ona jamoat salomatligi tibbiyot instituti
 
-Professional tibbiy yordam ko'rsatishda AI texnologiyalaridan foydalanishga qaratilgan tizim.
+Tibbiy konsilium tizimi. Professional tibbiy yordam ko'rsatishda AI texnologiyalaridan foydalanishga qaratilgan platforma.
 
 ## 🚀 Tezkor Boshlash
 

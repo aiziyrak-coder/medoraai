@@ -52,7 +52,7 @@ wsgi_app      = "medoraai_backend.wsgi:application"
 
 # ── Worker lifecycle hooks ───────────────────────────────────────────────────
 def on_starting(server):
-    server.log.info("Medora AI backend starting on Azure VM 20.82.115.71")
+    server.log.info("AiDoktor backend (Farg'ona jamoat salomatligi tibbiyot instituti) starting")
 
 def worker_exit(server, worker):
     server.log.info("Worker %s exited", worker.pid)

@@ -654,5 +654,5 @@ def _build_final_report(
         "drugInteractions": consensus.get("drug_interactions") or [],
         "dissentingOpinions": consensus.get("dissenting_opinions") or [],
         "followUpPlan": consensus.get("follow_up_plan") or "",
-        "generatedBy": "Medora Multi-Agent Consilium (Azure AI Foundry)",
+        "generatedBy": "AiDoktor Multi-Agent Consilium (Farg'ona jamoat salomatligi tibbiyot instituti)",
     }
