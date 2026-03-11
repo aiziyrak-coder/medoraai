@@ -27,9 +27,9 @@ def _get_client():
         logger.warning("google-genai not installed: pip install google-genai")
         return None
 
-# Barqaror modellar (barcha API kalitlarida ishlaydi)
-GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-1.5-flash")
-GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-1.5-pro")
+# Pro/Flash modellar (settings/.env: GEMINI_MODEL_PRO, GEMINI_MODEL_FLASH)
+GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.0-flash-exp")
+GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-2.5-pro")
 
 SPECIALIST_NAMES = [
     "Gemini", "Claude", "GPT-4o", "Llama 3", "Grok",
@@ -126,7 +126,7 @@ Masalan: agar shikoyat "bosh og'rig'i" bo'lsa — davomiyligi, qanday og'riq, qa
 Javobni faqat JSON massiv: ["Savol 1?", "Savol 2?"]. O'zbek tilida (Lotin)."""
     raw = None
     last_exc = None
-    for model in (GEMINI_FLASH, GEMINI_PRO):
+    for model in (GEMINI_PRO, GEMINI_FLASH):
         for use_json in (False, True):
             try:
                 raw = _call_gemini(
@@ -170,7 +170,7 @@ Ushbu klinik holat uchun 5–6 ta mutaxassis tanlang. Faqat quyidagi nomlardan: 
 Har biri uchun qisqa sabab bering. Javobni aniq quyidagi formatda JSON qaytaring:
 {{ "recommendations": [ {{ "model": "Nom exactly from list", "reason": "Sabab" }} ] }}
 O'zbek tilida (Lotin)."""
-    for model_name in (GEMINI_FLASH, GEMINI_PRO):
+    for model_name in (GEMINI_PRO, GEMINI_FLASH):
         for use_json in (True, False):
             try:
                 raw = _call_gemini(

@@ -301,7 +301,11 @@ def _load_gemini_key():
             pass
     return ''
 GEMINI_API_KEY = _load_gemini_key()
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-1.5-pro')
+# Gemini model IDs (.env da override; 3 Pro: gemini-3.1-pro-preview)
+GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-2.0-flash-exp')
+GEMINI_MODEL_PRO = config('GEMINI_MODEL_PRO', default='gemini-2.5-pro')
+GEMINI_MODEL_THINKING = config('GEMINI_MODEL_THINKING', default='gemini-2.0-flash-thinking-exp')
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-2.5-pro')
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:
