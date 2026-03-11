@@ -44,9 +44,9 @@ function getGemini(): GoogleGenAI {
   return _geminiClient;
 }
 
-/* v1beta: gemini-1.5-flash 404; use current model IDs */
-const MODEL_FAST = 'gemini-2.0-flash-exp';
-const MODEL_PRO = 'gemini-1.5-pro';
+/* v1beta: 1.5-flash and 2.0-flash-exp 404; use stable IDs per Google docs */
+const MODEL_FAST = 'gemini-2.5-flash';
+const MODEL_PRO = 'gemini-2.5-pro';
 /** Aliases used across council/debate */
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
@@ -278,7 +278,13 @@ const callGemini = async (
         return parts;
     };
 
-    const executeCall = async (): Promise<unknown> => {
+    const modelsToTry: string[] = [geminiModel];
+    if (geminiModel === MODEL_FAST || geminiModel === DEPLOY_FAST) {
+        modelsToTry.push('gemini-2.0-flash', 'gemini-1.5-flash-8b');
+    }
+
+    const executeCall = async (modelId?: string): Promise<unknown> => {
+        const useModel = modelId ?? geminiModel;
         const contents = buildContents();
         const ai = getGemini();
         const config: { temperature?: number; maxOutputTokens?: number; responseMimeType?: string } = {
@@ -288,7 +294,7 @@ const callGemini = async (
         if (wantJson) config.responseMimeType = 'application/json';
 
         const response = await ai.models.generateContent({
-            model: geminiModel,
+            model: useModel,
             contents: typeof contents === 'string' ? contents : [{ role: 'user', parts: contents }],
             config,
         });
@@ -317,10 +323,29 @@ const callGemini = async (
         return text;
     };
 
+    const executeWithModelFallback = async (): Promise<unknown> => {
+        let lastErr: unknown;
+        for (const m of modelsToTry) {
+            try {
+                return await executeCall(m);
+            } catch (e) {
+                lastErr = e;
+                const msg = String((e as Error & { message?: string })?.message ?? e);
+                const is404 = /404|not found|NOT_FOUND/i.test(msg);
+                if (is404) {
+                    logger.warning('Gemini model %s not available, trying next', m);
+                    continue;
+                }
+                throw e;
+            }
+        }
+        throw lastErr;
+    };
+
     if (shouldRetry) {
         const mobile = isMobile();
         try {
-            return await retry(executeCall, {
+            return await retry(executeWithModelFallback, {
                 maxRetries: mobile ? 4 : 2,
                 initialDelay: mobile ? 3000 : 2000,
                 retryableErrors: [
@@ -335,7 +360,7 @@ const callGemini = async (
         }
     }
     try {
-        return await executeCall();
+        return await executeWithModelFallback();
     } catch (error) {
         logger.error(`Error calling Gemini (model=${geminiModel}):`, error);
         throw new Error(getUserFriendlyError(error, 'AI xizmati bilan muammo yuz berdi.'));
