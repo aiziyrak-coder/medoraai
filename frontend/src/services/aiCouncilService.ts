@@ -46,6 +46,9 @@ function getGemini(): GoogleGenAI {
 
 const MODEL_FAST = 'gemini-1.5-flash';
 const MODEL_PRO = 'gemini-1.5-pro';
+/** Aliases used across council/debate (same as MODEL_FAST / MODEL_PRO) */
+const DEPLOY_FAST = MODEL_FAST;
+const DEPLOY_PRO = MODEL_PRO;
 
 /** Map model label to Gemini model name */
 function mapModel(modelLabel: string): string {
