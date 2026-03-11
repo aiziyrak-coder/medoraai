@@ -30,7 +30,7 @@ if not DEBUG and SECRET_KEY == _default_secret:
     )
 
 # ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish вЂ” faqat *
-ALLOWED_HOSTS = ['*', 'aidoktor.fargana.uz', 'api.aidoktor.fargana.uz', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*', 'medora.cdcgroup.uz', 'medoraapi.cdcgroup.uz', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
