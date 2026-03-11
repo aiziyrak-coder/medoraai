@@ -95,7 +95,7 @@ const getSystemInstruction = (language: Language): string => {
 
     const specificInstructions: Record<Language, string> = {
         'uz-L': `
-        TIL: Barcha javoblaringiz qat'iy O'zbek tilida (Lotin grafikasida) bo'lishi SHART.
+        TIL: Barcha javoblaringiz qat'iy O'zbek tilida (Lotin grafikasida) bo'lishi SHART. Yulduzcha (*) va inglizcha iboralar (finding, implication, urgency, critical finding va hokazo) ISHLATMANG — ularni o'zbekcha yozing (topilma, oqibat, shoshilinchlik, muhim topilma). Tibbiy atamalar ham o'zbekcha yoki SSV qabul qilgan atamalar bo'lsin.
         O'ZBEKISTON KONTEKSTI (MAJBURIY): Tashxis, davolash rejasi va dori-darmonlar faqat O'zbekiston Respublikasi qonunchiligi va SSV (Sog'liqni Saqlash Vazirligi) tasdiqlangan klinik protokollarga muvofiq bo'lsin. Dori-darmonlar faqat O'zbekistonda ro'yxatdan o'tgan va aptekalarda mavjud savdo nomlari bilan (Nimesil, Sumamed, Augmentin, Metformin, Enalapril, Amlodipin, Omeprazol va hokazo).
         TERMINOLOGIYA: O'zbek tibbiyot terminologiyasi va SSV qabul qilgan atamalar.
         `,
@@ -694,10 +694,29 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
     return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
+/** Normalize Gemini response to PrognosisReport; handles nested { prognosis: {...} } or truncated/incomplete JSON. */
+function normalizePrognosisReport(raw: unknown): PrognosisReport | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj = (raw as { prognosis?: unknown }).prognosis
+        ? (raw as { prognosis: Record<string, unknown> }).prognosis
+        : (raw as Record<string, unknown>);
+    if (!obj || typeof obj !== 'object') return null;
+    const shortTerm = typeof obj.shortTermPrognosis === 'string' ? obj.shortTermPrognosis : (typeof (obj as { summary?: string }).summary === 'string' ? (obj as { summary: string }).summary : '');
+    const longTerm = typeof obj.longTermPrognosis === 'string' ? obj.longTermPrognosis : '';
+    const keyFactors = Array.isArray(obj.keyFactors) ? obj.keyFactors.filter((f: unknown) => typeof f === 'string') as string[] : [];
+    const confidenceScore = typeof obj.confidenceScore === 'number' && obj.confidenceScore >= 0 && obj.confidenceScore <= 1 ? obj.confidenceScore : 0.5;
+    return {
+        shortTermPrognosis: shortTerm || '—',
+        longTermPrognosis: longTerm || '—',
+        keyFactors,
+        confidenceScore,
+    };
+}
+
 const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData: PatientData, language: Language): Promise<PrognosisReport | null> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...cleanData } = patientData;
-    const prompt = `Based on patient data and debate history, update prognosis. Consider O'zbekiston SSV klinik protokollari va mahalliy davolash imkoniyatlari. Return JSON. Output Language: ${langMap[language]}. Debate: ${JSON.stringify(debateHistory.slice(-5))}. Patient: ${JSON.stringify(cleanData)}.`;
+    const prompt = `Based on patient data and debate history, update prognosis. Consider O'zbekiston SSV klinik protokollari va mahalliy davolash imkoniyatlari. Return JSON with keys: shortTermPrognosis, longTermPrognosis, keyFactors (array of strings), confidenceScore (0-1). Output Language: ${langMap[language]}. Debate: ${JSON.stringify(debateHistory.slice(-5))}. Patient: ${JSON.stringify(cleanData)}.`;
     const schema = {
         type: 'object',
         properties: {
@@ -708,7 +727,8 @@ const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData
         }
     };
     try {
-        return await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+        const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+        return normalizePrognosisReport(raw);
     } catch (e) {
         return null;
     }
@@ -872,12 +892,13 @@ export const runCouncilDebate = async (
 
     const finalReportTextPrompt = `
         Role: Council Chair. Create the Final Report. Be AQLLI and XAVFSIZ. O'ZBEKISTON KONTEKSTI MAJBURIY.
+        TIL: Barcha maydonlar faqat o'zbek tilida (Lotin). Inglizcha so'zlar (finding, implication, urgency va h.k.) va yulduzcha (*) ishlatmang.
         LANGUAGE: ${langMap[language]}.
         REQUIREMENTS:
         1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: qaysi SSV klinik protokoliga mos (masalan: "Arterial gipertenziya / Qandli diabet bo'yicha SSV klinik protokoliga muvofiq") yoki "SSV tasdiqlangan milliy klinik protokollariga muvofiq" deb yozing.
         2. treatmentPlan: SSV protokollariga muvofiq, batafsil va tartibli; shoshilinch bo'lsa birinchi qadamlar aniq.
         3. medicationRecommendations: FAQAT O'zbekiston Respublikasida ro'yxatdan o'tgan va aptekalarda mavjud savdo nomlari (Nimesil, Sumamed, Augmentin, Metformin, Enalapril, Amlodipin, Omeprazol, Paratsetamol, Ibuprofen va hokazo). Allergiya va dori aralashuvini hisobga oling. localAvailability: "O'zbekistonda mavjud" yoki qisqacha izoh.
-        4. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa to'ldiring; yo'q bo'lsa bo'sh qoldiring.
+        4. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa to'ldiring (finding, implication, urgency — barchasi o'zbekcha); yo'q bo'lsa bo'sh qoldiring.
         5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
         6. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV tasdiqlangan klinik protokollariga muvofiq" yoki tegishli qisqacha eslatma.
         Debate history: ${JSON.stringify(debateHistory)}

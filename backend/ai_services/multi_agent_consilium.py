@@ -303,15 +303,16 @@ def _final_consensus(
         '  ],\n'
         '  "recommended_tests": ["..."],\n'
         '  "critical_finding": {\n'
-        '    "finding": "Shoshilinch holat (agar mavjud bo\'lsa, aks holda null)",\n'
-        '    "implication": "...",\n'
-        '    "urgency": "HIGH/MEDIUM/LOW"\n'
+        '    "finding": "Shoshilinch holat (faqat o\'zbekcha, agar mavjud bo\'lsa)",\n'
+        '    "implication": "Oqibat (faqat o\'zbekcha)",\n'
+        '    "urgency": "Zudlik bilan / O\'rtacha / Past yoki HIGH/MEDIUM/LOW"\n'
         '  },\n'
         '  "uzbekistan_note": "O\'zbekiston Respublikasi SSV protokollariga muvofiq...",\n'
         '  "professor_agreement_summary": "Professorlar umumiy kelishuvni qanday ta\'rifladi...",\n'
         '  "dissenting_opinions": ["Farqli fikrlar (agar bo\'lsa)"],\n'
         '  "follow_up_plan": "Kuzatuv rejasi..."\n'
-        '}'
+        '}\n\n'
+        "Barcha matn qiymatlari (critical_finding finding, implication va boshqalar) faqat o'zbek tilida bo'lsin; yulduzcha (*) va inglizcha iboralar ishlatmang."
     )
     raw = _chat(DEPLOY_GPT4O(), system, user, response_json=True, max_tokens=4000)
     parsed = _parse_json_response(raw, "final_consensus")

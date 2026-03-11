@@ -38,6 +38,14 @@ export const generateDocxReport = async (
         createKeyValue("Ob'ektiv Ko'rik", patientData.objectiveData),
         createKeyValue("Laborator Tahlillar", patientData.labResults),
 
+        ...(report.criticalFinding && report.criticalFinding.finding ? [
+            createHeading1("Muhim topilma (shoshilinch)"),
+            createKeyValue("Topilma", report.criticalFinding.finding),
+            createKeyValue("Oqibat", report.criticalFinding.implication),
+            createKeyValue("Shoshilinchlik", report.criticalFinding.urgency),
+            new Paragraph({ text: "" }),
+        ] : []),
+
         createHeading1("Konsilium Konsensusi"),
         createHeading2("Eng Ehtimolli Tashxis(lar)"),
         ...report.consensusDiagnosis.flatMap(diag => [
@@ -74,6 +82,21 @@ export const generateDocxReport = async (
             createHeading2("Qonuniy eslatma"),
             new Paragraph({ children: [new TextRun(report.uzbekistanLegislativeNote)], spacing: { after: 200 } }),
         ] : []),
+
+        createHeading1("Har bir mutaxassisning yakuniy shaxsiy xulosasi"),
+        ...((): Paragraph[] => {
+            const specialistMessages = debateHistory.filter(m => !m.isSystemMessage && !m.isUserIntervention);
+            const lastByAuthor = new Map<string, ChatMessage>();
+            specialistMessages.forEach(m => lastByAuthor.set(m.author, m));
+            return Array.from(lastByAuthor.entries()).map(([author, msg]) => new Paragraph({
+                children: [
+                    new TextRun({ text: `${AI_SPECIALISTS[author]?.name || author}: `, bold: true }),
+                    new TextRun(msg.content),
+                ],
+                spacing: { after: 200 },
+            }));
+        })(),
+        new Paragraph({ text: "" }),
 
         createHeading1("Konsilium Munozara Tarixi"),
         ...debateHistory.filter(msg => !msg.isSystemMessage && !msg.isUserIntervention).map(msg => new Paragraph({

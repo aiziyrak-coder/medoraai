@@ -118,6 +118,15 @@ export const generatePdfReport = (
     y += 5;
     addKeyValue("Laborator Tahlillar", patientData.labResults);
     
+    // --- Critical Finding (if any) ---
+    if (report.criticalFinding && report.criticalFinding.finding) {
+        addHeader("Muhim topilma (shoshilinch)");
+        addKeyValue("Topilma", report.criticalFinding.finding);
+        addKeyValue("Oqibat", report.criticalFinding.implication);
+        addKeyValue("Shoshilinchlik", report.criticalFinding.urgency);
+        y += 10;
+    }
+
     // --- Main Report Sections ---
     addHeader("Konsilium Konsensusi");
 
@@ -173,6 +182,30 @@ export const generatePdfReport = (
         y += 5;
         addSectionTitle("Qonuniy eslatma");
         addText(report.uzbekistanLegislativeNote);
+    }
+
+    // --- Har bir mutaxassisning yakuniy shaxsiy xulosasi ---
+    const specialistMessages = debateHistory.filter((m: ChatMessage) => !m.isSystemMessage && !m.isUserIntervention);
+    const lastByAuthor = new Map<string, ChatMessage>();
+    specialistMessages.forEach((m: ChatMessage) => lastByAuthor.set(m.author, m));
+    if (lastByAuthor.size > 0) {
+        if (y > pageHeight - 60) {
+            doc.addPage();
+            y = margin;
+        } else {
+            y += 10;
+        }
+        addHeader("Har bir mutaxassisning yakuniy shaxsiy xulosasi");
+        lastByAuthor.forEach((msg, author) => {
+            const authorName = AI_SPECIALISTS[author]?.name || author;
+            if (y > pageHeight - 40) {
+                doc.addPage();
+                y = margin;
+            }
+            addKeyValue(authorName, msg.content);
+            y += 2;
+        });
+        y += 10;
     }
 
     // --- Consultation History Section ---
