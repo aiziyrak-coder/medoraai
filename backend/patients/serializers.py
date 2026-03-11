@@ -66,4 +66,3 @@ class PatientUpdateSerializer(serializers.ModelSerializer):
             'structured_lab_results', 'pharmacogenomics_report',
             'symptom_timeline', 'mental_health_scores',
         ]
--NoNewline

@@ -149,4 +149,3 @@ class PatientViewSet(viewsets.ModelViewSet):
                     'message': 'Fayl topilmadi'
                 }
             }, status=status.HTTP_404_NOT_FOUND)
--NoNewline

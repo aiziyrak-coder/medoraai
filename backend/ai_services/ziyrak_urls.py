@@ -1,4 +1,4 @@
-"""AiDoktor-Ziyrak URL patterns — /api/ziyrak/*"""
+"""AiDoktor-Ziyrak URL patterns вЂ” /api/ziyrak/*"""
 from django.urls import path
 from .ziyrak_views import (
     session_create, session_end, session_info,
@@ -36,4 +36,3 @@ urlpatterns = [
     path("surgery/emergency/",                 surgery_emergency,             name="surgery_emergency"),
     path("surgery/log/<str:session_id>/",      surgery_log_get,               name="surgery_log"),
 ]
--NoNewline

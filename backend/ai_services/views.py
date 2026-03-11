@@ -1,9 +1,9 @@
 """
-AI Services Views — Azure AI Foundry
-  - /ai/consilium/       → Multi-Agent Consilium (5 professor, 3 faza)
-  - /ai/doctor-support/  → Doctor Support Mode (GPT-4o, tezkor)
-  - /ai/doctor-stream/   → Doctor Support SSE stream
-  - Legacy endpoints     → qolgan endpointlar (backwards-compat)
+AI Services Views вЂ” Azure AI Foundry
+  - /ai/consilium/       в†’ Multi-Agent Consilium (5 professor, 3 faza)
+  - /ai/doctor-support/  в†’ Doctor Support Mode (GPT-4o, tezkor)
+  - /ai/doctor-stream/   в†’ Doctor Support SSE stream
+  - Legacy endpoints     в†’ qolgan endpointlar (backwards-compat)
 """
 import json
 import logging
@@ -199,7 +199,7 @@ def doctor_support_stream_view(request):
 
 
 # ---------------------------------------------------------------------------
-# Debug: test Gemini (GET /api/ai/test-gemini/) — haqiqiy xatolikni ko'rish
+# Debug: test Gemini (GET /api/ai/test-gemini/) вЂ” haqiqiy xatolikni ko'rish
 # ---------------------------------------------------------------------------
 
 @api_view(["GET"])
@@ -403,6 +403,4 @@ def get_improved_protocol(request):
         return _err(500, "Yaxshilangan protokolni olishda xatolik")
 
 
-# (Monitoring AI endpoints removed — monitoring platform o'chirilgan)
-
--NoNewline
+# (Monitoring AI endpoints removed вЂ” monitoring platform o'chirilgan)

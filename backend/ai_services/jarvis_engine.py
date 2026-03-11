@@ -2,15 +2,15 @@
 AiDoktor-Ziyrak AI Engine
 ========================
 Ikki rejim:
-  1. ConsultationMonitor  — passiv tinglash, auto-diagnosis
-  2. ZIYRAKChat           — interaktiv suhbat, kontekst xotirasi
+  1. ConsultationMonitor  вЂ” passiv tinglash, auto-diagnosis
+  2. ZIYRAKChat           вЂ” interaktiv suhbat, kontekst xotirasi
 
 Context management:
-  • Har bir sessiya uchun suhbat tarixi (rolling window: 20 xabar)
-  • Bemor ma'lumotlari, transkript, doktor so'rovlari — birgalikda kontekst
-  • PhysiologyFilter + AnatomyGuard — har bir ovozli so'rovda ham ishlaydi
+  вЂў Har bir sessiya uchun suhbat tarixi (rolling window: 20 xabar)
+  вЂў Bemor ma'lumotlari, transkript, doktor so'rovlari вЂ” birgalikda kontekst
+  вЂў PhysiologyFilter + AnatomyGuard вЂ” har bir ovozli so'rovda ham ishlaydi
 
-GPT-4o (AiDoktor-gpt4o) — barcha ZIYRAK so'rovlari uchun
+GPT-4o (AiDoktor-gpt4o) вЂ” barcha ZIYRAK so'rovlari uchun
 """
 
 from __future__ import annotations
@@ -32,32 +32,32 @@ from .anatomy_guard import AnatomyGuard
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # ZIYRAK system prompt
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _ZIYRAK_SYSTEM = """\
-Siz "AiDoktor-Ziyrak" — tibbiy yordamchi AI siz.
+Siz "AiDoktor-Ziyrak" вЂ” tibbiy yordamchi AI siz.
 Siz shifokorning ishonchli yordamchisi siz, bemor emas, SHIFOKORGA yordam berasiz.
 
 VAZIFALARINGIZ:
-1. Shifokor savol bersa — aniq, qisqa, klinik jihatdan to'g'ri javob bering.
+1. Shifokor savol bersa вЂ” aniq, qisqa, klinik jihatdan to'g'ri javob bering.
 2. Suhbatni kuzatib boring va yangi klinik belgilar chiqqanda shifokorni ogohlantirib turing.
 3. O'zbekiston SSV protokollariga mos tavsiya bering.
 4. Faqat O'zbekistonda ro'yxatdan o'tgan dori-darmonlar tavsiya qiling.
-5. Shoshilinch belgi aniqlansa — DARHOL shifokorni ogohlantirib, 103 ga murojaat tavsiya qiling.
+5. Shoshilinch belgi aniqlansa вЂ” DARHOL shifokorni ogohlantirib, 103 ga murojaat tavsiya qiling.
 
 OVOZLI MULOQOT QOIDALARI:
-• Javoblar QISQA va ANIQ bo'lsin (max 2-3 gap).
-• Matnli rejim uchun biroz batafsil bo'lishi mumkin.
-• Suhbat kontekstini doim eslab qoling.
-• Bemor nomini tilga olmang — maxfiylik.
+вЂў Javoblar QISQA va ANIQ bo'lsin (max 2-3 gap).
+вЂў Matnli rejim uchun biroz batafsil bo'lishi mumkin.
+вЂў Suhbat kontekstini doim eslab qoling.
+вЂў Bemor nomini tilga olmang вЂ” maxfiylik.
 
 TIL: {language_hint}
 """
 
 _ZIYRAK_SYSTEM_UZ = "Barcha javoblar O'zbek tilida (Lotin grafikasida) bo'lsin."
-_ZIYRAK_SYSTEM_RU = "Все ответы на Русском языке."
+_ZIYRAK_SYSTEM_RU = "Р’СЃРµ РѕС‚РІРµС‚С‹ РЅР° Р СѓСЃСЃРєРѕРј СЏР·С‹РєРµ."
 _ZIYRAK_SYSTEM_EN = "All responses in English."
 
 LANG_HINTS = {
@@ -68,9 +68,9 @@ LANG_HINTS = {
     "kaa":  "Barcha javoblar Qoraqolpoq tilida bo'lsin.",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Session context (in-memory + cache)
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 @dataclass
 class ZIYRAKSession:
@@ -172,9 +172,9 @@ def end_session(session_id: str) -> bool:
     return False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Helper: build GPT-4o messages from session
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def _build_gpt_messages(session: ZIYRAKSession,
                         new_user_message: str) -> list[dict]:
@@ -214,9 +214,9 @@ def _build_gpt_messages(session: ZIYRAKSession,
     return messages
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Interaktiv ZIYRAK Chat
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def ZIYRAK_chat(
     session_id:  str,
@@ -224,12 +224,12 @@ def ZIYRAK_chat(
     voice_mode:  bool = True,
 ) -> dict:
     """
-    Shifokor → ZIYRAK so'rov.
+    Shifokor в†’ ZIYRAK so'rov.
 
     Args:
         session_id:   ZIYRAK sessiya ID.
         user_message: Shifokorning savoli (matn yoki STT orqali kelgan).
-        voice_mode:   True → qisqa javob (ovoz uchun), False → batafsil.
+        voice_mode:   True в†’ qisqa javob (ovoz uchun), False в†’ batafsil.
 
     Returns:
         {
@@ -255,9 +255,9 @@ def ZIYRAK_chat(
             "filter_level":    guard.level,
         }
 
-    # System prompt — voice mode uchun qisqa javob yo'riqnomasi
+    # System prompt вЂ” voice mode uchun qisqa javob yo'riqnomasi
     if voice_mode:
-        user_message = user_message + "\n\n[REJIM: Ovozli — QISQA va aniq javob bering, max 2-3 gap]"
+        user_message = user_message + "\n\n[REJIM: Ovozli вЂ” QISQA va aniq javob bering, max 2-3 gap]"
 
     messages = _build_gpt_messages(session, user_message)
 
@@ -282,7 +282,7 @@ def ZIYRAK_chat(
     # Critical finding detection (simple keyword check)
     critical_keywords = [
         "shoshilinch", "darhol", "kritik", "hayotga xavf", "103",
-        "reanimatsiya", "срочно", "критично", "emergency", "urgent"
+        "reanimatsiya", "СЃСЂРѕС‡РЅРѕ", "РєСЂРёС‚РёС‡РЅРѕ", "emergency", "urgent"
     ]
     is_critical = any(kw in response_text.lower() for kw in critical_keywords)
 
@@ -300,7 +300,7 @@ def ZIYRAK_chat_stream(
     user_message: str,
     voice_mode:   bool = True,
 ) -> Iterator[str]:
-    """Streaming version of ZIYRAK_chat — yields text chunks."""
+    """Streaming version of ZIYRAK_chat вЂ” yields text chunks."""
     session = get_session(session_id)
     if not session:
         yield '[{"error": "Sessiya topilmadi"}]'
@@ -312,7 +312,7 @@ def ZIYRAK_chat_stream(
         return
 
     if voice_mode:
-        user_message_prompt = user_message + "\n\n[REJIM: Ovozli — QISQA javob, max 2-3 gap]"
+        user_message_prompt = user_message + "\n\n[REJIM: Ovozli вЂ” QISQA javob, max 2-3 gap]"
     else:
         user_message_prompt = user_message
 
@@ -345,9 +345,9 @@ def ZIYRAK_chat_stream(
     save_session(session)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Consultation Monitor: transcript chunk processing
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def add_transcript_to_session(
     session_id: str,
@@ -356,7 +356,7 @@ def add_transcript_to_session(
 ) -> dict:
     """
     Real-time transkript bo'lagini sessiyaga qo'shish.
-    Kritik belgilar aniqlansa — ogohlantirish qaytaradi.
+    Kritik belgilar aniqlansa вЂ” ogohlantirish qaytaradi.
     """
     session = get_session(session_id)
     if not session:
@@ -368,7 +368,7 @@ def add_transcript_to_session(
     critical_patterns = [
         "nafas olishim qiyin", "ko'krak og'riq", "hushdan ketdi",
         "qon tomir", "qon bosim", "yurak tutdi",
-        "дышать тяжело", "боль в груди", "потерял сознание",
+        "РґС‹С€Р°С‚СЊ С‚СЏР¶РµР»Рѕ", "Р±РѕР»СЊ РІ РіСЂСѓРґРё", "РїРѕС‚РµСЂСЏР» СЃРѕР·РЅР°РЅРёРµ",
         "chest pain", "can't breathe", "unconscious",
     ]
     is_critical = any(p in text.lower() for p in critical_patterns)
@@ -385,9 +385,9 @@ def add_transcript_to_session(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Consultation Auto-Diagnosis (End of consultation)
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _DIAGNOSIS_SYSTEM = """\
 Siz tibbiy tahlil AI siz. Quyidagi shifokor-bemor suhbati asosida:
@@ -501,9 +501,9 @@ def generate_consultation_diagnosis(
     return result
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Session info / stats
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def get_session_info(session_id: str) -> dict:
     session = get_session(session_id)
@@ -521,5 +521,3 @@ def get_session_info(session_id: str) -> dict:
         ),
         "has_patient_data":  bool(session.patient_data.get("complaints")),
     }
-
--NoNewline

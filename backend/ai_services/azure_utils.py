@@ -36,10 +36,10 @@ def _require_cfg(key: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Client factory – har bir deployment uchun alohida instance
+# Client factory вЂ“ har bir deployment uchun alohida instance
 # ---------------------------------------------------------------------------
 
-_clients: dict[str, Any] = {}   # deployment_key → AzureOpenAI instance
+_clients: dict[str, Any] = {}   # deployment_key в†’ AzureOpenAI instance
 
 
 def _make_client(endpoint: str, api_key: str, api_version: str):
@@ -106,23 +106,23 @@ DEPLOY_MINI     = Deployments.mini
 # ---------------------------------------------------------------------------
 
 def gpt4o_client():
-    """Orchestrator / Rais – GPT-4o"""
+    """Orchestrator / Rais вЂ“ GPT-4o"""
     return _get_client("gpt4o")
 
 def deepseek_client():
-    """Mantiqiy Tahlilchi – DeepSeek"""
+    """Mantiqiy Tahlilchi вЂ“ DeepSeek"""
     return _get_client("deepseek")
 
 def llama_client():
-    """Faktik Ma'lumotlar Bazasi – Llama 3.3"""
+    """Faktik Ma'lumotlar Bazasi вЂ“ Llama 3.3"""
     return _get_client("llama")
 
 def mistral_client():
-    """Klinik Protokollar Eksperti – Mistral"""
+    """Klinik Protokollar Eksperti вЂ“ Mistral"""
     return _get_client("mistral")
 
 def mini_client():
-    """Tezkor Tahlilchi – GPT-4o-mini"""
+    """Tezkor Tahlilchi вЂ“ GPT-4o-mini"""
     return _get_client("mini")
 
 
@@ -324,7 +324,7 @@ def generate_clarifying_questions(patient_data: dict) -> list[str]:
     text = patient_text(patient_data)
     prompt = (
         f"Bemor:\n{text}\n\n"
-        "3–5 ta QISQA, ANIQ aniqlashtiruvchi savol yozing.\n"
+        "3вЂ“5 ta QISQA, ANIQ aniqlashtiruvchi savol yozing.\n"
         "PRIORITY 1: Allergiya, dori-darmonlar, homiladorlik.\n"
         "PRIORITY 2: Vital belgilar, lab qiymatlari.\n"
         "PRIORITY 3: Simptomlar davomiyligi, oila anamnezi.\n"
@@ -354,7 +354,7 @@ def recommend_specialists(patient_data: dict) -> list[dict]:
     names = ", ".join(SPECIALIST_NAMES[:40])
     prompt = (
         f"Bemor:\n{text}\n\n"
-        f"5–6 ta mutaxassis tanlang. Faqat: {names}.\n"
+        f"5вЂ“6 ta mutaxassis tanlang. Faqat: {names}.\n"
         "Har biri uchun sabab bering.\n"
         '{"recommendations": [{"model": "Nom", "reason": "Sabab"}]}'
     )
@@ -387,7 +387,7 @@ def generate_diagnoses(patient_data: dict) -> list[dict]:
     text = patient_text(patient_data)
     prompt = (
         f"Bemor:\n{text}\n\n"
-        "3–5 ta eng ehtimol differensial tashxis. O'ZBEKISTON SSV protokollari.\n"
+        "3вЂ“5 ta eng ehtimol differensial tashxis. O'ZBEKISTON SSV protokollari.\n"
         '{"diagnoses": [{"name":"...","probability":70,"justification":"...","evidenceLevel":"High","reasoningChain":["..."],"uzbekProtocolMatch":"..."}]}'
     )
     msgs = build_messages(
@@ -409,4 +409,3 @@ def generate_diagnoses(patient_data: dict) -> list[dict]:
             "uzbekProtocolMatch": str(d.get("uzbekProtocolMatch", ""))[:300],
         })
     return out
--NoNewline

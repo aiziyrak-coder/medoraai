@@ -75,4 +75,3 @@ def get_subscription_status(user):
         'plan': user.subscription_plan.name if user.subscription_plan else None,
         'is_trial': user.trial_ends_at and user.trial_ends_at > now,
     }
--NoNewline

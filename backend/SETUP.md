@@ -111,4 +111,3 @@ Superuser bilan kirishingiz mumkin.
 4. `ALLOWED_HOSTS` ni sozlang
 5. `python manage.py collectstatic`
 6. Gunicorn yoki uWSGI bilan deploy qiling
--NoNewline

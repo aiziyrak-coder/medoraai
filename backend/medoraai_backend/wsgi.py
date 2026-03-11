@@ -1,5 +1,5 @@
 """
-WSGI: DisallowedHost bartaraf — BIRINCHI get_host() patch, keyin Django.
+WSGI: DisallowedHost bartaraf вЂ” BIRINCHI get_host() patch, keyin Django.
 """
 
 # 0) Eng birinchi: get_host() ni patch (Django import/setup dan OLDIN)
@@ -29,4 +29,3 @@ def application(environ, start_response):
     except DisallowedHost:
         start_response('200 OK', [('Content-Type', 'application/json; charset=utf-8')])
         return [_SAFE_BODY]
--NoNewline

@@ -1,24 +1,24 @@
 """
-Anatomy Guard — Production-Ready Middleware & Decorator
+Anatomy Guard вЂ” Production-Ready Middleware & Decorator
 ========================================================
 
 Har bir AI so'rovini ikki darajada tekshiradi:
 
-  Level 1 – FAST RULE-BASED CHECK  (regex, <1ms, AI chaqirmasdan)
-    • Anatomik imkonsiz joylashishlar  (tizzadagi oshqozon, ko'zdagi yurak ...)
-    • Aldamchi / sinov so'rovlar       (men mushukman, zaharni qancha berish ...)
-    • Fiziologik ziddiyatlar           (5 yoshda, 30 yillik kasallik ...)
-    • Prompt injection                 (ignore previous, jailbreak ...)
+  Level 1 вЂ“ FAST RULE-BASED CHECK  (regex, <1ms, AI chaqirmasdan)
+    вЂў Anatomik imkonsiz joylashishlar  (tizzadagi oshqozon, ko'zdagi yurak ...)
+    вЂў Aldamchi / sinov so'rovlar       (men mushukman, zaharni qancha berish ...)
+    вЂў Fiziologik ziddiyatlar           (5 yoshda, 30 yillik kasallik ...)
+    вЂў Prompt injection                 (ignore previous, jailbreak ...)
 
-  Level 2 – SEMANTIC AI CHECK  (AiDoktor-mini, ~500ms, faqat shubhada)
-    • Chuqur semantik tahlil
-    • Kontekstga bog'liq anatomik xatolar
-    • Murakkab mantiqiy ziddiyatlar
+  Level 2 вЂ“ SEMANTIC AI CHECK  (AiDoktor-mini, ~500ms, faqat shubhada)
+    вЂў Chuqur semantik tahlil
+    вЂў Kontekstga bog'liq anatomik xatolar
+    вЂў Murakkab mantiqiy ziddiyatlar
 
 Ishlatish usullari:
-  1. Django Middleware  →  settings.py MIDDLEWARE ga qo'shiladi
-  2. View Decorator     →  @anatomy_guard() dekorator sifatida
-  3. Direct call        →  AnatomyGuard.check(patient_data)
+  1. Django Middleware  в†’  settings.py MIDDLEWARE ga qo'shiladi
+  2. View Decorator     в†’  @anatomy_guard() dekorator sifatida
+  3. Direct call        в†’  AnatomyGuard.check(patient_data)
 
 Natija: GuardResult(passed, level, message, details)
 """
@@ -34,9 +34,9 @@ from typing import Callable
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Result
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 @dataclass
 class GuardResult:
@@ -52,11 +52,11 @@ class GuardResult:
 PASS_RESULT = GuardResult(passed=True, level="ok", message="", details="")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Level 1 – Rule-based checks
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# Level 1 вЂ“ Rule-based checks
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-# Anatomik jihatdan imkonsiz organ–joy juftliklari (O'zbek + Rus + English)
+# Anatomik jihatdan imkonsiz organвЂ“joy juftliklari (O'zbek + Rus + English)
 _ANATOMIC_RULES: list[tuple[str, str]] = [
     # (organ) + (noto'g'ri joy)
     (
@@ -73,8 +73,8 @@ _ANATOMIC_RULES: list[tuple[str, str]] = [
     ),
     # Russian anatomic errors
     (
-        r"\b(желудок|печень|почки?|лёгки[ех]|сердце|кишечник|селезёнка)\b.{0,60}"
-        r"\b(колен[ои]|локт[её]|запяст|пальц|голов[ае]|щек[ае]|уш[еи]|глаз[ае])\b",
+        r"\b(Р¶РµР»СѓРґРѕРє|РїРµС‡РµРЅСЊ|РїРѕС‡РєРё?|Р»С‘РіРєРё[РµС…]|СЃРµСЂРґС†Рµ|РєРёС€РµС‡РЅРёРє|СЃРµР»РµР·С‘РЅРєР°)\b.{0,60}"
+        r"\b(РєРѕР»РµРЅ[РѕРё]|Р»РѕРєС‚[РµС‘]|Р·Р°РїСЏСЃС‚|РїР°Р»СЊС†|РіРѕР»РѕРІ[Р°Рµ]|С‰РµРє[Р°Рµ]|СѓС€[РµРё]|РіР»Р°Р·[Р°Рµ])\b",
         "organ_anatomic_error_ru",
     ),
     # English
@@ -89,13 +89,13 @@ _ANATOMIC_RULES: list[tuple[str, str]] = [
 _DECEPTIVE_RULES: list[tuple[str, str]] = [
     (r"\bmen\s+(mushukman|itman|robotman|AIman|kompyuterman|hayvonman)\b",
      "inson_emas_uz"),
-    (r"\b(я\s+кот|я\s+робот|я\s+животное)\b",
+    (r"\b(СЏ\s+РєРѕС‚|СЏ\s+СЂРѕР±РѕС‚|СЏ\s+Р¶РёРІРѕС‚РЅРѕРµ)\b",
      "inson_emas_ru"),
     (r"\bi\s+am\s+a?\s*(cat|robot|dog|animal|ai|computer)\b",
      "inson_emas_en"),
     (r"\b(zahar\s+(ber|ichi)|o[''']ldirish\s+uchun|zaharla[r]?|suiiste[''']mol)\b",
      "xavfli_sorov"),
-    (r"\b(yadu|как\s+отравить|how\s+to\s+poison|how\s+to\s+kill)\b",
+    (r"\b(yadu|РєР°Рє\s+РѕС‚СЂР°РІРёС‚СЊ|how\s+to\s+poison|how\s+to\s+kill)\b",
      "xavfli_sorov_global"),
     (r"\b(test\s+savol|sinov\s+uchun|dummy\s+patient|fake\s+case)\b",
      "sinov_sorov"),
@@ -176,9 +176,9 @@ def _level1_check(text: str) -> GuardResult | None:
     return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Level 2 – Semantic AI check (mini model)
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# Level 2 вЂ“ Semantic AI check (mini model)
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _L2_SYSTEM = """\
 Siz tibbiy ma'lumot tekshiruvchisi siz. Berilgan klinik matnda:
@@ -219,9 +219,9 @@ def _level2_check(text: str) -> GuardResult | None:
         return None   # fail-open: AI xato bo'lsa, o'tkazib yubor
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Public guard class
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 class AnatomyGuard:
     """
@@ -238,7 +238,7 @@ class AnatomyGuard:
             use_ai:        Enable Level-2 AI check.
 
         Returns:
-            GuardResult – .passed=True means safe to proceed.
+            GuardResult вЂ“ .passed=True means safe to proceed.
         """
         if isinstance(patient_data, dict):
             text = " ".join([
@@ -265,9 +265,9 @@ class AnatomyGuard:
         return PASS_RESULT
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Django View Decorator
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def anatomy_guard(use_ai: bool = True):
     """
@@ -305,9 +305,9 @@ def anatomy_guard(use_ai: bool = True):
     return decorator
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Django Middleware  (URL-level, non-AI endpoints uchun ham ishlaydi)
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 class AnatomyGuardMiddleware:
     """
@@ -334,7 +334,7 @@ class AnatomyGuardMiddleware:
             try:
                 body  = json.loads(request.body.decode("utf-8"))
                 pd    = body.get("patient_data") or {}
-                guard = AnatomyGuard.check(pd, use_ai=False)  # middleware'da AI off (hızlı)
+                guard = AnatomyGuard.check(pd, use_ai=False)  # middleware'da AI off (hД±zlД±)
                 if not guard.passed:
                     from django.http import JsonResponse
                     return JsonResponse(
@@ -353,4 +353,3 @@ class AnatomyGuardMiddleware:
                 logger.debug("AnatomyGuardMiddleware parse error (skip): %s", exc)
 
         return self.get_response(request)
--NoNewline

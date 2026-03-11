@@ -90,4 +90,3 @@ class DiagnosisFeedback(models.Model):
     
     def __str__(self):
         return f"{self.diagnosis_name} - {self.get_feedback_display()}"
--NoNewline

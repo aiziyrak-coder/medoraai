@@ -1,5 +1,5 @@
 """
-Navbat API — barcha qurilmalarda sinxron (telefon/kompyuter).
+Navbat API вЂ” barcha qurilmalarda sinxron (telefon/kompyuter).
 """
 import logging
 from django.conf import settings
@@ -61,7 +61,7 @@ def _item_to_frontend(item):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def queue_list(request):
-    """Navbat ro'yxati — shifokor/registrator uchun; boshqalar bo'sh ro'yxat oladi (sahifa xatosiz ishlashi uchun)."""
+    """Navbat ro'yxati вЂ” shifokor/registrator uchun; boshqalar bo'sh ro'yxat oladi (sahifa xatosiz ishlashi uchun)."""
     try:
         owner = _get_queue_owner(request)
         if not owner:
@@ -165,4 +165,3 @@ def queue_item_detail(request, item_id):
         item.complaints = str(request.data['complaints']).strip()
     item.save()
     return Response({'success': True, 'data': _item_to_frontend(item)})
--NoNewline

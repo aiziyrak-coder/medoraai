@@ -81,4 +81,3 @@ class Migration(migrations.Migration):
             unique_together={('analysis', 'diagnosis_name', 'created_by')},
         ),
     ]
--NoNewline

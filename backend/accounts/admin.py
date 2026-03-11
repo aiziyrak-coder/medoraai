@@ -69,7 +69,7 @@ class SubscriptionPaymentAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """Custom User Admin — safe delete: clear JWT tokens first to avoid 500."""
+    """Custom User Admin вЂ” safe delete: clear JWT tokens first to avoid 500."""
     list_display = ['phone', 'name', 'role', 'subscription_status', 'subscription_expiry', 'is_active', 'date_joined']
     list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'date_joined']
     search_fields = ['phone', 'name']
@@ -98,7 +98,7 @@ class UserAdmin(BaseUserAdmin):
         try:
             from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
             for uid in user_ids:
-                # BlacklistedToken references OutstandingToken — delete blacklist first to avoid FK issues
+                # BlacklistedToken references OutstandingToken вЂ” delete blacklist first to avoid FK issues
                 qs_ot = OutstandingToken.objects.filter(user_id=uid)
                 BlacklistedToken.objects.filter(token__in=qs_ot).delete()
                 qs_ot.delete()
@@ -106,7 +106,7 @@ class UserAdmin(BaseUserAdmin):
             logger.warning("Token cleanup before user delete: %s", e)
 
     def delete_queryset(self, request, queryset):
-        """Bulk delete: clear JWT tokens first, then delete users. Never 500 — show message on error."""
+        """Bulk delete: clear JWT tokens first, then delete users. Never 500 вЂ” show message on error."""
         user_ids = list(queryset.values_list('pk', flat=True))
         try:
             with transaction.atomic():
@@ -145,4 +145,3 @@ class UserAdmin(BaseUserAdmin):
     def delete_model(self, request, obj):
         """Single-object delete: only clear tokens; actual delete done in delete_view to avoid 500."""
         super().delete_model(request, obj)
--NoNewline

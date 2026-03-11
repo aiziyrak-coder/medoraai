@@ -257,7 +257,7 @@ def _parse_register_body(request):
 
 
 def _json_http_response(payload, status_code, content_type='application/json; charset=utf-8'):
-    """Return HttpResponse with JSON body (anig Content-Length) — 400/201 body yo'qolishini oldini olish."""
+    """Return HttpResponse with JSON body (anig Content-Length) вЂ” 400/201 body yo'qolishini oldini olish."""
     body = json.dumps(payload, ensure_ascii=False)
     r = HttpResponse(body, content_type=content_type, status=status_code)
     r['Content-Length'] = str(len(body.encode('utf-8')))
@@ -267,7 +267,7 @@ def _json_http_response(payload, status_code, content_type='application/json; ch
 @csrf_exempt
 @require_http_methods(['POST'])
 def register(request):
-    """User registration — body faqat request.body dan, javob har doim HttpResponse (anig JSON body)."""
+    """User registration вЂ” body faqat request.body dan, javob har doim HttpResponse (anig JSON body)."""
     try:
         data = _parse_register_body(request)
         if data.get('linked_doctor') in ('', None):
@@ -531,12 +531,12 @@ def send_payment_receipt(request):
         amount = 0
 
     caption = (
-        "🚀 <b>YANGI TO'LOV (Pending)</b>\n\n"
-        f"👤 <b>Foydalanuvchi:</b> {user_name}\n"
-        f"📱 <b>Telefon:</b> {user_phone}\n"
-        f"👨‍⚕️ <b>Rol:</b> {user_role}\n"
-        f"💰 <b>Kutilgan summa:</b> {amount} $\n\n"
-        "⚠️ <i>Adminlar, chekni tekshiring va tasdiqlash tugmasini bosing.</i>"
+        "рџљЂ <b>YANGI TO'LOV (Pending)</b>\n\n"
+        f"рџ‘¤ <b>Foydalanuvchi:</b> {user_name}\n"
+        f"рџ“± <b>Telefon:</b> {user_phone}\n"
+        f"рџ‘ЁвЂЌвљ•пёЏ <b>Rol:</b> {user_role}\n"
+        f"рџ’° <b>Kutilgan summa:</b> {amount} $\n\n"
+        "вљ пёЏ <i>Adminlar, chekni tekshiring va tasdiqlash tugmasini bosing.</i>"
     )
 
     try:
@@ -561,8 +561,8 @@ def send_payment_receipt(request):
         reply_markup = _json.dumps({
             'inline_keyboard': [
                 [
-                    {'text': '✅ Tasdiqlash', 'callback_data': f'approve_{payment.id}'},
-                    {'text': '❌ Rad etish', 'callback_data': f'reject_{payment.id}'},
+                    {'text': 'вњ… Tasdiqlash', 'callback_data': f'approve_{payment.id}'},
+                    {'text': 'вќЊ Rad etish', 'callback_data': f'reject_{payment.id}'},
                 ]
             ]
         })
@@ -604,7 +604,7 @@ def send_payment_receipt(request):
 @permission_classes([permissions.AllowAny])
 def telegram_webhook(request):
     """
-    Telegram bot webhook — inline tugmalar callback'larini qayta ishlaydi.
+    Telegram bot webhook вЂ” inline tugmalar callback'larini qayta ishlaydi.
     Tasdiqlash: obunani 30 kunga faollashtiradi.
     Rad etish: obunani rad etadi.
     """
@@ -665,12 +665,12 @@ def telegram_webhook(request):
         user.save(update_fields=['subscription_status', 'subscription_expiry', 'subscription_plan'])
 
         result_text = (
-            f"✅ <b>TASDIQLANDI</b>\n\n"
-            f"👤 {user.name} ({user.phone})\n"
-            f"📅 Obuna: 30 kun ({user.subscription_expiry.strftime('%d.%m.%Y')} gacha)\n"
-            f"💰 {payment.amount} $"
+            f"вњ… <b>TASDIQLANDI</b>\n\n"
+            f"рџ‘¤ {user.name} ({user.phone})\n"
+            f"рџ“… Obuna: 30 kun ({user.subscription_expiry.strftime('%d.%m.%Y')} gacha)\n"
+            f"рџ’° {payment.amount} $"
         )
-        _answer_callback(token, callback_id, "✅ Tasdiqlandi! Obuna 30 kunga faollashtirildi.")
+        _answer_callback(token, callback_id, "вњ… Tasdiqlandi! Obuna 30 kunga faollashtirildi.")
         logger.info("Payment %s approved for user %s", payment_id, user.phone)
 
     else:  # reject
@@ -682,19 +682,19 @@ def telegram_webhook(request):
         user.save(update_fields=['subscription_status'])
 
         result_text = (
-            f"❌ <b>RAD ETILDI</b>\n\n"
-            f"👤 {user.name} ({user.phone})\n"
-            f"💰 {payment.amount} $"
+            f"вќЊ <b>RAD ETILDI</b>\n\n"
+            f"рџ‘¤ {user.name} ({user.phone})\n"
+            f"рџ’° {payment.amount} $"
         )
-        _answer_callback(token, callback_id, "❌ Rad etildi.")
+        _answer_callback(token, callback_id, "вќЊ Rad etildi.")
         logger.info("Payment %s rejected for user %s", payment_id, user.phone)
 
-    # Update the original message — remove buttons and show result
+    # Update the original message вЂ” remove buttons and show result
     if chat_id and message_id:
         try:
             edit_url = f"https://api.telegram.org/bot{token}/editMessageCaption"
             old_caption = message.get('caption', '')
-            new_caption = f"{old_caption}\n\n{'─' * 20}\n{result_text}"
+            new_caption = f"{old_caption}\n\n{'в”Ђ' * 20}\n{result_text}"
             requests.post(edit_url, json={
                 'chat_id': chat_id,
                 'message_id': message_id,
@@ -718,4 +718,3 @@ def _answer_callback(token: str, callback_id: str, text: str):
         }, timeout=10)
     except Exception as e:
         logger.error("Failed to answer callback query: %s", e)
--NoNewline

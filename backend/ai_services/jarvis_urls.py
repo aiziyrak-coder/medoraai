@@ -33,4 +33,3 @@ urlpatterns = [
     # Diagnosis
     path("diagnosis/",               consultation_diagnosis_view, name="diagnosis"),
 ]
--NoNewline

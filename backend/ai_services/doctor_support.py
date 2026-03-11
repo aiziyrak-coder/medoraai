@@ -2,17 +2,17 @@
 Doctor Support Mode
 ====================
 Konsiliumdan butunlay farqli:
-  - Bahs yo'q – faqat eng aqlli model (GPT-4o)
+  - Bahs yo'q вЂ“ faqat eng aqlli model (GPT-4o)
   - O'zbekiston RSM/SSV protokollari MAJBURIY
   - Faqat O'zbekistonda ro'yxatdan o'tgan dorilar
   - Tez javob (max 3000 token)
   - Streaming uchun alohida usul
 
 Prompt Engineering qatlamlari:
-  1. System prompt  – O'zbekiston qonunchilik + SSV + farmatsevtik cheklovlar
-  2. Context block  – bemor profili
-  3. Task block     – doktor so'rovi turi (tashxis/davolash/dori/tekshiruv)
-  4. Output schema  – har doim JSON
+  1. System prompt  вЂ“ O'zbekiston qonunchilik + SSV + farmatsevtik cheklovlar
+  2. Context block  вЂ“ bemor profili
+  3. Task block     вЂ“ doktor so'rovi turi (tashxis/davolash/dori/tekshiruv)
+  4. Output schema  вЂ“ har doim JSON
 """
 
 from __future__ import annotations
@@ -100,7 +100,7 @@ def _doctor_system_prompt(task_type: str, language_hint: str,
             "Maksimal 5 qadam."
         ),
         TASK_DIAGNOSIS: (
-            "3–5 ta differensial tashxis bering. "
+            "3вЂ“5 ta differensial tashxis bering. "
             "Har biri uchun: ehtimollik (%), asoslash va SSV protokol havolasi. "
             "Eng kuchli dalil asosida asosiy tashxisni ajratib ko'rsating."
         ),
@@ -130,7 +130,7 @@ def _doctor_system_prompt(task_type: str, language_hint: str,
     kb_context = get_uz_context(complaints_text=complaints, include_protocols=True)
     drug_ctx   = get_drug_context()
 
-    return f"""Siz AiDoktor tibbiy yordamchisiz – yuqori malakali klinik mutaxassis.
+    return f"""Siz AiDoktor tibbiy yordamchisiz вЂ“ yuqori malakali klinik mutaxassis.
 
 VAZIFA: {task_instr}
 
@@ -215,7 +215,7 @@ _SCHEMA_FOLLOW_UP = (
     '"monitoring_at_home": ["Uyda kuzatish"],'
     '"repeat_tests": ["Takror tahlillar"],'
     '"lifestyle_advice": ["Turmush tarzi"],'
-    '"emergency_contact": "103 – Tez tibbiy yordam"'
+    '"emergency_contact": "103 вЂ“ Tez tibbiy yordam"'
     '}}'
 )
 
@@ -336,4 +336,3 @@ def doctor_consult_stream(
     except Exception as exc:
         logger.error("DoctorSupport stream failed: %s", exc)
         yield f'{{"error": "{exc}"}}'
--NoNewline

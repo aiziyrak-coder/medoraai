@@ -1,5 +1,5 @@
 """
-PhysiologyFilter – Mantiqiy Darvoza (Logic Gate)
+PhysiologyFilter вЂ“ Mantiqiy Darvoza (Logic Gate)
 ==================================================
 
 Maqsad:
@@ -21,7 +21,7 @@ Arxitektura:
 
 Natija:
   FilterResult(
-    passed: bool,          # True → keyingi bosqichga o'tish mumkin
+    passed: bool,          # True в†’ keyingi bosqichga o'tish mumkin
     level: str,            # "ok" | "anatomic_error" | "deceptive" | "contradiction"
     message: str,          # Foydalanuvchiga ko'rsatiladigan xabar
     details: str,          # Log/debug uchun batafsil
@@ -62,19 +62,19 @@ PASS = FilterResult(passed=True,  level="ok", message="", details="")
 
 
 # ---------------------------------------------------------------------------
-# Level 1 – Fast regex-based checks (no AI call)
+# Level 1 вЂ“ Fast regex-based checks (no AI call)
 # ---------------------------------------------------------------------------
 
 # Anatomik jihatdan imkonsiz juftliklar:  (organ) ... (noto'g'ri joylashtirish)
-# Regex pattern: "X[da/ni/iga ...] Y" – Y organining joylashtirish xatosi
+# Regex pattern: "X[da/ni/iga ...] Y" вЂ“ Y organining joylashtirish xatosi
 _ANATOMIC_MISPLACE_PATTERNS: list[tuple[str, str]] = [
-    # organ → noto'g'ri joy
+    # organ в†’ noto'g'ri joy
     (r"\b(oshqozon|me\'da|jigar|buyrak|o'pka|o\'pka|yurak|ichak|taloq|qalqonsimon bez)\b"
      r".{0,40}"
      r"\b(tizza|tirsak|bilak|barmoq|bosh|yonoq|quloq|ko'z|ko\'z|burun|qo'l|qo\'l|oyoq|tos|orqa)\b",
      "anatomik_organ_joylashish_xatosi"),
 
-    # noto'g'ri joy → organ
+    # noto'g'ri joy в†’ organ
     (r"\b(tizza|tirsak|bilak|barmoq|yonoq|quloq|ko'z|ko\'z|burun)\b"
      r".{0,40}"
      r"\b(oshqozon|me\'da|jigar|buyrak|o'pka|o\'pka|yurak|taloq)\b",
@@ -103,7 +103,7 @@ _DECEPTIVE_PATTERNS: list[tuple[str, str]] = [
 
 # Vaqt/yosh ziddiyatlari
 _CONTRADICTION_PATTERNS: list[tuple[str, str]] = [
-    # "X yoshda, Y yildan beri" – agar Y >= X
+    # "X yoshda, Y yildan beri" вЂ“ agar Y >= X
     (r"(\d+)\s*yosh.{0,60}(\d+)\s*(yil\s*(dan\s*beri|mobaynida|ilgari))",
      "yosh_vaqt_ziddiyati"),
 ]
@@ -162,7 +162,7 @@ def _level1_check(complaints: str, full_text: str) -> FilterResult | None:
 
 
 # ---------------------------------------------------------------------------
-# Level 2 – AI semantic check (mini model, fast)
+# Level 2 вЂ“ AI semantic check (mini model, fast)
 # ---------------------------------------------------------------------------
 
 _L2_SYSTEM = """Siz tibbiy ma'lumot tekshiruvchisisiz.
@@ -228,7 +228,7 @@ def check(patient_data: dict, use_ai: bool = True) -> FilterResult:
         use_ai:       If True, run Level 2 AI check when Level 1 passes.
 
     Returns:
-        FilterResult – .passed=True means safe to proceed.
+        FilterResult вЂ“ .passed=True means safe to proceed.
     """
     complaints    = str(patient_data.get("complaints", ""))
     history       = str(patient_data.get("history", ""))
@@ -236,13 +236,13 @@ def check(patient_data: dict, use_ai: bool = True) -> FilterResult:
     additional    = str(patient_data.get("additionalInfo", ""))
     full_text     = f"{complaints} {history} {objective} {additional}"
 
-    # Level 1 – fast regex
+    # Level 1 вЂ“ fast regex
     l1 = _level1_check(complaints, full_text)
     if l1 is not None:
         logger.info("PhysiologyFilter L1 BLOCKED: %s", l1.details)
         return l1
 
-    # Level 2 – AI semantic (only if enabled and text is long enough)
+    # Level 2 вЂ“ AI semantic (only if enabled and text is long enough)
     if use_ai and len(full_text.strip()) > 30:
         l2 = _level2_check(full_text[:1200])
         if l2 is not None:
@@ -250,4 +250,3 @@ def check(patient_data: dict, use_ai: bool = True) -> FilterResult:
             return l2
 
     return PASS
--NoNewline

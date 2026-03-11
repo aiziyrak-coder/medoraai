@@ -513,4 +513,3 @@ class SelfLearningSystem:
 
 # Global instance
 self_learning_system = SelfLearningSystem()
--NoNewline

@@ -13,4 +13,3 @@ app_name = 'patients'
 urlpatterns = [
     path('', include(router.urls)),
 ]
--NoNewline

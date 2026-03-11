@@ -132,12 +132,11 @@ curl -X GET http://localhost:8000/api/auth/profile/ \
 
 ```
 backend/
-├── accounts/          # Foydalanuvchilar va autentifikatsiya
-├── patients/          # Bemorlar
-├── analyses/          # Tahlillar
-├── ai_services/       # AI xizmatlar
-├── AiDoktorai_backend/  # Asosiy sozlamalar
-├── manage.py
-└── requirements.txt
+в”њв”Ђв”Ђ accounts/          # Foydalanuvchilar va autentifikatsiya
+в”њв”Ђв”Ђ patients/          # Bemorlar
+в”њв”Ђв”Ђ analyses/          # Tahlillar
+в”њв”Ђв”Ђ ai_services/       # AI xizmatlar
+в”њв”Ђв”Ђ AiDoktorai_backend/  # Asosiy sozlamalar
+в”њв”Ђв”Ђ manage.py
+в””в”Ђв”Ђ requirements.txt
 ```
--NoNewline

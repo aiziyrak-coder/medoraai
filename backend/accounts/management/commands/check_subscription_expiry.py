@@ -55,4 +55,3 @@ class Command(BaseCommand):
         warning_count = warning_users.count()
         if warning_count > 0:
             self.stdout.write(self.style.WARNING(f"{warning_count} ta foydalanuvchi obunasi 3 kundan kam qoldi."))
--NoNewline

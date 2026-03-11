@@ -638,7 +638,7 @@ Javobni faqat JSON formatida qaytaring."""
             'frequency': frequency,
             'parameters': parameters,
             'duration': "7 kun",
-            'escalation_criteria': ["Qon bosimi >160/100", "Harorat >38.5°C", "Nafas qisilishi"],
+            'escalation_criteria': ["Qon bosimi >160/100", "Harorat >38.5В°C", "Nafas qisilishi"],
             'recording_method': "Avtomatik monitoring tizimi"
         }
     
@@ -752,4 +752,3 @@ Javobni faqat JSON formatida qaytaring."""
 
 # Global instance
 clinical_decision_engine = ClinicalDecisionEngine()
--NoNewline

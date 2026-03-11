@@ -5,11 +5,11 @@ Multi-Agent Medical Consilium System
 o'zaro bahslashadi va yakuniy konsensus tashxisga keladi.
 
 Arxitektura:
-    1. GPT-4o (AiDoktor-gpt4o)   → Prof. Alisher Toshmatov (Rais, Kardiolog/Terapevt)
-    2. DeepSeek (AiDoktor-deepseek) → Prof. Dilshod Yusupov (Reasoning Expert, Nevrolog)
-    3. Llama 3.3 (AiDoktor-llama)   → Prof. Nodira Karimova (Tibbiy Ensiklopedist, Onkolog)
-    4. Mistral (AiDoktor-mistral)   → Prof. Bahrom Nazarov (Klinik Standartlar, Gastroenterolog)
-    5. GPT-4o-mini (AiDoktor-mini)  → Prof. Sarvinoz Mirzayeva (Farmakolog)
+    1. GPT-4o (AiDoktor-gpt4o)   в†’ Prof. Alisher Toshmatov (Rais, Kardiolog/Terapevt)
+    2. DeepSeek (AiDoktor-deepseek) в†’ Prof. Dilshod Yusupov (Reasoning Expert, Nevrolog)
+    3. Llama 3.3 (AiDoktor-llama)   в†’ Prof. Nodira Karimova (Tibbiy Ensiklopedist, Onkolog)
+    4. Mistral (AiDoktor-mistral)   в†’ Prof. Bahrom Nazarov (Klinik Standartlar, Gastroenterolog)
+    5. GPT-4o-mini (AiDoktor-mini)  в†’ Prof. Sarvinoz Mirzayeva (Farmakolog)
 """
 
 import json
@@ -56,7 +56,7 @@ PROFESSORS: list[dict[str, str]] = [
         "deployment": "deepseek",
         "specialty": "Nevrologiya, Klinik Mantiq",
         "persona": (
-            "Men chuqur mantiqiy tahlil va differensial diagnostika bo'yicha mutaxassisман. "
+            "Men chuqur mantiqiy tahlil va differensial diagnostika bo'yicha mutaxassisРјР°РЅ. "
             "Har bir gipotezani step-by-step mantiqiy zanjir orqali tekshiraman. "
             "Boshqalarning xatolarini aniqlash mening asosiy vazifam."
         ),
@@ -80,7 +80,7 @@ PROFESSORS: list[dict[str, str]] = [
         "deployment": "mistral",
         "specialty": "Gastroenterologiya, Klinik Protokollar",
         "persona": (
-            "Men O'zbekiston SSV klinik protokollari va xalqaro davolash standartlari bo'yicha mutaxassisман. "
+            "Men O'zbekiston SSV klinik protokollari va xalqaro davolash standartlari bo'yicha mutaxassisРјР°РЅ. "
             "Protokollarga to'liq muvofiqlikni ta'minlayman va qoidabuzarliklarni aniqlayman."
         ),
     },
@@ -91,7 +91,7 @@ PROFESSORS: list[dict[str, str]] = [
         "deployment": "mini",
         "specialty": "Farmakologiya, Toksikologiya",
         "persona": (
-            "Men farmakologiya bo'yicha mutaxassisман. "
+            "Men farmakologiya bo'yicha mutaxassisРјР°РЅ. "
             "Dori-darmonlar, dozalar, o'zaro ta'sirlar va nojo'ya ta'sirlar mening soham. "
             "FAQAT O'zbekistonda ro'yxatdan o'tgan dorilar tavsiya qilaman."
         ),
@@ -157,10 +157,10 @@ def _moderator_intro(patient_text: str, language_hint: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: str) -> dict:
-    """One professor's initial diagnosis – called in thread pool."""
+    """One professor's initial diagnosis вЂ“ called in thread pool."""
     deployment = DEPLOY_MAP[prof["deployment"]]()
     system = (
-        f"Siz {prof['name']} — {prof['title']}. {prof['persona']}\n"
+        f"Siz {prof['name']} вЂ” {prof['title']}. {prof['persona']}\n"
         "Klinik holat tahlil qilib, mustaqil tashxis bildiring. "
         "O'zbekiston SSV klinik protokollariga rioya qiling. "
         f"Javob tili: {language_hint}. FAQAT JSON."
@@ -211,7 +211,7 @@ def _moderator_synthesis(
 
 
 # ---------------------------------------------------------------------------
-# Step 4: Debate round – professors critique each other
+# Step 4: Debate round вЂ“ professors critique each other
 # ---------------------------------------------------------------------------
 
 def _professor_debate(
@@ -221,11 +221,11 @@ def _professor_debate(
     synthesis: str,
     language_hint: str,
 ) -> dict:
-    """One professor's debate response – critiques others and defends own view."""
+    """One professor's debate response вЂ“ critiques others and defends own view."""
     deployment = DEPLOY_MAP[prof["deployment"]]()
     other_opinions = [o for o in initial_opinions if o["professor_id"] != prof["id"]]
     system = (
-        f"Siz {prof['name']} — {prof['title']}. {prof['persona']}\n"
+        f"Siz {prof['name']} вЂ” {prof['title']}. {prof['persona']}\n"
         "Boshqa professorlarning fikrlarini tanqid qiling, xatolarini toping "
         "va o'z pozitsiyangizni ilmiy dalillar bilan himoya qiling. "
         f"Javob tili: {language_hint}. FAQAT JSON."
@@ -335,7 +335,7 @@ def _pharmacology_review(
 ) -> dict:
     """Dedicated pharmacology pass to validate & enrich medications."""
     system = (
-        "Siz Prof. Sarvinoz Mirzayeva — farmakolog. "
+        "Siz Prof. Sarvinoz Mirzayeva вЂ” farmakolog. "
         "Taklif etilgan dorilarni tekshiring: dozalar to'g'rimi, o'zaro ta'sirlar bormi, "
         "nojo'ya ta'sirlar ogohlantirilganmi, O'zbekistonda ro'yxatdan o'tganmi. "
         f"Javob tili: {language_hint}. FAQAT JSON."
@@ -656,4 +656,3 @@ def _build_final_report(
         "followUpPlan": consensus.get("follow_up_plan") or "",
         "generatedBy": "AiDoktor Multi-Agent Consilium (Azure AI Foundry)",
     }
--NoNewline

@@ -113,4 +113,3 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             'success': True,
             'data': data
         })
--NoNewline

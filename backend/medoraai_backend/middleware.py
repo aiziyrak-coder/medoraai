@@ -17,7 +17,7 @@ HEALTH_BODY = b'{"status":"healthy","service":"AiDoktorai-backend"}'
 class EarlyHealthMiddleware(MiddlewareMixin):
     """
     Eng birinchi: DisallowedHost bartaraf + GET /health/ darhol 200.
-    Har so'rovda get_host() va ALLOWED_HOSTS o'rnatiladi — 400 umuman chiqmasin.
+    Har so'rovda get_host() va ALLOWED_HOSTS o'rnatiladi вЂ” 400 umuman chiqmasin.
     """
     def process_request(self, request):
         _meta = request.META
@@ -167,4 +167,3 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         except Exception:
             pass
         return response
--NoNewline

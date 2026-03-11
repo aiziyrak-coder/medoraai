@@ -32,4 +32,3 @@ class Migration(migrations.Migration):
             index=models.Index(fields=['user', 'created_at'], name='accounts_act_user_id_8a0f0d_idx'),
         ),
     ]
--NoNewline

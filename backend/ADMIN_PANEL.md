@@ -7,9 +7,9 @@
 
 ## Login
 
-Loyihada **Username** o‘rnida **telefon raqam** kiritiladi (masalan: `+998901234567`), keyin parol.
+Loyihada **Username** oвЂrnida **telefon raqam** kiritiladi (masalan: `+998901234567`), keyin parol.
 
-- **Username** = telefon raqam (to‘liq, masalan `+998901234567`)
+- **Username** = telefon raqam (toвЂliq, masalan `+998901234567`)
 - **Password** = superuser paroli
 
 ## Serverda superuser yaratish yoki parolni yangilash
@@ -32,10 +32,9 @@ Boshqa raqam/parol bilan:
 ADMIN_PHONE=+998907863888 ADMIN_PASSWORD=MySecret123 python create_superuser.py
 ```
 
-Agar bu telefon allaqachon mavjud bo‘lsa, parol yangilanadi va superuser huquqlari beriladi.
+Agar bu telefon allaqachon mavjud boвЂlsa, parol yangilanadi va superuser huquqlari beriladi.
 
 ## Yodda tuting
 
-- Admin panel faqat **is_staff** va **is_superuser** bo‘lgan foydalanuvchilar uchun ochiq.
-- Parolni unutgan bo‘lsangiz, yuqoridagi `create_superuser.py` ni o‘sha telefon bilan qayta ishlatib parolni yangilang.
--NoNewline
+- Admin panel faqat **is_staff** va **is_superuser** boвЂlgan foydalanuvchilar uchun ochiq.
+- Parolni unutgan boвЂlsangiz, yuqoridagi `create_superuser.py` ni oвЂsha telefon bilan qayta ishlatib parolni yangilang.

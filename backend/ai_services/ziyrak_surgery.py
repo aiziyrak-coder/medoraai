@@ -3,17 +3,17 @@ Ziyrak-Operatsiya Moduli (Surgery Mode)
 =========================================
 Jarrohlar uchun maxsus AI yordamchi:
 
-  1. Hands-free voice control  — faqat ovoz orqali boshqarish
-  2. Emergency Protocols       — favqulodda holat protokollari (HLS)
-  3. Anatomical Intelligence   — 100% anatomik bilim + ogohlantirish
-  4. Surgery Log               — barcha muloqotni yozib borish
-  5. O'zbekiston SSV protokoli — milliy jarrohlik standartlari
+  1. Hands-free voice control  вЂ” faqat ovoz orqali boshqarish
+  2. Emergency Protocols       вЂ” favqulodda holat protokollari (HLS)
+  3. Anatomical Intelligence   вЂ” 100% anatomik bilim + ogohlantirish
+  4. Surgery Log               вЂ” barcha muloqotni yozib borish
+  5. O'zbekiston SSV protokoli вЂ” milliy jarrohlik standartlari
 
 Arxitektura:
   SurgerySession (kesh + disk)
-  → GPT-4o (AiDoktor-gpt4o) real-vaqt javoblar
-  → AnatomyGuard Level-1 har bir buyruqda
-  → Favqulodda kalitlarga avtomatik javob (<1 soniya)
+  в†’ GPT-4o (AiDoktor-gpt4o) real-vaqt javoblar
+  в†’ AnatomyGuard Level-1 har bir buyruqda
+  в†’ Favqulodda kalitlarga avtomatik javob (<1 soniya)
 """
 
 from __future__ import annotations
@@ -33,22 +33,22 @@ from .uzbekistan_knowledge_base import get_uz_context, get_surgery_context
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # O'zbekiston Milliy Jarrohlik Protokollari
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 UZBEKISTAN_SURGERY_PROTOCOLS = {
     "qon_ketish": {
         "name": "Intraoperativ Qon Ketish Protokoli",
-        "ref":  "O'zRSPQ buyrug'i №248 — 'Jarrohlikda qon yo'qotishni boshqarish'",
+        "ref":  "O'zRSPQ buyrug'i в„–248 вЂ” 'Jarrohlikda qon yo'qotishni boshqarish'",
         "steps": [
             "1. Qon ketish manbini aniqlash: arterial, venoz, kapillyar",
             "2. To'g'ridan-to'g'ri bosim, tamponad yoki ligasyon",
             "3. Qon o'rin bosuvchilar: kristalloidlar 3:1 nisbatda, kolloidlar",
             "4. Qon mahsulotlari: ergo 1:1:1 (eritrotsitlar:trombositlar:plazma)",
             "5. Vazopresorlar: norepinefrin 0.01-3 mkg/kg/min",
-            "6. Kaltsiy xlorid 10% — 10 ml IV (massiv transfuziyada)",
-            "7. Traneksamik kislota 1g IV — birinchi 3 soatda",
+            "6. Kaltsiy xlorid 10% вЂ” 10 ml IV (massiv transfuziyada)",
+            "7. Traneksamik kislota 1g IV вЂ” birinchi 3 soatda",
             "8. DIC sindrom monitoring: PTZ, APTT, fibrinogen",
         ],
         "critical_threshold": "500 ml/soat qon yo'qotish",
@@ -60,7 +60,7 @@ UZBEKISTAN_SURGERY_PROTOCOLS = {
         "steps": [
             "1. Laryngospazm: Suksinilxolin 1-2 mg/kg IV, reintubatsiya",
             "2. Bronxospazm: Salbutamol inhalyasiya, gidrokortizon 200mg IV",
-            "3. Anafilaksiya: Adrenalin 0.3-0.5mg IM, gidrokortizon, antigistaминlar",
+            "3. Anafilaksiya: Adrenalin 0.3-0.5mg IM, gidrokortizon, antigistaРјРёРЅlar",
             "4. Malinoz gipertermiya: Dantrolen 2.5mg/kg IV, muzdek tuzli eritma",
             "5. Aspiratsiya: Tez intubatsiya, bronxoskopiya, antibiotik profilaktika",
             "6. Total spinal blok: Nafas qo'llab-quvvatlash, vazopresorlar",
@@ -69,10 +69,10 @@ UZBEKISTAN_SURGERY_PROTOCOLS = {
         "emergency_call": "Anesteziolog + ICU",
     },
     "yurak_toxtatish": {
-        "name": "Operatsiya Stolida YuO'T Protokoli — Advanced Cardiac Life Support",
+        "name": "Operatsiya Stolida YuO'T Protokoli вЂ” Advanced Cardiac Life Support",
         "ref":  "O'zbekiston Reanimatologlar Protokoli / AHA 2020 ko'rsatmasi",
         "steps": [
-            "IMMEDIATE STEPS — DARHOL:",
+            "IMMEDIATE STEPS вЂ” DARHOL:",
             "1. Jarrohlikni to'xtatish (agar mumkin bo'lsa)",
             "2. Sternotomiya yoki to'g'ridan-to'g'ri yurak massaji",
             "3. Adrenalin 1mg IV/IO har 3-5 daqiqada",
@@ -80,10 +80,10 @@ UZBEKISTAN_SURGERY_PROTOCOLS = {
             "5. Amiodarone 300mg IV bolus (VF uchun)",
             "6. Nafas: 100% kislorod, intubatsiya",
             "7. CPR davom: 30:2 nisbat (intubatsiya bo'lmagan)",
-            "8. Post-ROSC: Targeted Temperature Management 32-36°C",
+            "8. Post-ROSC: Targeted Temperature Management 32-36В°C",
         ],
         "reversible_causes": "4H4T: Gipoksiya, Gipotermiya, Gipo/Giperkaliyemiya, Gipoglikemiya; Tromboz (koronar/o'pka), Tamponad, Tos, Toksik",
-        "emergency_call": "103 — Reanimasiya brigada",
+        "emergency_call": "103 вЂ” Reanimasiya brigada",
     },
     "nafas_etishmovchiligi": {
         "name": "Intraoperativ Nafas Etishmovchiligi",
@@ -131,9 +131,9 @@ RAPID_RESPONSE_KEYWORDS = {
     "sepsis":              "septik_shok",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Surgery Session
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 @dataclass
 class SurgerySession:
@@ -211,9 +211,9 @@ def _persist_surgery_log(session: SurgerySession) -> None:
         json.dump(session.to_dict(), f, ensure_ascii=False, indent=2)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def create_surgery_session(
     doctor_id:      str,
@@ -232,7 +232,7 @@ def create_surgery_session(
 
     lang_hint = {"uz-L": "O'zbek", "ru": "Rus", "en": "Ingliz"}.get(language, "O'zbek")
     greeting  = (
-        f"Men Ziyrak — AiDoktor platformasining raqamli yordamchisi. "
+        f"Men Ziyrak вЂ” AiDoktor platformasining raqamli yordamchisi. "
         f"Operatsiya xonasida sizga xizmatdaman. "
         f"Operatsiya turi: {operation_type}. "
         f"Javoblar {lang_hint} tilida."
@@ -297,7 +297,7 @@ def process_surgery_command(
             _save_surgery_session(session)
             return result
 
-    # Oddiy so'rov — GPT-4o
+    # Oddiy so'rov вЂ” GPT-4o
     response = _call_surgery_ai(command, session, language)
     session.add_log("doctor", command,  "voice_command")
     session.add_log("ziyrak", response, "ai_response")
@@ -332,7 +332,7 @@ def handle_emergency(
                 "1. Operatsiyani vaqtincha to'xtatish",
                 "2. Bemorni barqarorlash",
                 "3. Hamkasblarga yordam chaqirish",
-                "4. 103 — Shoshilinch yordam",
+                "4. 103 вЂ” Shoshilinch yordam",
             ],
             "emergency_call": "103",
         }
@@ -403,18 +403,18 @@ def get_surgery_log(session_id: str) -> dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Internal AI calls
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _SURGERY_SYSTEM = """\
-Siz Ziyrak — AiDoktor platformasining raqamli yordamchisi.
+Siz Ziyrak вЂ” AiDoktor platformasining raqamli yordamchisi.
 Hozir OPERATSIYA XONASIDA jarrohga yordamasiz.
 
 OPERATSIYA XONASI QOIDALARI:
-1. Javoblar JUDA QISQA (1-2 gap) va ANIQ bo'lsin — jarrohning diqqati bemorda.
+1. Javoblar JUDA QISQA (1-2 gap) va ANIQ bo'lsin вЂ” jarrohning diqqati bemorda.
 2. Har bir anatomik ma'lumot 100% to'g'ri bo'lishi shart.
-3. Anatomik xato ko'rsangiz — DARHOL ogohlantiring.
+3. Anatomik xato ko'rsangiz вЂ” DARHOL ogohlantiring.
 4. Favqulodda holatda BIRINCHI qadam va YORDAM RAQAMI ko'rsating.
 5. O'zbekiston milliy jarrohlik protokollariga rioya qiling.
 6. Operatsiya turi: {operation_type}
@@ -475,7 +475,7 @@ def _get_rapid_emergency_response(
     language:     str,
     session:      SurgerySession,
 ) -> dict:
-    """Juda tez (<1s) favqulodda javob — oldindan tayyorlangan protokol."""
+    """Juda tez (<1s) favqulodda javob вЂ” oldindan tayyorlangan protokol."""
     protocol  = UZBEKISTAN_SURGERY_PROTOCOLS.get(protocol_key, {})
     name      = protocol.get("name", f"Favqulodda: {protocol_key}")
     steps     = protocol.get("steps", ["Darhol yordam chaqiring"])
@@ -512,7 +512,7 @@ def _emergency_ai_response(
     kb_ctx     = get_uz_context(include_protocols=True)
 
     system = (
-        f"Siz Ziyrak — operatsiya xonasining tibbiy yordamchisi.\n"
+        f"Siz Ziyrak вЂ” operatsiya xonasining tibbiy yordamchisi.\n"
         f"Favqulodda holat: {emergency_type}\n"
         f"Protokol: {protocol.get('name','')}\n"
         f"Til: {lang_hint}\n\n"
@@ -538,4 +538,3 @@ def _emergency_ai_response(
         logger.error("Emergency AI response failed: %s", exc)
         steps = protocol.get("steps", [])
         return " | ".join(steps[:3]) if steps else "Darhol yordam chaqiring: 103"
--NoNewline

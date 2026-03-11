@@ -14,4 +14,3 @@ for p in $PIDS; do sudo kill -9 "$p" 2>/dev/null || true; done
 sleep 1
 echo "=== Port 8000 hozir bo'sh (tekshirish) ==="
 sudo lsof -i :8000 2>/dev/null && echo "Hali band!" || echo "OK: port bo'sh."
--NoNewline

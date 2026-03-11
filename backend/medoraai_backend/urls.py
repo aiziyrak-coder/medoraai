@@ -82,7 +82,7 @@ if settings.DEBUG:
 
 
 def handler404(request, exception=None):
-    """404 — har doim JSON (API va barcha so'rovlar)."""
+    """404 вЂ” har doim JSON (API va barcha so'rovlar)."""
     return JsonResponse({
         'success': False,
         'error': {'code': 404, 'message': 'Sahifa topilmadi.', 'details': {}}
@@ -90,10 +90,8 @@ def handler404(request, exception=None):
 
 
 def handler500(request):
-    """500 — har doim JSON (aslo HTML xato chiqmasin)."""
+    """500 вЂ” har doim JSON (aslo HTML xato chiqmasin)."""
     return JsonResponse({
         'success': False,
         'error': {'code': 500, 'message': "Server xatoligi. Iltimos, keyinroq urinib ko'ring.", 'details': {}}
     }, status=500, content_type='application/json; charset=utf-8')
-
--NoNewline

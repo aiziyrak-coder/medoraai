@@ -508,9 +508,9 @@ class ContinuousMonitoringSystem:
         if temperature >= thresholds['critical_high']:
             alerts.append({
                 'type': 'critical',
-                'message': f'Kritik yuqori harorat: {temperature}°C',
+                'message': f'Kritik yuqori harorat: {temperature}В°C',
                 'value': str(temperature),
-                'threshold': f">{thresholds['critical_high']}°C"
+                'threshold': f">{thresholds['critical_high']}В°C"
             })
             recommendations.append('Darhol shifokorga murojaat qiling')
             recommendations.append("Issiq suvli kompress qo'ying")
@@ -518,9 +518,9 @@ class ContinuousMonitoringSystem:
         elif temperature >= thresholds['warning_high']:
             alerts.append({
                 'type': 'warning',
-                'message': f'Yuqori harorat: {temperature}°C',
+                'message': f'Yuqori harorat: {temperature}В°C',
                 'value': str(temperature),
-                'threshold': f">{thresholds['warning_high']}°C"
+                'threshold': f">{thresholds['warning_high']}В°C"
             })
             recommendations.append("Ko'proq suyuqlik iching")
             recommendations.append('Paratsetamol olish mumkin')
@@ -528,9 +528,9 @@ class ContinuousMonitoringSystem:
         elif temperature <= thresholds['critical_low']:
             alerts.append({
                 'type': 'critical',
-                'message': f'Kritik past harorat: {temperature}°C',
+                'message': f'Kritik past harorat: {temperature}В°C',
                 'value': str(temperature),
-                'threshold': f"<{thresholds['critical_low']}°C"
+                'threshold': f"<{thresholds['critical_low']}В°C"
             })
             recommendations.append("Isitib qo'ying")
             recommendations.append('Darhol shifokorga murojaat qiling')
@@ -538,9 +538,9 @@ class ContinuousMonitoringSystem:
         elif temperature <= thresholds['warning_low']:
             alerts.append({
                 'type': 'warning',
-                'message': f'Past harorat: {temperature}°C',
+                'message': f'Past harorat: {temperature}В°C',
                 'value': str(temperature),
-                'threshold': f"<{thresholds['warning_low']}°C"
+                'threshold': f"<{thresholds['warning_low']}В°C"
             })
             recommendations.append('Issiq kiyinib oling')
             urgency = 'medium'
@@ -911,4 +911,3 @@ class ContinuousMonitoringSystem:
 
 # Global instance
 continuous_monitoring = ContinuousMonitoringSystem()
--NoNewline

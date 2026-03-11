@@ -24,7 +24,7 @@ class Command(BaseCommand):
                 'price_currency': 'USD',
                 'duration_days': 30,
                 'features': [
-                    'Konsilium – shartnoma asosida',
+                    'Konsilium вЂ“ shartnoma asosida',
                     'Cheksiz foydalanuvchilar',
                     'Barcha AI imkoniyatlar',
                 ],
@@ -55,4 +55,3 @@ class Command(BaseCommand):
         for p in plans:
             SubscriptionPlan.objects.create(**p)
         self.stdout.write(self.style.SUCCESS(f"{len(plans)} ta reja yaratildi: Klinika 500$/oy, Shifokor 10$/oy."))
--NoNewline

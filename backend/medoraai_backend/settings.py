@@ -29,7 +29,7 @@ if not DEBUG and SECRET_KEY == _default_secret:
         'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
     )
 
-# ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish — faqat *
+# ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish вЂ” faqat *
 ALLOWED_HOSTS = ['*', 'aidoktor.fargana.uz', 'api.aidoktor.fargana.uz', 'localhost', '127.0.0.1']
 
 # Application definition
@@ -288,7 +288,7 @@ AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='AiDoktor-mini')
 GEMINI_API_KEY   = (config('GEMINI_API_KEY', default='') or '').strip()
 AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-1.5-pro')
 
-# ── Production Security Settings ───────────────────────────────────────────
+# в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:
     # HTTPS enforcement (set SECURE_SSL_REDIRECT=False in .env when using HTTP only)
     SECURE_SSL_REDIRECT          = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
@@ -343,7 +343,7 @@ else:
         }
     }
 
-# Logging Configuration — file handlers only if logs dir exists and is writable (avoid startup crash)
+# Logging Configuration вЂ” file handlers only if logs dir exists and is writable (avoid startup crash)
 _LOGS_DIR = BASE_DIR / 'logs'
 def _logs_writable():
     try:
@@ -446,4 +446,3 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
 
 # get_host() patch settings boshida qo'yilgan (DisallowedHost bartaraf)
--NoNewline

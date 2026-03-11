@@ -98,4 +98,3 @@ def health_detailed(request):
     status_code = 200 if checks['status'] == 'healthy' else 503
     r = JsonResponse(checks, status=status_code)
     return _add_cors(r, request)
--NoNewline

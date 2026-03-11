@@ -1,27 +1,27 @@
 """
-Multi-Agent Medical Consilium System  —  Production-Ready v3
+Multi-Agent Medical Consilium System  вЂ”  Production-Ready v3
 =============================================================
 
 5 ta Azure deployment:
-  AiDoktor-gpt4o     → Orchestrator / Rais (GPT-4o)
-  AiDoktor-deepseek  → Mantiqiy Tahlilchi  (DeepSeek-R1)
-  AiDoktor-llama     → Faktik Bazasi       (Llama-3.3-70B)
-  AiDoktor-mistral   → SSV Protokollar     (Mistral-Large)
-  AiDoktor-mini      → Farmakolog          (GPT-4o-mini)
+  AiDoktor-gpt4o     в†’ Orchestrator / Rais (GPT-4o)
+  AiDoktor-deepseek  в†’ Mantiqiy Tahlilchi  (DeepSeek-R1)
+  AiDoktor-llama     в†’ Faktik Bazasi       (Llama-3.3-70B)
+  AiDoktor-mistral   в†’ SSV Protokollar     (Mistral-Large)
+  AiDoktor-mini      в†’ Farmakolog          (GPT-4o-mini)
 
 3-fazali debate (Orchestrator boshqaruvi ostida):
 
-  PHASE 1 – Independent Analysis
+  PHASE 1 вЂ“ Independent Analysis
       4 ta agent PARALLEL, bir-birini BILMAY mustaqil tashxis chiqaradi.
       Timeout: 90s/agent. Failure-safe: xato bo'lsa partial natija saqlanadi.
 
-  PHASE 2 – Cross-Examination + Refutation
+  PHASE 2 вЂ“ Cross-Examination + Refutation
       Har bir agent BOSHQALARNING tashxisini o'qiydi.
       Majburiy: xato topsa REFUTATION (ilmiy inkor) yozadi.
       Majburiy: o'z pozitsiyasini yangi dalil bilan HIMOYA qiladi.
       Orchestrator har bir refutation'ni BAHOLAYDI (kuchli/zaif).
 
-  PHASE 3 – Weighted Consensus
+  PHASE 3 вЂ“ Weighted Consensus
       Orchestrator har bir agentga refutation kuchiga qarab WEIGHT beradi.
       Eng kuchli dalillar asosida YAKUNIY AiDoktor Konsilium Xulosasi.
 
@@ -51,9 +51,9 @@ from .azure_utils import (
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Agent Registry
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 @dataclass(frozen=True)
 class Agent:
@@ -77,7 +77,7 @@ AGENTS: list[Agent] = [
             "Siz chuqur mantiqiy tahlil va differensial diagnostika mutaxassisi siz. "
             "Har bir gipotezani step-by-step reasoning zanjiri (chain-of-thought) orqali "
             "tekshirasiz. Boshqalarning mantiqiy zaifliklarini ilmiy dalil bilan ANIQ ko'rsatish "
-            "va o'z pozitsiyangizni mantiqiy HIMOYA QILISH – asosiy kuchingiz."
+            "va o'z pozitsiyangizni mantiqiy HIMOYA QILISH вЂ“ asosiy kuchingiz."
         ),
     ),
     Agent(
@@ -115,7 +115,7 @@ AGENTS: list[Agent] = [
         persona=(
             "Siz farmakologiya mutaxassisi siz: dori dozalari, farmakokinetika, "
             "o'zaro ta'sirlar (DDI), nojo'ya ta'sirlar va faqat O'zbekistonda ro'yxatdan "
-            "o'tgan preparatlar – sizning sohangiz. "
+            "o'tgan preparatlar вЂ“ sizning sohangiz. "
             "Xavfli dori kombinatsiyalarini darhol ko'rsatasiz."
         ),
     ),
@@ -130,15 +130,15 @@ ORCHESTRATOR = Agent(
     persona=(
         "Siz tibbiy kengash raisi siz. Vazifangiz: barcha agentlarning "
         "tashxis va refutation'larini BAHOLAB, eng kuchli dalillar asosida "
-        "YAKUNIY konsensus qaror qabul qilish. Tarafkashlik yo'q – faqat ilm."
+        "YAKUNIY konsensus qaror qabul qilish. Tarafkashlik yo'q вЂ“ faqat ilm."
     ),
 )
 
 _AGENT_ID_MAP: dict[str, Agent] = {a.id: a for a in AGENTS}
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Result container
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 @dataclass
 class ConsiliumResult:
@@ -164,15 +164,15 @@ class ConsiliumResult:
         }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PHASE 1 – Independent Analysis
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# PHASE 1 вЂ“ Independent Analysis
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _P1_SYSTEM = """\
 {persona}
 
 MUSTAQIL TAHLIL QOIDALARI:
-1. BOSHQA HECH BIR mutaxassisning fikrini bilmaysiz – faqat o'z klinik bilimlaring.
+1. BOSHQA HECH BIR mutaxassisning fikrini bilmaysiz вЂ“ faqat o'z klinik bilimlaring.
 2. O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) milliy klinik protokollariga rioya qiling.
 3. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dori-darmonlarni tavsiya qiling.
 4. Har bir xulosa uchun ilmiy asoslash (reasoning_chain) majburiy.
@@ -187,9 +187,9 @@ Quyidagi JSON formatida MUSTAQIL tashxisingizni bildiring:
   "primary_diagnosis": "Aniq tashxis nomi (O'zbek tilida)",
   "probability": 80,
   "reasoning_chain": [
-    "Belgi/simptom → klinik ahamiyati",
-    "Lab/ob'ektiv → xulosasi",
-    "Differensial → nega bu ehtimolroq"
+    "Belgi/simptom в†’ klinik ahamiyati",
+    "Lab/ob'ektiv в†’ xulosasi",
+    "Differensial в†’ nega bu ehtimolroq"
   ],
   "supporting_evidence": ["Dalil 1", "Dalil 2"],
   "red_flags": ["Shoshilinch belgi (agar bo'lsa)"],
@@ -226,7 +226,7 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
 
 
 def run_phase1(patient_str: str) -> list[dict]:
-    """4 agent parallel – independent diagnosis."""
+    """4 agent parallel вЂ“ independent diagnosis."""
     order = {a.id: i for i, a in enumerate(AGENTS)}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         futures = {pool.submit(_phase1_single, a, patient_str): a for a in AGENTS}
@@ -245,20 +245,20 @@ def run_phase1(patient_str: str) -> list[dict]:
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PHASE 2 – Cross-Examination + Refutation
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# PHASE 2 вЂ“ Cross-Examination + Refutation
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _P2_SYSTEM = """\
 {persona}
 
 DEBATE VA REFUTATION QOIDALARI:
 1. Boshqa professorlarning tashxisini DIQQAT BILAN o'qing.
-2. REFUTATION (Inkor): Agar birining tashxisi noto'g'ri yoki zaif bo'lsa –
+2. REFUTATION (Inkor): Agar birining tashxisi noto'g'ri yoki zaif bo'lsa вЂ“
    ANIQ va ILMIY asosda inkor qiling. "Bu xato chunki ..." shakli talab qilinadi.
 3. HIMOYA: O'z tashxisingizni yangilangan dalillar bilan QUVVATLANG.
 4. REVIZIYA: Agar boshqa professor kuchli dalil keltirgan bo'lsa, pozitsiyangizni
-   yangilashingiz MUMKIN va KERAK – bu ilmiy halollik belgisi.
+   yangilashingiz MUMKIN va KERAK вЂ“ bu ilmiy halollik belgisi.
 5. FAQAT JSON formatida javob qaytaring."""
 
 _P2_USER = """\
@@ -339,7 +339,7 @@ def _phase2_single(agent: Agent, patient_str: str,
 
 
 def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
-    """4 agent parallel – cross-examination + refutation."""
+    """4 agent parallel вЂ“ cross-examination + refutation."""
     order      = {a.id: i for i, a in enumerate(AGENTS)}
     id_to_p1   = {r.get("agent_id"): r for r in p1}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
@@ -360,14 +360,14 @@ def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Refutation Scoring  (Orchestrator komponent)
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def _score_refutations(p2: list[dict]) -> dict[str, float]:
     """
     Har bir agentga refutation kuchiga qarab WEIGHT hisoblash.
-    STRONG refutation qilgan agent +0.3, WEAK −0.1 oladi.
+    STRONG refutation qilgan agent +0.3, WEAK в€’0.1 oladi.
     Kimning tashxisi ko'p inkor qilinsa, weight'i kamayadi.
     """
     weights: dict[str, float] = {a.id: 1.0 for a in AGENTS}
@@ -395,16 +395,16 @@ def _score_refutations(p2: list[dict]) -> dict[str, float]:
     return weights
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PHASE 3 – Weighted Consensus  (Orchestrator: GPT-4o)
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# PHASE 3 вЂ“ Weighted Consensus  (Orchestrator: GPT-4o)
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _P3_SYSTEM = """\
 {persona}
 
 KONSENSUS QAROR QOIDALARI:
 1. Har bir agentga berilgan WEIGHT (og'irlik koeffitsienti) e'tiborga oling.
-   Kuchli refutation qilgan agent – yuqori weight → uning tashxisiga ko'proq ishon.
+   Kuchli refutation qilgan agent вЂ“ yuqori weight в†’ uning tashxisiga ko'proq ishon.
 2. Eng kuchli dalillar bilan qo'llab-quvvatlangan tashxisni tanlang.
 3. O'zbekiston SSV milliy klinik protokollariga to'liq muvofiqlikni ta'minlang.
 4. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dorilar tavsiya qiling.
@@ -417,10 +417,10 @@ BEMOR:
 AGENTLAR REFUTATION OG'IRLIKLARI (weight):
 {weights_json}
 
-PHASE 1 – Mustaqil tashxislar:
+PHASE 1 вЂ“ Mustaqil tashxislar:
 {phase1_json}
 
-PHASE 2 – Debate va refutation'lar:
+PHASE 2 вЂ“ Debate va refutation'lar:
 {phase2_json}
 
 Quyidagi JSON formatida YAKUNIY AiDoktor KONSILIUM XULOSASINI bering:
@@ -465,7 +465,7 @@ Quyidagi JSON formatida YAKUNIY AiDoktor KONSILIUM XULOSASINI bering:
     "implication": "",
     "urgency": "HIGH/MEDIUM/LOW"
   }},
-  "uzbekistan_protocol_note": "O'zbekiston Respublikasi SSV buyrug'i №XX ...",
+  "uzbekistan_protocol_note": "O'zbekiston Respublikasi SSV buyrug'i в„–XX ...",
   "agreement_level": "HIGH/MEDIUM/LOW",
   "agreement_summary": "Professorlar kelishuvi haqida qisqa tavsif ...",
   "dissenting_opinions": ["Farqli fikrlar (agar bo'lsa)"],
@@ -476,7 +476,7 @@ Quyidagi JSON formatida YAKUNIY AiDoktor KONSILIUM XULOSASINI bering:
 
 def run_phase3(patient_str: str, p1: list[dict],
                p2: list[dict], weights: dict[str, float]) -> dict:
-    """Orchestrator – weighted consensus."""
+    """Orchestrator вЂ“ weighted consensus."""
     import json as _json
     p1_text = _json.dumps(p1, ensure_ascii=False, indent=2)
     p2_text = _json.dumps(p2, ensure_ascii=False, indent=2)
@@ -502,9 +502,9 @@ def run_phase3(patient_str: str, p1: list[dict],
     return result
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Final report builder
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def _build_final_report(consensus: dict, p1: list[dict],
                         p2: list[dict], weights: dict[str, float]) -> dict:
@@ -546,7 +546,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
                     f"**Ehtimollik:** {p1r.get('probability','')}%  "
                     f"**Ishonch:** {p1r.get('confidence','')}  "
                     f"**Dalil darajasi:** {p1r.get('evidence_level','')}\n"
-                    f"**Reasoning:** {' → '.join(p1r.get('reasoning_chain') or [])}\n"
+                    f"**Reasoning:** {' в†’ '.join(p1r.get('reasoning_chain') or [])}\n"
                     f"**Qizil bayroqlar:** {', '.join(p1r.get('red_flags') or [])}"
                 ),
             })
@@ -554,7 +554,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
         reftns = p2r.get("refutations") or []
         if reftns or p2r.get("defense"):
             ref_text = "\n".join(
-                f"  ↳ [{r.get('strength','?')}] {r.get('target_agent_id','?')}: {r.get('refutation','')}"
+                f"  в†і [{r.get('strength','?')}] {r.get('target_agent_id','?')}: {r.get('refutation','')}"
                 for r in reftns
             )
             accepted = ", ".join(
@@ -637,9 +637,9 @@ def _build_final_report(consensus: dict, p1: list[dict],
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Main entry point
-# ─────────────────────────────────────────────────────────────────────────────
+# в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
     """
@@ -689,4 +689,3 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
 
     logger.info("[%s] Completed in %.1fs", result.session_id, result.duration_sec)
     return result.to_dict()
--NoNewline
