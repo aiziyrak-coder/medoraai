@@ -1,6 +1,6 @@
 """
 Gunicorn Production Config
-Azure VM: 20.82.115.71  |  AiDoktor.ziyrak.org
+Farg'ona JSTI | medora.cdcgroup.uz
 2 vCPU Azure Standard B2s вЂ” 4 worker (2*CPU+1)
 """
 
@@ -44,7 +44,7 @@ access_log_format = (
 # в”Ђв”Ђ Process в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 preload_app   = True                          # Xotira tejash
 daemon        = False                         # systemd boshqaradi
-pidfile       = os.path.join(_LOGDIR, "AiDoktor.pid")
+pidfile       = os.path.join(_LOGDIR, "FJSTI.pid")
 # user/group: leave unset when running as cdcgroup (systemd User=cdcgroup)
 
 # WSGI
@@ -52,7 +52,7 @@ wsgi_app      = "medoraai_backend.wsgi:application"
 
 # в”Ђв”Ђ Worker lifecycle hooks в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 def on_starting(server):
-    server.log.info("AiDoktor backend starting on Azure VM 20.82.115.71")
+    server.log.info("Farg'ona JSTI backend starting")
 
 def worker_exit(server, worker):
     server.log.info("Worker %s exited", worker.pid)

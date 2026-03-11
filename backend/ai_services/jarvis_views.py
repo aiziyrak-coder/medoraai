@@ -1,5 +1,5 @@
 """
-AiDoktor-Ziyrak API Views
+Farg'ona JSTI Jarvis API Views
 ========================
 Endpoint'lar:
 

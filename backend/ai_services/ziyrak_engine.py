@@ -1,19 +1,19 @@
 """
-AiDoktor-Ziyrak AI Engine
+Farg'ona JSTI Ziyrak AI Engine
 ========================
 Ikki rejim:
   1. ConsultationMonitor  - passiv tinglash, auto-diagnosis
   2. ZiyrakChat           - interaktiv suhbat, kontekst xotirasi
 
 O'zini tanishtirish:
-  "Men AiDoktor platformasining raqamli yordamchisi - Ziyrakman."
+  "Men Farg'ona JSTI platformasining raqamli yordamchisi - Ziyrakman."
 
 Context management:
   - Har bir sessiya uchun suhbat tarixi (rolling window: 20 xabar)
   - Bemor ma'lumotlari, transkript, doktor so'rovlari - birgalikda kontekst
   - AnatomyGuard - har bir ovozli so'rovda ham ishlaydi
 
-GPT-4o (AiDoktor-gpt4o) - barcha Ziyrak so'rovlari uchun
+GPT-4o (FJSTI-gpt4o) - barcha Ziyrak so'rovlari uchun
 """
 
 from __future__ import annotations
@@ -40,13 +40,13 @@ logger = logging.getLogger(__name__)
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _ZIYRAK_INTRO = (
-    "Men AiDoktor platformasining raqamli yordamchisi - Ziyrakman. "
+    "Men Farg'ona JSTI platformasining raqamli yordamchisi - Ziyrakman. "
     "Sizga tibbiy masalalarda yordam beraman."
 )
 
 _ZIYRAK_SYSTEM = """\
-Siz "AiDoktor-Ziyrak" вЂ” AiDoktor platformasining raqamli tibbiy yordamchisi siz.
-O'zingizni shu tarzda tanishtirasiz: "Men AiDoktor platformasining raqamli yordamchisi - Ziyrakman."
+Siz "Farg'ona JSTI Ziyrak" вЂ” Farg'ona JSTI platformasining raqamli tibbiy yordamchisi siz.
+O'zingizni shu tarzda tanishtirasiz: "Men Farg'ona JSTI platformasining raqamli yordamchisi - Ziyrakman."
 
 Siz shifokorning ishonchli yordamchisi siz, SHIFOKORGA yordam berasiz.
 

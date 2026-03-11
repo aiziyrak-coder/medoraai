@@ -10,7 +10,7 @@ Har bir AI so'rovini ikki darajada tekshiradi:
     вЂў Fiziologik ziddiyatlar           (5 yoshda, 30 yillik kasallik ...)
     вЂў Prompt injection                 (ignore previous, jailbreak ...)
 
-  Level 2 вЂ“ SEMANTIC AI CHECK  (AiDoktor-mini, ~500ms, faqat shubhada)
+  Level 2 вЂ“ SEMANTIC AI CHECK  (FJSTI-mini, ~500ms, faqat shubhada)
     вЂў Chuqur semantik tahlil
     вЂў Kontekstga bog'liq anatomik xatolar
     вЂў Murakkab mantiqiy ziddiyatlar

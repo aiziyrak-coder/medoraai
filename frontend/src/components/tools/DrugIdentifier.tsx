@@ -156,7 +156,7 @@ const DrugIdentifier: React.FC = () => {
                             </h4>
                             <ul className="space-y-1 text-slate-300 text-xs">
                                 {(result.indications || []).slice(0, 5).map((ind, i) => (
-                                    <li key={i} className="flex gap-1"><span className="text-blue-400">вЂў</span> {ind}</li>
+                                    <li key={i} className="flex gap-1"><span className="text-blue-400">·</span> {ind}</li>
                                 ))}
                             </ul>
                         </div>
@@ -167,7 +167,7 @@ const DrugIdentifier: React.FC = () => {
                             </h4>
                             <ul className="space-y-1 text-slate-300 text-xs">
                                 {(result.contraindications || []).slice(0, 5).map((con, i) => (
-                                    <li key={i} className="flex gap-1"><span className="text-red-400">вЂў</span> {con}</li>
+                                    <li key={i} className="flex gap-1"><span className="text-red-400">·</span> {con}</li>
                                 ))}
                             </ul>
                         </div>

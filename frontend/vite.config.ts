@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const env = { ...envFromParent, ...envFromCurrent };
 
   const apiUrl = env.VITE_API_BASE_URL || (
-    mode === 'production' ? 'https://AiDoktorapi.ziyrak.org/api' : 'http://localhost:8000/api'
+    mode === 'production' ? 'https://medora.cdcgroup.uz/api' : 'http://localhost:8000/api'
   );
   const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
 

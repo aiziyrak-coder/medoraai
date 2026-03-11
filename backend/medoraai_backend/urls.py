@@ -28,7 +28,7 @@ def root_view(request):
     if _HAS_YASG:
         endpoints['api_docs'] = '/swagger/'
     return JsonResponse({
-        'message': 'AiDoktorAI Backend API',
+        'message': 'Farg\'ona JSTI Backend API',
         'version': '1.0.0',
         'endpoints': endpoints,
     })
@@ -36,11 +36,11 @@ def root_view(request):
 if _HAS_YASG:
     schema_view = get_schema_view(
         openapi.Info(
-            title="AiDoktor Backend API",
+            title="Farg'ona JSTI Backend API",
             default_version='v1',
             description="Tibbiy Konsilium Tizimi - Django REST Framework API",
             terms_of_service="https://www.google.com/policies/terms/",
-            contact=openapi.Contact(email="contact@AiDoktorai.local"),
+            contact=openapi.Contact(email="contact@fjsti.uz"),
             license=openapi.License(name="BSD License"),
         ),
         public=True,

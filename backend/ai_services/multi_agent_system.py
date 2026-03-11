@@ -3,11 +3,11 @@ Multi-Agent Medical Consilium System  вЂ”  Production-Ready v3
 =============================================================
 
 5 ta Azure deployment:
-  AiDoktor-gpt4o     в†’ Orchestrator / Rais (GPT-4o)
-  AiDoktor-deepseek  в†’ Mantiqiy Tahlilchi  (DeepSeek-R1)
-  AiDoktor-llama     в†’ Faktik Bazasi       (Llama-3.3-70B)
-  AiDoktor-mistral   в†’ SSV Protokollar     (Mistral-Large)
-  AiDoktor-mini      в†’ Farmakolog          (GPT-4o-mini)
+  FJSTI-gpt4o        в†’ Orchestrator / Rais (GPT-4o)
+  FJSTI-deepseek  в†’ Mantiqiy Tahlilchi  (DeepSeek-R1)
+  FJSTI-llama     в†’ Faktik Bazasi       (Llama-3.3-70B)
+  FJSTI-mistral      в†’ SSV Protokollar     (Mistral-Large)
+  FJSTI-mini      в†’ Farmakolog          (GPT-4o-mini)
 
 3-fazali debate (Orchestrator boshqaruvi ostida):
 
@@ -23,7 +23,7 @@ Multi-Agent Medical Consilium System  вЂ”  Production-Ready v3
 
   PHASE 3 вЂ“ Weighted Consensus
       Orchestrator har bir agentga refutation kuchiga qarab WEIGHT beradi.
-      Eng kuchli dalillar asosida YAKUNIY AiDoktor Konsilium Xulosasi.
+      Eng kuchli dalillar asosida YAKUNIY Farg'ona JSTI Konsilium Xulosasi.
 
 Xavfsizlik:
   - PhysiologyFilter views.py da OLDIN chaqiriladi.
@@ -423,7 +423,7 @@ PHASE 1 вЂ“ Mustaqil tashxislar:
 PHASE 2 вЂ“ Debate va refutation'lar:
 {phase2_json}
 
-Quyidagi JSON formatida YAKUNIY AiDoktor KONSILIUM XULOSASINI bering:
+Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
 {{
   "consensus_diagnosis": {{
     "name": "Asosiy tashxis nomi",
@@ -633,7 +633,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
             }
             for a in AGENTS
         ],
-        "generatedBy": "AiDoktor Multi-Agent Consilium v3 (Azure AI Foundry)",
+        "generatedBy": "Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI) — Multi-Agent Konsilium",
     }
 
 

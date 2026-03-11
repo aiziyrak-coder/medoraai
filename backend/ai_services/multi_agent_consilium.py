@@ -5,11 +5,11 @@ Multi-Agent Medical Consilium System
 o'zaro bahslashadi va yakuniy konsensus tashxisga keladi.
 
 Arxitektura:
-    1. GPT-4o (AiDoktor-gpt4o)   в†’ Prof. Alisher Toshmatov (Rais, Kardiolog/Terapevt)
-    2. DeepSeek (AiDoktor-deepseek) в†’ Prof. Dilshod Yusupov (Reasoning Expert, Nevrolog)
-    3. Llama 3.3 (AiDoktor-llama)   в†’ Prof. Nodira Karimova (Tibbiy Ensiklopedist, Onkolog)
-    4. Mistral (AiDoktor-mistral)   в†’ Prof. Bahrom Nazarov (Klinik Standartlar, Gastroenterolog)
-    5. GPT-4o-mini (AiDoktor-mini)  в†’ Prof. Sarvinoz Mirzayeva (Farmakolog)
+    1. GPT-4o (FJSTI-gpt4o)   в†’ Prof. Alisher Toshmatov (Rais, Kardiolog/Terapevt)
+    2. DeepSeek (FJSTI-deepseek) в†’ Prof. Dilshod Yusupov (Reasoning Expert, Nevrolog)
+    3. Llama 3.3 (FJSTI-llama)   в†’ Prof. Nodira Karimova (Tibbiy Ensiklopedist, Onkolog)
+    4. Mistral (FJSTI-mistral)   в†’ Prof. Bahrom Nazarov (Klinik Standartlar, Gastroenterolog)
+    5. GPT-4o-mini (FJSTI-mini)  в†’ Prof. Sarvinoz Mirzayeva (Farmakolog)
 """
 
 import json
@@ -655,5 +655,5 @@ def _build_final_report(
         "drugInteractions": consensus.get("drug_interactions") or [],
         "dissentingOpinions": consensus.get("dissenting_opinions") or [],
         "followUpPlan": consensus.get("follow_up_plan") or "",
-        "generatedBy": "AiDoktor Multi-Agent Consilium (Azure AI Foundry)",
+        "generatedBy": "Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI) — Multi-Agent Konsilium",
     }

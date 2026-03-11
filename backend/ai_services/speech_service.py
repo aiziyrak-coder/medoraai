@@ -307,7 +307,7 @@ def synthesize_speech(
         "Ocp-Apim-Subscription-Key": _key(),
         "Content-Type":              "application/ssml+xml",
         "X-Microsoft-OutputFormat":  fmt,
-        "User-Agent":                "AiDoktorJarvis/3.0",
+        "User-Agent":                "FargonaJSTI-Jarvis/3.0",
     }
 
     try:
@@ -351,7 +351,7 @@ def _escape_xml(text: str) -> str:
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 def _transcript_dir() -> Path:
-    base = Path(getattr(settings, "MEDIA_ROOT", "/tmp/AiDoktor_media"))
+    base = Path(getattr(settings, "MEDIA_ROOT", "/tmp/FJSTI_media"))
     d    = base / "transcripts"
     d.mkdir(parents=True, exist_ok=True)
     return d

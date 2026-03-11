@@ -6,7 +6,7 @@ import { checkApiHealth } from '../services/api';
 import { isApiConfigured } from '../config/api';
 
 const POLL_INTERVAL_MS = 60_000; // 1 minute
-const INITIAL_DELAY_MS = 1500;   // First check after 1.5s
+const INITIAL_DELAY_MS = 800;   // First check sooner
 
 export function useApiHealth(): {
   apiHealthy: boolean;

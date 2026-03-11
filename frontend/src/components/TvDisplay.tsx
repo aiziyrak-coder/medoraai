@@ -10,7 +10,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
     const [settings, setSettings] = useState<settingsService.TvSettings>({
         isUnlocked: false,
         videoUrl: '',
-        scrollingText: "Klinikamizda yangi kardiologiya bo'limi ochildi! вЂў Chegirmalar haftaligi davom etmoqda!"
+        scrollingText: "Klinikamizda yangi kardiologiya bo'limi ochildi! · Chegirmalar haftaligi davom etmoqda!"
     });
     
     // Video Playlist State
@@ -91,7 +91,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center font-black text-2xl shadow-lg shadow-blue-600/50">M</div>
                         <div>
-                            <h1 className="text-2xl font-black tracking-tighter leading-none">AiDoktor</h1>
+                            <h1 className="text-2xl font-black tracking-tighter leading-none">Farg'ona JSTI</h1>
                             <p className="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Elektron Navbat</p>
                         </div>
                     </div>
@@ -204,7 +204,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
                         <div className="text-center text-slate-500">Video yuklanmadi</div>
                     )
                 ) : (
-                    // Default AiDoktor Admin Ad (Looping Image/Text)
+                    // Default Farg'ona JSTI Admin Ad (Looping Image/Text)
                     <div className="relative w-full h-full">
                         <img 
                             src="https://images.unsplash.com/photo-1516549655169-df83a0774514?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80" 
@@ -232,7 +232,7 @@ const TvDisplay: React.FC<{ doctorId: string }> = ({ doctorId }) => {
                         <div className="absolute -right-4 top-0 bottom-0 w-8 bg-gradient-to-r from-blue-600 to-transparent"></div>
                     </div>
                     <div className="animate-marquee inline-block pl-10 text-lg font-medium text-white">
-                        {settings.scrollingText} вЂўвЂўвЂў DIQQAT: "Kutishda" (Sariq rang) turgan bemorlar qaytib kelganda navbatsiz (birinchi o'rinda) kirish huquqiga ega! вЂўвЂўвЂў
+                        {settings.scrollingText} ··· DIQQAT: "Kutishda" (Sariq rang) turgan bemorlar qaytib kelganda navbatsiz (birinchi o'rinda) kirish huquqiga ega! ···
                     </div>
                 </div>
             </div>

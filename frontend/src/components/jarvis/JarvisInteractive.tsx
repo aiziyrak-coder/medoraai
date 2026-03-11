@@ -208,7 +208,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
             рџ¤–
           </div>
           <div>
-            <p className="font-bold text-white text-sm leading-none">AiDoktor-Jarvis</p>
+            <p className="font-bold text-white text-sm leading-none">Farg'ona JSTI — Jarvis</p>
             <p className={`text-xs mt-0.5 ${
               isTalking ? 'text-sky-400' : isThinking ? 'text-amber-400' :
               isListening ? 'text-emerald-400' : 'text-slate-500'

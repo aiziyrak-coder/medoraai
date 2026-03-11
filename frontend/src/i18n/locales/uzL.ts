@@ -3,7 +3,7 @@ import type { TranslationSet } from './en';
 
 export const uzL: TranslationSet = {
   // General
-  appName: 'AiDoktorAi',
+  appName: 'Farg\'ona JSTI',
   logout: 'Chiqish',
   back: 'Orqaga',
   submit: 'Yuborish',
@@ -32,7 +32,7 @@ export const uzL: TranslationSet = {
   landing_stats_experts: 'AI Mutaxassislar',
   
   landing_features_title: 'Imkoniyatlar Chegarasiz',
-  landing_features_desc: 'AiDoktorAi shifokorlarga kundalik faoliyatida duch keladigan eng murakkab vazifalarni hal qilishda yordam beradi.',
+  landing_features_desc: 'Farg\'ona JSTI tibbiy platformasi shifokorlarga kundalik faoliyatida duch keladigan eng murakkab vazifalarni hal qilishda yordam beradi.',
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Kardiolog, Nevrolog, Onkolog va boshqa 10+ virtual mutaxassislar bilan real vaqtda maslahatlashing.',
   landing_feature_safe: 'Xavfsiz & Aniq',
@@ -60,7 +60,7 @@ export const uzL: TranslationSet = {
   landing_partners_title: 'Bizga ishonadigan klinikalar',
   
   landing_cta_bottom_title: 'Tibbiy Amaliyotingizni Bugun O\'zgartiring',
-  landing_cta_bottom_desc: 'AiDoktorAi bilan ishlashni boshlang va har bir bemorga yuqori aniqlikdagi tashxis qo\'ying.',
+  landing_cta_bottom_desc: 'Farg\'ona JSTI platformasi bilan ishlashni boshlang va har bir bemorga yuqori aniqlikdagi tashxis qo\'ying.',
   landing_cta_bottom_btn: 'Tizimga Kirish',
   
   landing_footer_platform: 'Platforma',
@@ -91,7 +91,7 @@ export const uzL: TranslationSet = {
 
   // Auth Page & Marketing
   auth_marketing_title: 'Klinik tafakkur inqilobi.',
-  auth_marketing_desc: 'AiDoktorAi вЂ” bu shunchaki raqamli yordamchi emas, bu tibbiyotning yangi davri. Biz minglab klinik protokollar, global tibbiy tadqiqotlar va xalqaro ekspertiza bazasini yagona intellektual ekotizimga birlashtirdik. Tizim har bir bemorga individual yondashib, murakkab diagnostik jumboqlarni yechishda, davolash taktikasini optimallashtirishda va tibbiy xatolarni minimallashtirishda shifokorning eng ishonchli hamkoriga aylanadi.',
+  auth_marketing_desc: 'Farg'ona JSTI вЂ” bu shunchaki raqamli yordamchi emas, bu tibbiyotning yangi davri. Biz minglab klinik protokollar, global tibbiy tadqiqotlar va xalqaro ekspertiza bazasini yagona intellektual ekotizimga birlashtirdik. Tizim har bir bemorga individual yondashib, murakkab diagnostik jumboqlarni yechishda, davolash taktikasini optimallashtirishda va tibbiy xatolarni minimallashtirishda shifokorning eng ishonchli hamkoriga aylanadi.',
   auth_mode_select: 'Rejimni tanlang:',
   auth_mode_clinic: 'Klinika',
   auth_mode_clinic_desc: 'Tashkilotlar va konsilium uchun.',
@@ -556,7 +556,7 @@ export const uzL: TranslationSet = {
   // Legal & marketing extended content
   legal_terms_title: 'Foydalanish Shartlari va Ommaviy Oferta',
   legal_terms_p1: '1. Umumiy qoidalar: Ushbu platforma faqat tibbiy maвЂ™lumotga ega boвЂlgan mutaxassislar (shifokorlar, rezidentlar, talabalar) uchun moвЂljallangan yordamchi vositadir.',
-  legal_terms_p2: '2. MasвЂ™uliyatni cheklash: "AiDoktorAi" tizimi (keyingi oвЂrinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor oвЂrnini bosmaydi. Yakuniy klinik qaror uchun toвЂliq javobgarlik foydalanuvchi (shifokor) zimmasidadir.',
+  legal_terms_p2: '2. MasвЂ™uliyatni cheklash: "Farg'ona JSTI" tizimi (Farg'ona jamoat salomatligi tibbiyot instituti) (keyingi oвЂrinlarda "Tizim") tomonidan taqdim etilgan har qanday tashxis, davolash rejasi yoki tavsiya faqat axborot xarakteriga ega. Tizim shifokor oвЂrnini bosmaydi. Yakuniy klinik qaror uchun toвЂliq javobgarlik foydalanuvchi (shifokor) zimmasidadir.',
   legal_terms_p3: '3. MaвЂ™lumotlar xavfsizligi: Biz foydalanuvchi kiritgan bemor maвЂ™lumotlarini (F.I.Sh va boshqa shaxsiy identifikatorlar) anonimlashtirishga harakat qilamiz, ammo internet tarmogвЂida xavfsizlik uchun mutlaq kafolat berilmaydi.',
   legal_terms_p4: '4. Rozilik: Tizimdan foydalanish orqali siz sunвЂ™iy intellekt tomonidan yuzaga kelishi mumkin boвЂlgan xatoliklar (gallyutsinatsiyalar) ehtimolini tushunasiz va qabul qilasiz.',
 
@@ -597,7 +597,7 @@ export const uzL: TranslationSet = {
 
   testimonial_1_name: 'Dr. A. Karimov',
   testimonial_1_role: 'Kardiolog, 15 yillik tajriba',
-  testimonial_1_text: 'AiDoktorAi murakkab holatlarda ikkinchi fikrni olish uchun ajoyib vosita. Ayniqsa EKG tahlili juda aniq va tezkor.',
+  testimonial_1_text: 'Farg\'ona JSTI platformasi murakkab holatlarda ikkinchi fikrni olish uchun ajoyib vosita. Ayniqsa EKG tahlili juda aniq va tezkor.',
   testimonial_2_name: 'Dr. S. Umarova',
   testimonial_2_role: 'Nevrolog',
   testimonial_2_text: 'Noyob kasalliklarni tashxislashda vaqtni tejashga yordam beradi. Tadqiqot bo\'limi shunchaki xazina, eng so\'nggi maqolalar doim qo\'l ostida.',

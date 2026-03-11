@@ -58,7 +58,7 @@ const MobileBlocker: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
         </div>
         <h2 className="text-2xl font-bold text-white mb-4">Qurilma mos kelmadi</h2>
         <p className="text-slate-300 text-lg leading-relaxed max-w-md">
-            Hurmatli foydalanuvchi, <strong>AiDoktor</strong> (Klinika) tizimining to'liq funksionalidan foydalanish uchun, iltimos, 
+            Hurmatli foydalanuvchi, <strong>Farg'ona JSTI</strong> (Farg'ona jamoat salomatligi tibbiyot instituti) tizimining to'liq funksionalidan foydalanish uchun, iltimos, 
             <span className="text-blue-400 font-bold"> Kompyuter</span> yoki <span className="text-blue-400 font-bold">Planshet</span> orqali kiring.
         </p>
         <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-white/10">
@@ -773,7 +773,7 @@ const AppContent: React.FC = () => {
             {isApiConfigured() && !apiHealthy && (
                 <div className="flex-none flex items-center justify-center gap-3 py-2 px-4 bg-amber-500/90 text-white text-sm font-medium z-40">
                     {healthStatus === 400 ? (
-                        <span>Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup AiDoktor.fargana.uz</code> в†’ <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
+                        <span>Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup medora.cdcgroup.uz</code> в†’ <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
                     ) : (
                         <span>Server bilan bog&apos;lanish yo&apos;q. Ma&apos;lumotlar mahalliy saqlanadi.</span>
                     )}

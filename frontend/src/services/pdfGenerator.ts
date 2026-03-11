@@ -67,7 +67,7 @@ export const generatePdfReport = (
             if (isListItem) {
                 lineX += 5;
                 if (index === 0) {
-                    doc.text('вЂў', margin, y);
+                    doc.text('\u00B7', margin, y);
                 }
             }
             doc.text(line, lineX, y);

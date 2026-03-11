@@ -29,9 +29,9 @@ const UserGuide: React.FC<UserGuideProps> = ({ onBack }) => {
             case 'getting-started':
                 return (
                     <div className="space-y-6 animate-fade-in-up">
-                        <h2 className="text-3xl font-bold text-white mb-4">AiDoktorAi Tizimiga Xush Kelibsiz</h2>
+                        <h2 className="text-3xl font-bold text-white mb-4">Farg'ona JSTI Tizimiga Xush Kelibsiz</h2>
                         <p className="text-slate-300 leading-relaxed">
-                            AiDoktorAi - bu tibbiyot xodimlari uchun yaratilgan ilg'or klinik qarorlarni qo'llab-quvvatlash tizimi. 
+                            Farg'ona JSTI — Farg'ona jamoat salomatligi tibbiyot instituti tibbiyot xodimlari uchun yaratilgan ilg'or klinik qarorlarni qo'llab-quvvatlash tizimi. 
                             U sun'iy intellekt kuchidan foydalanib, tashxis qo'yish aniqligini oshirish, davolash rejalarini optimallashtirish va so'nggi tibbiy bilimlarni taqdim etishga xizmat qiladi.
                         </p>
                         
@@ -167,7 +167,7 @@ const UserGuide: React.FC<UserGuideProps> = ({ onBack }) => {
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold">M</div>
-                        <span className="font-bold text-lg">AiDoktorAi Dokumentatsiya</span>
+                        <span className="font-bold text-lg">Farg'ona JSTI Dokumentatsiya</span>
                     </div>
                     <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white transition-colors">
                         <HomeIcon className="w-4 h-4" /> Asosiy Sahifa

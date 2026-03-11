@@ -183,7 +183,24 @@ function tryRepairTruncatedJson(raw: string): unknown | null {
         }
     }
 
-    // 2) Doktor hisobotiga xos patchlar (treatmentPlan/medications kesilganda)
+    // 2) Kesilgan massiv: oxirida ochiq qator (differensial tashxis ro'yxati va boshqalar)
+    if (s.startsWith('[')) {
+        const closeRepairs = [
+            (s.trimEnd().replace(/,\s*$/, '') || s) + ']',
+            s + '"]}]',  // ochiq qator + yopish object + array
+            s + '"]',
+            s + ']',
+        ];
+        for (const t of closeRepairs) {
+            try {
+                return JSON.parse(t);
+            } catch {
+                continue;
+            }
+        }
+    }
+
+    // 3) Doktor hisobotiga xos patchlar (treatmentPlan/medications kesilganda)
     const repairs: string[] = [
         s + '[],"medications":[],"recommendedTests":[]}',
         s + '[]}',
@@ -347,7 +364,7 @@ const callGemini = async (
         try {
             return await retry(executeWithModelFallback, {
                 maxRetries: mobile ? 2 : 1,
-                initialDelay: mobile ? 1200 : 800,
+                initialDelay: mobile ? 600 : 400,
                 retryableErrors: [
                     'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
                     'parse_json', "noto'g'ri", 'javob', 'invalid json', 'failed to parse',
@@ -691,7 +708,21 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
             required: ['name', 'probability', 'justification', 'evidenceLevel', 'reasoningChain'],
         },
     };
-    return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
+    try {
+        const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
+        const arr = Array.isArray(raw) ? raw : [];
+        return arr.map((item: Record<string, unknown>) => ({
+            name: String(item?.name ?? ''),
+            probability: Number(item?.probability ?? 0),
+            justification: String(item?.justification ?? ''),
+            evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
+            reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : [],
+            uzbekProtocolMatch: String(item?.uzbekProtocolMatch ?? ''),
+        })) as Diagnosis[];
+    } catch (e) {
+        logger.warning('generateInitialDiagnoses parse/network error, returning empty list', e);
+        return [];
+    }
 };
 
 /** Normalize Gemini response to PrognosisReport; handles nested { prognosis: {...} } or truncated/incomplete JSON. */
@@ -765,7 +796,7 @@ export const runCouncilDebate = async (
     const orchestratorIntro: ChatMessage = { id: `sys-intro-${Date.now()}`, author: AIModel.SYSTEM, content: introContent, isSystemMessage: true };
     onProgress({ type: 'message', message: orchestratorIntro });
     debateHistory.push(orchestratorIntro);
-    await sleep(250);
+    await sleep(120);
 
     const DEBATE_ROUNDS = 3;
     let currentTopicPrompt = `Summarize the initial state: Patient data and initial diagnoses: ${JSON.stringify(diagnoses)}. Ask specialists for their initial evaluation and Red Flags. Output Language: ${langMap[language]}.`;
@@ -794,7 +825,7 @@ export const runCouncilDebate = async (
              onProgress({ type: 'user_question', question: cleanQuestion });
              let userInput = null;
              while (!userInput) {
-                await sleep(350);
+                await sleep(180);
                 userInput = getUserIntervention();
              }
              const userMessage = { id: `user-${Date.now()}`, author: AIModel.SYSTEM, content: `User Answer: ${userInput}`, isUserIntervention: true, isSystemMessage: true };
@@ -806,7 +837,7 @@ export const runCouncilDebate = async (
              debateHistory.push(orchestratorMessage);
         }
         
-        await sleep(500);
+        await sleep(280);
 
         // Specialists Turn
         for (const spec of specialistsConfig) {
@@ -832,7 +863,7 @@ export const runCouncilDebate = async (
                 const specialistMessage: ChatMessage = { id: `${spec.role}-${Date.now()}`, author: spec.role, content: responseText };
                 onProgress({ type: 'message', message: specialistMessage });
                 debateHistory.push(specialistMessage);
-                await sleep(300);
+                await sleep(180);
             } catch (e) {
                 // error handling
             }
@@ -863,7 +894,7 @@ export const runCouncilDebate = async (
         'en': 'Preparing final report...'
     };
     onProgress({ type: 'status', message: finalizingMessages[language] });
-    await sleep(600);
+    await sleep(350);
 
     const finalReportSchema = {
         type: 'object',
@@ -1143,17 +1174,17 @@ export const runResearchCouncilDebate = async (
 ): Promise<void> => {
     const systemInstr = getSystemInstruction(language);
     onProgress({ type: 'status', message: `Research Topic: "${diseaseName}". Gathering data...` });
-    await sleep(600);
+    await sleep(350);
 
     const specialists = [AIModel.GPT, AIModel.LLAMA, AIModel.CLAUDE];
     for (const model of specialists) {
         const translatedIntro = await callGemini(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, DEPLOY_FAST, undefined, false, systemInstr);
         onProgress({ type: 'message', message: { id: `${model}-${Date.now()}`, author: model, content: translatedIntro as string, isThinking: false } });
-        await sleep(150);
+        await sleep(80);
     }
     
     onProgress({ type: 'status', message: 'Discussing innovative strategies...' });
-    await sleep(500);
+    await sleep(280);
     
     const prompt = `Provide detailed research report on "${diseaseName}". Use web search for latest data. Return ONLY valid JSON (no markdown, no extra text). The JSON must have these fields: diseaseName, summary, epidemiology {prevalence, incidence, keyRiskFactors[]}, pathophysiology, emergingBiomarkers [{name, type, description}], clinicalGuidelines [{guidelineTitle, source, recommendations [{category, details[]}]}], potentialStrategies [{name, mechanism, evidence, pros[], cons[], riskBenefit {risk, benefit}, developmentRoadmap [{stage, duration, cost}], molecularTarget {name, pdbId}, ethicalConsiderations[], requiredCollaborations[], companionDiagnosticNeeded}], pharmacogenomics {relevantGenes [{gene, mutation, impact}], targetSubgroup}, patentLandscape {competingPatents [{patentId, title, assignee}], whitespaceOpportunities[]}, relatedClinicalTrials [{trialId, title, status, url}], strategicConclusion, sources [{title, uri}]. LANGUAGE: ${langMap[language]}.`;
 

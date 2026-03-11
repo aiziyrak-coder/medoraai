@@ -109,7 +109,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
                     </head>
                     <body>
                         <div class="ticket">
-                            <h2>AiDoktor</h2>
+                            <h2>Farg'ona JSTI</h2>
                             <p>Klinik Navbat Cheki</p>
                             <br/>
                             <h1>#${item.ticketNumber}</h1>

@@ -104,7 +104,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
           {result.red_flags && result.red_flags.length > 0 && (
             <div className="mt-3 p-2 rounded-xl bg-red-950/40 border border-red-500/30">
               <p className="text-red-300 text-xs font-semibold">рџљ© Qizil Bayroqlar:</p>
-              {result.red_flags.map((f, i) => <p key={i} className="text-red-200 text-xs">вЂў {f}</p>)}
+              {result.red_flags.map((f, i) => <p key={i} className="text-red-200 text-xs">· {f}</p>)}
             </div>
           )}
         </div>
@@ -184,7 +184,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
           <h4 className="font-semibold text-sky-300 mb-2">рџ§Є Tavsiya Etilgan Tekshiruvlar</h4>
           {result.recommended_tests.map((t, i) => (
-            <p key={i} className="text-slate-300 text-sm">вЂў {t}</p>
+            <p key={i} className="text-slate-300 text-sm">· {t}</p>
           ))}
         </div>
       )}

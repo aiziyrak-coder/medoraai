@@ -327,10 +327,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     <div className="animate-fade-in-up">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 backdrop-blur-md mb-4">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_8px_#60a5fa]"></span>
-                            <span className="text-[10px] font-bold text-blue-100 tracking-wide uppercase">AiDoktorAi Tizimi v1.0</span>
+                            <span className="text-[10px] font-bold text-blue-100 tracking-wide uppercase">Farg'ona JSTI Tizimi v1.0</span>
                         </div>
                         <h1 className="text-4xl xl:text-6xl font-black text-white tracking-tighter mb-3 drop-shadow-xl uppercase">
-                            AiDoktor
+                            Farg'ona JSTI
                         </h1>
                         <p className="text-xl text-blue-100 font-light border-l-4 border-blue-500 pl-4">
                             {t('auth_marketing_title')}
@@ -348,9 +348,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 {t('auth_mode_select')}
                             </h4>
                             <ul className="text-slate-300 text-xs space-y-0.5">
-                                <li>вЂў <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
-                                <li>вЂў <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
-                                <li>вЂў <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
+                                <li>· <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
+                                <li>· <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
+                                <li>· <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
                             </ul>
                         </div>
 

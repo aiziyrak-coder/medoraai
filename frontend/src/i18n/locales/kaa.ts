@@ -3,7 +3,7 @@ import type { TranslationSet } from './en';
 
 export const kaa: TranslationSet = {
   // General
-  appName: 'AiDoktor',
+  appName: 'Farg'ona JSTI',
   logout: 'ShД±ЗµД±w',
   back: 'Artqa',
   submit: 'Jiberiw',
@@ -40,7 +40,7 @@ export const kaa: TranslationSet = {
 
   // Auth Page & Marketing
   auth_marketing_title: 'KlinikalД±q pikirlew revolyuciyasД±.',
-  auth_marketing_desc: 'AiDoktorAi вЂ” bul ГЎpiwayД± sanlД± jГЎrdemshi emes, bul medicinanД±Е„ jaЕ„a dГЎwiri. Biz mД±Е„laЗµan klinikalД±q protokollar, global medicinalД±q izertlewler hГЎm xalД±qaralД±q ekspertiza bazasД±n birden-bir intellektual ekotizimge birlestirdik. Tizim hГЎr bir nawqasqa individual jandasip, quramalД± diagnostikalД±q jumbaqlardД± sheshiwde, emlew taktikasД±n optimallastД±rД±wda hГЎm medicinalД±q qГЎtelerdi minimallastД±rД±wda shД±pakerdiЕ„ eЕ„ isenimli serigine aylanadД±.',
+  auth_marketing_desc: 'Farg'ona JSTIAi вЂ” bul ГЎpiwayД± sanlД± jГЎrdemshi emes, bul medicinanД±Е„ jaЕ„a dГЎwiri. Biz mД±Е„laЗµan klinikalД±q protokollar, global medicinalД±q izertlewler hГЎm xalД±qaralД±q ekspertiza bazasД±n birden-bir intellektual ekotizimge birlestirdik. Tizim hГЎr bir nawqasqa individual jandasip, quramalД± diagnostikalД±q jumbaqlardД± sheshiwde, emlew taktikasД±n optimallastД±rД±wda hГЎm medicinalД±q qГЎtelerdi minimallastД±rД±wda shД±pakerdiЕ„ eЕ„ isenimli serigine aylanadД±.',
   auth_mode_select: 'Rejimni taЕ„laЕ„:',
   auth_mode_clinic: 'Klinika',
   auth_mode_clinic_desc: 'ShГіlkemler hГЎm konsilium ushД±n.',
@@ -366,7 +366,7 @@ export const kaa: TranslationSet = {
   landing_stats_experts: 'AI QГЎnigeler',
   
   landing_features_title: 'Imkaniyatlar Sheksiz',
-  landing_features_desc: 'AiDoktorAi shД±pakerlerge kГєndelik xД±zmetinde dus keletuЗµД±n eЕ„ quramalД± wazД±ypalardД± sheshiwde jГЎrdem beredi.',
+  landing_features_desc: 'Farg'ona JSTIAi shД±pakerlerge kГєndelik xД±zmetinde dus keletuЗµД±n eЕ„ quramalД± wazД±ypalardД± sheshiwde jГЎrdem beredi.',
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Kardiolog, Nevrolog, Onkolog hГЎm basqa 10+ virtual qГЎnigeler menen real waqД±tta mГЎslahГЎtlesiЕ„.',
   landing_feature_safe: 'QГЎwipsiz & AnД±q',
@@ -394,7 +394,7 @@ export const kaa: TranslationSet = {
   landing_partners_title: 'Bizge isenetuЗµД±n klinikalar',
   
   landing_cta_bottom_title: 'MedicinalД±q ГЃmeliyatД±Е„Д±zdД± BГєgin Г“zgertiЕ„',
-  landing_cta_bottom_desc: 'AiDoktorAi menen islewdi baslaЕ„ hГЎm hГЎr bir nawqasqa joqarД± anД±qlД±qtaЗµД± diagnoz qoyД±Е„.',
+  landing_cta_bottom_desc: 'Farg'ona JSTIAi menen islewdi baslaЕ„ hГЎm hГЎr bir nawqasqa joqarД± anД±qlД±qtaЗµД± diagnoz qoyД±Е„.',
   landing_cta_bottom_btn: 'Tizimge Kiriw',
   
   landing_footer_platform: 'Platforma',
@@ -555,7 +555,7 @@ export const kaa: TranslationSet = {
   // Legal & marketing extended content
   legal_terms_title: 'PaydalanД±w ShartlarД± hГЎm JumalД±q Oferta',
   legal_terms_p1: '1. Umumiy qaЗµД±ydalar: UsД± platforma faqat medicinalД±q bilimge iye qГЎnigeler (shД±pakerler, rezidentler, studentler) Гєshin jГЎrdemshi qural esaplanadД±.',
-  legal_terms_p2: '2. Juwapkershilikti sheklew: "AiDoktorAi" tizimi (keyingi orД±nlarda "Tizim") tГЎrepinen usД±nД±lЗµan hГЎr qanday diagnoz, emlew rejasi yamasa tawsД±ya faqat maЗµlД±wmatlД±q mГЎЕ„ige iye. Tizim shД±paker ornД±n baspaydД±. JuwmaqlawshД± klinikalД±q sheshim ushД±n tolД±q juwapkershilik paydalanД±wshД± (shД±paker) moynД±nda.',
+  legal_terms_p2: '2. Juwapkershilikti sheklew: "Farg'ona JSTIAi" tizimi (keyingi orД±nlarda "Tizim") tГЎrepinen usД±nД±lЗµan hГЎr qanday diagnoz, emlew rejasi yamasa tawsД±ya faqat maЗµlД±wmatlД±q mГЎЕ„ige iye. Tizim shД±paker ornД±n baspaydД±. JuwmaqlawshД± klinikalД±q sheshim ushД±n tolД±q juwapkershilik paydalanД±wshД± (shД±paker) moynД±nda.',
   legal_terms_p3: '3. MaЗµlД±wmatlar xawfsizligi: Biz paydalanД±wshД± kirgen nawqas maЗµlД±wmatlarД±n (Aty-jГіni hГЎm basqa identifikatorlar) anonimlestiriwge urД±namД±z, biroq internet jelisinde tolД±q xawfsizlikke kafolat berip bolmaydД±.',
   legal_terms_p4: '4. RД±zalД±q: Tizimnen paydalanД±w arqalД± siz jasama intellekt tГЎrepinen jГєzge kelesi mГєmkin bolЗµan qГЎtelikler (gallyucinaciyalar) qГЎwipin tГєsinesiz hГЎm qabul etesiz.',
 
@@ -596,7 +596,7 @@ export const kaa: TranslationSet = {
 
   testimonial_1_name: 'Dr. A. Karimov',
   testimonial_1_role: 'Kardiolog, 15 jД±llД±q tГЎjiriybe',
-  testimonial_1_text: 'AiDoktorAi quramalД± jaЗµdaylarda ekinshi pikir alД±w ushД±n ГЎjayД±p qural. ГЃsirese EKG tahlili juda anД±q hГЎm tez.',
+  testimonial_1_text: 'Farg'ona JSTIAi quramalД± jaЗµdaylarda ekinshi pikir alД±w ushД±n ГЎjayД±p qural. ГЃsirese EKG tahlili juda anД±q hГЎm tez.',
   testimonial_2_name: 'Dr. S. Umarova',
   testimonial_2_role: 'Nevrolog',
   testimonial_2_text: 'Noyob keselliklerdi diagnoz qoyД±wda waqД±tnД± tejewge jГЎrdem beredi. Izertlew bГіlimi naxД±z hazД±na вЂ“ eЕ„ soЕ„ЗµД± maqalalar hГЎr waqД±t qol astД±nda.',

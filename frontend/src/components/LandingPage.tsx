@@ -149,7 +149,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         {/* Icon removed based on request */}
-                        <span className="text-2xl font-black tracking-tighter text-white">AiDoktorAi</span>
+                        <span className="text-2xl font-black tracking-tighter text-white">Farg'ona JSTI</span>
                     </div>
                     
                     {/* Desktop Menu */}
@@ -442,7 +442,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                     <div>
                         <div className="flex items-center justify-center md:justify-start gap-2 mb-6">
                             <BrainCircuitIcon className="w-8 h-8 text-blue-500" />
-                            <span className="text-2xl font-bold text-white tracking-tight">AiDoktorAi</span>
+                            <span className="text-2xl font-bold text-white tracking-tight">Farg'ona JSTI</span>
                         </div>
                         <p className="leading-relaxed mb-6">{t('auth_marketing_desc').substring(0, 100)}...</p>
                         <div className="flex justify-center md:justify-start gap-4">
@@ -517,7 +517,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                 </div>
                 
                 <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <p>&copy; 2025 AiDoktorAi. {t('footer_rights')}</p>
+                    <p>&copy; 2025 Farg'ona jamoat salomatligi tibbiyot instituti. {t('footer_rights')}</p>
                     
                     {/* Modern Developer Credits */}
                     <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 bg-white/5 px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">

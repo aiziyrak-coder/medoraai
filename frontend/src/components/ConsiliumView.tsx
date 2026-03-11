@@ -264,7 +264,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                 <div className="rounded-xl p-3 bg-amber-950/30 border border-amber-500/30 text-sm text-amber-200">
                   <p className="font-semibold mb-1">вљ  Farqli fikrlar:</p>
                   {result.final_report.dissentingOpinions.map((op, i) => (
-                    <p key={i}>вЂў {op}</p>
+                    <p key={i}>· {op}</p>
                   ))}
                 </div>
               )}
@@ -304,7 +304,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                     <div className="mb-2 p-2 rounded-lg bg-amber-900/40 border border-amber-500/30">
                       <p className="text-amber-300 text-xs font-semibold">вљ  Farmakolog ogohlantirishlari:</p>
                       {result.final_report.pharmacologyWarnings.map((w, i) => (
-                        <p key={i} className="text-amber-200 text-xs">вЂў {w}</p>
+                        <p key={i} className="text-amber-200 text-xs">· {w}</p>
                       ))}
                     </div>
                   )}

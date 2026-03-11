@@ -5,7 +5,7 @@ WSGI: DisallowedHost bartaraf вЂ” BIRINCHI get_host() patch, keyin Django.
 # 0) Eng birinchi: get_host() ni patch (Django import/setup dan OLDIN)
 import django.http.request as _req_mod
 _req_mod.HttpRequest.get_host = lambda self: (
-    (self.META.get('HTTP_HOST') or 'AiDoktor.fargana.uz').split('#')[0].strip()
+    (self.META.get('HTTP_HOST') or 'medora.cdcgroup.uz').split('#')[0].strip()
 )
 
 import os
@@ -21,7 +21,7 @@ from django.core.wsgi import get_wsgi_application
 from django.core.exceptions import DisallowedHost
 
 _app = get_wsgi_application()
-_SAFE_BODY = b'{"message":"AiDoktorAI Backend API","version":"1.0.0","endpoints":{"health":"/health/","admin":"/admin/","api":"/api/"}}'
+_SAFE_BODY = b'{"message":"Farg\'ona JSTI Backend API","version":"1.0.0","endpoints":{"health":"/health/","admin":"/admin/","api":"/api/"}}'
 
 def application(environ, start_response):
     try:
