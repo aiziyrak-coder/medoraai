@@ -77,7 +77,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden selection:bg-blue-500 selection:text-white">
+        <div className="min-h-screen w-full max-w-[100vw] bg-slate-950 text-white font-sans overflow-x-hidden selection:bg-blue-500 selection:text-white">
             
             {/* --- CONTACT MODAL --- */}
             {showContactModal && (
@@ -146,15 +146,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             )}
 
             {/* --- NAVBAR --- */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-slate-900/90 backdrop-blur-xl border-b border-white/10 py-3 shadow-lg' : 'bg-transparent py-4 md:py-6'}`}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 flex justify-between items-center">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-xl md:text-2xl font-black tracking-tighter text-white">{INSTITUTE_NAME_SHORT}</span>
-                        <span className="text-[10px] md:text-xs font-medium text-slate-400 tracking-wide hidden sm:block">{INSTITUTE_NAME_FULL}</span>
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 w-full ${scrolled ? 'bg-slate-900/90 backdrop-blur-xl border-b border-white/10 py-3 shadow-lg' : 'bg-transparent py-4 md:py-6'}`}>
+                <div className="w-full page-px flex flex-wrap justify-between items-center gap-2 min-w-0">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                        <span className="text-lg sm:text-xl md:text-2xl font-black tracking-tighter text-white truncate">{INSTITUTE_NAME_SHORT}</span>
+                        <span className="text-[10px] md:text-xs font-medium text-slate-400 tracking-wide hidden sm:block truncate">{INSTITUTE_NAME_FULL}</span>
                     </div>
                     
                     {/* Desktop Menu */}
-                    <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-300">
+                    <div className="hidden lg:flex items-center flex-wrap gap-6 xl:gap-8 text-sm font-medium text-slate-300">
                         <button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">{t('nav_features')}</button>
                         <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">{t('nav_how_it_works')}</button>
                         <button onClick={() => scrollToSection('testimonials')} className="hover:text-white transition-colors">{t('nav_reviews')}</button>
@@ -182,11 +182,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </nav>
 
             {/* --- HERO SECTION --- */}
-            <header className="relative pt-32 pb-20 lg:pt-52 lg:pb-40 overflow-hidden">
+            <header className="relative pt-28 sm:pt-32 pb-16 sm:pb-20 lg:pt-52 lg:pb-40 overflow-hidden w-full">
                 <div className="absolute inset-0 medical-mesh-bg opacity-60"></div>
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
                 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 text-center">
+                <div className="w-full page-px relative z-10 text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider mb-4 animate-fade-in-up backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                         {t('landing_hero_badge')}
@@ -194,12 +194,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                     <p className="text-sm md:text-base text-slate-400 font-semibold mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
                         {INSTITUTE_NAME_FULL}
                     </p>
-                    <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] mb-8 animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+                    <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] mb-6 sm:mb-8 animate-fade-in-up px-1" style={{animationDelay: '0.1s'}}>
                         {t('landing_hero_title_1')} <br className="hidden md:block"/>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">{t('landing_hero_title_2')}</span>
                     </h1>
                     
-                    <p className="text-base sm:text-lg lg:text-xl text-slate-300 max-w-3xl mx-auto mb-12 leading-relaxed animate-fade-in-up font-light px-4" style={{animationDelay: '0.2s'}}>
+                    <p className="text-sm sm:text-base lg:text-xl text-slate-300 max-w-3xl mx-auto mb-10 sm:mb-12 leading-relaxed animate-fade-in-up font-light px-2 sm:px-4" style={{animationDelay: '0.2s'}}>
                         {t('landing_hero_desc')}
                     </p>
                     
@@ -219,7 +219,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                     </div>
 
                     {/* Stats */}
-                    <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto border-t border-white/10 pt-12 animate-fade-in-up px-4" style={{animationDelay: '0.4s'}}>
+                    <div className="mt-16 sm:mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto border-t border-white/10 pt-8 sm:pt-12 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
                         {[
                             { label: t('landing_stats_protocols'), value: "15,000+" },
                             { label: t('landing_stats_clinics'), value: "50+" },
@@ -236,8 +236,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </header>
 
             {/* --- FEATURES SECTION --- */}
-            <section id="features" className="py-24 md:py-32 bg-slate-900 relative">
-                <div className="max-w-7xl mx-auto px-6">
+            <section id="features" className="py-16 sm:py-24 md:py-32 bg-slate-900 relative w-full">
+                <div className="w-full page-px">
                     <div className="text-center mb-16 md:mb-20">
                         <p className="text-sm font-bold text-blue-400/90 mb-3 uppercase tracking-wider">{INSTITUTE_NAME_FULL}</p>
                         <h2 className="text-3xl md:text-5xl font-bold mb-6">{t('landing_features_title')}</h2>
@@ -246,7 +246,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
                         {[
                             {
                                 icon: <UserGroupIcon className="w-10 h-10 text-blue-400" />,
@@ -291,7 +291,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                                 border: "border-cyan-500/20"
                             }
                         ].map((feature, i) => (
-                            <div key={i} className={`group p-8 md:p-10 rounded-[2rem] bg-slate-800/50 border hover:bg-slate-800 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${feature.border}`}>
+                            <div key={i} className={`group p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-[2rem] bg-slate-800/50 border hover:bg-slate-800 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl min-w-0 ${feature.border}`}>
                                 <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center mb-6 md:mb-8 transition-transform group-hover:scale-110 ${feature.bg}`}>
                                     {feature.icon}
                                 </div>
@@ -304,10 +304,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </section>
 
             {/* --- HOW IT WORKS --- */}
-            <section id="how-it-works" className="py-24 md:py-32 bg-slate-950 relative overflow-hidden">
+            <section id="how-it-works" className="py-16 sm:py-24 md:py-32 bg-slate-950 relative overflow-hidden w-full">
                 <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-blue-900/10 to-transparent"></div>
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                <div className="w-full page-px relative z-10">
+                    <div className="flex flex-col lg:flex-row items-center gap-10 sm:gap-12 lg:gap-20">
                         <div className="w-full lg:w-1/2">
                             <h2 className="text-3xl md:text-5xl font-bold mb-10 leading-tight text-center lg:text-left">{t('landing_how_title')} <br/><span className="text-blue-500">{t('landing_how_subtitle')}</span></h2>
                             <div className="space-y-8 md:space-y-12">
@@ -366,10 +366,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </section>
 
             {/* --- TESTIMONIALS --- */}
-            <section id="testimonials" className="py-24 md:py-32 bg-slate-900">
-                <div className="max-w-7xl mx-auto px-6">
-                    <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 md:mb-20">{t('landing_testimonials_title')}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <section id="testimonials" className="py-16 sm:py-24 md:py-32 bg-slate-900 w-full">
+                <div className="w-full page-px">
+                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-center mb-10 sm:mb-16 md:mb-20">{t('landing_testimonials_title')}</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                         {[
                             { 
                                 name: t('testimonial_1_name'), 
@@ -387,7 +387,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                                 text: t('testimonial_3_text') 
                             }
                         ].map((review, i) => (
-                            <div key={i} className="p-8 md:p-10 bg-white/5 rounded-[2rem] border border-white/5 hover:bg-white/10 transition-colors relative">
+                            <div key={i} className="p-6 sm:p-8 md:p-10 bg-white/5 rounded-2xl sm:rounded-[2rem] border border-white/5 hover:bg-white/10 transition-colors relative min-w-0">
                                 <div className="absolute -top-6 left-8 text-6xl text-blue-500 opacity-30 font-serif">"</div>
                                 <div className="flex gap-1 mb-6 text-yellow-500">
                                     {[1,2,3,4,5].map(s => <span key={s}>в…</span>)}
@@ -409,8 +409,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </section>
 
             {/* --- PARTNERS --- */}
-            <section className="py-20 border-t border-white/5 bg-slate-950">
-                <div className="max-w-7xl mx-auto px-6 text-center">
+            <section className="py-12 sm:py-20 border-t border-white/5 bg-slate-950 w-full">
+                <div className="w-full page-px text-center">
                     <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.2em] mb-12">{t('landing_partners_title')}</p>
                     <div className="flex flex-wrap justify-center gap-10 md:gap-16 opacity-40 hover:opacity-100 transition-opacity duration-500">
                         {/* Placeholders for logos */}
@@ -423,10 +423,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </section>
 
             {/* --- CTA --- */}
-            <section className="py-24 md:py-32 relative overflow-hidden">
+            <section className="py-16 sm:py-24 md:py-32 relative overflow-hidden w-full">
                 <div className="absolute inset-0 bg-blue-600/20"></div>
                 <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-transparent to-slate-900"></div>
-                <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+                <div className="w-full page-px max-w-4xl mx-auto text-center relative z-10">
                     <p className="text-sm md:text-base font-bold text-blue-200/90 mb-4 uppercase tracking-wider">{INSTITUTE_NAME_FULL}</p>
                     <h2 className="text-4xl md:text-6xl font-black mb-6 md:mb-8 tracking-tight">{t('landing_cta_bottom_title')}</h2>
                     <p className="text-lg md:text-xl text-blue-100 mb-10 md:mb-12 font-light max-w-2xl mx-auto">
@@ -442,8 +442,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
             </section>
 
             {/* --- FOOTER --- */}
-            <footer className="py-12 md:py-16 bg-slate-950 border-t border-white/10 text-sm text-slate-400">
-                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left">
+            <footer className="py-10 sm:py-12 md:py-16 bg-slate-950 border-t border-white/10 text-sm text-slate-400 w-full">
+                <div className="w-full page-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 text-center md:text-left">
                     <div>
                         <div className="flex flex-col gap-1 mb-6">
                             <div className="flex items-center justify-center md:justify-start gap-2">
@@ -524,11 +524,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                     </div>
                 </div>
                 
-                <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <p className="text-center md:text-left"><span className="font-bold text-white">{INSTITUTE_NAME_FULL}</span> &copy; 2025. {t('footer_rights')}</p>
+                <div className="w-full page-px mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 flex-wrap">
+                    <p className="text-center md:text-left text-xs sm:text-sm"><span className="font-bold text-white">{INSTITUTE_NAME_FULL}</span> &copy; 2025. {t('footer_rights')}</p>
                     
                     {/* Modern Developer Credits */}
-                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 bg-white/5 px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 bg-white/5 px-4 sm:px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">
                         <div className="flex items-center gap-2 group">
                             <span className="opacity-60 text-xs uppercase tracking-wide">{t('footer_creator')}:</span>
                             <a href="https://fargana.uz" target="_blank" rel="noopener noreferrer" className="text-white font-bold hover:text-blue-400 transition-colors flex items-center gap-1">

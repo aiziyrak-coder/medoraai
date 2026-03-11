@@ -1181,17 +1181,17 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     return (
-        <div className="h-screen w-full medical-mesh-bg text-white flex flex-col font-sans overflow-hidden">
+        <div className="h-screen w-full max-w-[100vw] medical-mesh-bg text-white flex flex-col font-sans overflow-hidden min-w-0">
             
             {/* --- IMMEDIATE ADMISSION (NAVBATSIZ) MODAL --- */}
             {showWalkInModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in-up">
-                    <GlassCard className="w-full max-w-md p-6 border-white/20 bg-slate-900/80">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                <PlayIcon className="w-5 h-5 text-green-400"/> {t('walk_in_admission')}
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in-up overflow-y-auto">
+                    <GlassCard className="w-full max-w-md p-4 sm:p-6 border-white/20 bg-slate-900/80 my-4">
+                        <div className="flex justify-between items-center gap-2 mb-4 sm:mb-6">
+                            <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 min-w-0">
+                                <PlayIcon className="w-5 h-5 text-green-400 shrink-0"/> <span className="truncate">{t('walk_in_admission')}</span>
                             </h3>
-                            <button onClick={() => setShowWalkInModal(false)} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+                            <button onClick={() => setShowWalkInModal(false)} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0">
                                 <XIcon className="w-6 h-6" />
                             </button>
                         </div>
@@ -1199,7 +1199,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-200">
                                 {t('walk_in_admission_desc')}
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('first_name_label')}</label>
                                     <input 

@@ -47,7 +47,7 @@ import { AIModel } from './constants/specialists';
 import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT } from './constants/brand';
 
 const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="h-full overflow-y-auto px-4 py-6 custom-scrollbar">
+    <div className="h-full overflow-y-auto overflow-x-hidden page-px py-6 custom-scrollbar min-w-0">
         {children}
     </div>
 );
@@ -713,14 +713,14 @@ const AppContent: React.FC = () => {
     const renderMainContent = () => {
         switch (appView) {
             case 'dashboard': return <ScrollWrapper><Dashboard userName={currentUser!.name} onNewAnalysis={() => handleNavigation('new_analysis')} onViewHistory={() => setAppView('history')} recentAnalyses={userHistory.slice(0, 5)} onSelectAnalysis={viewHistoryItem} stats={dashboardStats} cmeTopics={cmeTopics} /></ScrollWrapper>;
-            case 'new_analysis': return <div className="h-full px-4 py-4 overflow-hidden"><DataInputForm onSubmit={handleDataSubmit} isAnalyzing={isProcessing} /></div>;
-            case 'clarification': return <ScrollWrapper><div className="max-w-3xl mx-auto w-full"><ClarificationView isGenerating={isProcessing} questions={clarificationQuestions} onSubmit={handleClarificationSubmit} statusMessage={statusMessage} error={error} /></div></ScrollWrapper>;
-            case 'team_recommendation': return <ScrollWrapper><div className="max-w-3xl mx-auto w-full h-full flex flex-col"><TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} /></div></ScrollWrapper>
+            case 'new_analysis': return <div className="h-full page-px py-4 overflow-hidden min-w-0"><DataInputForm onSubmit={handleDataSubmit} isAnalyzing={isProcessing} /></div>;
+            case 'clarification': return <ScrollWrapper><div className="max-w-3xl mx-auto w-full min-w-0"><ClarificationView isGenerating={isProcessing} questions={clarificationQuestions} onSubmit={handleClarificationSubmit} statusMessage={statusMessage} error={error} /></div></ScrollWrapper>;
+            case 'team_recommendation': return <ScrollWrapper><div className="max-w-3xl mx-auto w-full h-full flex flex-col min-w-0"><TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} /></div></ScrollWrapper>
             case 'live_analysis':
             case 'view_history_item':
                 const record = appView === 'live_analysis' || appView === 'view_history_item' ? { patientData, debateHistory, finalReport, selectedSpecialists: selectedSpecialistsConfig.map(s=>s.role) } : currentAnalysisRecord;
                 if (!record || !record.patientData) return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
-                return <div className="h-full px-4 py-4 overflow-hidden"><AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} onGoToEducation={() => setAppView('patient_education')} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} /></div>;
+                return <div className="h-full page-px py-4 overflow-hidden min-w-0"><AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} onGoToEducation={() => setAppView('patient_education')} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} /></div>;
             case 'history': return <ScrollWrapper><HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} /></ScrollWrapper>;
             case 'case_library': return <ScrollWrapper><CaseLibraryView onBack={() => setAppView('history')} /></ScrollWrapper>;
             case 'patient_education': return <ScrollWrapper>{currentAnalysisRecord && <PatientEducationPortal record={currentAnalysisRecord} onBack={() => setAppView('view_history_item')} />}</ScrollWrapper>;
@@ -775,53 +775,53 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen w-full font-sans text-text-primary bg-transparent relative overflow-hidden">
+        <div className="flex flex-col h-screen w-full max-w-[100vw] font-sans text-text-primary bg-transparent relative overflow-hidden">
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
             {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
             {isApiConfigured() && !apiHealthy && (
-                <div className="flex-none flex items-center justify-center gap-3 py-2 px-4 bg-amber-500/90 text-white text-sm font-medium z-40">
+                <div className="flex-none flex items-center justify-center gap-2 sm:gap-3 py-2 page-px bg-amber-500/90 text-white text-xs sm:text-sm font-medium z-40 flex-wrap">
                     {healthStatus === 400 ? (
-                        <span>Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup medora.cdcgroup.uz</code> в†’ <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
+                        <span className="break-words">Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup medora.cdcgroup.uz</code> в†’ <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
                     ) : (
                         <span>Server bilan bog&apos;lanish yo&apos;q. Ma&apos;lumotlar mahalliy saqlanadi.</span>
                     )}
-                    <button type="button" onClick={checkNow} className="underline font-semibold hover:no-underline">Qayta tekshirish</button>
+                    <button type="button" onClick={checkNow} className="underline font-semibold hover:no-underline shrink-0">Qayta tekshirish</button>
                 </div>
             )}
-            <header className="flex-none pt-4 px-4 pb-2 z-30">
-                 <div className="glass-panel px-6 py-3 flex justify-between items-center shadow-lg shadow-blue-500/5 mx-auto max-w-[1600px]">
-                        <div className="flex items-center gap-3">
-                             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                <span className="text-white font-black text-lg">M</span>
+            <header className="flex-none pt-3 sm:pt-4 pb-2 z-30 w-full">
+                 <div className="glass-panel page-px py-3 flex flex-wrap justify-between items-center gap-2 sm:gap-4 shadow-lg shadow-blue-500/5 w-full min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+                                <span className="text-white font-black text-base sm:text-lg">M</span>
                              </div>
-                             <h1 className="text-xl font-bold tracking-tight text-text-primary hidden sm:block">{t('appName')}</h1>
+                             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-text-primary truncate min-w-0">{t('appName')}</h1>
                         </div>
-                        <div className="hidden md:flex items-center gap-1 p-1 bg-white/40 rounded-full border border-white/40 backdrop-blur-md shadow-inner">
+                        <div className="hidden md:flex items-center flex-wrap gap-1 p-1 bg-white/40 rounded-full border border-white/40 backdrop-blur-md shadow-inner">
                             <NavButton view="dashboard" label={t('nav_dashboard')} icon={<HomeIcon />} />
                             <NavButton view="new_analysis" label={t('nav_new_case')} icon={<PlusCircleIcon />} />
                             <NavButton view="history" label={t('nav_archive')} icon={<DocumentReportIcon />} />
                             <NavButton view="research" label={t('nav_research')} icon={<LightBulbIcon />} />
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
-                            <button onClick={handleLogout} className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-4 py-2 hover:bg-white/50 rounded-xl">{t('logout')}</button>
+                            <button onClick={handleLogout} className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 sm:px-4 py-2 hover:bg-white/50 rounded-xl">{t('logout')}</button>
                         </div>
                 </div>
             </header>
 
-            <main className="flex-grow flex flex-col overflow-hidden w-full max-w-[1600px] mx-auto relative z-10">
+            <main className="flex-grow flex flex-col overflow-hidden w-full min-w-0 relative z-10">
                {renderMainContent()}
             </main>
             
-            <footer className="flex-none w-full py-4 px-6 border-t border-white/20 bg-white/30 backdrop-blur-2xl z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
-                <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] font-medium tracking-wide text-slate-500">
-                    <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1">
-                            <CopyrightIcon className="w-3.5 h-3.5 opacity-70" />
+            <footer className="flex-none w-full py-3 sm:py-4 border-t border-white/20 bg-white/30 backdrop-blur-2xl z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
+                <div className="container-full flex flex-col md:flex-row justify-between items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-medium tracking-wide text-slate-500">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex items-center gap-1 truncate">
+                            <CopyrightIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
                             <span>Since 2025 {t('appName')}. {t('footer_rights')}</span>
                         </span>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 bg-white/40 px-4 py-1.5 rounded-full border border-white/40 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-6 bg-white/40 px-3 sm:px-4 py-1.5 rounded-full border border-white/40 shadow-sm flex-wrap justify-center">
                         <div className="flex items-center gap-1.5 group">
                             <span className="opacity-70">{t('footer_creator')}:</span>
                             <a href="https://fargana.uz" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent font-bold hover:scale-105 transition-transform duration-200 cursor-pointer">CDCGroup</a>

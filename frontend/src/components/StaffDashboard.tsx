@@ -186,7 +186,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
     const completedList = queue.filter(p => p.status === 'completed').sort((a, b) => b.ticketNumber - a.ticketNumber);
 
     return (
-        <div className="h-screen w-full medical-mesh-bg text-white flex flex-col font-sans overflow-hidden relative">
+        <div className="h-screen w-full max-w-[100vw] medical-mesh-bg text-white flex flex-col font-sans overflow-hidden relative min-w-0">
             
             {/* --- ADD PATIENT MODAL --- */}
             {showAddModal && (
@@ -198,7 +198,7 @@ const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }) => {
                         </div>
                         
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('data_input_patient_name')}</label>
                                     <input 

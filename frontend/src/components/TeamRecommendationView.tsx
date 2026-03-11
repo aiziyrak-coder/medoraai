@@ -155,9 +155,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                     <AIAvatar model={model} size="xs" />
                                     <div className="flex-1 min-w-0">
                                         <p className={`text-xs font-bold truncate ${isSelected ? 'text-blue-800' : 'text-slate-700'}`}>
-                                            {specialistInfo.name.split('(')[0].trim()}
+                                            {t(`specialist_name_${model.toLowerCase()}` as TranslationKey) || specialistInfo.name.split('(')[0].trim()}
                                         </p>
-                                        <p className="text-[10px] text-slate-500 truncate">{specialistInfo.specialty}</p>
+                                        <p className="text-[10px] text-slate-500 truncate">
+                                            {t(`specialty_${model.toLowerCase()}` as TranslationKey) || specialistInfo.specialty}
+                                        </p>
                                     </div>
                                     {recommendation && (
                                         <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded">AI</span>
@@ -186,7 +188,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                 return (
                                     <div key={model} className="flex items-center gap-2 p-1.5 bg-white rounded border border-blue-100">
                                         <AIAvatar model={model} size="xs" />
-                                        <p className="text-xs font-semibold text-blue-900 flex-1 truncate">{spec.name.split('(')[0].trim()}</p>
+                                        <p className="text-xs font-semibold text-blue-900 flex-1 truncate">{t(`specialist_name_${model.toLowerCase()}` as TranslationKey) || spec.name.split('(')[0].trim()}</p>
                                         <button onClick={() => toggleSpecialist(model)} className="text-red-500 hover:text-red-700 text-xs">вњ•</button>
                                     </div>
                                 );
