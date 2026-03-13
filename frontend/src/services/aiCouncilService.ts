@@ -851,37 +851,47 @@ export const runDoctorSupportViaGemini = async (
     }
 };
 
+const CLARIFY_FALLBACK: Record<Language, string[]> = {
+    'uz-L': ["Allergiyangiz bormi?", "Hozir qanday dori ichyapsiz?", "Belgilar qachondan boshlangan?"],
+    'uz-C': ["Аллергиянгиз борми?", "Ҳозир қандай дори ичяпсиз?", "Белгилар қачондан бошланган?"],
+    'ru':   ["Есть ли у вас аллергия?", "Какие принимаете лекарства?", "Когда начались симптомы?"],
+    'kaa':  ["Allergiyanız barma?", "Házir qanday dári ishleysiñ?", "Belgiler qashan baslandı?"],
+    'en':   ["Do you have any allergies?", "What medications are you taking?", "When did symptoms start?"],
+};
+
 export const generateClarifyingQuestions = async (data: PatientData, language: Language): Promise<string[]> => {
-    const systemInstr = getSystemInstruction(language);
-    const prompt = buildMultimodalPrompt(
-        `Bemorning klinik ma'lumotlarini tahlil qiling. Allaqachon mavjud ma'lumotlarni QAYTA so'ramang.
+    // Minimal text prompt — no images, no heavy system instruction to save tokens
+    const patientSummary = [
+        data.complaints ? `Shikoyat: ${data.complaints}` : '',
+        data.history    ? `Anamnez: ${data.history}`    : '',
+        data.objectiveData ? `Ob'ektiv: ${data.objectiveData}` : '',
+    ].filter(Boolean).join('\n').slice(0, 800);
 
-Faqat ENG MUHIM 3-4 ta savol bering. Har bir savol QISQA bo'lsin (max 10-15 so'z). Savol mazmuni aniq va to'g'ridan-to'g'ri bo'lsin.
+    const plainPrompt = `Quyidagi bemor ma'lumotlariga asosan ENG MUHIM 3 ta savol ber.
+Har savol ALOHIDA QATORDA bo'lsin. Raqam yoki belgi qo'yma. Har bir savol 8-12 so'z.
+TIL: ${langMap[language]}.
 
-Misol formatda: "Allergiyangiz bormi?", "Yurak urishingiz qancha?", "Og'riq qachondan boshlangan?"
+${patientSummary}`;
 
-JSON array qaytaring: ["savol1", "savol2", "savol3"]
-TIL: ${langMap[language]}.`,
-        data
-    );
-    const schema = { type: 'array', items: { type: 'string' } };
     try {
-        const result = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 1024);
-        const arr = Array.isArray(result)
-            ? (result as string[]).filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
-            : [];
-        return arr.length > 0 ? arr : [];
+        const ai = getGemini();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const response = await ai.models.generateContent({
+            model: DEPLOY_FAST,
+            contents: plainPrompt,
+            config: { temperature: 0.1, maxOutputTokens: 256 },
+        });
+        clearTimeout(timeoutId);
+        const text = (response.text ?? '').trim();
+        const questions = text
+            .split('\n')
+            .map(l => l.replace(/^[\d\.\-\*\s]+/, '').replace(/^["']|["']$/g, '').trim())
+            .filter(l => l.length > 5 && l.length < 200);
+        return questions.length >= 2 ? questions.slice(0, 4) : CLARIFY_FALLBACK[language];
     } catch (e) {
         logger.warning('generateClarifyingQuestions error', e);
-        // Fallback: minimal universal questions
-        const fallbackMap: Record<Language, string[]> = {
-            'uz-L': ["Allergiyangiz bormi?", "Hozir qanday dori ichyapsiz?", "Belgilar qachondan boshlangan?"],
-            'uz-C': ["Аллергиянгиз борми?", "Ҳозир қандай дори ичяпсиз?", "Белгилар қачондан бошланган?"],
-            'ru':   ["Есть ли аллергия?", "Какие лекарства принимаете?", "Когда начались симптомы?"],
-            'kaa':  ["Allergiyanız barma?", "Házir qanday dári ishleysiñ?", "Belgiler qashan baslandı?"],
-            'en':   ["Do you have any allergies?", "What medications are you taking?", "When did symptoms start?"],
-        };
-        return fallbackMap[language] ?? fallbackMap['uz-L'];
+        return CLARIFY_FALLBACK[language];
     }
 };
 
