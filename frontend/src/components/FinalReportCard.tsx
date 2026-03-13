@@ -107,12 +107,26 @@ const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> 
 };
 
 
+/** Normalize treatmentPlan item: Gemini sometimes returns objects {step,details,urgency} */
+const planItemToString = (item: unknown): string => {
+    if (typeof item === 'string') return item;
+    if (item && typeof item === 'object') {
+        const o = item as Record<string, unknown>;
+        return [o.step, o.details, o.urgency, o.action, o.description, o.text]
+            .filter(v => v && typeof v === 'string')
+            .join(' — ') || JSON.stringify(item);
+    }
+    return String(item ?? '');
+};
+
 const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<PatientData>, isScenario?: boolean, onUpdateReport?: (updatedReport: Partial<FinalReport>) => void }> = ({ report, patientData, isScenario = false, onUpdateReport }) => {
+    const safePlan = (Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString);
+
     const [isEditingPlan, setIsEditingPlan] = useState(false);
-    const [editedPlan, setEditedPlan] = useState<string[]>(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []);
+    const [editedPlan, setEditedPlan] = useState<string[]>(safePlan);
 
     useEffect(() => {
-        setEditedPlan(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []);
+        setEditedPlan((Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString));
     }, [report.treatmentPlan]);
     
     const handlePlanChange = (index: number, value: string) => {
@@ -210,7 +224,7 @@ const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<Pati
                     {!isEditingPlan ? (
                         <div className="space-y-3">
                             <ul className="list-disc list-inside space-y-2 text-text-primary">
-                                {(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map((item, index) => <li key={index}>{item}</li>)}
+                                {safePlan.map((item, index) => <li key={index}>{item}</li>)}
                             </ul>
                             {onUpdateReport && !isScenario && (
                                 <button onClick={() => setIsEditingPlan(true)} className="flex items-center gap-2 text-sm font-semibold text-accent-color-blue bg-slate-200/50 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors mt-3">

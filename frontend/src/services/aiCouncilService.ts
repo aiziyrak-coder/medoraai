@@ -1099,17 +1099,29 @@ export const runCouncilDebate = async (
             onProgress({ type: 'thinking', model: spec.role });
             const specialist = AI_SPECIALISTS[spec.role];
 
-            const textPrompt = `
-                Role: ${specialist?.name || spec.role}.
-                Task: Answer the Chair's question: "${currentTopic}". Use your specialty expertise.
-                REQUIREMENTS:
-                1. Reference O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) approved clinical protocols where applicable.
-                2. Recommend only drugs registered and available in Uzbekistan (savdo nomlari: Nimesil, Sumamed, Augmentin, Metformin va hokazo).
-                3. Debate scientifically; use reasoning and evidence.
-                4. If you need clarification from the patient/doctor (e.g. specific lab value, symptom detail), mention it in your response: "Ma'lumot kerak: [question]" and the Chair will ask the user.
-                5. LANGUAGE: ${langMap[language]} ONLY.
-                History: ${JSON.stringify(debateHistory)}
-            `;
+            // Find previous messages from OTHER specialists to enable direct rebuttals
+            const otherSpecialistMessages = debateHistory
+                .filter(m => !m.isSystemMessage && m.author !== spec.role)
+                .slice(-3);
+            const rebuttalContext = otherSpecialistMessages.length > 0
+                ? `\n\nBoshqa mutaxassislarning OXIRGI fikrlari (ularga to'g'ridan-to'g'ri munosabat bildiring, ismlari bilan):\n${otherSpecialistMessages.map(m => `${m.author}: "${m.content.slice(0, 200)}..."`).join('\n')}`
+                : '';
+
+            const textPrompt = `Siz — ${specialist?.name || spec.role} (${specialist?.title || 'mutaxassis'}).
+
+VAZIFANGIZ: Konsilium raisi savoli: "${currentTopic}"${rebuttalContext}
+
+MUHIM QOIDALAR:
+1. O'z mutaxassislik sohangizdagi KUCHLi, ANIQ KLINIK FIKR bildiring. Umumiy gaplar kerak emas.
+2. Agar boshqa mutaxassis NOTO'G'RI yoki CHALA yozgan bo'lsa — ismi bilan, DALIL asosida RAD ETING: "Dr. [ism] ning [narsa] haqidagi fikridan farqli o'laroq..."
+3. O'z tashxisingizni HIMOYA qiling, lekin yangi dalillar bo'lsa fikringizni YANGILANG.
+4. Faqat O'zbekistonda mavjud dori-darmonlar (Nimesil, Sumamed, Metformin, Enalapril va h.k.).
+5. SSV klinik protokollariga aniq havola bering.
+6. Agar MUHIM ma'lumot yetishmasa: "Shifokordan so'rashim kerak: [savol]" — deb yozing.
+7. TIL: ${langMap[language]} FAQAT.
+
+Bahslar tarixi: ${JSON.stringify(debateHistory.slice(-6))}`;
+
             
             const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData);
             
@@ -1130,13 +1142,16 @@ export const runCouncilDebate = async (
         }
         
         if (round < DEBATE_ROUNDS) {
-            const summarizationPrompt = `
-                Role: Council Chair.
-                Task: Summarize the round and ask a sharp, clarifying question for the next round OR if critical information is missing (e.g. vital signs, specific symptoms, duration, severity), ask the USER by prefixing: "FOYDALANUVCHI UCHUN SAVOL: [your question]". Keep in mind SSV clinical protocols and Uzbekistan context.
-                IMPORTANT: If you need clarification from the patient/doctor, use "FOYDALANUVCHI UCHUN SAVOL:" prefix so the system can ask the user.
-                LANGUAGE: ${langMap[language]}.
-                History: ${JSON.stringify(debateHistory)}
-            `;
+            const summarizationPrompt = `Siz — Konsilium raisi. ${round}-bosqich tugadi.
+
+VAZIFANGIZ:
+1. Mutaxassislar o'rtasidagi ASOSIY ZIDDIYAT yoki KELISHMOVCHILIKNI ko'rsating.
+2. Eng munozarali TASHXIS yoki DAVOLASH masalasini ANIQ YO'NALTIRING.
+3. Agar shifokordan ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [savol]" formatida yozing.
+4. Keyingi bosqich uchun KESKIN, ANIQ savol bering — mutaxassislarni bahslashishga undasin.
+
+TIL: ${langMap[language]}.
+Tarixi: ${JSON.stringify(debateHistory.slice(-8))}`;
             currentTopic = await callGemini(summarizationPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 1024) as string;
         }
     }

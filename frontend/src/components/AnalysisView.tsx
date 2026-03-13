@@ -89,9 +89,9 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
     if (!pd) return <div className="text-center p-8">Ma'lumotlar topilmadi.</div>;
 
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 h-full">
+        <div className={`grid grid-cols-1 gap-6 h-full ${fr ? 'xl:grid-cols-12' : 'xl:grid-cols-12'}`}>
             {/* Left Panel: Patient Data */}
-            <div className="xl:col-span-3 glass-panel p-6 overflow-y-auto h-full flex flex-col">
+            <div className={`${fr ? 'xl:col-span-3' : 'xl:col-span-3'} glass-panel p-6 overflow-y-auto h-full flex flex-col`}>
                 <div className="mb-4">
                     <h3 className="text-lg font-bold text-text-primary">Bemor Ma'lumotlari</h3>
                     <div className="h-1 w-12 bg-blue-500 rounded-full mt-1"></div>
@@ -133,7 +133,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
             </div>
 
             {/* Center Panel: Interactive Analysis */}
-            <div className="xl:col-span-5 glass-panel overflow-hidden flex flex-col h-full relative">
+            <div className={`${fr ? 'xl:col-span-5' : 'xl:col-span-9'} glass-panel overflow-hidden flex flex-col h-full relative`}>
                  <div className="p-5 border-b border-white/20 flex-shrink-0 bg-white/30 backdrop-blur-md z-10">
                     <h3 className="text-lg font-bold text-text-primary">Interaktiv Tahlil</h3>
                     <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mt-0.5">{statusMessage || "Konsilium jarayoni"}</p>
@@ -179,43 +179,23 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                 )}
             </div>
             
-            {/* Right Panel: Synthesis & Actions */}
-            <div className="xl:col-span-4 glass-panel overflow-hidden flex flex-col h-full">
-                <div className="p-5 border-b border-white/20 bg-white/30 backdrop-blur-md">
-                    <h3 className="text-lg font-bold text-text-primary">Natijalar va Xulosa</h3>
-                </div>
-                <div className="p-5 overflow-y-auto flex-grow custom-scrollbar">
-                    {fr ? (
+            {/* Right Panel: Final Report — faqat tahlil tugaganda ko'rinadi */}
+            {fr && (
+                <div className="xl:col-span-4 glass-panel overflow-hidden flex flex-col h-full">
+                    <div className="p-5 border-b border-white/20 bg-white/30 backdrop-blur-md">
+                        <h3 className="text-lg font-bold text-text-primary">Yakuniy Xulosa</h3>
+                    </div>
+                    <div className="p-5 overflow-y-auto flex-grow custom-scrollbar">
                         <div className="space-y-6">
                             <FinalReportCard report={fr} patientData={pd} onUpdateReport={onUpdateReport} />
-                            
-                            <div className="mt-8 p-6 border-2 border-dashed border-purple-200 rounded-[2rem] bg-purple-50/50">
-                                <h3 className="text-lg font-bold text-purple-900 mb-2 flex items-center gap-2"><LightBulbIcon className="w-6 h-6 text-purple-600" /> Senariy Tahlili</h3>
-                                <p className="text-sm text-purple-700/80 mb-4">"Nima bo'lardi, agar..." savolini berib, alternativ natijalarni o'rganing.</p>
-                                <textarea id="analysis-scenario" name="scenario" value={scenarioText} onChange={e => setScenarioText(e.target.value)} rows={3} placeholder="Masalan: Agar bemorning kaliy miqdori normal bo'lganda nima bo'lardi?" className="w-full common-input bg-white/80" aria-label="Ssenariy matni" />
-                                <button onClick={handleRunScenario} disabled={isScenarioRunning} className="w-full animated-gradient-button font-bold py-3 px-4 rounded-xl mt-3 disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {isScenarioRunning ? <><SpinnerIcon className="w-5 h-5"/> Tahlil qilinmoqda...</> : "Senariyni Ishga Tushirish"}
-                                </button>
-                                {scenarioResult && <FinalReportCard report={scenarioResult} patientData={pd} isScenario={true} />}
-                            </div>
-                            
                             <DownloadPanel record={record} />
                             <button onClick={onGoToEducation} className="w-full py-4 rounded-[1.25rem] font-bold text-blue-600 bg-white border border-blue-100 hover:bg-blue-50 transition-colors shadow-sm">
                                 Bemor uchun Ma'lumot Portalini Ochish
                             </button>
                         </div>
-                    ) : (
-                        <div className="h-full flex flex-col">
-                             <PrognosisCard prognosis={livePrognosis} isLoading={isAnalyzing && !livePrognosis} />
-                             {isAnalyzing && (
-                                <div className="flex-grow flex items-center justify-center text-center opacity-60">
-                                    <p className="text-sm text-text-secondary">Yakuniy hisobot tahlil tugagandan so'ng shakllanadi.</p>
-                                </div>
-                             )}
-                        </div>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
