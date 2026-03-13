@@ -46,7 +46,7 @@ import HexBackground from './components/HexBackground';
 import MonitorIcon from './components/icons/MonitorIcon'; 
 
 import { AIModel } from './constants/specialists';
-import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT } from './constants/brand';
+import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT, PLATFORM_NAME, PLATFORM_VERSION } from './constants/brand';
 
 const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="h-full overflow-y-auto overflow-x-hidden page-px py-6 custom-scrollbar min-w-0">
@@ -901,7 +901,7 @@ const AppContent: React.FC = () => {
                         </div>
                         <div className="min-w-0 hidden sm:block">
                             <h1 className="text-base font-black tracking-tight text-slate-800 leading-none">{t('appName')}</h1>
-                            <p className="text-[9px] text-slate-400 font-medium tracking-wide leading-none mt-0.5">AI Konsilium Tizimi</p>
+                            <p className="text-[9px] text-slate-400 font-medium tracking-wide leading-none mt-0.5">{PLATFORM_NAME} — AI Konsilium</p>
                         </div>
                         <h1 className="text-base font-black tracking-tight text-slate-800 sm:hidden">{t('appName')}</h1>
                     </button>
@@ -978,7 +978,7 @@ const AppContent: React.FC = () => {
                                     WebkitTextFillColor: 'transparent',
                                 }}
                             >
-                                MedoraAI v3.0
+                                {PLATFORM_NAME} {PLATFORM_VERSION}
                             </span>
                         </div>
 

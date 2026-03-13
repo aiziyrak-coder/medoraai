@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
-import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT } from '../constants/brand';
+import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT, PLATFORM_NAME, PLATFORM_VERSION } from '../constants/brand';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
 import GlobeIcon from './icons/GlobeIcon';
@@ -191,9 +191,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                         <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                         {t('landing_hero_badge')}
                     </div>
-                    <p className="text-sm md:text-base text-slate-400 font-semibold mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+                    <p className="text-sm md:text-base text-slate-400 font-semibold mb-3 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
                         {INSTITUTE_NAME_FULL}
                     </p>
+                    <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/20 mb-6 animate-fade-in-up" style={{ animationDelay: '0.07s' }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                        <span
+                            className="text-sm font-black tracking-widest uppercase"
+                            style={{ background: 'linear-gradient(90deg,#38bdf8,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                        >
+                            {PLATFORM_NAME} {PLATFORM_VERSION}
+                        </span>
+                    </div>
                     <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] mb-6 sm:mb-8 animate-fade-in-up px-1" style={{animationDelay: '0.1s'}}>
                         {t('landing_hero_title_1')} <br className="hidden md:block"/>
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">{t('landing_hero_title_2')}</span>
@@ -525,7 +534,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide }) => {
                 </div>
                 
                 <div className="w-full page-px mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 flex-wrap">
-                    <p className="text-center md:text-left text-xs sm:text-sm"><span className="font-bold text-white">{INSTITUTE_NAME_FULL}</span> &copy; 2025. {t('footer_rights')}</p>
+                    <p className="text-center md:text-left text-xs sm:text-sm">
+                        <span className="font-bold text-white">{INSTITUTE_NAME_FULL}</span>
+                        <span className="mx-2 text-white/30">·</span>
+                        <span className="font-bold" style={{ background: 'linear-gradient(90deg,#38bdf8,#34d399)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>{PLATFORM_NAME} {PLATFORM_VERSION}</span>
+                        <span className="mx-2 text-white/30">·</span>
+                        &copy; 2026. {t('footer_rights')}
+                    </p>
                     
                     {/* Modern Developer Credits */}
                     <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 bg-white/5 px-4 sm:px-6 py-2 rounded-full border border-white/10 backdrop-blur-sm">
