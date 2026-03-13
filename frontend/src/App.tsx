@@ -765,7 +765,9 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-screen w-full max-w-[100vw] font-sans text-text-primary bg-transparent relative overflow-hidden">
+        <div className="flex flex-col h-screen w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-hidden">
+            {/* Third ambient orb */}
+            <div className="app-orb3" aria-hidden="true" />
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
             {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
             {isApiConfigured() && !apiHealthy && !isProcessing && (
@@ -803,23 +805,100 @@ const AppContent: React.FC = () => {
                {renderMainContent()}
             </main>
             
-            <footer className="flex-none w-full py-3 sm:py-4 border-t border-white/20 bg-white/30 backdrop-blur-2xl z-20 shadow-[0_-5px_20px_rgba(0,0,0,0.02)]">
-                <div className="container-full flex flex-col md:flex-row justify-between items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-medium tracking-wide text-slate-500">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex items-center gap-1 truncate">
-                            <CopyrightIcon className="w-3.5 h-3.5 opacity-70 shrink-0" />
-                            <span>Since 2025 {t('appName')}. {t('footer_rights')}</span>
-                        </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-6 bg-white/40 px-3 sm:px-4 py-1.5 rounded-full border border-white/40 shadow-sm flex-wrap justify-center">
-                        <div className="flex items-center gap-1.5 group">
-                            <span className="opacity-70">{t('footer_creator')}:</span>
-                            <a href="https://fargana.uz" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent font-bold hover:scale-105 transition-transform duration-200 cursor-pointer">CDCGroup</a>
+            <footer className="flex-none w-full z-20 relative">
+                {/* Top accent line */}
+                <div className="w-full h-px" style={{
+                    background: 'linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.4) 30%, rgba(34,197,94,0.4) 60%, transparent 100%)',
+                }} />
+
+                <div
+                    className="w-full"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(248,252,255,0.92) 0%, rgba(236,248,250,0.92) 50%, rgba(240,253,244,0.92) 100%)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                    }}
+                >
+                    {/* Main footer content */}
+                    <div className="container-full py-3 sm:py-4 flex flex-col lg:flex-row justify-between items-center gap-3">
+
+                        {/* Institute branding */}
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div
+                                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md"
+                                style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 50%, #10b981 100%)' }}
+                            >
+                                <span className="text-white font-black text-sm">F</span>
+                            </div>
+                            <div className="min-w-0">
+                                <p
+                                    className="font-black text-sm tracking-tight"
+                                    style={{
+                                        background: 'linear-gradient(90deg, #0369a1 0%, #0891b2 50%, #059669 100%)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    {INSTITUTE_NAME_SHORT}
+                                </p>
+                                <p className="text-[9px] text-slate-400 font-medium tracking-wide hidden sm:block truncate">
+                                    {INSTITUTE_NAME_FULL}
+                                </p>
+                            </div>
                         </div>
-                        <span className="hidden sm:block w-px h-3 bg-slate-300"></span>
-                        <div className="flex items-center gap-1.5 group">
-                            <span className="opacity-70">{t('footer_support')}:</span>
-                            <a href="https://fargana.uz" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-bold hover:scale-105 transition-transform duration-200 cursor-pointer">CraDev Company</a>
+
+                        {/* Center — copyright */}
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                            <CopyrightIcon className="w-3 h-3 opacity-60 flex-shrink-0" />
+                            <span>2026 · {t('footer_rights')}</span>
+                            <span className="hidden sm:inline text-slate-300 mx-1">|</span>
+                            <span
+                                className="hidden sm:inline font-bold"
+                                style={{
+                                    background: 'linear-gradient(90deg, #0ea5e9, #10b981)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
+                                MedoraAI v3.0
+                            </span>
+                        </div>
+
+                        {/* Right — partners */}
+                        <div className="flex items-center gap-4 sm:gap-5 text-[10px] flex-wrap justify-center">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 font-medium">{t('footer_creator')}:</span>
+                                <a
+                                    href="https://fargana.uz"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-black hover:scale-105 transition-transform"
+                                    style={{
+                                        background: 'linear-gradient(90deg, #0369a1, #0891b2)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    CDCGroup
+                                </a>
+                            </div>
+                            <div className="w-px h-3 bg-slate-200 hidden sm:block" />
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 font-medium">{t('footer_support')}:</span>
+                                <a
+                                    href="https://fargana.uz"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-black hover:scale-105 transition-transform"
+                                    style={{
+                                        background: 'linear-gradient(90deg, #7c3aed, #6366f1)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    CraDev Company
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

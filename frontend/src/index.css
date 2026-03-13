@@ -32,6 +32,81 @@
 }
 
 /* =====================================================
+   SAHIFA FONI — ANIMATSION GRADIENT
+   ===================================================== */
+
+@keyframes bg-shift {
+  0%   { background-position: 0% 50%;   }
+  25%  { background-position: 100% 50%; }
+  50%  { background-position: 100% 0%;  }
+  75%  { background-position: 0% 100%;  }
+  100% { background-position: 0% 50%;   }
+}
+
+@keyframes orb1-move {
+  0%,100% { transform: translate(0px, 0px) scale(1); }
+  33%      { transform: translate(60px, -40px) scale(1.1); }
+  66%      { transform: translate(-30px, 50px) scale(0.95); }
+}
+@keyframes orb2-move {
+  0%,100% { transform: translate(0px, 0px) scale(1); }
+  33%      { transform: translate(-50px, 30px) scale(1.05); }
+  66%      { transform: translate(40px, -60px) scale(1.12); }
+}
+@keyframes orb3-move {
+  0%,100% { transform: translate(0px, 0px) scale(1); }
+  50%      { transform: translate(30px, 40px) scale(1.08); }
+}
+
+.app-bg {
+  background: linear-gradient(135deg, #f8fbff 0%, #eef5fb 20%, #e6f2ee 40%, #eaf4f9 60%, #f0f7ff 80%, #f8fbff 100%);
+  background-size: 400% 400%;
+  animation: bg-shift 18s ease-in-out infinite;
+  position: relative;
+}
+
+/* Floating ambient orbs */
+.app-bg::before {
+  content: '';
+  position: fixed;
+  top: -15%;
+  left: -10%;
+  width: 55vw;
+  height: 55vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180,230,255,0.22) 0%, rgba(160,220,240,0.08) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+  animation: orb1-move 22s ease-in-out infinite;
+}
+.app-bg::after {
+  content: '';
+  position: fixed;
+  bottom: -10%;
+  right: -8%;
+  width: 45vw;
+  height: 45vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(160,240,200,0.18) 0%, rgba(140,220,200,0.07) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+  animation: orb2-move 26s ease-in-out infinite;
+}
+
+.app-orb3 {
+  position: fixed;
+  top: 40%;
+  left: 60%;
+  width: 35vw;
+  height: 35vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,215,255,0.16) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: orb3-move 30s ease-in-out infinite;
+}
+
+/* =====================================================
    FUTURISTIK DASHBOARD ANIMATSIYALARI
    ===================================================== */
 
