@@ -30,3 +30,163 @@
     min-width: 0;
   }
 }
+
+/* =====================================================
+   FUTURISTIK DASHBOARD ANIMATSIYALARI
+   ===================================================== */
+
+/* ECG Pulse line animation */
+@keyframes ecg-draw {
+  0%   { stroke-dashoffset: 600; opacity: 0.3; }
+  30%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.6; }
+}
+
+@keyframes ecg-loop {
+  0%   { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -600; }
+}
+
+/* Neon glow text animation */
+@keyframes neon-glow-blue {
+  0%, 100% {
+    text-shadow:
+      0 0 6px rgba(0, 210, 255, 0.8),
+      0 0 20px rgba(0, 210, 255, 0.5),
+      0 0 40px rgba(0, 210, 255, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 0 12px rgba(0, 210, 255, 1),
+      0 0 35px rgba(0, 210, 255, 0.7),
+      0 0 60px rgba(0, 210, 255, 0.4);
+  }
+}
+
+@keyframes neon-glow-green {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(0, 255, 135, 0.6),
+      0 0 20px rgba(0, 255, 135, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(0, 255, 135, 1),
+      0 0 40px rgba(0, 255, 135, 0.5);
+  }
+}
+
+/* Radial SVG ring progress */
+@keyframes ring-fill {
+  from { stroke-dashoffset: 220; }
+  to   { stroke-dashoffset: var(--ring-offset, 60); }
+}
+
+/* Floating particle animation */
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.4; }
+  33%       { transform: translateY(-12px) translateX(6px); opacity: 0.8; }
+  66%       { transform: translateY(6px) translateX(-8px); opacity: 0.5; }
+}
+
+/* Scan line animation */
+@keyframes scan-line {
+  0%   { top: 0%; opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Grid pulse */
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.03; }
+  50%       { opacity: 0.06; }
+}
+
+/* Pulsing dot */
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,135,0.7); }
+  50%       { box-shadow: 0 0 0 6px rgba(0,255,135,0); }
+}
+
+/* Shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Border rotate */
+@keyframes border-spin {
+  from { --angle: 0deg; }
+  to   { --angle: 360deg; }
+}
+
+/* Number count-up animation trigger */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility classes for animations */
+.animate-ecg-draw {
+  animation: ecg-draw 2s ease-out forwards;
+}
+
+.animate-ecg-loop {
+  animation: ecg-loop 4s linear infinite;
+}
+
+.animate-neon-blue {
+  animation: neon-glow-blue 3s ease-in-out infinite;
+}
+
+.animate-neon-green {
+  animation: neon-glow-green 2s ease-in-out infinite;
+}
+
+.animate-ring-fill {
+  animation: ring-fill 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.5s;
+  stroke-dashoffset: 220;
+}
+
+.animate-float {
+  animation: float-particle 6s ease-in-out infinite;
+}
+
+.animate-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+.animate-count-up {
+  animation: count-up 0.6s ease-out forwards;
+}
+
+/* Dashboard dark panels */
+.dash-panel {
+  background: rgba(13, 27, 42, 0.75);
+  border: 1px solid rgba(0, 210, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dash-panel-purple {
+  background: rgba(20, 14, 45, 0.8);
+  border: 1px solid rgba(123, 97, 255, 0.2);
+  backdrop-filter: blur(20px);
+}
+
+/* Neon border glow on hover */
+.dash-row-hover:hover {
+  background: rgba(0, 210, 255, 0.05);
+  border-color: rgba(0, 210, 255, 0.25);
+  box-shadow:
+    0 0 20px rgba(0, 210, 255, 0.08),
+    inset 0 0 20px rgba(0, 210, 255, 0.03);
+}
+
+/* Hex grid background pattern */
+.hex-grid-bg {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zM28 2L2 17v32l26 15 26-15V17L28 2z' fill='none' stroke='rgba(0,210,255,0.06)' stroke-width='1'/%3E%3C/svg%3E");
+}
