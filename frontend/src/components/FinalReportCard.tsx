@@ -38,21 +38,28 @@ const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.
 
 const LifestylePlanCard: React.FC<{plan: FinalReport['lifestylePlan']}> = ({plan}) => {
     if (!plan) return null;
+    const diet = Array.isArray(plan.diet) ? plan.diet : [];
+    const exercise = Array.isArray(plan.exercise) ? plan.exercise : [];
+    if (diet.length === 0 && exercise.length === 0) return null;
     return (
         <Section title="Hayot Tarzi va Ovqatlanish Rejasi" icon={<LightBulbIcon className="text-yellow-500 h-6 w-6"/>}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                    <h4 className="font-semibold">Ovqatlanish Tavsiyalari:</h4>
-                    <ul className="list-disc list-inside mt-1">
-                        {plan.diet.map((item, i) => <li key={i}>{item}</li>)}
-                    </ul>
-                </div>
-                <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                    <h4 className="font-semibold">Jismoniy Mashqlar:</h4>
-                    <ul className="list-disc list-inside mt-1">
-                        {plan.exercise.map((item, i) => <li key={i}>{item}</li>)}
-                    </ul>
-                </div>
+                {diet.length > 0 && (
+                    <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
+                        <h4 className="font-semibold">Ovqatlanish Tavsiyalari:</h4>
+                        <ul className="list-disc list-inside mt-1">
+                            {diet.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                    </div>
+                )}
+                {exercise.length > 0 && (
+                    <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
+                        <h4 className="font-semibold">Jismoniy Mashqlar:</h4>
+                        <ul className="list-disc list-inside mt-1">
+                            {exercise.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                    </div>
+                )}
             </div>
         </Section>
     );
@@ -102,10 +109,10 @@ const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> 
 
 const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<PatientData>, isScenario?: boolean, onUpdateReport?: (updatedReport: Partial<FinalReport>) => void }> = ({ report, patientData, isScenario = false, onUpdateReport }) => {
     const [isEditingPlan, setIsEditingPlan] = useState(false);
-    const [editedPlan, setEditedPlan] = useState<string[]>(report.treatmentPlan);
+    const [editedPlan, setEditedPlan] = useState<string[]>(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []);
 
     useEffect(() => {
-        setEditedPlan(report.treatmentPlan);
+        setEditedPlan(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []);
     }, [report.treatmentPlan]);
     
     const handlePlanChange = (index: number, value: string) => {
@@ -203,7 +210,7 @@ const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<Pati
                     {!isEditingPlan ? (
                         <div className="space-y-3">
                             <ul className="list-disc list-inside space-y-2 text-text-primary">
-                                {report.treatmentPlan.map((item, index) => <li key={index}>{item}</li>)}
+                                {(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map((item, index) => <li key={index}>{item}</li>)}
                             </ul>
                             {onUpdateReport && !isScenario && (
                                 <button onClick={() => setIsEditingPlan(true)} className="flex items-center gap-2 text-sm font-semibold text-accent-color-blue bg-slate-200/50 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors mt-3">
@@ -245,7 +252,7 @@ const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<Pati
                 
                 <Section title="Dori-Darmonlar bo'yicha Tavsiyalar (O'zbekiston)" icon={<PillIcon className="w-6 h-6"/>}>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {report.medicationRecommendations.map((med, index) => (
+                     {(Array.isArray(report.medicationRecommendations) ? report.medicationRecommendations : []).map((med, index) => (
                         <div key={index} className="p-4 bg-slate-50 rounded-xl border border-border-color shadow-sm relative overflow-hidden">
                            <div className="absolute top-0 right-0 bg-blue-500 w-16 h-16 rounded-bl-full -mr-8 -mt-8 opacity-10"></div>
                            <p className="font-bold text-lg text-text-primary">{med.name}</p>
@@ -271,7 +278,7 @@ const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<Pati
 
                  <Section title="Qo'shimcha Tekshiruvlar" icon={<DocumentTextIcon className="w-6 h-6"/>}>
                     <ul className="list-disc list-inside space-y-2 text-text-primary">
-                        {report.recommendedTests.map((item, index) => <li key={index}>{item}</li>)}
+                        {(Array.isArray(report.recommendedTests) ? report.recommendedTests : []).map((item, index) => <li key={index}>{item}</li>)}
                     </ul>
                 </Section>
                 
@@ -288,7 +295,7 @@ const FinalReportCard: React.FC<{ report: FinalReport, patientData: Partial<Pati
                 <RelatedResearchCard research={report.relatedResearch} />
 
                  <Section title="Inkor Etilgan Gipotezalar" icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>
-                     {report.rejectedHypotheses.map((hypo, index) => (
+                     {(Array.isArray(report.rejectedHypotheses) ? report.rejectedHypotheses : []).map((hypo, index) => (
                         <div key={index} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                            <p className="font-semibold text-text-primary line-through">{hypo.name}</p>
                            <p className="text-sm text-text-secondary mt-1">Sabab: {hypo.reason}</p>

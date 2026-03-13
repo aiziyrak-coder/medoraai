@@ -57,12 +57,21 @@ const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
 /**
  * Convert frontend AnalysisRecord to API format
  */
-const analysisRecordToApi = (record: Partial<AnalysisRecord>): Partial<ApiAnalysisRecord> => {
+const analysisRecordToApi = (record: Partial<AnalysisRecord>): Partial<ApiAnalysisRecord> & { external_patient_id?: string } => {
+  const fr = record.finalReport || {} as FinalReport;
   return {
     patient_id: record.patientId || '',
+    external_patient_id: record.patientId || '',
     patient_data: (record.patientData || {}) as Record<string, unknown>,
-    debate_history: record.debateHistory || [],
-    final_report: record.finalReport || {} as FinalReport,
+    debate_history: Array.isArray(record.debateHistory) ? record.debateHistory : [],
+    final_report: {
+      ...fr,
+      treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
+      medicationRecommendations: Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : [],
+      recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
+      rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
+      consensusDiagnosis: Array.isArray(fr.consensusDiagnosis) ? fr.consensusDiagnosis : [],
+    } as FinalReport,
     follow_up_history: record.followUpHistory || [],
     selected_specialists: record.selectedSpecialists?.map(s => s.toString()) || [],
     detected_medications: record.detectedMedications || [],
