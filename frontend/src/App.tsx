@@ -265,7 +265,6 @@ const AppContent: React.FC = () => {
     
     const [currentAnalysisRecord, setCurrentAnalysisRecord] = useState<AnalysisRecord | null>(null);
     const [clarificationQuestions, setClarificationQuestions] = useState<string[] | null>([]);
-    const [autoStartDebate, setAutoStartDebate] = useState(false);
     
     const debateScrollRef = useRef<HTMLDivElement>(null);
     const { apiHealthy, healthStatus, checkNow } = useApiHealth();
@@ -275,13 +274,6 @@ const AppContent: React.FC = () => {
             debateScrollRef.current.scrollTop = debateScrollRef.current.scrollHeight;
         }
     }, [debateHistory, statusMessage]);
-
-    useEffect(() => {
-        if (appView === 'live_analysis' && autoStartDebate) {
-            setAutoStartDebate(false);
-            handleStartDebate();
-        }
-    }, [appView, autoStartDebate]); // eslint-disable-line react-hooks/exhaustive-deps -- handleStartDebate intentionally not in deps
 
     const handleProgress = useCallback((update: ProgressUpdate) => {
         switch (update.type) {
@@ -582,20 +574,31 @@ const AppContent: React.FC = () => {
         } finally { setIsProcessing(false); }
     };
 
-    const handleTeamConfirmation = async (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestrator: string) => {
+    const handleTeamConfirmation = (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestrator: string) => {
         if (!patientData) return;
         setSelectedSpecialistsConfig(confirmedTeam);
         setOrchestratorModel(orchestrator);
-        setAppView('live_analysis');
-        // DDX generatsiyasini o'tkazib yuborish - to'g'ridan-to'g'ri munozarani boshlash
         setDifferentialDiagnoses([]);
         setError(null);
-        setAutoStartDebate(true);
+        setDebateHistory([]);
+        setFinalReport(null);
+        setAppView('live_analysis');
+        setIsProcessing(true);
+        setStatusMessage(t('debate_start_status'));
+        const enrichedPatientData = { ...patientData, userDiagnosisFeedback: diagnosisFeedback };
+        setPatientData(enrichedPatientData);
+        const getUserInterventionCallback = () => {
+            const intervention = userInterventionRef.current;
+            userInterventionRef.current = null;
+            setUserIntervention(null);
+            return intervention;
+        };
+        aiService.runCouncilDebate(enrichedPatientData, [], confirmedTeam, orchestrator, handleProgress, getUserInterventionCallback, language);
     };
 
     const handleStartDebate = () => {
         if (!patientData) return;
-        let enrichedPatientData = { ...patientData, userDiagnosisFeedback: diagnosisFeedback };
+        const enrichedPatientData = { ...patientData, userDiagnosisFeedback: diagnosisFeedback };
         setPatientData(enrichedPatientData);
         setIsProcessing(true);
         setStatusMessage(t('debate_start_status'));
