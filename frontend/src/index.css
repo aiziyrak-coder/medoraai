@@ -162,27 +162,24 @@
   animation: count-up 0.6s ease-out forwards;
 }
 
-/* Dashboard dark panels */
+/* Dashboard dark panels — solid enough to show text clearly */
 .dash-panel {
-  background: rgba(13, 27, 42, 0.75);
-  border: 1px solid rgba(0, 210, 255, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(145deg, #0D1E32 0%, #0A1628 100%);
+  border: 1px solid rgba(0, 210, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .dash-panel-purple {
-  background: rgba(20, 14, 45, 0.8);
-  border: 1px solid rgba(123, 97, 255, 0.2);
-  backdrop-filter: blur(20px);
+  background: linear-gradient(145deg, #130A2E 0%, #0F0820 100%);
+  border: 1px solid rgba(123, 97, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(123,97,255,0.08);
 }
 
 /* Neon border glow on hover */
 .dash-row-hover:hover {
-  background: rgba(0, 210, 255, 0.05);
-  border-color: rgba(0, 210, 255, 0.25);
-  box-shadow:
-    0 0 20px rgba(0, 210, 255, 0.08),
-    inset 0 0 20px rgba(0, 210, 255, 0.03);
+  background: rgba(0, 210, 255, 0.07) !important;
+  border-color: rgba(0, 210, 255, 0.3) !important;
+  box-shadow: 0 0 24px rgba(0, 210, 255, 0.1), inset 0 0 24px rgba(0, 210, 255, 0.04);
 }
 
 /* Hex grid background pattern */

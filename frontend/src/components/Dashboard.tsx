@@ -341,9 +341,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </button>
                     </div>
 
-                    <div className="dash-panel rounded-[20px] overflow-hidden">
+                    <div className="rounded-[20px] overflow-hidden"
+                         style={{
+                             background: 'linear-gradient(145deg, #0D1E32 0%, #0A1628 100%)',
+                             border: '1px solid rgba(0,210,255,0.18)',
+                             boxShadow: '0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+                         }}>
                         {recentAnalyses.length > 0 ? (
-                            <div className="divide-y" style={{ borderColor: 'rgba(0,210,255,0.06)' }}>
+                            <div className="divide-y" style={{ borderColor: 'rgba(0,210,255,0.08)' }}>
                                 {recentAnalyses.map((record, idx) => {
                                     const diag = normalizeConsensusDiagnosis(record.finalReport?.consensusDiagnosis)[0]?.name;
                                     const initials = `${record.patientData.firstName?.[0] ?? '?'}${record.patientData.lastName?.[0] ?? ''}`;
@@ -373,11 +378,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                                             {/* Info */}
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-white text-sm truncate">
+                                                <p className="font-bold text-white text-sm truncate">
                                                     {record.patientData.firstName} {record.patientData.lastName}
                                                 </p>
                                                 <p className="text-xs truncate mt-0.5"
-                                                   style={{ color: 'rgba(160,216,241,0.6)' }}>
+                                                   style={{ color: 'rgba(160,216,241,0.85)' }}>
                                                     {diag || t('unknown_diagnosis')}
                                                 </p>
                                             </div>
@@ -385,11 +390,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                                             {/* Date + arrow */}
                                             <div className="flex items-center gap-3 flex-shrink-0">
                                                 <span
-                                                    className="text-[10px] font-mono px-2 py-1 rounded-md"
+                                                    className="text-[10px] font-mono px-2.5 py-1 rounded-md font-semibold"
                                                     style={{
-                                                        background: 'rgba(0,210,255,0.08)',
-                                                        color: 'rgba(0,210,255,0.7)',
-                                                        border: '1px solid rgba(0,210,255,0.15)',
+                                                        background: 'rgba(0,210,255,0.12)',
+                                                        color: '#00D2FF',
+                                                        border: '1px solid rgba(0,210,255,0.25)',
                                                     }}
                                                 >
                                                     {new Date(record.date).toLocaleDateString('uz-UZ', {
@@ -398,10 +403,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                                                     })}
                                                 </span>
                                                 <svg
-                                                    className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                                                    className="w-4 h-4"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
-                                                    stroke="rgba(0,210,255,0.5)"
+                                                    stroke="#00D2FF"
                                                     strokeWidth={2}
                                                 >
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -412,28 +417,27 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 })}
                             </div>
                         ) : (
-                            <div className="text-center py-16 px-6">
-                                {/* Empty state with ECG */}
+                            <div className="text-center py-14 px-6">
                                 <div
                                     className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
                                     style={{
-                                        background: 'rgba(0,210,255,0.06)',
-                                        border: '1px solid rgba(0,210,255,0.15)',
+                                        background: 'rgba(0,210,255,0.1)',
+                                        border: '1px solid rgba(0,210,255,0.3)',
                                     }}
                                 >
-                                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="rgba(0,210,255,0.5)" strokeWidth="1.5">
+                                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="#00D2FF" strokeWidth="1.5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                                     </svg>
                                 </div>
-                                <p className="text-sm font-medium mb-4" style={{ color: 'rgba(160,216,241,0.6)' }}>
+                                <p className="text-sm font-semibold mb-5 text-white">
                                     {t('dashboard_no_recent_analyses')}
                                 </p>
                                 <button
                                     onClick={onNewAnalysis}
-                                    className="text-xs font-mono font-bold px-5 py-2.5 rounded-xl transition-all"
+                                    className="text-xs font-bold px-6 py-2.5 rounded-xl transition-all"
                                     style={{
-                                        background: 'rgba(0,210,255,0.1)',
-                                        border: '1px solid rgba(0,210,255,0.3)',
+                                        background: 'linear-gradient(135deg, rgba(0,210,255,0.2), rgba(0,255,135,0.15))',
+                                        border: '1px solid rgba(0,210,255,0.4)',
                                         color: '#00D2FF',
                                     }}
                                 >
