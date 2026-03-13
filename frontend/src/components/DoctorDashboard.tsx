@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import type { User, PatientData, FinalReport, PatientQueueItem, AnalysisRecord, UserStats } from '../types';
+import { getReasoningChainArray } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import * as aiService from '../services/aiCouncilService';
 import * as authService from '../services/apiAuthService';
@@ -46,6 +47,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
 import DrugInteractionChecker from './tools/DrugInteractionChecker';
 import { ZiyrakDashboard } from './ziyrak/ZiyrakDashboard';
+import DoctorSupportView from './DoctorSupportView';
 
 interface DoctorDashboardProps {
     user: User;
@@ -151,15 +153,18 @@ const DiagnosisTab: React.FC<{ report: FinalReport }> = ({ report }) => {
                         </div>
                     </div>
                     
-                    {primaryDiag.reasoningChain && primaryDiag.reasoningChain.length > 0 && (
+                    {(() => {
+                        const chain = getReasoningChainArray(primaryDiag);
+                        return chain.length > 0 && (
                         <div className="mt-4 pl-4 border-l-2 border-white/10 space-y-3">
-                            {primaryDiag.reasoningChain.map((step, idx) => (
+                            {chain.map((step, idx) => (
                                 <p key={idx} className="text-sm text-slate-300 leading-relaxed font-light">
                                     {step}
                                 </p>
                             ))}
                         </div>
-                    )}
+                        );
+                    })()}
 
                     {primaryDiag.uzbekProtocolMatch && (
                         <div className="mt-5 inline-flex items-center gap-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
@@ -771,6 +776,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
 
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [report, setReport] = useState<FinalReport | null>(null);
+    const [showAIAssistant, setShowAIAssistant] = useState(false);
 
     // Tools
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -1175,17 +1181,17 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
     };
 
     return (
-        <div className="h-screen w-full medical-mesh-bg text-white flex flex-col font-sans overflow-hidden">
+        <div className="h-screen w-full max-w-[100vw] medical-mesh-bg text-white flex flex-col font-sans overflow-hidden min-w-0">
             
             {/* --- IMMEDIATE ADMISSION (NAVBATSIZ) MODAL --- */}
             {showWalkInModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in-up">
-                    <GlassCard className="w-full max-w-md p-6 border-white/20 bg-slate-900/80">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                <PlayIcon className="w-5 h-5 text-green-400"/> {t('walk_in_admission')}
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in-up overflow-y-auto">
+                    <GlassCard className="w-full max-w-md p-4 sm:p-6 border-white/20 bg-slate-900/80 my-4">
+                        <div className="flex justify-between items-center gap-2 mb-4 sm:mb-6">
+                            <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 min-w-0">
+                                <PlayIcon className="w-5 h-5 text-green-400 shrink-0"/> <span className="truncate">{t('walk_in_admission')}</span>
                             </h3>
-                            <button onClick={() => setShowWalkInModal(false)} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+                            <button onClick={() => setShowWalkInModal(false)} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0">
                                 <XIcon className="w-6 h-6" />
                             </button>
                         </div>
@@ -1193,7 +1199,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-xs text-blue-200">
                                 {t('walk_in_admission_desc')}
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-bold text-slate-400 uppercase ml-1">{t('first_name_label')}</label>
                                     <input 
@@ -1674,7 +1680,54 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                 {/* VIEW: CONSULTATION (FULLSCREEN LOGIC) */}
                 {view === 'consultation' && currentPatient && (
                     <div className="flex flex-col h-full relative overflow-hidden">
-                        
+                        {/* Consultation header: bemor + AI Yordamchi */}
+                        <div className="flex-none flex items-center justify-between gap-3 px-4 py-2 bg-black/30 border-b border-white/10">
+                            <button type="button" onClick={() => setView('queue')} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors" aria-label={t('back')}>
+                                <ChevronRightIcon className="w-5 h-5 rotate-180" />
+                            </button>
+                            <h2 className="font-bold text-white truncate flex-1 text-center">{currentPatient.lastName} {currentPatient.firstName} · {currentPatient.age} yosh</h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowAIAssistant(v => !v)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-xl font-semibold text-sm transition-all ${showAIAssistant ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                            >
+                                <span className="text-base">🧠</span>
+                                <span>AI Yordamchi</span>
+                            </button>
+                        </div>
+
+                        {/* AI Yordamchi panel (slide-up) */}
+                        {showAIAssistant && (
+                            <div className="absolute inset-0 z-50 flex flex-col bg-slate-900/98 backdrop-blur-xl border-t border-sky-500/30 rounded-t-3xl overflow-hidden animate-fade-in-up">
+                                <div className="flex-none flex items-center justify-between px-4 py-3 border-b border-white/10">
+                                    <h3 className="font-bold text-white">Doktor Yordamchi · Tezkor maslahat, tashxis, dori</h3>
+                                    <button type="button" onClick={() => setShowAIAssistant(false)} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white">
+                                        <XIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4">
+                                    <DoctorSupportView
+                                        patientData={{
+                                            firstName: currentPatient.firstName,
+                                            lastName: currentPatient.lastName,
+                                            age: currentPatient.age,
+                                            gender: '',
+                                            complaints: complaints || currentPatient.complaints || '',
+                                            objectiveData: `${t('vitals_bp')}: ${vitals.bpSys || '-'}/${vitals.bpDia || '-'} · ${t('vitals_pulse')}: ${vitals.heartRate || '-'} · Temp: ${vitals.temp || '-'} · SpO2: ${vitals.spO2 || '-'}`,
+                                            history: '',
+                                            labResults: '',
+                                            allergies: '',
+                                            currentMedications: '',
+                                            familyHistory: '',
+                                            additionalInfo: report ? `Yakuniy tashxis: ${(report.consensusDiagnosis ?? [])[0]?.name ?? ''}. Reja: ${(report.treatmentPlan ?? []).slice(0, 2).join('; ')}` : '',
+                                        }}
+                                        language={language as string}
+                                        onError={(msg) => { setShowAIAssistant(false); alert(msg); }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {/* Floating Listening Indicator (Optional, can be subtle) */}
                         {isListening && (
                             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
@@ -1816,6 +1869,16 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                 )}
 
                                 {/* Bitta sahifa вЂ” 3 bo'lim (Tashxis, Reja, Retsept) */}
+                                {report?.criticalFinding && (
+                                    <div className="flex-none mx-4 mt-2 p-4 rounded-2xl bg-red-500/20 border-2 border-red-500/50 shadow-lg">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                            <span className="text-red-300 font-black text-xs uppercase tracking-widest">Shoshilinch</span>
+                                        </div>
+                                        <p className="text-white font-bold text-lg">{report.criticalFinding.finding}</p>
+                                        <p className="text-red-200/90 text-sm mt-1">{report.criticalFinding.implication}</p>
+                                    </div>
+                                )}
                                 <div className="flex-grow overflow-y-auto p-5 custom-scrollbar">
                                     {!report && isAnalyzing && (
                                         <>
@@ -1851,7 +1914,16 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
                                     )}
                                 </div>
 
-                                <div className="flex-none p-5 bg-gradient-to-t from-black via-black/80 to-transparent z-30">
+                                <div className="flex-none p-5 bg-gradient-to-t from-black via-black/80 to-transparent z-30 flex flex-col gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setReport(null); setMode('input'); }}
+                                        disabled={isAnalyzing}
+                                        className="w-full bg-white/15 hover:bg-white/25 text-white font-bold py-3 rounded-2xl border border-white/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        <span>🔄</span>
+                                        <span>Qayta tahlil</span>
+                                    </button>
                                     <button 
                                         onClick={handleFinish}
                                         disabled={isAnalyzing}

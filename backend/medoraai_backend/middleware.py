@@ -11,7 +11,7 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 # Health uchun minimal javob (Host/ALLOWED_HOSTS tekshirilmaydi)
-HEALTH_BODY = b'{"status":"healthy","service":"AiDoktorai-backend"}'
+HEALTH_BODY = b'{"status":"healthy","service":"Farg\'ona JSTI backend"}'
 
 
 class EarlyHealthMiddleware(MiddlewareMixin):
@@ -21,7 +21,7 @@ class EarlyHealthMiddleware(MiddlewareMixin):
     """
     def process_request(self, request):
         _meta = request.META
-        _fallback = 'AiDoktor.fargana.uz'
+        _fallback = 'medora.cdcgroup.uz'
         # 1) get_host() ni instance da override (CommonMiddleware DisallowedHost tashlamaydi)
         def _safe_get_host():
             h = (_meta.get('HTTP_HOST') or _fallback).strip().split('#')[0].strip()
@@ -46,12 +46,12 @@ class EarlyHealthMiddleware(MiddlewareMixin):
 class NormalizeHostMiddleware(MiddlewareMixin):
     """
     Run first: normalize Host for fargana.uz so ALLOWED_HOSTS check never returns 400.
-    Barcha so'rovlar (login, health, api) uchun Host ni AiDoktor.fargana.uz qiladi.
+    Barcha so'rovlar (login, health, api) uchun Host ni medora.cdcgroup.uz qiladi.
     """
     def process_request(self, request):
         host = (request.META.get('HTTP_HOST') or '').strip().split(':')[0].lower()
         if host and 'fargana.uz' in host:
-            request.META['HTTP_HOST'] = 'AiDoktor.fargana.uz'
+            request.META['HTTP_HOST'] = 'medora.cdcgroup.uz'
         return None
 
 
@@ -72,7 +72,7 @@ class CORSFallbackMiddleware(MiddlewareMixin):
                 try:
                     origin = request.build_absolute_uri('/').rstrip('/')
                 except Exception:
-                    origin = 'https://AiDoktor.fargana.uz'
+                    origin = 'https://medora.cdcgroup.uz'
             if origin is None:
                 return response
             if getattr(response, 'headers', None):

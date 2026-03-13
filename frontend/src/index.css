@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* --- Full-screen layout & responsive --- */
+@layer base {
+  html, #root {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  /* Safe horizontal padding: no side gaps on small screens, consistent on large */
+  .page-px {
+    @apply px-4 sm:px-5 md:px-6 lg:px-8 xl:px-10;
+  }
+  /* Full-bleed container: content uses full width with safe padding */
+  .container-full {
+    @apply w-full max-w-[100vw] page-px box-border;
+  }
+  /* Prevent flex/grid children from overflowing and overlapping */
+  .min-w-0 {
+    min-width: 0;
+  }
+}

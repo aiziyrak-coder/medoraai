@@ -2,7 +2,7 @@
 // This service simulates a URL shortener backend using localStorage
 // In production, this would be a database mapping table.
 
-const TV_MAPPING_KEY = 'AiDoktor_tv_mapping';
+const TV_MAPPING_KEY = 'FJSTI_tv_mapping';
 
 interface TvMapping {
     [shortCode: string]: string; // shortCode -> doctorId

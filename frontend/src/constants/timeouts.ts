@@ -4,9 +4,9 @@
 
 export const TIMEOUTS = {
   // API timeouts
-  API_REQUEST: 30000, // 30s
-  API_RETRY_DELAY: 1000, // 1s
-  API_MAX_RETRY_DELAY: 10000, // 10s
+  API_REQUEST: 20000, // 20s
+  API_RETRY_DELAY: 350,
+  API_MAX_RETRY_DELAY: 5000,
   API_HEALTH_CHECK: 5000, // 5s
   
   // UI delays

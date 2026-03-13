@@ -1,7 +1,7 @@
 {
-  "short_name": "AiDoktorAi",
-  "name": "AiDoktorAi - Tibbiy Ekspertiza Platformasi",
-  "description": "Murakkab klinik holatlarni tahlil qilish va tashxis qo'yish uchun ilg'or raqamli texnologiyalar asosidagi tibbiy konsilium.",
+  "short_name": "Farg'ona JSTI",
+  "name": "Farg'ona jamoat salomatligi tibbiyot instituti — Tibbiy ekspertiza platformasi",
+  "description": "Farg'ona jamoat salomatligi tibbiyot instituti (Farg'ona JSTI) — murakkab klinik holatlarni tahlil qilish va tashxis qo'yish uchun ilg'or tibbiy konsilium platformasi.",
   "start_url": "/",
   "background_color": "#f8fafc",
   "display": "standalone",

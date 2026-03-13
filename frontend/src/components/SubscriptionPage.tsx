@@ -4,6 +4,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import * as telegramService from '../services/telegramService';
 import * as apiSubscription from '../services/apiSubscriptionService';
 import * as authService from '../services/authService';
+import { INSTITUTE_NAME_FULL } from '../constants/brand';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
 import UploadCloudIcon from './icons/UploadCloudIcon';
@@ -27,7 +28,7 @@ const BANK_ACCOUNT = {
     accountNumber: '20214000901234567890',
     mfo: '00447',
     inn: '123456789',
-    receiver: 'AiDoktor',
+    receiver: INSTITUTE_NAME_FULL,
 };
 
 /** Shifokor uchun default reja (API dan kelmasa) */
@@ -189,7 +190,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onSubscriptio
                                     Nusxa olish
                                 </button>
                             </div>
-                            <p className="text-xs text-blue-200">{BANK_ACCOUNT.bankName} вЂў MFO: {BANK_ACCOUNT.mfo} вЂў INN: {BANK_ACCOUNT.inn}</p>
+                            <p className="text-xs text-blue-200">{BANK_ACCOUNT.bankName} · MFO: {BANK_ACCOUNT.mfo} · INN: {BANK_ACCOUNT.inn}</p>
                             <p className="text-xs text-blue-200">Qabul qiluvchi: {BANK_ACCOUNT.receiver}</p>
                         </div>
                         <div className="mt-6 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-xl text-sm text-yellow-100">

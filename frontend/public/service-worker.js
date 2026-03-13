@@ -1,4 +1,4 @@
-const CACHE_NAME = 'konsilium-cache-v7';
+const CACHE_NAME = 'konsilium-cache-v8';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -3,6 +3,7 @@
  */
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, type ApiResponse } from './api';
 import type { AnalysisRecord, DiagnosisFeedback, FinalReport, ChatMessage } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 
 export interface ApiAnalysisRecord {
   id: number;
@@ -32,13 +33,21 @@ export interface AnalysisListParams {
  * Convert API AnalysisRecord to frontend AnalysisRecord
  */
 const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
+  const fr = api.final_report || {};
   return {
     id: api.id.toString(),
     patientId: api.patient_id,
     date: api.created_at,
     patientData: api.patient_data as unknown as AnalysisRecord['patientData'],
-    debateHistory: api.debate_history,
-    finalReport: api.final_report,
+    debateHistory: api.debate_history || [],
+    finalReport: {
+      ...fr,
+      consensusDiagnosis: normalizeConsensusDiagnosis(fr.consensusDiagnosis),
+      rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
+      treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
+      medicationRecommendations: Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : [],
+      recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
+    } as FinalReport,
     followUpHistory: api.follow_up_history,
     detectedMedications: api.detected_medications,
     selectedSpecialists: api.selected_specialists as AnalysisRecord['selectedSpecialists'],

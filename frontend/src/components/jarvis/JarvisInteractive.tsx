@@ -12,6 +12,7 @@ import {
   AudioRecorder,
 } from '../../services/speechService';
 import { AudioWaveform } from './AudioWaveform';
+import { INSTITUTE_NAME_SHORT } from '../../constants/brand';
 
 interface Props {
   sessionId:  string | null;
@@ -208,7 +209,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
             рџ¤–
           </div>
           <div>
-            <p className="font-bold text-white text-sm leading-none">AiDoktor-Jarvis</p>
+            <p className="font-bold text-white text-sm leading-none">{INSTITUTE_NAME_SHORT} — Jarvis</p>
             <p className={`text-xs mt-0.5 ${
               isTalking ? 'text-sky-400' : isThinking ? 'text-amber-400' :
               isListening ? 'text-emerald-400' : 'text-slate-500'

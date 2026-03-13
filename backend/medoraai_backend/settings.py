@@ -1,5 +1,5 @@
 """
-Django settings for AiDoktor (Farg'ona Jamoat Salomatligi Tibbiyot Instituti) project.
+Django settings for Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI) tibbiy platformasi.
 """
 
 from pathlib import Path
@@ -7,10 +7,10 @@ from datetime import timedelta
 import os
 from decouple import config
 
-# DisallowedHost bartaraf: get_host() ni settings yuklanishida patch (AiDoktorapi.fargana.uz qabul qilish)
+# DisallowedHost bartaraf: get_host() ni settings yuklanishida patch (medora.cdcgroup.uz qabul qilish)
 import django.http.request as _django_request_mod
 _django_request_mod.HttpRequest.get_host = lambda self: (
-    (self.META.get('HTTP_HOST') or 'AiDoktor.fargana.uz').split('#')[0].strip()
+    (self.META.get('HTTP_HOST') or 'medora.cdcgroup.uz').split('#')[0].strip()
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -30,7 +30,7 @@ if not DEBUG and SECRET_KEY == _default_secret:
     )
 
 # ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish вЂ” faqat *
-ALLOWED_HOSTS = ['*', 'aidoktor.fargana.uz', 'api.aidoktor.fargana.uz', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*', 'medora.cdcgroup.uz', 'medoraapi.cdcgroup.uz', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -215,9 +215,9 @@ CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default=(
         'http://localhost:3000,http://127.0.0.1:3000,'
-        'https://AiDoktor.fargana.uz,http://AiDoktor.fargana.uz,'
-        'https://AiDoktorai.fargana.uz,https://AiDoktorapi.fargana.uz,'
-        'https://AiDoktor.ziyrak.org,http://AiDoktor.ziyrak.org,http://20.82.115.71'
+        'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
+        'https://medora.cdcgroup.uz,http://localhost:3000,'
+        'http://127.0.0.1:3000,http://20.82.115.71'
     ),
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
@@ -226,8 +226,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF (Django 4+): ishonchli originlar
 CSRF_TRUSTED_ORIGINS = [
-    'https://AiDoktor.fargana.uz', 'https://AiDoktorai.fargana.uz', 'https://AiDoktorapi.fargana.uz',
-    'http://AiDoktor.fargana.uz', 'http://localhost:3000', 'http://127.0.0.1:3000',
+    'https://medora.cdcgroup.uz', 'http://localhost:3000', 'http://127.0.0.1:3000',
 ]
 
 CORS_ALLOW_METHODS = [
@@ -272,17 +271,17 @@ AZURE_OPENAI_ENDPOINT   = config('AZURE_OPENAI_ENDPOINT',   default='')
 AZURE_OPENAI_API_KEY    = config('AZURE_OPENAI_API_KEY',    default='')
 AZURE_OPENAI_API_VERSION = config('AZURE_OPENAI_API_VERSION', default='2024-12-01-preview')
 
-# Azure Speech Services (AiDoktor-Jarvis)
+# Azure Speech Services (Farg'ona JSTI Jarvis)
 AZURE_SPEECH_KEY      = config('AZURE_SPEECH_KEY',      default='')
 AZURE_SPEECH_REGION   = config('AZURE_SPEECH_REGION',   default='swedencentral')
 AZURE_SPEECH_ENDPOINT = config('AZURE_SPEECH_ENDPOINT', default='https://swedencentral.api.cognitive.microsoft.com/')
 
 # Azure deployment names
-AZURE_DEPLOY_GPT4O = config('AZURE_DEPLOY_GPT4O', default='AiDoktor-gpt4o')
-AZURE_DEPLOY_DEEPSEEK = config('AZURE_DEPLOY_DEEPSEEK', default='AiDoktor-deepseek')
-AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='AiDoktor-llama')
-AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='AiDoktor-mistral')
-AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='AiDoktor-mini')
+AZURE_DEPLOY_GPT4O = config('AZURE_DEPLOY_GPT4O', default='FJSTI-gpt4o')
+AZURE_DEPLOY_DEEPSEEK = config('AZURE_DEPLOY_DEEPSEEK', default='FJSTI-deepseek')
+AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='FJSTI-llama')
+AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='FJSTI-mistral')
+AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='FJSTI-mini')
 
 # AI: faqat Gemini (kalit .env dan; backend/.env dan aniq o'qish fallback)
 def _load_gemini_key():
@@ -301,7 +300,11 @@ def _load_gemini_key():
             pass
     return ''
 GEMINI_API_KEY = _load_gemini_key()
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-1.5-pro')
+# Gemini model IDs (.env da override; 3 Pro: gemini-3.1-pro-preview)
+GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-2.0-flash-exp')
+GEMINI_MODEL_PRO = config('GEMINI_MODEL_PRO', default='gemini-2.5-pro')
+GEMINI_MODEL_THINKING = config('GEMINI_MODEL_THINKING', default='gemini-2.0-flash-thinking-exp')
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-2.5-pro')
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:
@@ -345,7 +348,7 @@ if REDIS_URL:
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             },
-            'KEY_PREFIX': 'AiDoktorai',
+            'KEY_PREFIX': 'FJSTI',
             'TIMEOUT': 300,  # 5 minutes default
         }
     }
@@ -354,7 +357,7 @@ else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'AiDoktorai-cache',
+            'LOCATION': 'FJSTI-cache',
         }
     }
 
@@ -373,7 +376,7 @@ _USE_FILE_LOGS = _logs_writable()
 _ROOT_HANDLERS = ['console', 'file'] if _USE_FILE_LOGS else ['console']
 _DJANGO_HANDLERS = ['console', 'file'] if _USE_FILE_LOGS else ['console']
 _REQUEST_HANDLERS = ['error_file'] if _USE_FILE_LOGS else ['console']
-_AiDoktorI_HANDLERS = ['console', 'file', 'error_file'] if _USE_FILE_LOGS else ['console']
+_FJSTI_HANDLERS = ['console', 'file', 'error_file'] if _USE_FILE_LOGS else ['console']
 
 LOGGING = {
     'version': 1,
@@ -416,7 +419,7 @@ LOGGING = {
             'propagate': False,
         },
         'medoraai_backend': {
-            'handlers': _AiDoktorI_HANDLERS,
+            'handlers': _FJSTI_HANDLERS,
             'level': 'INFO',
             'propagate': False,
         },

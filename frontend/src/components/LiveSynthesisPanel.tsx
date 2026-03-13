@@ -1,5 +1,6 @@
 import React from 'react';
 import type { FinalReport } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
 
 interface LiveSynthesisPanelProps {
@@ -16,18 +17,18 @@ const LiveSynthesisPanel: React.FC<LiveSynthesisPanelProps> = ({ synthesis }) =>
         );
     }
     
-    const { consensusDiagnosis } = synthesis;
+    const consensusDiagnosis = normalizeConsensusDiagnosis(synthesis.consensusDiagnosis);
 
     return (
         <div className="animate-fade-in-up space-y-6 text-sm">
-            {consensusDiagnosis && consensusDiagnosis.length > 0 && (
+            {consensusDiagnosis.length > 0 && (
                 <div>
                     <h4 className="font-bold text-text-primary mb-2 flex items-center gap-2">
                         <CheckCircleIcon className="w-5 h-5 text-green-500" />
                         Ehtimolli Tashxislar
                     </h4>
                     <ul className="space-y-3">
-                        {consensusDiagnosis.sort((a,b) => b.probability - a.probability).map((diag, index) => (
+                        {[...consensusDiagnosis].sort((a,b) => b.probability - a.probability).map((diag, index) => (
                             <li key={index} className="p-3 bg-slate-50 rounded-lg border border-border-color">
                                 <div className="flex justify-between items-center">
                                     <span className="font-semibold text-text-primary">{diag.name}</span>
@@ -43,7 +44,7 @@ const LiveSynthesisPanel: React.FC<LiveSynthesisPanelProps> = ({ synthesis }) =>
             )}
 
              {/* Add placeholders for other sections as they get populated */}
-            {!consensusDiagnosis && (
+            {consensusDiagnosis.length === 0 && (
                  <div className="flex flex-col items-center justify-center h-full text-center text-text-secondary p-4">
                     <p>Konsilium muhokamasi davom etmoqda. Asosiy xulosalar shu yerda paydo bo'ladi.</p>
                 </div>

@@ -1,4 +1,5 @@
 import type { AnalysisRecord, AnonymizedCase, UserStats } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 
 const ANONYMIZED_CASES_KEY = 'konsilium_anonymized_cases_v1';
 
@@ -21,15 +22,16 @@ export const addCaseToLibrary = (record: AnalysisRecord) => {
     const allCases = getAnonymizedCases();
     
     // Simple anonymization and tagging
+    const consensus = normalizeConsensusDiagnosis(record.finalReport?.consensusDiagnosis);
     const newCase: AnonymizedCase = {
         id: record.id,
-        finalDiagnosis: record.finalReport.consensusDiagnosis[0]?.name || 'Noma\'lum',
+        finalDiagnosis: consensus[0]?.name || 'Noma\'lum',
         tags: [
-            ...record.finalReport.consensusDiagnosis.map(d => d.name.toLowerCase()),
-            ...(record.selectedSpecialists || []).map(s => s.toLowerCase()),
-            ...record.patientData.complaints.toLowerCase().split(' ').slice(0, 5) // Use first few words of complaints as tags
-        ].filter((value, index, self) => self.indexOf(value) === index), // Unique tags
-        outcome: `Tashxis ehtimolligi ${record.finalReport.consensusDiagnosis[0]?.probability}% bilan yakunlandi.`
+            ...consensus.map(d => (d?.name ?? '').toLowerCase()).filter(Boolean),
+            ...(record.selectedSpecialists || []).map(s => (s ?? '').toLowerCase()).filter(Boolean),
+            ...(record.patientData?.complaints ? String(record.patientData.complaints).toLowerCase().split(' ').slice(0, 5) : [])
+        ].filter((value, index, self) => self.indexOf(value) === index),
+        outcome: `Tashxis ehtimolligi ${consensus[0]?.probability ?? 0}% bilan yakunlandi.`
     };
 
     allCases.unshift(newCase);
@@ -48,7 +50,7 @@ export const getDashboardStats = (history: AnalysisRecord[]): UserStats => {
     let feedbackTotal = 0;
 
     history.forEach(record => {
-        const finalDiagnosis = record.finalReport.consensusDiagnosis[0]?.name;
+        const finalDiagnosis = normalizeConsensusDiagnosis(record.finalReport?.consensusDiagnosis)[0]?.name;
         if (finalDiagnosis) {
             diagnosisCounts[finalDiagnosis] = (diagnosisCounts[finalDiagnosis] || 0) + 1;
         }

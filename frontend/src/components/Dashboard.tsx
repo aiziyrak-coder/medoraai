@@ -1,6 +1,7 @@
 
 import React from 'react';
 import type { AnalysisRecord, UserStats, CMETopic } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 import PlusCircleIcon from './icons/PlusCircleIcon';
 import DocumentReportIcon from './icons/DocumentReportIcon';
 import ChevronRightIcon from './icons/ChevronRightIcon';
@@ -23,9 +24,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, onNewAnalysis, onViewHi
     const currentDate = new Date().toLocaleDateString('uz-UZ', { weekday: 'long', month: 'long', day: 'numeric' });
     
     return (
-        <div className="animate-fade-in-up space-y-8 w-full">
+        <div className="animate-fade-in-up space-y-6 sm:space-y-8 w-full min-w-0">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-end gap-4 px-2">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-4 px-2 min-w-0">
                 <div>
                     <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">{currentDate}</p>
                     <h1 className="text-4xl md:text-5xl font-bold text-text-primary tracking-tight">
@@ -35,7 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, onNewAnalysis, onViewHi
             </div>
 
             {/* Bento Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-6 min-w-0">
                 
                 {/* Hero Card - Spans 8 cols on Large */}
                 <div 
@@ -121,7 +122,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, onNewAnalysis, onViewHi
                                                     </span>
                                                     <span className="text-sm text-text-secondary truncate font-medium flex items-center gap-1">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                                        {record.finalReport.consensusDiagnosis[0]?.name || t('unknown_diagnosis')}
+                                                        {normalizeConsensusDiagnosis(record.finalReport?.consensusDiagnosis)[0]?.name || t('unknown_diagnosis')}
                                                     </span>
                                                 </div>
                                             </div>

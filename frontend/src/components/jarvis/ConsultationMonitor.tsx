@@ -38,9 +38,9 @@ interface TranscriptLine {
 }
 
 const SPEAKER_LABELS: Record<string, Record<string, string>> = {
-  'uz-L': { doctor: 'рџ‘ЁвЂЌвљ•пёЏ Shifokor', patient: 'рџ§‘вЂЌрџ¦Ї Bemor', system: 'рџ¤– Tizim' },
-  ru:     { doctor: 'рџ‘ЁвЂЌвљ•пёЏ Р’СЂР°С‡',     patient: 'рџ§‘ РџР°С†РёРµРЅС‚', system: 'рџ¤– РЎРёСЃС‚РµРјР°' },
-  en:     { doctor: 'рџ‘ЁвЂЌвљ•пёЏ Doctor',   patient: 'рџ§‘ Patient', system: 'рџ¤– System' },
+  'uz-L': { doctor: 'Shifokor', patient: 'Bemor', system: 'Tizim' },
+  ru:     { doctor: 'Врач',     patient: 'Пациент', system: 'Система' },
+  en:     { doctor: 'Doctor',   patient: 'Patient', system: 'System' },
 };
 
 export const ConsultationMonitor: React.FC<Props> = ({

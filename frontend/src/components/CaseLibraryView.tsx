@@ -14,9 +14,10 @@ const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatien
     
     const filteredCases = useMemo(() => {
         if (!searchTerm) return cases;
+        const term = (searchTerm ?? '').toLowerCase();
         return cases.filter(c => 
-            c.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            c.finalDiagnosis.toLowerCase().includes(searchTerm.toLowerCase())
+            (c.tags || []).some(tag => (tag ?? '').toLowerCase().includes(term)) ||
+            (c.finalDiagnosis ?? '').toLowerCase().includes(term)
         );
     }, [searchTerm, cases]);
 

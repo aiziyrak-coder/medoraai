@@ -1,10 +1,10 @@
 /**
- * AiDoktor-Jarvis Speech Service
+ * Farg'ona JSTI Jarvis Speech Service
  * =============================
  * Azure Speech Services bilan ishlash:
- *   вЂў STT (Speech-to-Text) вЂ“ browser mic в†’ matn
- *   вЂў TTS (Text-to-Speech) вЂ“ matn в†’ ovoz
- *   вЂў MediaRecorder вЂ“ suhbat yozib olish + backend ga yuklash
+ *   · STT (Speech-to-Text) вЂ“ browser mic в†’ matn
+ *   · TTS (Text-to-Speech) вЂ“ matn в†’ ovoz
+ *   · MediaRecorder вЂ“ suhbat yozib olish + backend ga yuklash
  *
  * Arxitektura:
  *   1. Real-time STT: Azure Speech SDK (browser WebSocket) yoki Web Speech API

@@ -48,13 +48,13 @@ def main():
         out.channel.recv_exit_status()
         if b"KEY_ADDED" in out.read() or b"KEY_ADDED" in err.read():
             print("Kalit qo'shildi.")
-    gemini_key = (os.environ.get("AiDoktor_GEMINI_KEY") or os.environ.get("MEDORA_GEMINI_KEY") or "").strip()
+    gemini_key = (os.environ.get("FJSTI_GEMINI_KEY") or os.environ.get("MEDORA_GEMINI_KEY") or "").strip()
     if gemini_key:
         key_b64 = base64.b64encode(gemini_key.encode()).decode()
         cmd_env = (
-            f"grep -v '^GEMINI_API_KEY=' {BACKEND_ENV} 2>/dev/null > /tmp/AiDoktor_env; "
-            f"echo -n 'GEMINI_API_KEY=' >> /tmp/AiDoktor_env; echo '{key_b64}' | base64 -d >> /tmp/AiDoktor_env; "
-            f"echo >> /tmp/AiDoktor_env; mv /tmp/AiDoktor_env {BACKEND_ENV}; echo GEMINI_ENV_SET"
+            f"grep -v '^GEMINI_API_KEY=' {BACKEND_ENV} 2>/dev/null > /tmp/FJSTI_env; "
+            f"echo -n 'GEMINI_API_KEY=' >> /tmp/FJSTI_env; echo '{key_b64}' | base64 -d >> /tmp/FJSTI_env; "
+            f"echo >> /tmp/FJSTI_env; mv /tmp/FJSTI_env {BACKEND_ENV}; echo GEMINI_ENV_SET"
         )
         _, o, e = client.exec_command(cmd_env)
         o.channel.recv_exit_status()

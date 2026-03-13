@@ -82,15 +82,15 @@ class Deployments:
     """Centralized deployment-name registry."""
 
     @staticmethod
-    def gpt4o()    -> str: return _deploy_name("AZURE_DEPLOY_GPT4O",    "AiDoktor-gpt4o")
+    def gpt4o()    -> str: return _deploy_name("AZURE_DEPLOY_GPT4O",    "FJSTI-gpt4o")
     @staticmethod
-    def deepseek() -> str: return _deploy_name("AZURE_DEPLOY_DEEPSEEK", "AiDoktor-deepseek")
+    def deepseek() -> str: return _deploy_name("AZURE_DEPLOY_DEEPSEEK", "FJSTI-deepseek")
     @staticmethod
-    def llama()    -> str: return _deploy_name("AZURE_DEPLOY_LLAMA",    "AiDoktor-llama")
+    def llama()    -> str: return _deploy_name("AZURE_DEPLOY_LLAMA",    "FJSTI-llama")
     @staticmethod
-    def mistral()  -> str: return _deploy_name("AZURE_DEPLOY_MISTRAL",  "AiDoktor-mistral")
+    def mistral()  -> str: return _deploy_name("AZURE_DEPLOY_MISTRAL",  "FJSTI-mistral")
     @staticmethod
-    def mini()     -> str: return _deploy_name("AZURE_DEPLOY_MINI",     "AiDoktor-mini")
+    def mini()     -> str: return _deploy_name("AZURE_DEPLOY_MINI",     "FJSTI-mini")
 
 
 # Keep module-level callables for backwards-compat imports

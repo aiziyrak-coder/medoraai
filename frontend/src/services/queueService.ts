@@ -3,7 +3,7 @@ import { isApiConfigured } from '../config/api';
 import { getAuthToken } from './api';
 import * as apiQueue from './apiQueueService';
 
-const QUEUE_KEY_PREFIX = 'AiDoktor_queue_';
+const QUEUE_KEY_PREFIX = 'FJSTI_queue_';
 
 // Server navbati uchun cache (barcha qurilmalarda bir xil)
 let queueCache: PatientQueueItem[] = [];

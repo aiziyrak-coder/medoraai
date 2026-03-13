@@ -58,9 +58,9 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
         if (debateScrollRef.current) {
             debateScrollRef.current.scrollTop = debateScrollRef.current.scrollHeight;
         }
-    }, [record.debateHistory, statusMessage, socraticQuestion]);
+    }, [record?.debateHistory, statusMessage, socraticQuestion]);
 
-    const { patientData: pd, debateHistory: dh = [], finalReport: fr = null } = record;
+    const { patientData: pd, debateHistory: dh = [], finalReport: fr = null } = record ?? {};
 
     const handleInterventionSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -103,7 +103,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                     <div className="p-4 bg-white/40 rounded-2xl border border-white/40 shadow-sm">
                         <p className="text-2xl font-bold text-text-primary">{patientDisplayName}</p>
                         <p className="text-text-secondary mt-1">
-                            {pd.age ? `${pd.age} yosh` : 'Yosh kiritilmagan'} вЂў {pd.gender === 'male' ? 'Erkak' : pd.gender === 'female' ? 'Ayol' : 'Kiritilmagan'}
+                            {pd.age ? `${pd.age} yosh` : 'Yosh kiritilmagan'} · {pd.gender === 'male' ? 'Erkak' : pd.gender === 'female' ? 'Ayol' : 'Kiritilmagan'}
                         </p>
                     </div>
 
@@ -172,7 +172,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                             </div>
                         </div>
                     )}
-                    {dh.map(msg => <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />)}
+                    {(Array.isArray(dh) ? dh : []).map(msg => <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />)}
                     {isLive && isAnalyzing && dh.length > 0 && !socraticQuestion && (
                         <DebateStatusIndicator message={statusMessage} />
                     )}

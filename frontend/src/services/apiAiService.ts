@@ -236,12 +236,13 @@ export const recommendSpecialists = async (
     { patient_data: patientData },
   );
   if (response.success && response.data) {
+    const recs = Array.isArray(response.data.recommendations) ? response.data.recommendations : [];
     return {
       ...response,
       data: {
-        recommendations: response.data.recommendations.map((rec) => ({
-          model:  rec.model as AIModel,
-          reason: rec.reason,
+        recommendations: recs.map((rec: { model?: string; reason?: string }) => ({
+          model:  (rec?.model ?? 'Gemini') as AIModel,
+          reason: typeof rec?.reason === 'string' ? rec.reason : '',
         })),
       },
     };
@@ -252,7 +253,15 @@ export const recommendSpecialists = async (
 export const generateInitialDiagnoses = async (
   patientData: PatientData,
 ): Promise<ApiResponse<Diagnosis[]>> => {
-  return apiPost<Diagnosis[]>('/ai/generate-diagnoses/', { patient_data: patientData });
+  const response = await apiPost<Diagnosis[]>('/ai/generate-diagnoses/', { patient_data: patientData });
+  if (!response.success && response.error?.code === 503) {
+    return {
+      success: true,
+      data: [],
+      warning: "AI xizmati vaqtincha band. Bo'sh ro'yxat bilan davom eting yoki keyinroq qayta urinib ko'ring.",
+    };
+  }
+  return response;
 };
 
 /** Backwards-compat вЂ“ now calls consilium */

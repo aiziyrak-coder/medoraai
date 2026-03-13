@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AnalysisRecord } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 import DocumentReportIcon from './icons/DocumentReportIcon';
 import VideoCameraIcon from './icons/VideoCameraIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
@@ -46,7 +47,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, o
                             <div className="min-w-0">
                                 <p className="font-bold text-text-primary truncate">{record.patientData.firstName} {record.patientData.lastName}</p>
                                 <p className="text-sm text-text-secondary truncate">
-                                    {record.finalReport.consensusDiagnosis[0]?.name || "Noma'lum tashxis"}
+                                    {normalizeConsensusDiagnosis(record.finalReport?.consensusDiagnosis)[0]?.name || "Noma'lum tashxis"}
                                 </p>
                                 <p className="text-xs text-text-secondary mt-1">
                                     {new Date(record.date).toLocaleString('uz-UZ', { dateStyle: 'long', timeStyle: 'short' })}

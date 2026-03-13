@@ -1,5 +1,5 @@
 """
-AiDoktor-Ziyrak AI Engine
+Farg'ona JSTI Jarvis AI Engine
 ========================
 Ikki rejim:
   1. ConsultationMonitor  вЂ” passiv tinglash, auto-diagnosis
@@ -10,7 +10,7 @@ Context management:
   вЂў Bemor ma'lumotlari, transkript, doktor so'rovlari вЂ” birgalikda kontekst
   вЂў PhysiologyFilter + AnatomyGuard вЂ” har bir ovozli so'rovda ham ishlaydi
 
-GPT-4o (AiDoktor-gpt4o) вЂ” barcha ZIYRAK so'rovlari uchun
+GPT-4o (FJSTI-gpt4o) вЂ” barcha ZIYRAK so'rovlari uchun
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _ZIYRAK_SYSTEM = """\
-Siz "AiDoktor-Ziyrak" вЂ” tibbiy yordamchi AI siz.
+Siz "Farg'ona JSTI Jarvis" вЂ” tibbiy yordamchi AI siz.
 Siz shifokorning ishonchli yordamchisi siz, bemor emas, SHIFOKORGA yordam berasiz.
 
 VAZIFALARINGIZ:

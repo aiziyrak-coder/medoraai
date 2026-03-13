@@ -1,5 +1,5 @@
 """
-AiDoktor-Ziyrak API Views
+Farg'ona JSTI Ziyrak API Views
 ========================
 Endpoint'lar: /api/ziyrak/*
 
@@ -79,7 +79,7 @@ def session_create(request):
                 "language":   session.language,
                 "mode":       session.mode,
                 "created_at": session.created_at,
-                "greeting":   "Men AiDoktor platformasining raqamli yordamchisi - Ziyrakman.",
+                "greeting":   "Men Farg'ona jamoat salomatligi tibbiyot instituti platformasining raqamli yordamchisi - Ziyrakman.",
             },
         })
     except Exception as exc:

@@ -1,6 +1,6 @@
 """
 Mukammal Gemini AI Integration
-Farg'ona Jamoat Salomatligi Tibbiyot Instituti - AiDoktor
+Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI)
 
 All AI services powered exclusively by Google Gemini API
 """

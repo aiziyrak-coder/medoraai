@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import type { PatientData, FinalReport } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -133,9 +134,9 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
     try {
       // Simulate phase transitions while waiting for response
       const p1Timeout = setTimeout(() =>
-        setPhases(p => ({ ...p, independent: 'done', debate: 'running' })), 8000);
+        setPhases(p => ({ ...p, independent: 'done', debate: 'running' })), 2500);
       const p2Timeout = setTimeout(() =>
-        setPhases(p => ({ ...p, debate: 'done', consensus: 'running' })), 20000);
+        setPhases(p => ({ ...p, debate: 'done', consensus: 'running' })), 8000);
 
       const resp = await runConsilium(patientData, language);
 
@@ -149,16 +150,17 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       setPhases({ independent: 'done', debate: 'done', consensus: 'done' });
       setResult(resp.data);
 
-      // Convert to FinalReport format for parent
+      // Convert to FinalReport format for parent (normalize in case API returns different shape)
       const fr = resp.data.final_report;
+      const consensusDiagnosis = normalizeConsensusDiagnosis(fr?.consensusDiagnosis);
       onReport({
-        consensusDiagnosis:        fr.consensusDiagnosis,
-        rejectedHypotheses:        fr.rejectedHypotheses,
-        treatmentPlan:             fr.treatmentPlan,
-        medicationRecommendations: fr.medicationRecommendations as FinalReport['medicationRecommendations'],
-        recommendedTests:          fr.recommendedTests,
-        unexpectedFindings:        fr.unexpectedFindings,
-        uzbekistanLegislativeNote: fr.uzbekistanLegislativeNote,
+        consensusDiagnosis,
+        rejectedHypotheses:        Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
+        treatmentPlan:             Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
+        medicationRecommendations: (Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : []) as FinalReport['medicationRecommendations'],
+        recommendedTests:          Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
+        unexpectedFindings:        typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : '',
+        uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
         criticalFinding:           fr.criticalFinding,
       } as FinalReport);
     } catch (err) {
@@ -247,7 +249,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
             <div ref={debateRef} className="max-h-[60vh] overflow-y-auto pr-1 space-y-1">
               {/* Professor summary */}
               <div className="grid grid-cols-2 gap-2 mb-3">
-                {result.professors.filter(p => p.id !== 'gpt4o').map(prof => (
+                {(Array.isArray(result.professors) ? result.professors : []).filter((p: { id?: string }) => p.id !== 'gpt4o').map(prof => (
                   <div key={prof.id}
                        className={`rounded-xl p-3 text-xs ${PROFESSOR_COLORS[prof.id] || 'bg-slate-600'} bg-opacity-20 border border-slate-600/30`}>
                     <p className="font-semibold text-white">{PROFESSOR_ICONS[prof.id]} {prof.name}</p>
@@ -256,15 +258,15 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                 ))}
               </div>
 
-              {result.final_report.debateHistory.map(msg => (
+              {(Array.isArray(result.final_report?.debateHistory) ? result.final_report.debateHistory : []).map(msg => (
                 <DebateCard key={msg.id} msg={msg} />
               ))}
 
-              {result.final_report.dissentingOpinions?.length > 0 && (
+              {Array.isArray(result.final_report?.dissentingOpinions) && result.final_report.dissentingOpinions.length > 0 && (
                 <div className="rounded-xl p-3 bg-amber-950/30 border border-amber-500/30 text-sm text-amber-200">
                   <p className="font-semibold mb-1">вљ  Farqli fikrlar:</p>
-                  {result.final_report.dissentingOpinions.map((op, i) => (
-                    <p key={i}>вЂў {op}</p>
+                  {(result.final_report.dissentingOpinions || []).map((op, i) => (
+                    <p key={i}>· {op}</p>
                   ))}
                 </div>
               )}
@@ -276,7 +278,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Consensus Diagnosis */}
               <div className="rounded-2xl bg-emerald-950/30 border border-emerald-500/30 p-4">
                 <h3 className="font-bold text-emerald-300 mb-2">вњ… Konsensus Tashxis</h3>
-                {result.final_report.consensusDiagnosis.slice(0, 3).map((d, i) => (
+                {(normalizeConsensusDiagnosis(result.final_report?.consensusDiagnosis) || []).slice(0, 3).map((d, i) => (
                   <div key={i} className="mb-2">
                     <div className="flex items-center justify-between">
                       <span className="text-white font-medium">{d.name}</span>
@@ -297,19 +299,19 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               )}
 
               {/* Medications */}
-              {result.final_report.medicationRecommendations.length > 0 && (
+              {Array.isArray(result.final_report?.medicationRecommendations) && result.final_report.medicationRecommendations.length > 0 && (
                 <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
                   <h3 className="font-bold text-white mb-2">рџ’Љ Dori-darmonlar</h3>
                   {result.final_report.pharmacologyWarnings?.length > 0 && (
                     <div className="mb-2 p-2 rounded-lg bg-amber-900/40 border border-amber-500/30">
                       <p className="text-amber-300 text-xs font-semibold">вљ  Farmakolog ogohlantirishlari:</p>
-                      {result.final_report.pharmacologyWarnings.map((w, i) => (
-                        <p key={i} className="text-amber-200 text-xs">вЂў {w}</p>
+                      {(result.final_report.pharmacologyWarnings || []).map((w, i) => (
+                        <p key={i} className="text-amber-200 text-xs">· {w}</p>
                       ))}
                     </div>
                   )}
                   <div className="space-y-2">
-                    {result.final_report.medicationRecommendations.map((med, i) => (
+                    {(result.final_report.medicationRecommendations || []).map((med, i) => (
                       <div key={i} className="p-2 rounded-lg bg-slate-700/50">
                         <p className="text-white text-sm font-medium">{med.name} вЂ” {med.dosage}</p>
                         <p className="text-slate-400 text-xs">{med.frequency}, {med.duration}</p>

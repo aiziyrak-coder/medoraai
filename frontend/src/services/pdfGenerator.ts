@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { FinalReport, PatientData, ChatMessage } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 import { AI_SPECIALISTS } from "../constants";
 
 // Extend jsPDF internal type for pages property
@@ -67,7 +68,7 @@ export const generatePdfReport = (
             if (isListItem) {
                 lineX += 5;
                 if (index === 0) {
-                    doc.text('вЂў', margin, y);
+                    doc.text('\u00B7', margin, y);
                 }
             }
             doc.text(line, lineX, y);
@@ -118,11 +119,20 @@ export const generatePdfReport = (
     y += 5;
     addKeyValue("Laborator Tahlillar", patientData.labResults);
     
+    // --- Critical Finding (if any) ---
+    if (report.criticalFinding && report.criticalFinding.finding) {
+        addHeader("Muhim topilma (shoshilinch)");
+        addKeyValue("Topilma", report.criticalFinding.finding);
+        addKeyValue("Oqibat", report.criticalFinding.implication);
+        addKeyValue("Shoshilinchlik", report.criticalFinding.urgency);
+        y += 10;
+    }
+
     // --- Main Report Sections ---
     addHeader("Konsilium Konsensusi");
 
     addSectionTitle("Eng Ehtimolli Tashxis(lar)");
-    report.consensusDiagnosis.forEach(diag => {
+    normalizeConsensusDiagnosis(report.consensusDiagnosis).forEach(diag => {
         addKeyValue("Tashxis", `${diag.name} (${diag.probability}%)`);
         addKeyValue("Dalillilik Darajasi", diag.evidenceLevel || "N/A");
         addKeyValue("Asoslash", diag.justification);
@@ -173,6 +183,30 @@ export const generatePdfReport = (
         y += 5;
         addSectionTitle("Qonuniy eslatma");
         addText(report.uzbekistanLegislativeNote);
+    }
+
+    // --- Har bir mutaxassisning yakuniy shaxsiy xulosasi ---
+    const specialistMessages = debateHistory.filter((m: ChatMessage) => !m.isSystemMessage && !m.isUserIntervention);
+    const lastByAuthor = new Map<string, ChatMessage>();
+    specialistMessages.forEach((m: ChatMessage) => lastByAuthor.set(m.author, m));
+    if (lastByAuthor.size > 0) {
+        if (y > pageHeight - 60) {
+            doc.addPage();
+            y = margin;
+        } else {
+            y += 10;
+        }
+        addHeader("Har bir mutaxassisning yakuniy shaxsiy xulosasi");
+        lastByAuthor.forEach((msg, author) => {
+            const authorName = AI_SPECIALISTS[author]?.name || author;
+            if (y > pageHeight - 40) {
+                doc.addPage();
+                y = margin;
+            }
+            addKeyValue(authorName, msg.content);
+            y += 2;
+        });
+        y += 10;
     }
 
     // --- Consultation History Section ---

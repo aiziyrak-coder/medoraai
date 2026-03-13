@@ -30,7 +30,7 @@ export const UZBEKISTAN_HEALTHCARE_CONTEXT = {
 
 /** AI uchun bitta matnli kontekst (promptga qo'shish uchun) */
 export function getUzbekistanContextForAI(language: 'uz-L' | 'uz-C' | 'ru' | 'en' | 'kaa'): string {
-  const sep = '\nвЂў ';
+  const sep = '\n· ';
   const legislation = UZBEKISTAN_HEALTHCARE_CONTEXT.legislation.join(sep);
   const protocols = UZBEKISTAN_HEALTHCARE_CONTEXT.clinicalProtocols.join(sep);
   const drugs = UZBEKISTAN_HEALTHCARE_CONTEXT.drugsAndPharmacy.join(sep);

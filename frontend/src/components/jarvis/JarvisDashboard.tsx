@@ -1,11 +1,12 @@
 /**
- * JarvisDashboard вЂ” AiDoktor-Jarvis Asosiy UI
+ * JarvisDashboard вЂ” Farg'ona JSTI Jarvis Asosiy UI
  * ===========================================
  * Doktor panelida ikki tab: Konsultatsiya Monitor | Interaktiv Jarvis
  * Konsilium bilan ma'lumot almashinuvi (Sync).
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import type { PatientData, FinalReport } from '../../types';
+import { INSTITUTE_NAME_SHORT } from '../../constants/brand';
 import type { ConsultationDiagnosis, SpeechLanguage } from '../../services/speechService';
 import { createJarvisSession, endJarvisSession } from '../../services/speechService';
 import { ConsultationMonitor } from './ConsultationMonitor';
@@ -72,7 +73,7 @@ function DiagnosisCard({ diagnosis, onDismiss }: DiagnosisCardProps) {
         <div className="rounded-xl bg-red-950/40 border border-red-500/40 p-3">
           <p className="text-red-300 text-xs font-bold mb-1">рџљЁ Kritik Topilmalar</p>
           {diagnosis.critical_findings.map((f, i) => (
-            <p key={i} className="text-red-200 text-xs">вЂў {f}</p>
+            <p key={i} className="text-red-200 text-xs">· {f}</p>
           ))}
         </div>
       )}
@@ -84,7 +85,7 @@ function DiagnosisCard({ diagnosis, onDismiss }: DiagnosisCardProps) {
           <div className="space-y-1.5">
             {(diagnosis.medications as Record<string, unknown>[]).slice(0, 4).map((med, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="text-amber-400 text-xs mt-0.5 shrink-0">вЂў</span>
+                <span className="text-amber-400 text-xs mt-0.5 shrink-0">·</span>
                 <div>
                   <span className="text-white text-xs font-medium">{String(med.name)} </span>
                   <span className="text-slate-400 text-xs">
@@ -172,7 +173,7 @@ export const JarvisDashboard: React.FC<Props> = ({
           рџ¤–
         </div>
         <div>
-          <h2 className="text-base font-bold text-white">AiDoktor-Jarvis</h2>
+          <h2 className="text-base font-bold text-white">{INSTITUTE_NAME_SHORT} — Jarvis</h2>
           <p className="text-xs text-slate-400">Azure Speech В· GPT-4o</p>
         </div>
         {sessionId && (

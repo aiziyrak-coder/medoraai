@@ -1,5 +1,5 @@
 """
-ASGI config for AiDoktorai_backend project.
+ASGI config for medoraai_backend project.
 """
 
 import os

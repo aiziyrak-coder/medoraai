@@ -11,7 +11,7 @@ Jarrohlar uchun maxsus AI yordamchi:
 
 Arxitektura:
   SurgerySession (kesh + disk)
-  в†’ GPT-4o (AiDoktor-gpt4o) real-vaqt javoblar
+  в†’ GPT-4o (FJSTI-gpt4o) real-vaqt javoblar
   в†’ AnatomyGuard Level-1 har bir buyruqda
   в†’ Favqulodda kalitlarga avtomatik javob (<1 soniya)
 """
@@ -203,7 +203,7 @@ def _save_surgery_session(session: SurgerySession) -> None:
 def _persist_surgery_log(session: SurgerySession) -> None:
     """Operatsiya logini diskka saqlash (HIPAA uchun doimiy zaxira)."""
     from django.conf import settings as dj_settings
-    base = Path(getattr(dj_settings, "MEDIA_ROOT", "/tmp/AiDoktor_media"))
+    base = Path(getattr(dj_settings, "MEDIA_ROOT", "/tmp/FJSTI_media"))
     log_dir = base / "surgery_logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / f"{session.session_id}.json"
@@ -232,7 +232,7 @@ def create_surgery_session(
 
     lang_hint = {"uz-L": "O'zbek", "ru": "Rus", "en": "Ingliz"}.get(language, "O'zbek")
     greeting  = (
-        f"Men Ziyrak вЂ” AiDoktor platformasining raqamli yordamchisi. "
+        f"Men Ziyrak вЂ” Farg'ona JSTI platformasining raqamli yordamchisi. "
         f"Operatsiya xonasida sizga xizmatdaman. "
         f"Operatsiya turi: {operation_type}. "
         f"Javoblar {lang_hint} tilida."
@@ -377,7 +377,7 @@ def get_surgery_log(session_id: str) -> dict:
     if not session:
         # Diskdan o'qishga urinish
         from django.conf import settings as dj_settings
-        base = Path(getattr(dj_settings, "MEDIA_ROOT", "/tmp/AiDoktor_media"))
+        base = Path(getattr(dj_settings, "MEDIA_ROOT", "/tmp/FJSTI_media"))
         log_path = base / "surgery_logs" / f"{session_id}.json"
         if log_path.exists():
             with open(log_path, "r", encoding="utf-8") as f:
@@ -408,7 +408,7 @@ def get_surgery_log(session_id: str) -> dict:
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
 _SURGERY_SYSTEM = """\
-Siz Ziyrak вЂ” AiDoktor platformasining raqamli yordamchisi.
+Siz Ziyrak вЂ” Farg'ona JSTI platformasining raqamli yordamchisi.
 Hozir OPERATSIYA XONASIDA jarrohga yordamasiz.
 
 OPERATSIYA XONASI QOIDALARI:
