@@ -587,41 +587,10 @@ const AppContent: React.FC = () => {
         setSelectedSpecialistsConfig(confirmedTeam);
         setOrchestratorModel(orchestrator);
         setAppView('live_analysis');
-        setIsProcessing(true);
-        try {
-            setStatusMessage(t('ddx_generating'));
-            const { generateInitialDiagnoses } = await import('./services/apiAiService');
-            const response = await generateInitialDiagnoses(patientData);
-            const apiErrorMsg = response.success === false ? (response.error?.message || '') : '';
-            const hasData = response.success && Array.isArray(response.data) && response.data.length > 0;
-            if (hasData) {
-                setDifferentialDiagnoses(response.data);
-                setError(null);
-            } else {
-                try {
-                    const diagnoses = await aiService.generateInitialDiagnoses(patientData, language);
-                    setDifferentialDiagnoses(Array.isArray(diagnoses) ? diagnoses : []);
-                    setError(null);
-                } catch (fallbackErr) {
-                    setError(apiErrorMsg || t('ddx_generation_error'));
-                    setStatusMessage(t('error_try_again'));
-                }
-            }
-        } catch (e) {
-            try {
-                const diagnoses = await aiService.generateInitialDiagnoses(patientData, language);
-                setDifferentialDiagnoses(Array.isArray(diagnoses) ? diagnoses : []);
-                setError(null);
-            } catch (fallbackErr) {
-                const msg = fallbackErr instanceof Error ? fallbackErr.message : '';
-                setError(msg || t('ddx_generation_error'));
-                setStatusMessage(t('error_try_again'));
-            }
-        }
-        finally {
-            setIsProcessing(false);
-            setAutoStartDebate(true);
-        }
+        // DDX generatsiyasini o'tkazib yuborish - to'g'ridan-to'g'ri munozarani boshlash
+        setDifferentialDiagnoses([]);
+        setError(null);
+        setAutoStartDebate(true);
     };
 
     const handleStartDebate = () => {
