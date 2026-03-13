@@ -686,37 +686,143 @@ const AppContent: React.FC = () => {
         setStatusMessage("Arxivdan yuklandi. Munozarani davom ettirishingiz mumkin.");
     };
 
-    const NavButton: React.FC<{ view: AppView; label: string; icon: React.ReactNode }> = ({ view, label, icon }) => {
-        const analysisViews: AppView[] = ['new_analysis', 'clarification', 'team_recommendation', 'live_analysis'];
-        const historyViews: AppView[] = ['history', 'view_history_item', 'case_library'];
-        let isActive = false;
-        if (analysisViews.includes(view)) { isActive = analysisViews.includes(appView); } 
-        else if (historyViews.includes(view)) { isActive = historyViews.includes(appView); } 
-        else { isActive = appView === view; }
-        return (
-            <button onClick={() => handleNavigation(view)} className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${isActive ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:bg-white/40 hover:text-slate-700'}`}>
-                {React.cloneElement(icon as React.ReactElement, { className: `w-5 h-5 transition-colors ${isActive ? 'text-blue-500' : 'text-slate-400'}` })}
-                <span>{label}</span>
+    /** Sahifa ichidagi qaytish paneli — faqat dashboard da ko'rinmaydi */
+    const BackBar: React.FC<{
+        title: string;
+        subtitle?: string;
+        onBack: () => void;
+        backLabel?: string;
+        extra?: React.ReactNode;
+    }> = ({ title, subtitle, onBack, backLabel = 'Asosiy sahifa', extra }) => (
+        <div
+            className="flex items-center gap-3 px-4 py-2.5 mb-0 flex-shrink-0"
+            style={{
+                background: 'rgba(255,255,255,0.55)',
+                backdropFilter: 'blur(12px)',
+                borderBottom: '1px solid rgba(255,255,255,0.6)',
+            }}
+        >
+            <button
+                onClick={onBack}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all border border-slate-200/60"
+            >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {backLabel}
             </button>
-        );
-    };
+            <div className="w-px h-5 bg-slate-200" />
+            <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-bold text-slate-800 leading-none truncate">{title}</h2>
+                {subtitle && <p className="text-[10px] text-slate-400 mt-0.5 leading-none truncate">{subtitle}</p>}
+            </div>
+            {extra && <div className="flex-shrink-0">{extra}</div>}
+        </div>
+    );
 
     const renderMainContent = () => {
         switch (appView) {
-            case 'dashboard': return <ScrollWrapper><Dashboard userName={currentUser!.name} onNewAnalysis={() => handleNavigation('new_analysis')} onViewHistory={() => setAppView('history')} recentAnalyses={userHistory.slice(0, 5)} onSelectAnalysis={viewHistoryItem} stats={dashboardStats} cmeTopics={cmeTopics} /></ScrollWrapper>;
-            case 'new_analysis': return <div className="h-full page-px py-4 overflow-hidden min-w-0"><DataInputForm onSubmit={handleDataSubmit} isAnalyzing={isProcessing} /></div>;
-            case 'clarification': return <ScrollWrapper><div className="max-w-3xl mx-auto w-full min-w-0"><ClarificationView isGenerating={isProcessing} questions={clarificationQuestions} onSubmit={handleClarificationSubmit} statusMessage={statusMessage} error={error} /></div></ScrollWrapper>;
-            case 'team_recommendation': return <ScrollWrapper><div className="max-w-3xl mx-auto w-full h-full flex flex-col min-w-0"><TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} /></div></ScrollWrapper>
+            case 'dashboard':
+                return (
+                    <ScrollWrapper>
+                        <Dashboard
+                            userName={currentUser!.name}
+                            onNewAnalysis={() => handleNavigation('new_analysis')}
+                            onViewHistory={() => setAppView('history')}
+                            recentAnalyses={userHistory.slice(0, 5)}
+                            onSelectAnalysis={viewHistoryItem}
+                            stats={dashboardStats}
+                            cmeTopics={cmeTopics}
+                        />
+                    </ScrollWrapper>
+                );
+
+            case 'new_analysis':
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar title={t('nav_new_case')} subtitle="Bemor ma'lumotlarini kiriting" onBack={() => handleNavigation('dashboard')} />
+                        <div className="flex-1 page-px py-4 overflow-hidden">
+                            <DataInputForm onSubmit={handleDataSubmit} isAnalyzing={isProcessing} />
+                        </div>
+                    </div>
+                );
+
+            case 'clarification':
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar title="Aniqlashtiruvchi Savollar" subtitle="Konsilium tahlilini boyitish uchun" onBack={() => handleNavigation('new_analysis')} backLabel="Orqaga" />
+                        <ScrollWrapper>
+                            <div className="max-w-3xl mx-auto w-full min-w-0">
+                                <ClarificationView isGenerating={isProcessing} questions={clarificationQuestions} onSubmit={handleClarificationSubmit} statusMessage={statusMessage} error={error} />
+                            </div>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'team_recommendation':
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar title="Mutaxassislar Jamoasi" subtitle="AI konsilium uchun jamoa tanlang" onBack={() => handleNavigation('new_analysis')} backLabel="Orqaga" />
+                        <ScrollWrapper>
+                            <div className="max-w-3xl mx-auto w-full h-full flex flex-col min-w-0">
+                                <TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} />
+                            </div>
+                        </ScrollWrapper>
+                    </div>
+                );
+
             case 'live_analysis':
-            case 'view_history_item':
-                const record = appView === 'live_analysis' || appView === 'view_history_item' ? { patientData, debateHistory, finalReport, selectedSpecialists: selectedSpecialistsConfig.map(s=>s.role) } : currentAnalysisRecord;
+            case 'view_history_item': {
+                const record = { patientData, debateHistory, finalReport, selectedSpecialists: selectedSpecialistsConfig.map(s => s.role) };
                 if (!record || !record.patientData) return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
-                return <div className="h-full page-px py-4 overflow-hidden min-w-0"><AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} onGoToEducation={() => setAppView('patient_education')} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} /></div>;
-            case 'history': return <ScrollWrapper><HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} /></ScrollWrapper>;
-            case 'case_library': return <ScrollWrapper><CaseLibraryView onBack={() => setAppView('history')} /></ScrollWrapper>;
-            case 'patient_education': return <ScrollWrapper>{currentAnalysisRecord && <PatientEducationPortal record={currentAnalysisRecord} onBack={() => setAppView('view_history_item')} />}</ScrollWrapper>;
-            case 'research': return <ScrollWrapper><ResearchView /></ScrollWrapper>;
-            default: return <div className="text-center p-8 text-slate-500">{t('error_page_not_found')}</div>;
+                const isArchive = appView === 'view_history_item' && !isProcessing && debateHistory.length > 0;
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar
+                            title={isArchive ? "Tahlil Ko'rinishi" : "Konsilium Jarayoni"}
+                            subtitle={record.patientData ? `${record.patientData.firstName} ${record.patientData.lastName}` : ''}
+                            onBack={() => isArchive ? setAppView('history') : handleNavigation('dashboard')}
+                            backLabel={isArchive ? 'Arxiv' : 'Asosiy sahifa'}
+                        />
+                        <div className="flex-1 page-px py-3 overflow-hidden">
+                            <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} onGoToEducation={() => setAppView('patient_education')} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} />
+                        </div>
+                    </div>
+                );
+            }
+
+            case 'history':
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar title="Tahlillar Arxivi" subtitle="O'tkazilgan barcha tahlillar" onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'case_library':
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar title="Holatlar Kutubxonasi" onBack={() => setAppView('history')} backLabel="Arxiv" />
+                        <ScrollWrapper>
+                            <CaseLibraryView onBack={() => setAppView('history')} />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'patient_education':
+                return (
+                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                        <BackBar title="Bemor uchun Ma'lumot" onBack={() => setAppView('view_history_item')} backLabel="Tahlilga" />
+                        <ScrollWrapper>
+                            {currentAnalysisRecord && <PatientEducationPortal record={currentAnalysisRecord} onBack={() => setAppView('view_history_item')} />}
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            default:
+                return <div className="text-center p-8 text-slate-500">{t('error_page_not_found')}</div>;
         }
     };
     
@@ -784,23 +890,32 @@ const AppContent: React.FC = () => {
                 </div>
             )}
             <header className="flex-none pt-3 sm:pt-4 pb-2 z-30 w-full relative">
-                 <div className="glass-panel page-px py-3 flex flex-wrap justify-between items-center gap-2 sm:gap-4 shadow-lg shadow-blue-500/5 w-full min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
-                                <span className="text-white font-black text-base sm:text-lg">M</span>
-                             </div>
-                             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-text-primary truncate min-w-0">{t('appName')}</h1>
+                <div className="glass-panel page-px py-2.5 flex justify-between items-center shadow-lg shadow-blue-500/5 w-full min-w-0">
+                    {/* Logo */}
+                    <button
+                        onClick={() => handleNavigation('dashboard')}
+                        className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-80 transition-opacity"
+                    >
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+                            <span className="text-white font-black text-base sm:text-lg">M</span>
                         </div>
-                        <div className="hidden md:flex items-center flex-wrap gap-1 p-1 bg-white/40 rounded-full border border-white/40 backdrop-blur-md shadow-inner">
-                            <NavButton view="dashboard" label={t('nav_dashboard')} icon={<HomeIcon />} />
-                            <NavButton view="new_analysis" label={t('nav_new_case')} icon={<PlusCircleIcon />} />
-                            <NavButton view="history" label={t('nav_archive')} icon={<DocumentReportIcon />} />
-                            <NavButton view="research" label={t('nav_research')} icon={<LightBulbIcon />} />
+                        <div className="min-w-0 hidden sm:block">
+                            <h1 className="text-base font-black tracking-tight text-slate-800 leading-none">{t('appName')}</h1>
+                            <p className="text-[9px] text-slate-400 font-medium tracking-wide leading-none mt-0.5">AI Konsilium Tizimi</p>
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                            <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
-                            <button onClick={handleLogout} className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 sm:px-4 py-2 hover:bg-white/50 rounded-xl">{t('logout')}</button>
-                        </div>
+                        <h1 className="text-base font-black tracking-tight text-slate-800 sm:hidden">{t('appName')}</h1>
+                    </button>
+
+                    {/* Right: lang + logout */}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
+                        <button
+                            onClick={handleLogout}
+                            className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors px-3 sm:px-4 py-2 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100"
+                        >
+                            {t('logout')}
+                        </button>
+                    </div>
                 </div>
             </header>
 
