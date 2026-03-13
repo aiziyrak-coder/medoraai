@@ -848,27 +848,34 @@ export const runDoctorSupportViaGemini = async (
 export const generateClarifyingQuestions = async (data: PatientData, language: Language): Promise<string[]> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = buildMultimodalPrompt(
-        `
-        Analyze the patient data carefully. Be AQLLI (smart) and prioritise by clinical impact.
-        
-        PRIORITY 1 (always ask if missing): Allergies, current medications, pregnancy/lactation if relevant.
-        PRIORITY 2: Vital signs (BP, HR, temp if febrile presentation), key lab values for the complaint.
-        PRIORITY 3: Duration of symptoms, previous similar episodes, family history if relevant to complaint.
-        
-        Return 3-5 SHORT, SPECIFIC questions. Do not ask for data already present.
-        Format: JSON array of strings.
-        Output Language: ${langMap[language]}.
-        `,
+        `Bemorning klinik ma'lumotlarini tahlil qiling. Allaqachon mavjud ma'lumotlarni QAYTA so'ramang.
+
+Faqat ENG MUHIM 3-4 ta savol bering. Har bir savol QISQA bo'lsin (max 10-15 so'z). Savol mazmuni aniq va to'g'ridan-to'g'ri bo'lsin.
+
+Misol formatda: "Allergiyangiz bormi?", "Yurak urishingiz qancha?", "Og'riq qachondan boshlangan?"
+
+JSON array qaytaring: ["savol1", "savol2", "savol3"]
+TIL: ${langMap[language]}.`,
         data
     );
     const schema = { type: 'array', items: { type: 'string' } };
     try {
-        const result = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 2048);
-        const arr = Array.isArray(result) ? (result as string[]).filter((q): q is string => typeof q === 'string') : [];
+        const result = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 1024);
+        const arr = Array.isArray(result)
+            ? (result as string[]).filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
+            : [];
         return arr.length > 0 ? arr : [];
     } catch (e) {
         logger.warning('generateClarifyingQuestions error', e);
-        return [];
+        // Fallback: minimal universal questions
+        const fallbackMap: Record<Language, string[]> = {
+            'uz-L': ["Allergiyangiz bormi?", "Hozir qanday dori ichyapsiz?", "Belgilar qachondan boshlangan?"],
+            'uz-C': ["Аллергиянгиз борми?", "Ҳозир қандай дори ичяпсиз?", "Белгилар қачондан бошланган?"],
+            'ru':   ["Есть ли аллергия?", "Какие лекарства принимаете?", "Когда начались симптомы?"],
+            'kaa':  ["Allergiyanız barma?", "Házir qanday dári ishleysiñ?", "Belgiler qashan baslandı?"],
+            'en':   ["Do you have any allergies?", "What medications are you taking?", "When did symptoms start?"],
+        };
+        return fallbackMap[language] ?? fallbackMap['uz-L'];
     }
 };
 
