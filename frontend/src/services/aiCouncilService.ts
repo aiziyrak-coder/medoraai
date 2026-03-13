@@ -387,7 +387,9 @@ const callGemini = async (
     };
 
     const modelsToTry: string[] = [geminiModel];
-    if (geminiModel === MODEL_FAST || geminiModel === DEPLOY_FAST) {
+    if (geminiModel === MODEL_PRO || geminiModel === DEPLOY_PRO) {
+        modelsToTry.push(MODEL_FAST, 'gemini-2.0-flash');
+    } else {
         modelsToTry.push('gemini-2.0-flash', 'gemini-1.5-flash-8b');
     }
 
@@ -439,10 +441,12 @@ const callGemini = async (
                 return await executeCall(m);
             } catch (e) {
                 lastErr = e;
-                const msg = String((e as Error & { message?: string })?.message ?? e);
+                const msg = String((e as Error & { message?: string })?.message ?? e).toLowerCase();
                 const is404 = /404|not found|NOT_FOUND/i.test(msg);
-                if (is404) {
-                    logger.warning('Gemini model %s not available, trying next', m);
+                const is503 = /503|unavailable|overloaded|service.?unavailable/i.test(msg);
+                if (is404 || is503) {
+                    logger.warning('Gemini model %s not available (%s), trying next', m, is503 ? '503' : '404');
+                    if (is503) await sleep(1500);
                     continue;
                 }
                 throw e;
@@ -455,12 +459,14 @@ const callGemini = async (
         const mobile = isMobile();
         try {
             return await retry(executeWithModelFallback, {
-                maxRetries: mobile ? 2 : 1,
-                initialDelay: mobile ? 600 : 400,
+                maxRetries: mobile ? 3 : 2,
+                initialDelay: 1000,
+                maxDelay: 12000,
+                backoffMultiplier: 2,
                 retryableErrors: [
                     'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
-                    'parse_json', "noto'g'ri", 'javob', 'invalid json', 'failed to parse',
-                    'rate_limit_exceeded', '429',
+                    'service unavailable', 'parse_json', "noto'g'ri", 'javob', 'invalid json',
+                    'failed to parse', 'rate_limit_exceeded', '429', 'resource_exhausted',
                 ],
             });
         } catch (error) {
