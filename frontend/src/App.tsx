@@ -11,6 +11,7 @@ import { useTranslation } from './hooks/useTranslation';
 import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
+import { getAuthToken, clearTokens } from './services/api';
 
 // --- Views & Components ---
 import AuthPage from './components/AuthPage';
@@ -81,25 +82,34 @@ const AppContent: React.FC = () => {
     // --- STATE MANAGEMENT ---
     
     // Auth & View
-    // Initialize from localStorage, then try to refresh from API
-    const [currentUser, setCurrentUser] = useState<User | null>(() => {
-        const localUser = authService.getCurrentUser();
-        // Try to refresh from API if token exists
-        if (localUser) {
-            import('./services/apiAuthService').then(({ getProfile }) => {
-                getProfile().then(apiUser => {
-                    if (apiUser) {
-                        setCurrentUser(apiUser);
-                    }
-                });
-            });
-        }
-        return localUser;
-    });
+    // Initialize from localStorage; only refresh from API when we have a token to avoid 401s
+    const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getCurrentUser());
     
     // New States for Landing Page Flow
     const [showLanding, setShowLanding] = useState(!currentUser); // Show landing if not logged in
     const [showGuide, setShowGuide] = useState(false);
+
+    // Sync with API when token exists; clear stale session when no token (avoids 401 on profile/analyses)
+    useEffect(() => {
+        if (!currentUser) return;
+        if (!getAuthToken()) {
+            clearTokens();
+            setCurrentUser(null);
+            setShowLanding(true);
+            return;
+        }
+        import('./services/apiAuthService').then(({ getProfile }) => {
+            getProfile().then(apiUser => {
+                if (apiUser) {
+                    setCurrentUser(apiUser);
+                } else {
+                    clearTokens();
+                    setCurrentUser(null);
+                    setShowLanding(true);
+                }
+            });
+        });
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount to validate session
 
     const [appView, setAppView] = useState<AppView>('dashboard');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -197,9 +207,9 @@ const AppContent: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Load initial data if user is already logged in on mount
+    // Load initial data if user is already logged in on mount (only when token present to avoid 401)
     useEffect(() => {
-        if (currentUser && currentUser.role === 'clinic') {
+        if (currentUser?.role === 'clinic' && getAuthToken()) {
             // Try API first, fallback to local
             import('./services/apiAnalysisService').then(({ getAnalyses }) => {
                 getAnalyses().then(response => {
