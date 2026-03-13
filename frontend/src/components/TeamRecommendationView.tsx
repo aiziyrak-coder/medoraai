@@ -24,13 +24,15 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     const [selectedSpecialists, setSelectedSpecialists] = useState<Set<AIModel>>(new Set());
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Initialize state when recommendations load
+    // Initialize state when recommendations load - with null safety
     useEffect(() => {
-        if (recommendations) {
+        if (recommendations && Array.isArray(recommendations) && recommendations.length > 0) {
             const initialSelection = new Set<AIModel>();
             // Pre-select top 6 recommended (max 10, min 4)
             recommendations.slice(0, Math.min(6, recommendations.length)).forEach(r => {
-                initialSelection.add(r.model);
+                if (r?.model) {
+                    initialSelection.add(r.model);
+                }
             });
             setSelectedSpecialists(initialSelection);
         }
@@ -63,9 +65,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
         onConfirm(teamPayload, INTERNAL_BEST_MODEL);
     };
 
-    // Filter and Sort Specialists
+    // Filter and Sort Specialists - with null safety
     const filteredSpecialists = useMemo(() => {
         const allSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
+        const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
+        
         return allSpecialists.filter(model => {
             const specInfo = AI_SPECIALISTS[model];
             const searchLower = searchTerm.toLowerCase();
@@ -82,8 +86,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             const isSelB = selectedSpecialists.has(b);
             if (isSelA !== isSelB) return isSelA ? -1 : 1;
 
-            const isRecA = recommendations?.some(r => r.model === a);
-            const isRecB = recommendations?.some(r => r.model === b);
+            const isRecA = safeRecommendations.some(r => r?.model === a);
+            const isRecB = safeRecommendations.some(r => r?.model === b);
             if (isRecA !== isRecB) return isRecA ? -1 : 1;
 
             return AI_SPECIALISTS[a].name.localeCompare(AI_SPECIALISTS[b].name);
@@ -141,7 +145,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                     <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 rounded-lg border border-slate-200">
                         {filteredSpecialists.map((model) => {
                             const specialistInfo = AI_SPECIALISTS[model];
-                            const recommendation = recommendations.find(r => r.model === model);
+                            const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
+                            const recommendation = safeRecommendations.find(r => r?.model === model);
                             const isSelected = selectedSpecialists.has(model);
                             return (
                                 <div 
