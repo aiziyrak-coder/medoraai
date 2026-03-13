@@ -5,8 +5,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { checkApiHealth } from '../services/api';
 import { isApiConfigured } from '../config/api';
 
-const POLL_INTERVAL_MS = 35_000;
-const INITIAL_DELAY_MS = 300;
+const POLL_INTERVAL_MS = 60_000;
+const INITIAL_DELAY_MS = 2000;
 
 export function useApiHealth(): {
   apiHealthy: boolean;

@@ -456,10 +456,13 @@ export interface HealthCheckResult {
 export const checkApiHealth = async (): Promise<HealthCheckResult> => {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(`${HOST_BASE}/health/`, { signal: controller.signal });
     clearTimeout(timeoutId);
-    return { ok: res.ok, status: res.status };
+    // 2xx: healthy. 400: DNS/redirect issue. 5xx: server error → offline.
+    // 3xx, 4xx (except 400): server is up (just redirecting or auth-protected)
+    const isServerUp = res.status < 500 && res.status !== 400;
+    return { ok: isServerUp, status: res.status };
   } catch {
     return { ok: false };
   }

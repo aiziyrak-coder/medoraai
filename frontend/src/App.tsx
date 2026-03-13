@@ -790,7 +790,7 @@ const AppContent: React.FC = () => {
         <div className="flex flex-col h-screen w-full max-w-[100vw] font-sans text-text-primary bg-transparent relative overflow-hidden">
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
             {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
-            {isApiConfigured() && !apiHealthy && (
+            {isApiConfigured() && !apiHealthy && !isProcessing && (
                 <div className="flex-none flex items-center justify-center gap-2 sm:gap-3 py-2 page-px bg-amber-500/90 text-white text-xs sm:text-sm font-medium z-40 flex-wrap">
                     {healthStatus === 400 ? (
                         <span className="break-words">Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring: <code className="bg-black/20 px-1 rounded">nslookup medora.cdcgroup.uz</code> в†’ <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.</span>
