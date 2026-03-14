@@ -1073,10 +1073,14 @@ export const runCouncilDebate = async (
     onProgress({ type: 'status', message: introMessages[language] || introMessages['uz-C'] });
     let debateHistory: ChatMessage[] = [];
 
-    const patientSummaryForRais = `Bemor: ${(patientData.firstName || '')} ${(patientData.lastName || '')}, ${patientData.age || '-'} yosh. Shikoyat: ${(patientData.complaints || '').slice(0, 400)}. Dastlabki tashxislar: ${diagnoses.map(d => d.name).join(', ') || '-'}.`;
+    const patientSummaryForRais = `Bemor: ${(patientData.firstName || '')} ${(patientData.lastName || '')}, ${patientData.age || '-'} yosh.
+Shikoyat: ${(patientData.complaints || '').slice(0, 500)}.
+Anamnez: ${(patientData.history || '-').slice(0, 300)}.
+Obyektiv/vital: ${(patientData.objectiveData || '-').slice(0, 200)}.
+Dastlabki tashxislar: ${diagnoses.map(d => d.name).join(', ') || '-'}.`;
 
-    // Rais kirish so'zi — faqat AI yozadi, bemor va holatdan kelib chiqib; hech qanday oldindan matn yo'q
-    const introContentPrompt = `Siz Konsilium Raisi. Quyidagi bemor va holat ma'lumotlariga asosan BIRINCHI ochilish so'zini o'zingiz yozing. Oldindan tayyorlangan ibora yoki shablon ishlatmang — faqat shu bemor va dastlabki tashxislar asosida bitta qisqa paragraf (3-5 jumla). Maqsad: eng yaxshi tashxis va davolash, O'zbekiston SSV protokollari, faqat ro'yxatdan o'tgan dori. Javobni oxirigacha yozing. TIL: ${langMap[language]}.
+    // Konsiliumda hech qanday oldindan kiritilgan yozuv yo'q — hammasi AI suhbat va kasallikni o'qib o'zidan yozadi
+    const introContentPrompt = `Siz Konsilium Raisi. QOIDA: Konsiliumda hech bir matn oldindan kiritilmaydi — barcha yozuv faqat siz quyidagi bemor va kasallik ma'lumotlarini O'QIB, TUSHUNIB, umumlashtirib o'zingiz yozasiz. Tayyor ibora yoki shablon ISHLATMANG. Quyidagi ma'lumotlar asosida birinchi ochilish so'zini to'liq o'zingiz yozing (3-5 jumla). Maqsad: eng yaxshi tashxis va davolash, O'zbekiston SSV, ro'yxatdan o'tgan dori. Javobni oxirigacha yozing. TIL: ${langMap[language]}.
 
 ${patientSummaryForRais}`;
     const introContent = await callGemini(introContentPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
@@ -1087,8 +1091,8 @@ ${patientSummaryForRais}`;
     await sleep(12);
 
     const DEBATE_ROUNDS = 3;
-    // Rais birinchi mavzusi — faqat bemor va tashxislar asosida AI yozadi, shablon yo'q
-    const currentTopicPrompt = `Siz Konsilium raisi. Quyidagi bemor ma'lumotlari va dastlabki tashxislar asosida BIRINCHI mavzuni o'zingiz yozing: mutaxassislarga dastlabki baho va xavf belgilari (har biri o'z sohasida) berishni so'rang. Oldindan tayyorlangan matn ishlatmang — faqat shu ma'lumotdan kelib chiqib bitta to'liq paragraf yozing. TIL: ${langMap[language]}.
+    // Birinchi mavzu — faqat bemor va kasallikni o'qib AI o'zidan yozadi
+    const currentTopicPrompt = `Siz Konsilium raisi. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi bemor va kasallik ma'lumotlarini o'qib, o'zingiz umumlashtirib birinchi mavzuni yozing. Mutaxassislarga dastlabki baho va xavf belgilari (har biri o'z sohasida) berishni so'ring. Tayyor matn ishlatmang — bitta to'liq paragrafni faqat shu ma'lumotdan kelib chiqib o'zingiz yozing. TIL: ${langMap[language]}.
 
 ${patientSummaryForRais}`;
     let currentTopic = await callGemini(currentTopicPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
@@ -1144,19 +1148,17 @@ ${patientSummaryForRais}`;
                 })
                 .join('\n\n');
 
-            const textPrompt = `Siz - ${specName} (${specTitle}). Sizning butun javobingiz faqat siz tomoningizdan yozilishi kerak: oldindan kiritilgan yoki tayyorlangan hech qanday gap bo'lmasin.
+            const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — hammasi AI o'zi suhbat va kasallikni o'qib, tushunib, umumlashtirib yozadi. Siz ham faqat quyidagi suhbat va bemor ma'lumotlarini O'QIB, o'z fikringizni boshidan yozing. Tayyor ibora yoki shablon (masalan "Bu masala mening soham...", "Tasdiqlayman" va h.k.) ISHLATMANG. Har bir gap faqat suhbat va kasallikdan kelib chiqsin.
 
-QAT'IY: Avval quyidagi BARCHA suhbatni va bemor ma'lumotlarini O'QING. Kasallikni va munozarani o'zingiz uchun umumlashtiring. Keyin o'z fikringizni — faqat shu o'qiganlaringiz asosida — boshidan yozing. Hech qanday shablon yoki tayyor ibora (masalan "Bu masala mening soham...", "Tasdiqlayman" va h.k.) ishlatmang. Har bir jumla suhbat va bemor holatidan kelib chiqsin.
-
---- SUHBAT TARIXI (o'qing, keyin o'z fikringizni yozing) ---
+--- SUHBAT TARIXI (avval o'qing, keyin o'z fikringizni yozing) ---
 ${fullDebateText}
 --- TUGADI ---
 
 Raisning hozirgi mavzusi: "${currentTopic}"
 
 QOIDALAR:
-1. Aloqasi BOR bo'lsa: Boshqa mutaxassislar gaplariga javob (qo'shilish, rad, savol), o'z sohangizdagi aniq taklif. Barchasi suhbatdan kelib chiqsin.
-2. Aloqasi YO'Q bo'lsa: Bitta qisqa jumla (o'zingiz yozing), keyin to'xtang.
+1. Aloqasi BOR bo'lsa: Boshqa mutaxassislar gaplariga javob (qo'shilish, rad, savol), o'z sohangizdagi aniq taklif. Hammasi faqat yuqoridagi suhbatdan kelib chiqsin.
+2. Aloqasi YO'Q bo'lsa: Bitta qisqa jumla o'zingiz yozing, keyin to'xtang.
 3. Shifokordan aniq ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [savol]."
 
 Javob 3-6 jumla, oxirigacha. TIL: ${langMap[language]}.`;
@@ -1200,13 +1202,13 @@ Javob 3-6 jumla, oxirigacha. TIL: ${langMap[language]}.`;
         
         if (round < DEBATE_ROUNDS) {
             const debateSummary = debateHistory.slice(-10).map(m => `[${m.author === AIModel.SYSTEM ? 'Rais' : m.author}]: ${(m.content || '').trim().slice(0, 300)}`).join('\n');
-            const summarizationPrompt = `Siz - Konsilium raisi. ${round}-bosqich tugadi. Quyidagi suhbatni o'qing va faqat shu suhbatdan kelib chiqib keyingi xabaringizni o'zingiz yozing. Oldindan tayyorlangan matn ishlatmang.
+            const summarizationPrompt = `Siz - Konsilium raisi. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi suhbatni o'qib, o'zingiz umumlashtirib keyingi xabaringizni yozing. Tayyor ibora ishlatmang.
 
---- BOSQICH SUHBATI ---
+--- ${round}-BOSQICH SUHBATI (o'qing, keyin o'zingiz yozing) ---
 ${debateSummary}
 --- TUGADI ---
 
-VAZIFA: Mutaxassislar o'rtasidagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzuni yo'naltiring (qaysi mutaxassisga savol). Agar shifokordan aniq ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [to'liq savol]". Kerak bo'lmasa yozmang. Javobni oxirigacha yozing. TIL: ${langMap[language]}.`;
+VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzuni yo'naltiring. Agar shifokordan aniq ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [to'liq savol]". Kerak bo'lmasa yozmang. Javobni oxirigacha yozing. TIL: ${langMap[language]}.`;
             currentTopic = await callGemini(summarizationPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
         }
     }
