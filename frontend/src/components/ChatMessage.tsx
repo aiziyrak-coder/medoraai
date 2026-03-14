@@ -75,7 +75,7 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
                         </div>
                     ) : (
                         <>
-                            <p className={`whitespace-pre-wrap text-text-primary break-words ${compact ? 'text-xs max-h-24 overflow-y-auto' : ''}`}>{content}</p>
+                            <p className={`whitespace-pre-wrap text-text-primary break-words ${compact ? 'text-xs' : ''}`}>{content}</p>
                             {evidenceLevel && !compact && (
                                 <div className="mt-3 pt-2 border-t border-slate-300/50">
                                     <EvidenceBadge level={evidenceLevel} />
