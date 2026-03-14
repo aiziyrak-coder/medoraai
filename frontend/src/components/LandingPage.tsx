@@ -189,10 +189,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                         <span className="text-xs sm:text-sm font-black tracking-tight text-white truncate uppercase">{INSTITUTE_LOGO_TEXT}</span>
                         <span className="text-[10px] font-medium text-slate-500 hidden sm:block truncate">{INSTITUTE_NAME_FULL}</span>
                     </div>
-                    <div className="hidden lg:flex items-center gap-4 text-sm font-medium text-slate-400">
-                        <button onClick={() => goToSlide(1)} className="hover:text-cyan-400 transition-colors">{t('nav_features')}</button>
-                        <button onClick={() => goToSlide(2)} className="hover:text-cyan-400 transition-colors">{t('nav_how_it_works')}</button>
-                        {onOpenAbout && <button onClick={onOpenAbout} className="text-cyan-400 hover:text-cyan-300">Institut haqida</button>}
+                    <div className="hidden lg:flex items-center">
+                        {onOpenAbout && (
+                            <button
+                                onClick={onOpenAbout}
+                                className="institute-about-btn group relative px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition-all duration-300 border border-white/10 hover:border-cyan-400/50 bg-white/[0.02] hover:bg-cyan-500/10 shadow-none hover:shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/70 group-hover:bg-cyan-400 group-hover:shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all duration-300" />
+                                    Institut haqida
+                                </span>
+                            </button>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
@@ -209,7 +217,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
             {/* --- SLIDES CONTAINER (no scroll) --- */}
             <div className="flex-1 min-h-0 w-full overflow-hidden">
                 <div
-                    className={`landing-slides-track flex h-full ${isTransitioning ? 'landing-track-transitioning' : ''}`}
+                    className="landing-slides-track flex h-full"
                     style={{ transform: `translateX(-${currentSlide * 100}vw)` }}
                 >
                     {/* SLIDE 0: HERO */}
