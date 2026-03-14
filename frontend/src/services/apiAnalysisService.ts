@@ -71,6 +71,7 @@ function sanitizeForJson(obj: unknown, depth = 0): unknown {
   if (obj === undefined) return null;
   if (obj === null || typeof obj === 'number' || typeof obj === 'boolean') return obj;
   if (typeof obj === 'string') return obj.length > MAX_STRING ? obj.slice(0, MAX_STRING) : obj;
+  if (typeof obj === 'number') return Number.isFinite(obj) ? obj : 0;
   if (Array.isArray(obj)) return obj.slice(0, 200).map(item => sanitizeForJson(item, depth + 1));
   if (typeof obj === 'object') {
     const out: Record<string, unknown> = {};
@@ -101,14 +102,17 @@ const analysisRecordToApi = (record: Partial<AnalysisRecord>): Partial<ApiAnalys
     evidenceLevel: m.evidenceLevel,
   }));
 
-  const consensusDiagnosis = safeArr(fr.consensusDiagnosis).slice(0, 25).map((d: { name?: unknown; probability?: unknown; justification?: unknown; evidenceLevel?: unknown; reasoningChain?: unknown; uzbekProtocolMatch?: unknown }) => ({
+  const consensusDiagnosis = safeArr(fr.consensusDiagnosis).slice(0, 25).map((d: { name?: unknown; probability?: unknown; justification?: unknown; evidenceLevel?: unknown; reasoningChain?: unknown; uzbekProtocolMatch?: unknown }) => {
+    const p = Number(d?.probability ?? 0);
+    return {
     name: String(d?.name ?? ''),
-    probability: Number(d?.probability ?? 0),
+    probability: Number.isFinite(p) ? p : 0,
     justification: String(d?.justification ?? '').slice(0, 3000),
     evidenceLevel: String(d?.evidenceLevel ?? 'Moderate'),
     reasoningChain: Array.isArray(d?.reasoningChain) ? (d.reasoningChain as string[]).slice(0, 12).map(s => String(s).slice(0, 500)) : [],
     uzbekProtocolMatch: String(d?.uzbekProtocolMatch ?? '').slice(0, 1000),
-  }));
+  };
+  });
 
   const final_report = sanitizeForJson({
     criticalFinding: fr.criticalFinding,
@@ -142,7 +146,6 @@ const analysisRecordToApi = (record: Partial<AnalysisRecord>): Partial<ApiAnalys
   }) as FinalReport;
 
   return {
-    patient_id: record.patientId || '',
     external_patient_id: record.patientId || '',
     patient_data: patientDataSanitized,
     debate_history,

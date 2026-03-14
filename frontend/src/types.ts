@@ -244,17 +244,20 @@ export function getReasoningChainArray(d: { reasoningChain?: unknown }): string[
   return [];
 }
 
-/** Ensures consensusDiagnosis is always an array of Diagnosis; normalizes API/Gemini shape (e.g. "diagnosis" -> "name"). */
+/** Ensures consensusDiagnosis is always an array of Diagnosis; normalizes API/Gemini shape. Probability is coerced to a finite number to avoid NaN% display. */
 export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
   if (Array.isArray(raw)) {
-    return raw.map((item: Record<string, unknown>) => ({
-      name: String(item?.name ?? item?.diagnosis ?? ''),
-      probability: Number(item?.probability ?? 0),
-      justification: String(item?.justification ?? item?.reasoningChain ?? ''),
-      evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
-      reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : (typeof item?.reasoningChain === 'string' ? [item.reasoningChain] : []),
-      uzbekProtocolMatch: String(item?.uzbekProtocolMatch ?? ''),
-    }));
+    return raw.map((item: Record<string, unknown>) => {
+      const p = Number(item?.probability ?? 0);
+      return {
+        name: String(item?.name ?? item?.diagnosis ?? ''),
+        probability: Number.isFinite(p) ? p : 0,
+        justification: String(item?.justification ?? item?.reasoningChain ?? ''),
+        evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
+        reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : (typeof item?.reasoningChain === 'string' ? [item.reasoningChain] : []),
+        uzbekProtocolMatch: String(item?.uzbekProtocolMatch ?? ''),
+      };
+    });
   }
   return [];
 }

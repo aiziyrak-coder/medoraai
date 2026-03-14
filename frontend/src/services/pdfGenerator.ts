@@ -139,7 +139,8 @@ export const generatePdfReport = (
 
     addSectionTitle("Eng Ehtimolli Tashxis(lar)");
     normalizeConsensusDiagnosis(report.consensusDiagnosis).forEach(diag => {
-        addKeyValue("Tashxis", `${diag.name} (${diag.probability}%)`);
+        const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '—';
+        addKeyValue("Tashxis", `${diag.name} (${pct})`);
         addKeyValue("Dalillilik Darajasi", diag.evidenceLevel || "N/A");
         addKeyValue("Asoslash", diag.justification);
         y += 5;
@@ -211,6 +212,8 @@ export const generatePdfReport = (
         doc.setTextColor(100, 116, 139);
         doc.text("Konsilium ishtirokchilarining tibbiy xulosalari. Har bir mutaxassis o'z so'nggi xulosasini keltiradi.", margin, y);
         y += 8;
+        const stripSalutation = (text: string) =>
+            text.replace(/^\s*Hurmatli\s+Kengash\s+Raisi\s*,?\s*/i, '').trim();
         lastByAuthor.forEach((msg, author) => {
             const authorName = specialistName(author);
             if (y > pageHeight - 50) {
@@ -224,7 +227,8 @@ export const generatePdfReport = (
             y += 6;
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(51, 65, 85);
-            const contentLines = doc.splitTextToSize(String(msg.content || ''), pageWidth - margin * 2);
+            const rawContent = String(msg.content || '');
+            const contentLines = doc.splitTextToSize(stripSalutation(rawContent), pageWidth - margin * 2);
             contentLines.forEach((line: string) => {
                 if (y > pageHeight - margin) {
                     doc.addPage();

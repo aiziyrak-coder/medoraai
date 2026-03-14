@@ -13,6 +13,9 @@ const PrognosisCard: React.FC<PrognosisCardProps> = ({ prognosis, isLoading }) =
         <div className="p-4 bg-slate-100 rounded-lg border border-border-color">
             <h4 className="font-bold text-text-primary mb-2 flex items-center gap-2"><ChartBarIcon className="w-5 h-5 text-rose-600" /> Kasallik Prognozi</h4>
             {isLoading && <div className="text-center p-4"><SpinnerIcon /></div>}
+            {!prognosis && !isLoading && (
+                <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+            )}
             {prognosis && !isLoading && (
                 <div className="space-y-3 text-sm">
                     <div>

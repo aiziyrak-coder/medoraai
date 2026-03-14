@@ -25,6 +25,8 @@ export const generateDocxReport = async (
     getSpecialistName?: SpecialistNameResolver
 ) => {
     const specialistName = (author: string) => getSpecialistName ? getSpecialistName(author) : (AI_SPECIALISTS[author]?.name || author);
+    const stripSalutation = (text: string) =>
+        text.replace(/^\s*Hurmatli\s+Kengash\s+Raisi\s*,?\s*/i, '').trim();
 
     const children = [
         new Paragraph({
@@ -96,7 +98,7 @@ export const generateDocxReport = async (
             return Array.from(lastByAuthor.entries()).map(([author, msg]) => new Paragraph({
                 children: [
                     new TextRun({ text: `${specialistName(author)}: `, bold: true }),
-                    new TextRun(msg.content),
+                    new TextRun(stripSalutation(String(msg.content || ''))),
                 ],
                 spacing: { after: 200 },
             }));
@@ -107,7 +109,7 @@ export const generateDocxReport = async (
         ...debateHistory.filter(msg => !msg.isSystemMessage && !msg.isUserIntervention).map(msg => new Paragraph({
             children: [
                 new TextRun({ text: `${msg.author ? specialistName(msg.author) : 'Foydalanuvchi'}: `, bold: true }),
-                new TextRun(msg.content)
+                new TextRun(stripSalutation(String(msg.content || '')))
             ],
             spacing: { after: 200 }
         })),

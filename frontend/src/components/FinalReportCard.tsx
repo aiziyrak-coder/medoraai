@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import type { FinalReport, PatientData, ChatMessage } from '../types';
 import { normalizeConsensusDiagnosis, getReasoningChainArray } from '../types';
-import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
-import { AI_SPECIALISTS } from '../constants';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ShieldWarningIcon from './icons/ShieldWarningIcon';
@@ -202,7 +200,9 @@ const FinalReportCard: React.FC<{
                             <div key={index} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 mb-4 last:mb-0">
                                 <div className="flex justify-between items-start gap-2">
                                     <span className="text-base font-bold text-slate-900">{diag.name}</span>
-                                    <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded text-sm font-semibold shrink-0">{diag.probability}%</span>
+                                    <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded text-sm font-semibold shrink-0">
+                                        {Number.isFinite(diag.probability) ? `${diag.probability}%` : '—'}
+                                    </span>
                                 </div>
                                 {diag.uzbekProtocolMatch && (
                                     <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-1 bg-green-50 border border-green-200 rounded text-xs font-semibold text-green-700">
@@ -245,9 +245,13 @@ const FinalReportCard: React.FC<{
                 <Section title="Tavsiya Etilgan Davolash Rejasi" icon={<BrainCircuitIcon className="w-6 h-6"/>}>
                     {!isEditingPlan ? (
                         <div className="space-y-3">
+                            {safePlan.length > 0 ? (
                             <ul className="list-disc list-inside space-y-2 text-text-primary">
                                 {safePlan.map((item, index) => <li key={index}>{item}</li>)}
                             </ul>
+                            ) : (
+                                <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+                            )}
                             {onUpdateReport && !isScenario && (
                                 <button onClick={() => setIsEditingPlan(true)} className="flex items-center gap-2 text-sm font-semibold text-accent-color-blue bg-slate-200/50 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors mt-3">
                                     <PencilIcon className="w-4 h-4" /> Tahrirlash
@@ -288,7 +292,7 @@ const FinalReportCard: React.FC<{
                 
                 <Section title="Dori-Darmonlar bo'yicha Tavsiyalar (O'zbekiston)" icon={<PillIcon className="w-6 h-6"/>}>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {(Array.isArray(report.medicationRecommendations) ? report.medicationRecommendations : []).map((med, index) => (
+                     {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) ? report.medicationRecommendations.map((med, index) => (
                         <div key={index} className="p-4 bg-slate-50 rounded-xl border border-border-color shadow-sm relative overflow-hidden">
                            <div className="absolute top-0 right-0 bg-blue-500 w-16 h-16 rounded-bl-full -mr-8 -mt-8 opacity-10"></div>
                            <p className="font-bold text-lg text-text-primary">{med.name}</p>
@@ -306,7 +310,9 @@ const FinalReportCard: React.FC<{
                            
                            <p className="text-xs text-text-secondary mt-2 border-t pt-2">{med.notes}</p>
                         </div>
-                    ))}
+                    )) : (
+                        <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+                    )}
                     </div>
                 </Section>
 
@@ -331,41 +337,18 @@ const FinalReportCard: React.FC<{
                 <RelatedResearchCard research={report.relatedResearch} />
 
                  <Section title="Inkor Etilgan Gipotezalar" icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>
-                     {(Array.isArray(report.rejectedHypotheses) ? report.rejectedHypotheses : []).map((hypo, index) => (
+                     {(Array.isArray(report.rejectedHypotheses) && report.rejectedHypotheses.length > 0) ? report.rejectedHypotheses.map((hypo, index) => (
                         <div key={index} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                            <p className="font-semibold text-text-primary line-through">{hypo.name}</p>
                            <p className="text-sm text-text-secondary mt-1">Sabab: {hypo.reason}</p>
                         </div>
-                    ))}
+                    )) : (
+                        <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+                    )}
                 </Section>
 
-                {/* Har bir mutaxassisning yakuniy xulosasi — hujjatdek alohida */}
-                {debateHistory && debateHistory.length > 0 && (() => {
-                    const specialistMessages = debateHistory.filter((m) => !m.isSystemMessage && !m.isUserIntervention);
-                    const lastByAuthor = new Map<string, ChatMessage>();
-                    specialistMessages.forEach((m) => lastByAuthor.set(m.author, m));
-                    if (lastByAuthor.size === 0) return null;
-                    return (
-                        <div className="rounded-xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
-                            <div className="px-4 py-3 bg-slate-800 text-white">
-                                <h3 className="text-base font-bold uppercase tracking-wide">Har bir mutaxassisning yakuniy xulosasi</h3>
-                                <p className="text-slate-200 text-sm mt-0.5">Konsilium ishtirokchilarining shaxsiy tibbiy xulosalari</p>
-                            </div>
-                            <div className="p-4 space-y-4">
-                                {Array.from(lastByAuthor.entries()).map(([author, msg]) => {
-                                    const displayName = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || AI_SPECIALISTS[author]?.name || author;
-                                    return (
-                                        <div key={author} className="p-4 rounded-lg border border-slate-200 bg-slate-50/50">
-                                            <p className="text-sm font-bold text-slate-800 mb-2">{displayName}</p>
-                                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{msg.content}</p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })()}
-                
+                {/* Mutaxassislar xulosalari faqat yuklab olinganda (PDF/DOCX) da ko'rsatiladi — ekranda ko'rsatilmaydi */}
+
                 {/* Legal Disclaimer specific to Uzbekistan */}
                 <div className="mt-8 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 text-center">
                     <p className="font-bold mb-1">Yuridik Eslatma (O'zbekiston Respublikasi):</p>
