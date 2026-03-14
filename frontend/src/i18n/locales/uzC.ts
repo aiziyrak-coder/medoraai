@@ -543,6 +543,7 @@ export const uzC: TranslationSet = {
   vitals_temp: 'Ҳарорат',
   vitals_spo2: 'Сатуратсийа',
   vitals_respiration: 'Нафас Сони',
+  vitals_normal_btn: 'Нормада',
   address_label: 'Йашаш Манзили',
   not_entered: 'Киритилмаган',
   edit_label: 'Таҳрирлаш',

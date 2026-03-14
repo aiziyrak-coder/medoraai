@@ -496,11 +496,34 @@ const AppContent: React.FC = () => {
 
     /** Savollar avval API, keyin Gemini orqali; ikkalasi bo'sh bo'lsa ham fallback savollar bilan aniqlashtiruv ko'rsatiladi. */
     const CLARIFY_TIMEOUT_MS = 18000;
+
+    /** Faqat shikoyatda tilga olingan mavzuga aloqador savollarni qoldiradi; mock/umumiy savollarni olib tashlaydi. */
+    const filterQuestionsByComplaint = (qs: string[], complaint: string): string[] => {
+        const c = (complaint || '').toLowerCase().replace(/[^\w\s'-]/g, ' ');
+        const words = c.split(/\s+/).filter(w => w.length >= 3);
+        if (words.length === 0) return qs;
+        return qs.filter(q => {
+            const ql = q.toLowerCase();
+            return words.some(w => ql.includes(w));
+        });
+    };
+
     const handleGenerateClarificationQuestions = async (data: PatientData) => {
         setError(null);
         setIsProcessing(true);
         setStatusMessage(t('clarification_generating_questions'));
+        const complaint = (data?.complaints ?? '').trim();
+
         let questions: string[] = [];
+        const { getCaseBasedClarificationQuestions } = await import('./services/aiCouncilService');
+        questions = getCaseBasedClarificationQuestions(data, language);
+        if (questions.length >= 2) {
+            setClarificationQuestions(questions);
+            setIsProcessing(false);
+            setAppView('clarification');
+            return;
+        }
+
         try {
             const { generateClarifyingQuestions } = await import('./services/apiAiService');
             const response = await Promise.race([
@@ -509,18 +532,20 @@ const AppContent: React.FC = () => {
                     setTimeout(() => reject(new Error('timeout')), CLARIFY_TIMEOUT_MS)),
             ]);
             if (response?.success && Array.isArray(response.data) && response.data.length > 0) {
-                questions = response.data;
+                questions = filterQuestionsByComplaint(response.data, complaint);
             }
-        } catch { /* timeout yoki xato → Gemini fallback */ }
+        } catch { /* timeout yoki xato */ }
 
-        if (questions.length === 0) {
+        if (questions.length < 2) {
             try {
-                questions = await aiService.generateClarifyingQuestions(data, language);
+                const fromGemini = await aiService.generateClarifyingQuestions(data, language);
+                if (fromGemini.length > 0) {
+                    questions = filterQuestionsByComplaint(fromGemini, complaint);
+                }
             } catch { /* ignore */ }
         }
 
-        if (questions.length === 0) {
-            const { getCaseBasedClarificationQuestions } = await import('./services/aiCouncilService');
+        if (questions.length < 2) {
             questions = getCaseBasedClarificationQuestions(data, language);
         }
 

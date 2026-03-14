@@ -129,11 +129,10 @@ def generate_clarifying_questions(patient_data):
     prompt = f"""Siz tibbiy yordamchi AI siz. Bemor ma'lumotlari:
 {text}
 
-MAJBURIY: Savollar FAQAT shu bemor SHIKOYATI (complaints) va yuqoridagi ma'lumotlardan kelib chiqishi kerak.
-TAQIQLANGAN: "Shikoyat qachondan boshlangan?", "Qanday davolashlar qo'llanildi?", "Boshqa surunkali kasalliklar bormi?" kabi umumiy/shablon savollar. Bermang.
-Har bir savol shikoyatdagi aniq simptom (masalan bosh og'rig'i, ko'ngil aynishi) ga bog'liq bo'lsin: davomiyligi, qanday kechadi, qachon kuchayadi, qanday davolash qilingan va h.k.
+QAT'IY QOIDA: Har bir savol FAQAT yuqoridagi SHIKOYAT (complaints) matnida tilga olingan aniq belgi, kasallik yoki simptom haqida bo'lsin. Savolda shu shikoyatda bor so'z/atama (masalan kasallik nomi, organ, shikoyat) ishlatilishi shart.
+TAQIQLANGAN: Umumiy tibbiy savollar (har qanday kasallikka mos keladigan), shablon savollar, shikoyatda tilga olinmagan mavzular haqida savol. Agar shikoyat "bosh og'rig'i" haqida bo'lsa - faqat bosh og'rig'i haqida savol; yurak, tizza, yuz va h.k. shikoyatda yo'q bo'lsa ular haqida savol BERMANG.
 
-3–5 ta qisqa, aniq savol. Mavjud ma'lumot uchun takroriy savol bermang.
+3–5 ta qisqa savol. Har biri shikoyat matnidagi aniq narsaga murojaat qilsin.
 Javobni faqat JSON massiv: ["Savol 1?", "Savol 2?"]. O'zbek tilida (Lotin)."""
     raw = None
     last_exc = None

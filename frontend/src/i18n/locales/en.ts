@@ -571,6 +571,7 @@ export const en = {
   vitals_temp: 'Temperature',
   vitals_spo2: 'Saturation',
   vitals_respiration: 'Respiration Rate',
+  vitals_normal_btn: 'Normal',
   address_label: 'Address',
   not_entered: 'Not entered',
   edit_label: 'Edit',

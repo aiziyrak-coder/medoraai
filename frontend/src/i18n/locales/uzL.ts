@@ -573,6 +573,7 @@ export const uzL: TranslationSet = {
   vitals_temp: 'Harorat',
   vitals_spo2: 'Saturatsiya',
   vitals_respiration: 'Nafas Soni',
+  vitals_normal_btn: 'Normada',
   address_label: 'Yashash Manzili',
   not_entered: 'Kiritilmagan',
   edit_label: 'Tahrirlash',

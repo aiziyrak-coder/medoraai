@@ -570,6 +570,7 @@ export const ru: TranslationSet = {
   vitals_temp: 'Температура',
   vitals_spo2: 'Сатурация',
   vitals_respiration: 'Частота дыхания',
+  vitals_normal_btn: 'Норма',
   address_label: 'Адрес проживания',
   not_entered: 'Не введено',
   edit_label: 'Редактировать',

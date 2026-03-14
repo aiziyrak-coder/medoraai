@@ -127,6 +127,18 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         }
     };
 
+    const fillNormalVitals = () => {
+        setVitals({
+            bpSystolic: '120',
+            bpDiastolic: '80',
+            heartRate: '72',
+            temperature: '36.6',
+            spO2: '98',
+            respirationRate: '16'
+        });
+        setVitalErrors({});
+    };
+
     const handleVitalChange = (field: keyof typeof vitals, value: string) => {
         // Bo'sh, yoki raqam (minus, kasr qo'llab-quvvatlanadi)
         if (value !== '' && !/^-?\d*\.?\d*$/.test(value)) return;
@@ -468,7 +480,16 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
                         {/* Structured Vitals (Replaces old Objective Data Textarea) */}
                         <div className="glass-panel p-3 flex-shrink-0">
-                            <h3 className="text-xs font-bold text-slate-800 mb-2">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                                <h3 className="text-xs font-bold text-slate-800">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
+                                <button
+                                    type="button"
+                                    onClick={fillNormalVitals}
+                                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-700 hover:bg-sky-200 border border-sky-200 transition-colors"
+                                >
+                                    {t('vitals_normal_btn')}
+                                </button>
+                            </div>
                             <div className="grid grid-cols-3 gap-2">
                                 <VitalInput id="vital-bp-systolic" label={t('data_form_vitals_bp_sys')} unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
                                 <VitalInput id="vital-bp-diastolic" label={t('data_form_vitals_bp_dia')} unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
