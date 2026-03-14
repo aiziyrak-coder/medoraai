@@ -10,6 +10,8 @@ import FinalReportCard from './FinalReportCard';
 import PrognosisCard from './report/PrognosisCard';
 import DownloadPanel from './DownloadPanel';
 import DebateStatusIndicator from './DebateStatusIndicator';
+import { ObjectiveVitalsCards } from './analysis/ObjectiveVitalsCards';
+import ConsiliumRoom from './analysis/ConsiliumRoom';
 
 // --- Icons ---
 import SendIcon from './icons/SendIcon';
@@ -50,6 +52,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
     const [scenarioText, setScenarioText] = useState('');
     const [isScenarioRunning, setIsScenarioRunning] = useState(false);
     const [scenarioResult, setScenarioResult] = useState<FinalReport | null>(null);
+    const [showTextDebate, setShowTextDebate] = useState(false);
 
     useEffect(() => {
         if (debateScrollRef.current) {
@@ -116,10 +119,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                         </div>
                     )}
                     {pd.objectiveData && (
-                        <div>
-                            <strong className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-1">Obyektiv</strong>
-                            <p className="text-text-primary bg-slate-50/50 p-3 rounded-xl border border-white/20">{pd.objectiveData}</p>
-                        </div>
+                        <ObjectiveVitalsCards objectiveData={pd.objectiveData} />
                     )}
                     {pd.labResults && (
                         <div>
@@ -137,20 +137,48 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                     <h3 className="text-lg font-bold text-text-primary">Interaktiv Tahlil</h3>
                     <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mt-0.5">{statusMessage || "Konsilium jarayoni"}</p>
                 </div>
-                <div ref={debateScrollRef} className="p-5 overflow-y-auto flex-grow space-y-4">
+                <div className="p-4 overflow-y-auto flex-grow flex flex-col gap-4">
                     {isAnalyzing && dh.length === 0 && !error && (
-                        <div className="flex justify-center items-center h-full flex-col">
+                        <div className="flex justify-center items-center flex-1 flex-col">
                             <SpinnerIcon className="w-10 h-10 text-blue-500" />
                             <p className="mt-3 text-text-secondary font-medium">Tahlil qilinmoqda...</p>
                         </div>
                     )}
-                     {error && (
-                        <div className="p-4 my-4 text-sm text-red-700 bg-red-50/90 rounded-2xl border border-red-200 shadow-sm" role="alert">
+                    {error && (
+                        <div className="p-4 text-sm text-red-700 bg-red-50/90 rounded-2xl border border-red-200 shadow-sm" role="alert">
                             <span className="font-bold">Xatolik!</span> {error}
                         </div>
                     )}
 
-                    {(Array.isArray(dh) ? dh : []).map(msg => <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />)}
+                    {dh.length > 0 && (() => {
+                        const hasSpecialistMessages = (Array.isArray(dh) ? dh : []).some(m => !m.isSystemMessage && !m.isUserIntervention);
+                        return (
+                            <>
+                                {hasSpecialistMessages && (
+                                    <>
+                                        <ConsiliumRoom debateHistory={dh} selectedSpecialists={record?.selectedSpecialists} />
+                                        <div className="flex-shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTextDebate(v => !v)}
+                                                className="text-sm font-medium text-sky-600 hover:text-sky-700"
+                                            >
+                                                {showTextDebate ? 'Konsilium zalini ko\'rsatish' : 'Bahs matnini ko\'rsatish'}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                                {(showTextDebate || !hasSpecialistMessages) && (
+                                    <div ref={debateScrollRef} className="space-y-4 border-t border-white/20 pt-4">
+                                        {(Array.isArray(dh) ? dh : []).map(msg => <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />)}
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+                    {dh.length === 0 && !isAnalyzing && !error && (
+                        <p className="text-text-secondary text-sm">Konsilium boshlandanda bu yerda majlis zali va bahslar ko‘rinadi.</p>
+                    )}
                     {isLive && isAnalyzing && dh.length > 0 && !socraticQuestion && (
                         <DebateStatusIndicator message={statusMessage} />
                     )}
