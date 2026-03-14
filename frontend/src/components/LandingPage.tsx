@@ -206,13 +206,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                 </div>
             </nav>
 
-            {/* --- Yuqori texnologik o'tish: yo'nalishga qarab har xil effektlar --- */}
-            {isTransitioning && (
-                <div className={`landing-scan-overlay landing-transition-${transitionDirection}`} data-direction={transitionDirection} aria-hidden>
-                    <span className="landing-transition-blade" />
-                </div>
-            )}
-
             {/* --- SLIDES CONTAINER (no scroll) --- */}
             <div className="flex-1 min-h-0 w-full overflow-hidden">
                 <div
