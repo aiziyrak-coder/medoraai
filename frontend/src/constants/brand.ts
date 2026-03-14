@@ -20,6 +20,9 @@ export const PLATFORM_VERSION = "v3.0";
 /** Logo line (e.g. header): FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITUTI */
 export const INSTITUTE_LOGO_TEXT = "FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITUTI";
 
+/** Institute logo image (circular emblem). Place file at public/institute-logo.png */
+export const INSTITUTE_LOGO_SRC = '/institute-logo.png';
+
 /** Primary phone */
 export const INSTITUTE_PHONE_1 = "+998 95 044-23-45";
 /** Secondary phone */
