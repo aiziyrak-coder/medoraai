@@ -11,7 +11,6 @@ import PrognosisCard from './report/PrognosisCard';
 import DownloadPanel from './DownloadPanel';
 import DebateStatusIndicator from './DebateStatusIndicator';
 import { ObjectiveVitalsCards } from './analysis/ObjectiveVitalsCards';
-import ConsiliumRoom from './analysis/ConsiliumRoom';
 
 // --- Icons ---
 import SendIcon from './icons/SendIcon';
@@ -52,7 +51,6 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
     const [scenarioText, setScenarioText] = useState('');
     const [isScenarioRunning, setIsScenarioRunning] = useState(false);
     const [scenarioResult, setScenarioResult] = useState<FinalReport | null>(null);
-    const [showTextDebate, setShowTextDebate] = useState(false);
 
     useEffect(() => {
         if (debateScrollRef.current) {
@@ -150,32 +148,13 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                         </div>
                     )}
 
-                    {dh.length > 0 && (() => {
-                        const hasSpecialistMessages = (Array.isArray(dh) ? dh : []).some(m => !m.isSystemMessage && !m.isUserIntervention);
-                        return (
-                            <>
-                                {hasSpecialistMessages && (
-                                    <>
-                                        <ConsiliumRoom debateHistory={dh} selectedSpecialists={record?.selectedSpecialists} />
-                                        <div className="flex-shrink-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowTextDebate(v => !v)}
-                                                className="text-sm font-medium text-sky-600 hover:text-sky-700"
-                                            >
-                                                {showTextDebate ? 'Konsilium zalini ko\'rsatish' : 'Bahs matnini ko\'rsatish'}
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                                {(showTextDebate || !hasSpecialistMessages) && (
-                                    <div ref={debateScrollRef} className="space-y-4 border-t border-white/20 pt-4">
-                                        {(Array.isArray(dh) ? dh : []).map(msg => <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />)}
-                                    </div>
-                                )}
-                            </>
-                        );
-                    })()}
+                    {dh.length > 0 && (
+                        <div ref={debateScrollRef} className="space-y-3">
+                            {(Array.isArray(dh) ? dh : []).map(msg => (
+                                <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} compact />
+                            ))}
+                        </div>
+                    )}
                     {dh.length === 0 && !isAnalyzing && !error && (
                         <p className="text-text-secondary text-sm">Konsilium boshlandanda bu yerda majlis zali va bahslar ko‘rinadi.</p>
                     )}

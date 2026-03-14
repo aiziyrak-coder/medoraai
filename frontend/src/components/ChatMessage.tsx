@@ -9,6 +9,7 @@ import InformationCircleIcon from './icons/InformationCircleIcon';
 interface ChatMessageComponentProps {
     message: ChatMessageProps;
     onExplainRationale: (message: ChatMessageProps) => void;
+    compact?: boolean;
 }
 
 const EvidenceBadge: React.FC<{level: ChatMessageProps['evidenceLevel']}> = ({ level }) => {
@@ -28,7 +29,7 @@ const EvidenceBadge: React.FC<{level: ChatMessageProps['evidenceLevel']}> = ({ l
     );
 }
 
-const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRationale }) => {
+const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRationale, compact }) => {
     const { t } = useTranslation();
     const { author, content, isThinking, isUserIntervention, evidenceLevel, isSystemMessage } = message;
     const config = AI_SPECIALISTS[author];
@@ -41,41 +42,41 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     
     if (isSystemMessage || isUserIntervention) {
         return (
-            <div className="my-6 text-center animate-fade-in-up" style={{ animationDelay }}>
-                 <div className="inline-block px-4 py-2 rounded-xl max-w-2xl">
-                    <p className="text-xs text-text-secondary font-semibold">{isUserIntervention ? "Sizning aralashuvingiz" : specialistName}</p>
-                    <p className="text-sm text-text-secondary italic mt-1 text-center">{content}</p>
+            <div className={`animate-fade-in-up text-center ${compact ? 'my-2' : 'my-6'}`} style={{ animationDelay }}>
+                 <div className={`inline-block max-w-2xl ${compact ? 'px-2 py-1 rounded-lg' : 'px-4 py-2 rounded-xl'}`}>
+                    <p className={`text-text-secondary font-semibold ${compact ? 'text-[10px]' : 'text-xs'}`}>{isUserIntervention ? "Sizning aralashuvingiz" : specialistName}</p>
+                    <p className={`text-text-secondary italic text-center break-words ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>{content}</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="flex items-start gap-3 my-4 animate-fade-in-up" style={{ animationDelay }}>
-            <AIAvatar model={author} size="sm" />
-            <div className="flex-1">
-                 <div className="flex justify-between items-center mb-1">
-                    <p className={`font-semibold text-xs ${config.text}`}>{specialistName}</p>
-                    {author !== AIModel.SYSTEM && !isThinking && (
+        <div className={`flex items-start gap-2 animate-fade-in-up min-w-0 ${compact ? 'my-2' : 'my-4'}`} style={{ animationDelay }}>
+            <AIAvatar model={author} size={compact ? 'xs' : 'sm'} />
+            <div className="flex-1 min-w-0">
+                 <div className="flex justify-between items-center mb-0.5">
+                    <p className={`font-semibold truncate ${compact ? 'text-[10px]' : 'text-xs'} ${config.text}`}>{specialistName}</p>
+                    {author !== AIModel.SYSTEM && !isThinking && !compact && (
                         <button 
                             onClick={() => onExplainRationale(message)} 
                             title="Mantiqni tushuntirish"
-                            className="text-slate-400 hover:text-accent-color-blue transition-colors"
+                            className="text-slate-400 hover:text-accent-color-blue transition-colors flex-shrink-0"
                         >
                             <InformationCircleIcon className="w-5 h-5"/>
                         </button>
                     )}
                 </div>
-                <div className="p-3.5 rounded-2xl rounded-tl-lg bg-slate-200/50">
+                <div className={`rounded-xl rounded-tl-lg bg-slate-200/50 min-w-0 overflow-hidden ${compact ? 'p-2' : 'p-3.5'}`}>
                     {isThinking ? (
-                        <div className="flex items-center gap-3 text-text-secondary">
-                            <SpinnerIcon className="w-4 h-4 text-accent-color-blue" />
-                            <span>{content || 'Fikrlanmoqda...'}</span>
+                        <div className="flex items-center gap-2 text-text-secondary text-xs">
+                            <SpinnerIcon className="w-3 h-3 text-accent-color-blue flex-shrink-0" />
+                            <span className="break-words">{content || 'Fikrlanmoqda...'}</span>
                         </div>
                     ) : (
                         <>
-                            <p className="whitespace-pre-wrap text-text-primary">{content}</p>
-                            {evidenceLevel && (
+                            <p className={`whitespace-pre-wrap text-text-primary break-words ${compact ? 'text-xs max-h-24 overflow-y-auto' : ''}`}>{content}</p>
+                            {evidenceLevel && !compact && (
                                 <div className="mt-3 pt-2 border-t border-slate-300/50">
                                     <EvidenceBadge level={evidenceLevel} />
                                 </div>

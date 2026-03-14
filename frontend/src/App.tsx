@@ -520,14 +520,18 @@ const AppContent: React.FC = () => {
         }
 
         if (questions.length === 0) {
-            const { getCaseBasedClarificationQuestions, CLARIFY_FALLBACK } = await import('./services/aiCouncilService');
-            const caseBased = getCaseBasedClarificationQuestions(data, language);
-            questions = caseBased.length >= 2 ? caseBased : CLARIFY_FALLBACK[language];
+            const { getCaseBasedClarificationQuestions } = await import('./services/aiCouncilService');
+            questions = getCaseBasedClarificationQuestions(data, language);
         }
 
         setClarificationQuestions(questions);
         setIsProcessing(false);
-        setAppView('clarification');
+        if (questions.length >= 2) {
+            setAppView('clarification');
+        } else {
+            setAppView('team_recommendation');
+            await handleRecommendTeamFromData(data);
+        }
     };
 
     const handleRecommendTeamFromData = async (data: PatientData) => {

@@ -34,14 +34,14 @@ const VitalCard: React.FC<{
   icon: React.ReactNode;
   color: string;
 }> = ({ label, value, unit, icon, color }) => (
-  <div className={`rounded-2xl border-2 p-4 ${color} bg-white/60 backdrop-blur-sm shadow-lg`}>
-    <div className="flex items-center gap-2 mb-1">
-      <span className="text-slate-600">{icon}</span>
-      <span className="text-xs font-bold uppercase tracking-wider text-slate-600">{label}</span>
+  <div className={`rounded-lg border p-2 min-w-0 flex-shrink-0 ${color} bg-white/60 backdrop-blur-sm shadow`}>
+    <div className="flex items-center gap-1 mb-0.5">
+      <span className="text-slate-600 flex-shrink-0">{icon}</span>
+      <span className="text-[10px] font-bold uppercase tracking-wide text-slate-600 truncate">{label}</span>
     </div>
-    <p className="text-xl font-bold text-slate-800 tabular-nums">
+    <p className="text-sm font-bold text-slate-800 tabular-nums truncate">
       {value}
-      {unit && <span className="text-sm font-normal text-slate-600 ml-0.5">{unit}</span>}
+      {unit && <span className="text-[10px] font-normal text-slate-600 ml-0.5">{unit}</span>}
     </p>
   </div>
 );
@@ -53,9 +53,9 @@ export const ObjectiveVitalsCards: React.FC<{ objectiveData?: string }> = ({ obj
   if (vitals.raw) {
     return (
       <div>
-        <strong className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Obyektiv</strong>
-        <div className="p-4 rounded-2xl border-2 border-slate-200/80 bg-white/60 backdrop-blur-sm shadow-lg">
-          <p className="text-sm text-text-primary whitespace-pre-wrap">{vitals.raw}</p>
+        <strong className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Obyektiv</strong>
+        <div className="p-2 rounded-lg border border-slate-200/80 bg-white/60 backdrop-blur-sm shadow min-w-0">
+          <p className="text-xs text-text-primary whitespace-pre-wrap break-words overflow-hidden">{vitals.raw}</p>
         </div>
       </div>
     );
@@ -74,8 +74,8 @@ export const ObjectiveVitalsCards: React.FC<{ objectiveData?: string }> = ({ obj
 
   return (
     <div>
-      <strong className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">Obyektiv ko'rsatkichlar</strong>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <strong className="block text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">Obyektiv ko'rsatkichlar</strong>
+      <div className="flex flex-wrap gap-2">
         {items.map(({ key, label, value, unit, color, icon }) => (
           <VitalCard key={key} label={label} value={value || '-'} unit={unit} color={color} icon={icon} />
         ))}

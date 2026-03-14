@@ -66,14 +66,6 @@ const langMap: Record<Language, string> = {
     'en': 'English'
 };
 
-/** Fallback savollar — faqat AI va case-based ikkalasi ham ishlamasa ishlatiladi */
-export const CLARIFY_FALLBACK: Record<Language, string[]> = {
-    'uz-L': ['Shikoyat qachondan boshlangan?', 'Qanday davolashlar qo\'llanildi?', 'Boshqa surunkali kasalliklar bormi?'],
-    'uz-C': ['Шикоят қачондан бошланган?', 'Қандай даволашлар қўлланилди?', 'Бошқа сурункали касалликлар борми?'],
-    'ru': ['Когда начались жалобы?', 'Какое лечение применялось?', 'Есть ли другие хронические заболевания?'],
-    'en': ['When did the complaints start?', 'What treatment has been used?', 'Any other chronic conditions?'],
-};
-
 /**
  * Bemor shikoyatlaridan kasallikka xos 3 ta aniqlashtiruvchi savol hosil qiladi.
  * AI ishlamaganda ham shablon emas, balki shu holatga bog'liq savollar chiqadi.
@@ -930,10 +922,10 @@ ${patientSummary}`;
             .split('\n')
             .map(l => l.replace(/^[\d\.\-\*\s]+/, '').replace(/^["']|["']$/g, '').trim())
             .filter(l => l.length > 5 && l.length < 200);
-        return questions.length >= 2 ? questions.slice(0, 4) : CLARIFY_FALLBACK[language];
+        return questions.length >= 2 ? questions.slice(0, 4) : [];
     } catch (e) {
         logger.warning('generateClarifyingQuestions error', e);
-        return CLARIFY_FALLBACK[language];
+        return [];
     }
 };
 
@@ -1151,14 +1143,14 @@ export const runCouncilDebate = async (
 
 VAZIFANGIZ: Konsilium raisi savoli: "${currentTopic}"${rebuttalContext}
 
+USLUB (MAJBURIY): Javob QISQA bo'lsin - 2-4 jumla. Haqiqiy majlis kabi: qisqa savol-javob, tasdiqlash yoki inkor. Batafsil nutq yozmang; bitta mutaxassis uzoq gapirmasin.
+
 MUHIM QOIDALAR:
-1. O'z mutaxassislik sohangizdagi KUCHLi, ANIQ KLINIK FIKR bildiring. Umumiy gaplar kerak emas.
-2. Agar boshqa mutaxassis NOTO'G'RI yoki CHALA yozgan bo'lsa - ismi bilan, DALIL asosida RAD ETING: "Dr. [ism] ning [narsa] haqidagi fikridan farqli o'laroq..."
-3. O'z tashxisingizni HIMOYA qiling, lekin yangi dalillar bo'lsa fikringizni YANGILANG.
-4. Faqat O'zbekistonda mavjud dori-darmonlar (Nimesil, Sumamed, Metformin, Enalapril va h.k.).
-5. SSV klinik protokollariga aniq havola bering.
-6. Agar MUHIM ma'lumot yetishmasa: "Shifokordan so'rashim kerak: [savol]" - deb yozing.
-7. TIL: ${langMap[language]} FAQAT.
+1. O'z mutaxassislik sohangizdagi ANIQ fikr (1-3 jumla). Umumiy gaplar kerak emas.
+2. Boshqa mutaxassis xato bo'lsa - qisqacha RAD ETING: "Men qo'shilmayman: [sabab]."
+3. Qo'shilsangiz: "Tasdiqlayman." yoki "Shu yo'nalishda [qisqa asos]."
+4. Faqat O'zbekistonda mavjud dori-darmonlar. SSV protokollari nomi (qisqa).
+5. TIL: ${langMap[language]} FAQAT.
 
 Bahslar tarixi: ${JSON.stringify(debateHistory.slice(-6))}`;
 
