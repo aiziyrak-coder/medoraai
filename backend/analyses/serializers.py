@@ -20,13 +20,19 @@ class DiagnosisFeedbackSerializer(serializers.ModelSerializer):
 class AnalysisRecordSerializer(serializers.ModelSerializer):
     """Analysis record serializer"""
     patient = PatientSerializer(read_only=True)
+    patient_id = serializers.SerializerMethodField(read_only=True)
     created_by = UserSerializer(read_only=True)
     diagnosis_feedbacks = DiagnosisFeedbackSerializer(many=True, read_only=True)
-    
+
+    @staticmethod
+    def get_patient_id(obj):
+        pid = getattr(obj, 'patient_id', None) or (getattr(obj.patient, 'id', None) if getattr(obj, 'patient', None) else None)
+        return str(pid) if pid is not None else ''
+
     class Meta:
         model = AnalysisRecord
         fields = [
-            'id', 'patient', 'external_patient_id', 'patient_data',
+            'id', 'patient', 'patient_id', 'external_patient_id', 'patient_data',
             'debate_history', 'final_report', 'follow_up_history',
             'selected_specialists', 'detected_medications',
             'diagnosis_feedbacks', 'created_by', 'created_at', 'updated_at'

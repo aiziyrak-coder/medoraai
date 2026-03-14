@@ -230,7 +230,8 @@ export const updateProfile = async (data: Partial<User>): Promise<{ success: boo
     const response = await apiPatch<User>('/auth/profile/', data);
     
     if (response.success && response.data) {
-      saveUserData(response.data);
+      const user = normalizeUser(response.data as Record<string, unknown>);
+      saveUserData(user);
       return {
         success: true,
         message: 'Profil yangilandi.',

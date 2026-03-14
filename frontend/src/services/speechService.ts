@@ -8,8 +8,8 @@
  *
  * Arxitektura:
  *   1. Real-time STT: Azure Speech SDK (browser WebSocket) yoki Web Speech API
- *   2. Batch STT:     Audio yozib в†' backend /api/jarvis/speech/stt/ ga yuklash
- *   3. TTS:           Backend /api/jarvis/speech/tts/ в†' base64 MP3 в†' Audio play
+ *   2. Batch STT:     Audio yozib -> backend /api/ziyrak/speech/stt/ ga yuklash
+ *   3. TTS:           Backend /api/ziyrak/speech/tts/ -> base64 MP3 -> Audio play
  */
 
 import { apiPost, API_BASE_URL } from './api';
@@ -363,7 +363,7 @@ export const createJarvisSession = async (
 });
 
 export const endJarvisSession = async (sessionId: string) =>
-  apiPost(`/jarvis/session/${sessionId}/end/`, {});
+  apiPost(`/ziyrak/session/${sessionId}/end/`, {});
 
 export const jarvisChat = async (
   sessionId:   string,
@@ -413,7 +413,7 @@ export const jarvisChatStream = (
   let fullText = '';
   const token  = localStorage.getItem('access_token') || '';
 
-  fetch(`${API_BASE_URL}/jarvis/chat/stream/`, {
+  fetch(`${API_BASE_URL}/ziyrak/chat/stream/`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body:    JSON.stringify({ session_id: sessionId, message, voice_mode: voiceMode }),

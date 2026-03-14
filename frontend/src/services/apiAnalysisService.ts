@@ -34,9 +34,11 @@ export interface AnalysisListParams {
  */
 const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
   const fr = api.final_report || {};
+  const a = api as ApiAnalysisRecord & { patient_id?: string; patient?: number | { id?: number } };
+  const patientId = a.patient_id ?? (typeof a.patient === 'object' && a.patient?.id != null ? String(a.patient.id) : String(a.patient ?? ''));
   return {
     id: api.id.toString(),
-    patientId: api.patient_id,
+    patientId,
     date: api.created_at,
     patientData: api.patient_data as unknown as AnalysisRecord['patientData'],
     debateHistory: api.debate_history || [],

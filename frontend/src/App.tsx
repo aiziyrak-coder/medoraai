@@ -209,33 +209,39 @@ const AppContent: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Load initial data if user is already logged in on mount (only when token present to avoid 401)
+    // Sahifa yuklanganida: token bo'lsa barcha rollar uchun tahlillarni bazadan (API) yuklash
     useEffect(() => {
-        if (currentUser?.role === 'clinic' && getAuthToken()) {
-            // Try API first, fallback to local
-            import('./services/apiAnalysisService').then(({ getAnalyses }) => {
-                getAnalyses().then(response => {
-                    if (response.success && response.data) {
-                        setUserHistory(response.data);
-                        setDashboardStats(caseService.getDashboardStats(response.data));
-                        aiService.suggestCmeTopics(response.data, 'uz-L').then(setCmeTopics);
-                    } else {
-                        // Fallback to local
-                        const history = authServiceLocal.getAnalyses(currentUser.phone);
-                        setUserHistory(history);
-                        setDashboardStats(caseService.getDashboardStats(history));
-                        aiService.suggestCmeTopics(history, 'uz-L').then(setCmeTopics);
-                    }
-                }).catch(() => {
-                    // Fallback to local on error
+        if (!currentUser?.phone) return;
+        if (!getAuthToken()) {
+            const history = authServiceLocal.getAnalyses(currentUser.phone);
+            setUserHistory(history);
+            setDashboardStats(caseService.getDashboardStats(history));
+            return;
+        }
+        import('./services/apiAnalysisService').then(({ getAnalyses }) => {
+            getAnalyses().then(response => {
+                if (response.success && response.data) {
+                    setUserHistory(response.data);
+                    setDashboardStats(caseService.getDashboardStats(response.data));
+                    aiService.suggestCmeTopics(response.data, language).then(setCmeTopics);
+                } else {
                     const history = authServiceLocal.getAnalyses(currentUser.phone);
                     setUserHistory(history);
                     setDashboardStats(caseService.getDashboardStats(history));
-                    aiService.suggestCmeTopics(history, 'uz-L').then(setCmeTopics);
-                });
+                    aiService.suggestCmeTopics(history, language).then(setCmeTopics);
+                }
+            }).catch(() => {
+                const history = authServiceLocal.getAnalyses(currentUser.phone);
+                setUserHistory(history);
+                setDashboardStats(caseService.getDashboardStats(history));
+                aiService.suggestCmeTopics(history, language).then(setCmeTopics);
             });
-        }
-    }, [currentUser]); // Added dependency to re-run on user change
+        }).catch(() => {
+            const history = authServiceLocal.getAnalyses(currentUser.phone);
+            setUserHistory(history);
+            setDashboardStats(caseService.getDashboardStats(history));
+        });
+    }, [currentUser, language]);
 
     // i18n
     const { t, language, setLanguage } = useTranslation();
@@ -284,153 +290,150 @@ const AppContent: React.FC = () => {
             case 'critical_finding': setCriticalFinding(update.data); break;
             case 'user_question': setSocraticQuestion(update.question); break;
             case 'prognosis_update': setLivePrognosis(update.data); break;
-            case 'report':
+            case 'report': {
                 setFinalReport(update.data);
                 setIsProcessing(false);
                 setSocraticQuestion(null);
                 setStatusMessage(t('analysis_complete_status'));
+                const detectedMeds = update.type === 'report' ? (update as { detectedMedications: DetectedMedication[] }).detectedMedications : [];
                 if (currentUser && patientData) {
                     const newRecord: AnalysisRecord = {
                         id: currentAnalysisRecord?.id || new Date().toISOString(),
                         patientId: currentAnalysisRecord?.patientId || `${patientData.lastName}-${patientData.firstName}-${Date.now()}`,
                         date: new Date().toISOString(),
-                        patientData, debateHistory, finalReport: update.data,
-                        followUpHistory: [], 
+                        patientData,
+                        debateHistory,
+                        finalReport: update.data,
+                        followUpHistory: [],
                         selectedSpecialists: selectedSpecialistsConfig.map(s => s.role),
+                        detectedMedications: Array.isArray(detectedMeds) ? detectedMeds : [],
                     };
-                    
-                    // Try to save to API, fallback to local
+
+                    const applyHistoryAndRecord = (historyList: AnalysisRecord[], savedRecord: AnalysisRecord) => {
+                        setUserHistory(historyList);
+                        setDashboardStats(caseService.getDashboardStats(historyList));
+                        setCurrentAnalysisRecord(savedRecord);
+                        aiService.suggestCmeTopics(historyList, language).then(setCmeTopics);
+                    };
+
                     import('./services/apiAnalysisService').then(({ createAnalysis, updateAnalysis, getAnalyses }) => {
-                        if (currentAnalysisRecord?.id && !isNaN(parseInt(currentAnalysisRecord.id))) {
-                            // Update existing in API
-                            updateAnalysis(parseInt(currentAnalysisRecord.id), newRecord).then(() => {
-                                getAnalyses().then(response => {
-                                    if (response.success && response.data) {
-                                        setUserHistory(response.data);
-                                        setDashboardStats(caseService.getDashboardStats(response.data));
-                                        setCurrentAnalysisRecord(newRecord);
-                                    }
-                                }).catch(() => {
-                                    // Fallback to local
-                                    authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
+                        const analysisIdNum = currentAnalysisRecord?.id ? parseInt(currentAnalysisRecord.id, 10) : NaN;
+                        const hasValidAnalysisId = !isNaN(analysisIdNum) && analysisIdNum > 0;
+
+                        if (hasValidAnalysisId) {
+                            updateAnalysis(analysisIdNum, newRecord).then((res) => {
+                                if (res.success && res.data) {
+                                    const fromApi = { ...newRecord, id: String(res.data.id), patientId: res.data.patientId };
+                                    authServiceLocal.updateAnalysis(currentUser.phone, fromApi);
+                                }
+                                return getAnalyses();
+                            }).then((response) => {
+                                if (response.success && response.data) {
+                                    const saved = response.data.find((r) => r.id === String(analysisIdNum)) || newRecord;
+                                    applyHistoryAndRecord(response.data, { ...newRecord, id: String(saved.id), patientId: saved.patientId });
+                                } else {
                                     const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                    setUserHistory(history);
-                                    setDashboardStats(caseService.getDashboardStats(history));
-                                    setCurrentAnalysisRecord(newRecord);
-                                });
+                                    applyHistoryAndRecord(history, newRecord);
+                                }
                             }).catch(() => {
-                                // Fallback to local
                                 authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
-                                const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                setUserHistory(history);
-                                setDashboardStats(caseService.getDashboardStats(history));
-                                setCurrentAnalysisRecord(newRecord);
+                                applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
                             });
-                        } else {
-                            // Create new - try API first
-                            import('./services/apiPatientService').then(({ createPatient }) => {
-                                createPatient(patientData).then(patientResponse => {
-                                    if (patientResponse.success && patientResponse.data) {
-                                        createAnalysis(patientResponse.data.id, newRecord).then(() => {
-                                            caseService.addCaseToLibrary(newRecord);
-                                            getAnalyses().then(response => {
-                                                if (response.success && response.data) {
-                                                    setUserHistory(response.data);
-                                                    setDashboardStats(caseService.getDashboardStats(response.data));
-                                                    setCurrentAnalysisRecord(newRecord);
-                                                }
-                                            }).catch(() => {
-                                                // Fallback to local
-                                                authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                                caseService.addCaseToLibrary(newRecord);
-                                                const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                                setUserHistory(history);
-                                                setDashboardStats(caseService.getDashboardStats(history));
-                                                setCurrentAnalysisRecord(newRecord);
-                                            });
-                                        }).catch(() => {
-                                            // Fallback to local
-                                            authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                            caseService.addCaseToLibrary(newRecord);
-                                            const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                            setUserHistory(history);
-                                            setDashboardStats(caseService.getDashboardStats(history));
-                                            setCurrentAnalysisRecord(newRecord);
-                                        });
-                                    } else {
-                                        // Patient creation failed, fallback to local
-                                        authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                        caseService.addCaseToLibrary(newRecord);
-                                        const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                        setUserHistory(history);
-                                        setDashboardStats(caseService.getDashboardStats(history));
-                                        setCurrentAnalysisRecord(newRecord);
-                                    }
-                                }).catch(() => {
-                                    // Fallback to local
+                            return;
+                        }
+
+                        import('./services/apiPatientService').then(({ createPatient }) => {
+                            createPatient(patientData).then(patientResponse => {
+                                if (!patientResponse.success || !patientResponse.data) {
                                     authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                     caseService.addCaseToLibrary(newRecord);
-                                    const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                    setUserHistory(history);
-                                    setDashboardStats(caseService.getDashboardStats(history));
-                                    setCurrentAnalysisRecord(newRecord);
+                                    applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
+                                    return;
+                                }
+                                const patientId = patientResponse.data.id;
+                                createAnalysis(patientId, newRecord).then((createRes) => {
+                                    if (createRes.success && createRes.data) {
+                                        const fromApi = {
+                                            ...newRecord,
+                                            id: String(createRes.data.id),
+                                            patientId: String(createRes.data.patientId ?? patientId),
+                                        };
+                                        authServiceLocal.saveAnalysis(currentUser.phone, fromApi);
+                                        caseService.addCaseToLibrary(fromApi);
+                                    }
+                                    return getAnalyses();
+                                }).then((response) => {
+                                    if (response.success && response.data) {
+                                        const latest = response.data[0];
+                                        const savedRecord = latest
+                                            ? { ...newRecord, id: latest.id, patientId: latest.patientId }
+                                            : newRecord;
+                                        applyHistoryAndRecord(response.data, savedRecord);
+                                    } else {
+                                        const history = authServiceLocal.getAnalyses(currentUser.phone);
+                                        applyHistoryAndRecord(history, newRecord);
+                                    }
+                                }).catch(() => {
+                                    authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
+                                    caseService.addCaseToLibrary(newRecord);
+                                    applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
                                 });
+                            }).catch(() => {
+                                authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
+                                caseService.addCaseToLibrary(newRecord);
+                                applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
                             });
-                        }
+                        });
                     }).catch(() => {
-                        // API not available, use local
                         if (currentAnalysisRecord?.id) {
                             authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
                         } else {
                             authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                             caseService.addCaseToLibrary(newRecord);
                         }
-                        const history = authServiceLocal.getAnalyses(currentUser.phone);
-                        setUserHistory(history);
-                        setDashboardStats(caseService.getDashboardStats(history));
-                        setCurrentAnalysisRecord(newRecord);
+                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
                     });
                 }
                 break;
+            }
             case 'error':
                 setError(update.message);
                 setIsProcessing(false);
                 setStatusMessage(t('analysis_error_status'));
                 break;
         }
-    }, [currentUser, patientData, debateHistory, selectedSpecialistsConfig, t, currentAnalysisRecord]);
+    }, [currentUser, patientData, debateHistory, selectedSpecialistsConfig, t, currentAnalysisRecord, language]);
 
     const handleLoginSuccess = (user: User) => {
         setCurrentUser(user);
         setShowLanding(false); // Hide landing after successful login
-        if (user.role === 'clinic') {
-            // Try API first, fallback to local
-            import('./services/apiAnalysisService').then(({ getAnalyses }) => {
-                getAnalyses().then(response => {
-                    if (response.success && response.data) {
-                        setUserHistory(response.data);
-                        setDashboardStats(caseService.getDashboardStats(response.data));
-                        aiService.suggestCmeTopics(response.data, language).then(setCmeTopics);
-                    } else {
-                        // Fallback to local
-                        const history = authServiceLocal.getAnalyses(user.phone);
-                        setUserHistory(history);
-                        setDashboardStats(caseService.getDashboardStats(history));
-                        aiService.suggestCmeTopics(history, language).then(setCmeTopics);
-                    }
-                    setAppView('dashboard');
-                }).catch(() => {
-                    // Fallback to local on error
+        // Barcha rollar uchun tahlillarni bazadan (API) yuklash; token bo'lsa API, aks holda localStorage
+        import('./services/apiAnalysisService').then(({ getAnalyses }) => {
+            getAnalyses().then(response => {
+                if (response.success && response.data) {
+                    setUserHistory(response.data);
+                    setDashboardStats(caseService.getDashboardStats(response.data));
+                    aiService.suggestCmeTopics(response.data, language).then(setCmeTopics);
+                } else {
                     const history = authServiceLocal.getAnalyses(user.phone);
                     setUserHistory(history);
                     setDashboardStats(caseService.getDashboardStats(history));
                     aiService.suggestCmeTopics(history, language).then(setCmeTopics);
-                    setAppView('dashboard');
-                });
+                }
+                setAppView('dashboard');
+            }).catch(() => {
+                const history = authServiceLocal.getAnalyses(user.phone);
+                setUserHistory(history);
+                setDashboardStats(caseService.getDashboardStats(history));
+                aiService.suggestCmeTopics(history, language).then(setCmeTopics);
+                setAppView('dashboard');
             });
-        } else {
+        }).catch(() => {
+            const history = authServiceLocal.getAnalyses(user.phone);
+            setUserHistory(history);
+            setDashboardStats(caseService.getDashboardStats(history));
             setAppView('dashboard');
-        }
+        });
     };
 
     const handleLogout = () => {
