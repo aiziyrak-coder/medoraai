@@ -7,8 +7,25 @@ import type { PatientData, FinalReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
 import { useTranslation } from '../i18n/LanguageContext';
-import { generatePdfReport } from '../services/pdfGenerator';
+import { generatePdfReport, generateSpecialistConclusionPdf } from '../services/pdfGenerator';
 import { generateDocxReport } from '../services/docxGenerator';
+import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../constants/brand';
+
+async function getInstituteLogoDataUrl(): Promise<string | undefined> {
+  try {
+    const res = await fetch(INSTITUTE_LOGO_SRC);
+    if (!res.ok) return undefined;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+}
 
 interface Props {
   patientData: PatientData;
@@ -45,19 +62,6 @@ const PHASE_LABELS: Record<string, Record<string, string>> = {
 
 function getPhaseLabels(lang: string) {
   return PHASE_LABELS[lang] || PHASE_LABELS['uz-L'];
-}
-
-/** Download plain text as file */
-function downloadText(filename: string, content: string) {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 const PROFESSOR_COLORS: Record<string, string> = {
@@ -282,10 +286,18 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                     {prof.initialDiagnosis && (
                       <button
                         type="button"
-                        onClick={() => downloadText(`${(prof.name || prof.id || 'mutaxassis').replace(/\s+/g, '_')}_xulosa.txt`, prof.initialDiagnosis)}
+                        onClick={async () => {
+                          const logo = await getInstituteLogoDataUrl();
+                          generateSpecialistConclusionPdf(
+                            prof.name || prof.id || 'Mutaxassis',
+                            prof.initialDiagnosis,
+                            { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logo },
+                            `${(prof.name || prof.id || 'mutaxassis').replace(/\s+/g, '_')}_xulosa`
+                          );
+                        }}
                         className="mt-2 text-sky-400 hover:text-sky-300 text-xs underline"
                       >
-                        Yuklab olish
+                        PDF yuklab olish
                       </button>
                     )}
                   </div>
@@ -296,7 +308,16 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                 <DebateCard
                   key={msg.id}
                   msg={msg}
-                  onDownload={(m) => downloadText(`${m.author.replace(/\s+/g, '_')}_xulosa.txt`, m.content)}
+                  onDownload={async (m) => {
+                  const logo = await getInstituteLogoDataUrl();
+                  const displayName = t(`specialist_name_${String(m.author).toLowerCase()}`) || m.author;
+                  generateSpecialistConclusionPdf(
+                    displayName,
+                    m.content,
+                    { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logo },
+                    `${m.author.replace(/\s+/g, '_')}_xulosa`
+                  );
+                }}
                 />
               ))}
 
@@ -375,17 +396,20 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                 <span className="text-slate-400 text-sm w-full">Yakuniy xulosa:</span>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const debateAsChat = (result.final_report.debateHistory || []).map((m: DebateMessage) => ({
                       author: m.author,
                       content: m.content,
                       isSystemMessage: false,
                       isUserIntervention: false,
                     }));
+                    const logoDataUrl = await getInstituteLogoDataUrl();
                     generatePdfReport(
                       result.final_report as unknown as FinalReport,
                       patientData,
-                      debateAsChat
+                      debateAsChat,
+                      undefined,
+                      { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl }
                     );
                   }}
                   className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-sm"
@@ -401,10 +425,13 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                       isSystemMessage: false,
                       isUserIntervention: false,
                     }));
+                    const logoDataUrl = await getInstituteLogoDataUrl();
                     await generateDocxReport(
                       result.final_report as unknown as FinalReport,
                       patientData,
-                      debateAsChat
+                      debateAsChat,
+                      undefined,
+                      { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl }
                     );
                   }}
                   className="px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-sm"

@@ -19,11 +19,18 @@ const PDF_FONT = 'times' as const; // Times New Roman — haqiqiy hujjat uslubi
 const LINE_HEIGHT = 8;
 const FOOTER_RESERVE = 18;
 
+/** Optional institute branding for document header */
+export interface InstituteBranding {
+    instituteName?: string;
+    instituteLogoDataUrl?: string;
+}
+
 export const generatePdfReport = (
     report: FinalReport,
     patientData: PatientData,
     debateHistory: ChatMessage[],
-    getSpecialistName?: SpecialistNameResolver
+    getSpecialistName?: SpecialistNameResolver,
+    branding?: InstituteBranding
 ) => {
     const specialistName = (author: string): string =>
         getSpecialistName ? getSpecialistName(author) : (AI_SPECIALISTS[author]?.name || author);
@@ -106,6 +113,35 @@ export const generatePdfReport = (
         y += requiredHeight + 6;
     };
     
+    // --- Institute branding (logo + name) at top of first page ---
+    if (branding?.instituteName || branding?.instituteLogoDataUrl) {
+        const logoSize = 16;
+        if (branding.instituteLogoDataUrl) {
+            try {
+                const imgData = branding.instituteLogoDataUrl.includes('base64,')
+                    ? branding.instituteLogoDataUrl.split(',')[1]
+                    : branding.instituteLogoDataUrl;
+                if (imgData) {
+                    doc.addImage(imgData, 'PNG', margin, y, logoSize, logoSize);
+                }
+            } catch {
+                // ignore image errors
+            }
+        }
+        if (branding.instituteName) {
+            doc.setFontSize(11);
+            doc.setFont(PDF_FONT, 'bold');
+            doc.setTextColor(30, 41, 59);
+            const nameX = branding.instituteLogoDataUrl ? margin + logoSize + 6 : margin;
+            const nameY = branding.instituteLogoDataUrl ? y + logoSize / 2 + 3 : y + 4;
+            doc.text(branding.instituteName, nameX, nameY);
+        }
+        y += (branding.instituteLogoDataUrl ? logoSize : LINE_HEIGHT) + 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += LINE_HEIGHT + 6;
+    }
+
     // --- Page 1: Title and Patient Info (haqiqiy hujjat, doktor tavsiyasi) ---
     addHeader("KONSILIUM: Yakuniy Klinik Xulosa");
     doc.setFont(PDF_FONT, 'normal');
@@ -294,4 +330,83 @@ export const generatePdfReport = (
 
     // --- Save the PDF ---
     doc.save(`Tibbiy_Xulosa_${patientData.lastName}_${patientData.firstName}.pdf`);
+};
+
+/**
+ * Generates a single specialist conclusion as a PDF (for "Har bir mutaxassisning yakuniy xulosasi").
+ */
+export const generateSpecialistConclusionPdf = (
+    specialistDisplayName: string,
+    content: string,
+    branding?: InstituteBranding,
+    fileName?: string
+) => {
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 18;
+    let y = margin;
+
+    // Institute branding (logo + name)
+    if (branding?.instituteName || branding?.instituteLogoDataUrl) {
+        const logoSize = 16;
+        if (branding.instituteLogoDataUrl) {
+            try {
+                const imgData = branding.instituteLogoDataUrl.includes('base64,')
+                    ? branding.instituteLogoDataUrl.split(',')[1]
+                    : branding.instituteLogoDataUrl;
+                if (imgData) doc.addImage(imgData, 'PNG', margin, y, logoSize, logoSize);
+            } catch {
+                // ignore
+            }
+        }
+        if (branding.instituteName) {
+            doc.setFontSize(11);
+            doc.setFont(PDF_FONT, 'bold');
+            doc.setTextColor(30, 41, 59);
+            const nameX = branding.instituteLogoDataUrl ? margin + logoSize + 6 : margin;
+            doc.text(branding.instituteName, nameX, y + (branding.instituteLogoDataUrl ? logoSize / 2 + 3 : 4));
+        }
+        y += (branding.instituteLogoDataUrl ? logoSize : LINE_HEIGHT) + 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += LINE_HEIGHT + 6;
+    }
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont(PDF_FONT, 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text("Mutaxassisning yakuniy xulosasi", margin, y);
+    y += LINE_HEIGHT + 2;
+    doc.setFontSize(12);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.text(specialistDisplayName, margin, y);
+    y += LINE_HEIGHT + 8;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += LINE_HEIGHT + 6;
+
+    // Content
+    doc.setFontSize(11);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(40, 40, 40);
+    const textToSplit = content || '—';
+    const splitText = doc.splitTextToSize(textToSplit, pageWidth - margin * 2);
+    splitText.forEach((line: string) => {
+        if (y > pageHeight - margin - FOOTER_RESERVE) {
+            doc.addPage();
+            y = margin;
+        }
+        doc.text(line, margin, y);
+        y += LINE_HEIGHT;
+    });
+
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text("Tibbiy maslahat hujjati — faqat ma'lumot uchun. Professional tibbiy maslahat o'rnini bosa olmaydi.", margin, pageHeight - 14);
+
+    const name = (fileName || specialistDisplayName).replace(/\s+/g, '_').replace(/[^\w\-_.]/g, '');
+    doc.save(`${name}_xulosa.pdf`);
 };
