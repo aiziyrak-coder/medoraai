@@ -1,54 +1,47 @@
 # TODO — Professional dastur uchun vazifalar
 
-Quyidagi vazifalar keyingi bosqichda amalga oshiriladi.
+---
+
+## 1. Hisobot va eksport — BAJARILDI
+- [x] Konsilium/tahlil yakunida **PDF** va **Word** hisobot (DownloadPanel, pdfGenerator, docxGenerator).
+- [x] Eksport tugmalari va sarlavhalar i18n orqali tarjimalandi (export_report_title, export_download_pdf, export_download_word, export_specialist_conclusion).
 
 ---
 
-## 1. Hisobot va eksport
-- [ ] Konsilium/tahlil yakunida **PDF** yoki **Word** hisobot generatsiya qilish.
-- [ ] Hisobotda: bemor ma'lumotlari, aniqlashtiruvchi savol-javoblar, mutaxassislar fikrlari, yakuniy tavsiyalar.
-- [ ] Shifokor hisobotni yuklab olishi va (ixtiyoriy) bemorga yoki kollegaga yuborishi.
+## 2. Audit izi (kim, nima, qachon) — BAJARILDI
+- [x] Backend: **AnalysisAuditLog** modeli (action: created/updated/viewed, user, created_at).
+- [x] Tahlil yaratilganda va yangilanganda avtomatik yozuv.
+- [x] GET `/analyses/:id/audit/` — audit ro‘yxatini olish.
 
 ---
 
-## 2. Audit izi (kim, nima, qachon)
-- [ ] Har bir tahlil/konsilium uchun **audit log** yozish: kim kirgan, qanday ma'lumot kiritilgan, qachon boshlangan/tugagan.
-- [ ] Tibbiy va qonuniy talablar uchun "kim, nima, qachon" dalilini saqlash.
-
----
-
-## 4. Shifokor fikri va reyting
-- [ ] Konsilium/tahlil tugagach shifokor **foydali / foydali emas** deb baholashi.
-- [ ] Ixtiyoriy **qisqa izoh** (nimani yaxshilash kerak).
-- [ ] Keyinchalik AI va tizimni yaxshilash uchun bu ma'lumotlardan foydalanish.
+## 4. Shifokor fikri va reyting — BAJARILDI
+- [x] Backend: **AnalysisUsefulnessFeedback** (useful: bool, comment: text). POST `/analyses/:id/usefulness-feedback/`.
+- [x] Frontend: **UsefulnessFeedbackCard** — yakuniy xulosa qutida "Foydali / Foydali emas" + ixtiyoriy izoh, yuborish.
 
 ---
 
 ## 7. Til barqarorligi
-- [ ] Barcha ekranlar va AI chiqishlari tanlangan **bitta tilda** (lotin/krill/rus/ingliz) uyumli bo‘lishi.
-- [ ] Tarjimalar to‘liq va bir xil atamalar ishlatilishi (dastur "bitta tilda" professional ko‘rinsin).
+- [ ] Barcha ekranlar va AI chiqishlari tanlangan tilda uyumli (asosan mavjud; kerak bo‘lsa qolgan matnlarni i18n ga o‘tkazish).
 
 ---
 
-## 8. Tez ishlash va yuklanish
-- [ ] Birinchi sahifa va tahlil ro‘yxati **tez** ochilishi.
-- [ ] Kerakli joylarda **lazy load**, **keshlash**, katta rasmlarsiz yoki siqilgan.
-- [ ] Mobil va sekin internetda ham qulay ishlashi.
+## 8. Tez ishlash va yuklanish — QISQACHA BAJARILDI
+- [x] **Lazy load**: HistoryView, ResearchView, CaseLibraryView — `React.lazy` + `Suspense` (yuklanmoqda fallback).
+- [ ] Keshlash (masalan API javoblari) va katta rasmlar optimallashtirish — keyingi bosqichda.
 
 ---
 
-## 9. Yordam va qisqa yo'riqnoma
-- [ ] Dastur ichida **qisqa yo'riqnoma**: bemor qo‘shish, konsilium boshlash, savollarga javob berish, hisobot olish.
-- [ ] **"Tez-tez so‘raladigan savollar"** bo‘limi (ixtiyoriy).
-- [ ] Yangi foydalanuvchilar tez o‘rganadi.
+## 9. Yordam va qisqa yo'riqnoma — BAJARILDI
+- [x] UserGuide ichida **"Tez-tez so‘raladigan savollar"** bo‘limi (help_faq_title, help_faq_1_q/a, 2, 3).
+- [x] Yo‘riqnoma bo‘limlari: Boshlash, Tahlil, Xulosa, Tadqiqot, Registrator, FAQ.
 
 ---
 
-## 10. Xato va uzilishda aniq xabar
-- [ ] Internet uzilsa yoki API xato bersa **aniq xabar**: "Aloqa uzildi, qayta urinib ko‘ring" yoki "Xizmat vaqtincha ishlamayapti".
-- [ ] **Qayta urinish** tugmasi.
-- [ ] Foydalanuvchi tizimga ishonchi oshadi.
+## 10. Xato va uzilishda aniq xabar — BAJARILDI
+- [x] **ErrorWithRetry** komponenti: aniq xabar (error_connection_or_service) + **Qayta urinish** tugmasi.
+- [x] AnalysisView da xato chiqganda ErrorWithRetry ko‘rsatiladi, onRetry orqali xatolik tozalanadi.
 
 ---
 
-*Qaysi banddan boshlashni loyiha ustasi belgilaydi.*
+*Bajarilgan bandlar: 1, 2, 4, 8 (qisman), 9, 10.*

@@ -338,3 +338,32 @@ export const getAnalysisStats = async (): Promise<ApiResponse<{
 }>> => {
   return apiGet('/analyses/stats/');
 };
+
+/**
+ * Submit usefulness feedback (foydali / foydali emas + optional comment)
+ */
+export const submitUsefulnessFeedback = async (
+  analysisId: number,
+  useful: boolean,
+  comment?: string
+): Promise<ApiResponse<{ useful: boolean; comment: string; created: boolean }>> => {
+  return apiPost(`/analyses/${analysisId}/usefulness-feedback/`, { useful, comment: comment || '' });
+};
+
+export interface AuditLogEntry {
+  action: string;
+  user: string;
+  created_at: string;
+  extra?: Record<string, unknown>;
+}
+
+/**
+ * Get audit trail for analysis (kim, nima, qachon)
+ */
+export const getAnalysisAuditLog = async (analysisId: number): Promise<ApiResponse<AuditLogEntry[]>> => {
+  const res = await apiGet<AuditLogEntry[]>(`/analyses/${analysisId}/audit/`);
+  if (res.success && !Array.isArray(res.data)) {
+    return { ...res, data: [] };
+  }
+  return res as ApiResponse<AuditLogEntry[]>;
+};

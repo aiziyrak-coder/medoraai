@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import AnalysisRecord, DiagnosisFeedback
+from .models import AnalysisRecord, DiagnosisFeedback, AnalysisAuditLog, AnalysisUsefulnessFeedback
 from .serializers import (
     AnalysisRecordSerializer, AnalysisRecordCreateSerializer,
     AnalysisRecordUpdateSerializer, DiagnosisFeedbackSerializer
@@ -37,10 +37,67 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             return queryset.all()
         elif user.is_doctor:
             return queryset.filter(created_by=user)
-        elif user.is_staff_member and user.linked_doctor:
+        elif user.is_staff_member and getattr(user, 'linked_doctor', None):
             return queryset.filter(created_by=user.linked_doctor)
         return queryset.none()
-    
+
+    def _log_audit(self, analysis, action, extra=None):
+        try:
+            AnalysisAuditLog.objects.create(
+                analysis=analysis,
+                user=getattr(self.request, 'user', None),
+                action=action,
+                extra=extra or {}
+            )
+        except Exception:
+            pass
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        self._log_audit(serializer.instance, 'created')
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        self._log_audit(serializer.instance, 'updated')
+
+    @action(detail=True, methods=['get'], url_path='audit')
+    def audit_log(self, request, pk=None):
+        """Get audit trail for this analysis (kim, nima, qachon)."""
+        analysis = self.get_object()
+        logs = AnalysisAuditLog.objects.filter(analysis=analysis).select_related('user').order_by('-created_at')[:50]
+        data = []
+        for log in logs:
+            u = log.user
+            user_display = getattr(u, 'name', None) or getattr(u, 'email', None) or (str(u) if u else '-')
+            data.append({
+                'action': log.action,
+                'user': user_display,
+                'created_at': log.created_at.isoformat(),
+                'extra': log.extra,
+            })
+        return Response({'success': True, 'data': data})
+
+    @action(detail=True, methods=['post'], url_path='usefulness-feedback')
+    def usefulness_feedback(self, request, pk=None):
+        """Shifokor fikri: konsilium natijasi foydali bo'ldimi? (foydali/foydali emas + ixtiyoriy izoh)."""
+        analysis = self.get_object()
+        useful = request.data.get('useful')
+        if useful is None:
+            return Response({
+                'success': False,
+                'error': {'code': 400, 'message': "useful (true/false) majburiy"}
+            }, status=status.HTTP_400_BAD_REQUEST)
+        comment = (request.data.get('comment') or '').strip()[:2000]
+        obj, created = AnalysisUsefulnessFeedback.objects.update_or_create(
+            analysis=analysis,
+            defaults={'user': request.user, 'useful': bool(useful), 'comment': comment}
+        )
+        return Response({
+            'success': True,
+            'message': 'Fikr saqlandi',
+            'data': {'useful': obj.useful, 'comment': obj.comment, 'created': created}
+        }, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['post'], url_path='add-feedback')
     def add_feedback(self, request, pk=None):
         """Add diagnosis feedback"""

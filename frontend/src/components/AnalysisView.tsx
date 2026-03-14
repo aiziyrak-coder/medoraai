@@ -11,6 +11,8 @@ import PrognosisCard from './report/PrognosisCard';
 import DownloadPanel from './DownloadPanel';
 import DebateStatusIndicator from './DebateStatusIndicator';
 import { ObjectiveVitalsCards } from './analysis/ObjectiveVitalsCards';
+import ErrorWithRetry from './ErrorWithRetry';
+import UsefulnessFeedbackCard from './UsefulnessFeedbackCard';
 
 // --- Icons ---
 import SendIcon from './icons/SendIcon';
@@ -35,6 +37,7 @@ interface AnalysisViewProps {
     onExplainRationale: (message: ChatMessageProps) => void;
     onRunScenario: (scenario: string) => Promise<FinalReport | null>;
     onUpdateReport: (updatedReport: Partial<FinalReport>) => void;
+    onRetry?: () => void;
 }
 
 
@@ -43,7 +46,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
         record, isLive, statusMessage, isAnalyzing, differentialDiagnoses, error, 
         diagnosisFeedback, onDiagnosisFeedback, onStartDebate, onInjectHypothesis, 
         onUserIntervention, onExplainRationale, socraticQuestion,
-        livePrognosis, onRunScenario, onUpdateReport
+        livePrognosis, onRunScenario, onUpdateReport, onRetry
     } = props;
     
     const debateScrollRef = useRef<HTMLDivElement>(null);
@@ -195,6 +198,9 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                         <div className="space-y-6">
                             <FinalReportCard report={fr} patientData={pd} onUpdateReport={onUpdateReport} debateHistory={dh} />
                             <DownloadPanel record={record} />
+                            {record?.id && !isNaN(parseInt(record.id, 10)) && (
+                                <UsefulnessFeedbackCard analysisId={parseInt(record.id, 10)} />
+                            )}
                         </div>
                     </div>
                 </div>

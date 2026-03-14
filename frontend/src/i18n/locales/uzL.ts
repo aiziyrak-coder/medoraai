@@ -313,6 +313,36 @@ export const uzL: TranslationSet = {
   clarification_submit_button: 'Konsiliumni Boshlash',
   clarification_not_answered: 'Javob berilmagan',
   clarification_additional_qa: 'Qo\'shimcha savol-javoblar',
+
+  // Usefulness feedback (shifokor fikri)
+  usefulness_feedback_title: 'Konsilium natijasi foydali bo\'ldimi?',
+  usefulness_feedback_subtitle: 'Tizimni yaxshilash uchun fikringiz muhim.',
+  usefulness_feedback_yes: 'Ha, foydali',
+  usefulness_feedback_no: 'Yo\'q, foydali emas',
+  usefulness_feedback_comment_placeholder: 'Izoh (ixtiyoriy)...',
+  usefulness_feedback_submit: 'Yuborish',
+  usefulness_feedback_sending: 'Yuborilmoqda...',
+  usefulness_feedback_thanks: 'Fikringiz uchun rahmat.',
+
+  // Error + Retry
+  error_title: 'Xatolik',
+  error_connection_or_service: 'Aloqa uzildi yoki xizmat vaqtincha ishlamayapti. Qayta urinib ko\'ring.',
+  error_retry_button: 'Qayta urinish',
+
+  // Export (Download panel)
+  export_report_title: 'Umumiy konsilium hisobotini yuklab olish',
+  export_download_pdf: 'PDF yuklab olish',
+  export_download_word: 'Word yuklab olish',
+  export_specialist_conclusion: 'Har bir mutaxassisning yakuniy xulosasi',
+  
+  // FAQ (Yordam)
+  help_faq_title: 'Tez-tez so\'raladigan savollar',
+  help_faq_1_q: 'Konsilium natijasini qanday saqlash mumkin?',
+  help_faq_1_a: 'Yakuniy xulosa qutida "PDF yuklab olish" yoki "Word yuklab olish" tugmalaridan foydalaning. Hisobot kompyuteringizga yuklanadi.',
+  help_faq_2_q: 'AI xatolik bersa nima qilish kerak?',
+  help_faq_2_a: '"Qayta urinish" tugmasini bosing. Agar muammo takrorlansa, internet aloqangizni tekshiring yoki keyinroq qaytadan urinib ko\'ring.',
+  help_faq_3_q: 'Tahlil tarixini kim ko\'ra oladi?',
+  help_faq_3_a: 'Tahlillar faqat tahlilni yaratgan shifokor (yoki uning klinikasi) tomonidan ko\'rinadi. Audit yozuvi har bir amalni (kim, qachon) qayd qiladi.',
   
   // AI Xatolik Xabarlari
   ai_json_parse_error: "AI xizmatidan noto'g'ri javob olindi. Iltimos, qayta urinib ko'ring.",

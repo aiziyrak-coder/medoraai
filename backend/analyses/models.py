@@ -57,6 +57,70 @@ class AnalysisRecord(models.Model):
         return f"Tahlil #{self.id} - {self.patient} ({self.created_at.strftime('%Y-%m-%d')})"
 
 
+class AnalysisAuditLog(models.Model):
+    """Audit trail: who did what, when (for analysis/consilium)."""
+    ACTION_CHOICES = [
+        ('created', 'Yaratildi'),
+        ('updated', 'Yangilandi'),
+        ('viewed', "Ko'rilgan"),
+    ]
+    analysis = models.ForeignKey(
+        AnalysisRecord,
+        on_delete=models.CASCADE,
+        related_name='audit_logs',
+        verbose_name='Tahlil'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='analysis_audit_logs',
+        verbose_name='Foydalanuvchi'
+    )
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name='Amal')
+    extra = models.JSONField(default=dict, blank=True, verbose_name='Qo\'shimcha')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Sana')
+
+    class Meta:
+        verbose_name = 'Tahlil audit yozuvi'
+        verbose_name_plural = 'Tahlil audit yozuvlari'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['analysis'], name='an_audit_analysis_idx'),
+            models.Index(fields=['created_at'], name='an_audit_created_idx'),
+        ]
+
+    def __str__(self):
+        return f"Tahlil #{self.analysis_id} — {self.get_action_display()} ({self.created_at})"
+
+
+class AnalysisUsefulnessFeedback(models.Model):
+    """Shifokor fikri: konsilium natijasi foydali bo'ldimi?"""
+    analysis = models.OneToOneField(
+        AnalysisRecord,
+        on_delete=models.CASCADE,
+        related_name='usefulness_feedback',
+        verbose_name='Tahlil'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='analysis_usefulness_feedbacks',
+        verbose_name='Foydalanuvchi'
+    )
+    useful = models.BooleanField(verbose_name='Foydali')
+    comment = models.TextField(blank=True, verbose_name='Izoh')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Sana')
+
+    class Meta:
+        verbose_name = 'Tahlil foydaliligi fikri'
+        verbose_name_plural = 'Tahlil foydaliligi fikrlari'
+
+    def __str__(self):
+        return f"Tahlil #{self.analysis_id} — {'Foydali' if self.useful else 'Foydali emas'}"
+
+
 class DiagnosisFeedback(models.Model):
     """User feedback on diagnoses"""
     

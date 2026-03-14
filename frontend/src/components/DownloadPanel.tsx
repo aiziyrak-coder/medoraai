@@ -73,31 +73,29 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record }) => {
 
     return (
         <div className="space-y-4">
-            {/* Umumiy hisobot */}
-            <div className="p-4 bg-slate-100 rounded-xl border border-border-color">
-                <h4 className="font-bold text-text-primary mb-3">Umumiy konsilium hisobotini yuklab olish</h4>
+            <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-border-color">
+                <h4 className="font-bold text-text-primary mb-3">{t('export_report_title' as TranslationKey)}</h4>
                 <div className="flex flex-col sm:flex-row gap-3">
                     <button
                         onClick={handlePdfDownload}
                         className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                     >
                         <DownloadIcon className="w-4 h-4" />
-                        <span>PDF yuklab olish</span>
+                        <span>{t('export_download_pdf' as TranslationKey)}</span>
                     </button>
                     <button
                         onClick={handleDocxDownload}
                         className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                     >
                         <DownloadIcon className="w-4 h-4" />
-                        <span>Word yuklab olish</span>
+                        <span>{t('export_download_word' as TranslationKey)}</span>
                     </button>
                 </div>
             </div>
 
-            {/* Har bir mutaxassis yakuniy xulosasi */}
             {specialistLastMsg.size > 0 && (
-                <div className="p-4 bg-slate-100 rounded-xl border border-border-color">
-                    <h4 className="font-bold text-text-primary mb-3">Har bir mutaxassisning yakuniy xulosasi</h4>
+                <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-border-color">
+                    <h4 className="font-bold text-text-primary mb-3">{t('export_specialist_conclusion' as TranslationKey)}</h4>
                     <div className="space-y-2">
                         {Array.from(specialistLastMsg.entries()).map(([author, msg]) => {
                             const specName = getSpecialistName(author);

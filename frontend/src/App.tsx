@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import type { PatientData, ChatMessage, FinalReport, ProgressUpdate, User, AnalysisRecord, Diagnosis, DetectedMedication, DiagnosisFeedback, CriticalFinding, CMETopic, UserStats, AppView, PrognosisReport } from './types';
 import { normalizeConsensusDiagnosis } from './types';
 import * as aiService from './services/aiCouncilService';
@@ -23,15 +23,15 @@ import DoctorDashboard from './components/DoctorDashboard';
 import StaffDashboard from './components/StaffDashboard';
 import TvDisplay from './components/TvDisplay';
 import DataInputForm from './components/DataInputForm';
-import HistoryView from './components/HistoryView';
+const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
-import ResearchView from './components/ResearchView';
+const ResearchView = lazy(() => import('./components/ResearchView'));
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
 import LiveConsultationView from './components/LiveConsultationView';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
-import CaseLibraryView from './components/CaseLibraryView';
+const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
 import CriticalFindingAlert from './components/modals/CriticalFindingAlert';
 import RationaleModal from './components/modals/RationaleModal';
 import LanguageSwitcher from './components/LanguageSwitcher';
@@ -834,7 +834,7 @@ const AppContent: React.FC = () => {
                             backLabel={isArchive ? 'Arxiv' : 'Asosiy sahifa'}
                         />
                         <div className="flex-1 page-px py-3 overflow-hidden">
-                            <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} />
+                            <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} />
                         </div>
                     </div>
                 );
@@ -845,7 +845,9 @@ const AppContent: React.FC = () => {
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
                         <BackBar title="Tahlillar Arxivi" subtitle="O'tkazilgan barcha tahlillar" onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
-                            <HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} />
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">Yuklanmoqda...</div>}>
+                                <HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} />
+                            </Suspense>
                         </ScrollWrapper>
                     </div>
                 );
@@ -855,7 +857,9 @@ const AppContent: React.FC = () => {
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
                         <BackBar title="Holatlar Kutubxonasi" onBack={() => setAppView('history')} backLabel="Arxiv" />
                         <ScrollWrapper>
-                            <CaseLibraryView onBack={() => setAppView('history')} />
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">Yuklanmoqda...</div>}>
+                                <CaseLibraryView onBack={() => setAppView('history')} />
+                            </Suspense>
                         </ScrollWrapper>
                     </div>
                 );

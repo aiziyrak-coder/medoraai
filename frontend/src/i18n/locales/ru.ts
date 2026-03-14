@@ -312,7 +312,33 @@ export const ru: TranslationSet = {
   clarification_submit_button: 'Начать консилиум',
   clarification_not_answered: 'Без ответа',
   clarification_additional_qa: 'Дополнительные вопросы и ответы',
-  
+
+  usefulness_feedback_title: 'Результат консилиума был полезен?',
+  usefulness_feedback_subtitle: 'Ваше мнение важно для улучшения системы.',
+  usefulness_feedback_yes: 'Да, полезно',
+  usefulness_feedback_no: 'Нет, не полезно',
+  usefulness_feedback_comment_placeholder: 'Комментарий (необязательно)...',
+  usefulness_feedback_submit: 'Отправить',
+  usefulness_feedback_sending: 'Отправка...',
+  usefulness_feedback_thanks: 'Спасибо за ваш отзыв.',
+
+  error_title: 'Ошибка',
+  error_connection_or_service: 'Соединение прервано или сервис временно недоступен. Попробуйте снова.',
+  error_retry_button: 'Повторить',
+
+  export_report_title: 'Скачать общий отчёт консилиума',
+  export_download_pdf: 'Скачать PDF',
+  export_download_word: 'Скачать Word',
+  export_specialist_conclusion: 'Заключение каждого специалиста',
+
+  help_faq_title: 'Часто задаваемые вопросы',
+  help_faq_1_q: 'Как сохранить результат консилиума?',
+  help_faq_1_a: 'В блоке итогового заключения нажмите «Скачать PDF» или «Скачать Word». Отчёт загрузится на ваш компьютер.',
+  help_faq_2_q: 'Что делать при ошибке ИИ?',
+  help_faq_2_a: 'Нажмите «Повторить». Если проблема повторяется, проверьте интернет-соединение или попробуйте позже.',
+  help_faq_3_q: 'Кто может видеть историю анализов?',
+  help_faq_3_a: 'Анализы видны только создавшему их врачу (или его клинике). Аудит фиксирует каждое действие (кто, когда).',
+
   // AI Error Messages (Сообщения об ошибках ИИ)
   ai_json_parse_error: "Получен неверный ответ от сервиса ИИ. Пожалуйста, попробуйте снова.",
   ai_service_unavailable: 'Сервис ИИ временно недоступен. Пожалуйста, попробуйте позже.',

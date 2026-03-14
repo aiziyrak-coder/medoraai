@@ -293,6 +293,32 @@ export const uzC: TranslationSet = {
   clarification_submit_button: 'Консилиумни Бошлаш',
   clarification_not_answered: 'Жавоб берилмаган',
   clarification_additional_qa: 'Қўшимча савол-жавоблар',
+
+  usefulness_feedback_title: 'Консилиум натижаси фойдали бўлдими?',
+  usefulness_feedback_subtitle: 'Тизимни яхшилаш учун фикрингиз муҳим.',
+  usefulness_feedback_yes: 'Ҳа, фойдали',
+  usefulness_feedback_no: 'Йўқ, фойдали эмас',
+  usefulness_feedback_comment_placeholder: 'Изоҳ (ихтиёрий)...',
+  usefulness_feedback_submit: 'Юбориш',
+  usefulness_feedback_sending: 'Юборилмоқда...',
+  usefulness_feedback_thanks: 'Фикрингиз учун раҳмат.',
+
+  error_title: 'Хатолик',
+  error_connection_or_service: 'Алоқа узилди ёки хизмат вақтинча ишламайапти. Қайта уриниб кўринг.',
+  error_retry_button: 'Қайта уриниш',
+
+  export_report_title: 'Умумий консилиум ҳисоботини юклаб олиш',
+  export_download_pdf: 'PDF юклаб олиш',
+  export_download_word: 'Word юклаб олиш',
+  export_specialist_conclusion: 'Ҳар бир мутахассиснинг якуний хулосаси',
+
+  help_faq_title: 'Тез-тез сўраладиган саволлар',
+  help_faq_1_q: 'Консилиум натижасини қандай сақлаш мумкин?',
+  help_faq_1_a: 'Якуний хулоса қутида "PDF юклаб олиш" ёки "Word юклаб олиш" тугмаларидан фойдаланинг.',
+  help_faq_2_q: 'АИ хатолик берса нима қилиш керак?',
+  help_faq_2_a: '"Қайта уриниш" тугмасини босинг. Агар муаммо такрорланса, интернет алоқангизни текширинг.',
+  help_faq_3_q: 'Таҳлил тарихини ким кўра олади?',
+  help_faq_3_a: 'Таҳлиллар фақат таҳлилни яратган шифокор томонидан кўриниши мумкин. Аудит ёзуви ҳар бир амални қайд қилади.',
   
   // АИ Хатолик Хабарлари (AI Error Messages)
   ai_json_parse_error: "АИ хизматидан нотоғри жавоб олинди. Илтимос, қайта уриниб кўринг.",

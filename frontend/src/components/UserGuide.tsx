@@ -23,6 +23,7 @@ const UserGuide: React.FC<UserGuideProps> = ({ onBack }) => {
         { id: 'results', title: 'Xulosa va Hujjatlar', icon: <DocumentTextIcon className="w-5 h-5"/> },
         { id: 'research', title: 'Tadqiqot va Ta\'lim', icon: <LightBulbIcon className="w-5 h-5"/> },
         { id: 'staff', title: 'Navbat Tizimi (Registrator)', icon: <UsersIcon className="w-5 h-5"/> },
+        { id: 'faq', title: t('help_faq_title' as never), icon: <LightBulbIcon className="w-5 h-5"/> },
     ];
 
     const renderContent = () => {
@@ -117,6 +118,26 @@ const UserGuide: React.FC<UserGuideProps> = ({ onBack }) => {
                             <p className="text-sm text-yellow-200">
                                 <strong>Eslatma:</strong> Barcha hujjatlarni PDF yoki DOCX formatida yuklab olish va chop etish mumkin.
                             </p>
+                        </div>
+                    </div>
+                );
+            case 'faq':
+                return (
+                    <div className="space-y-6 animate-fade-in-up">
+                        <h2 className="text-3xl font-bold text-white mb-4">{t('help_faq_title' as never)}</h2>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                <h3 className="font-bold text-blue-300 mb-2">{t('help_faq_1_q' as never)}</h3>
+                                <p className="text-slate-400 text-sm">{t('help_faq_1_a' as never)}</p>
+                            </div>
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                <h3 className="font-bold text-blue-300 mb-2">{t('help_faq_2_q' as never)}</h3>
+                                <p className="text-slate-400 text-sm">{t('help_faq_2_a' as never)}</p>
+                            </div>
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                                <h3 className="font-bold text-blue-300 mb-2">{t('help_faq_3_q' as never)}</h3>
+                                <p className="text-slate-400 text-sm">{t('help_faq_3_a' as never)}</p>
+                            </div>
                         </div>
                     </div>
                 );

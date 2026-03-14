@@ -310,7 +310,33 @@ export const en = {
   clarification_submit_button: 'Start Konsilium',
   clarification_not_answered: 'Not answered',
   clarification_additional_qa: 'Additional Q&A',
-  
+
+  usefulness_feedback_title: 'Was the consilium result useful?',
+  usefulness_feedback_subtitle: 'Your feedback helps improve the system.',
+  usefulness_feedback_yes: 'Yes, useful',
+  usefulness_feedback_no: 'No, not useful',
+  usefulness_feedback_comment_placeholder: 'Comment (optional)...',
+  usefulness_feedback_submit: 'Submit',
+  usefulness_feedback_sending: 'Sending...',
+  usefulness_feedback_thanks: 'Thank you for your feedback.',
+
+  error_title: 'Error',
+  error_connection_or_service: 'Connection lost or service temporarily unavailable. Please try again.',
+  error_retry_button: 'Retry',
+
+  export_report_title: 'Download full consilium report',
+  export_download_pdf: 'Download PDF',
+  export_download_word: 'Download Word',
+  export_specialist_conclusion: 'Each specialist\'s conclusion',
+
+  help_faq_title: 'Frequently asked questions',
+  help_faq_1_q: 'How can I save the consilium result?',
+  help_faq_1_a: 'In the final report section, use "Download PDF" or "Download Word". The report will download to your device.',
+  help_faq_2_q: 'What if the AI returns an error?',
+  help_faq_2_a: 'Click "Retry". If the issue persists, check your internet connection or try again later.',
+  help_faq_3_q: 'Who can see analysis history?',
+  help_faq_3_a: 'Analyses are visible only to the doctor who created them (or their clinic). Audit log records each action (who, when).',
+
   // AI Error Messages
   ai_json_parse_error: "AI service returned an incorrect response. Please try again.",
   ai_service_unavailable: 'AI service is temporarily unavailable. Please try again later.',
