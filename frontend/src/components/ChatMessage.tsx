@@ -34,10 +34,8 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     const { author, content, isThinking, isUserIntervention, evidenceLevel, isSystemMessage } = message;
     const config = AI_SPECIALISTS[author];
 
-    if (!config) return null;
     if (isThinking && !content) return null;
-
-    const specialistName = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || config.name;
+    const specialistName = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || config?.name || (author === 'Orchestrator' ? 'Konsilium Raisi' : String(author));
     const animationDelay = `${Math.random() * 0.3}s`;
     
     if (isSystemMessage || isUserIntervention) {
@@ -45,11 +43,13 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
             <div className={`animate-fade-in-up text-center ${compact ? 'my-2' : 'my-6'}`} style={{ animationDelay }}>
                  <div className={`inline-block max-w-2xl ${compact ? 'px-2 py-1 rounded-lg' : 'px-4 py-2 rounded-xl'}`}>
                     <p className={`text-text-secondary font-semibold ${compact ? 'text-[10px]' : 'text-xs'}`}>{isUserIntervention ? "Sizning aralashuvingiz" : specialistName}</p>
-                    <p className={`text-text-secondary italic text-center break-words ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>{content}</p>
+                    {content && <p className={`text-text-secondary italic text-center break-words ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>{content}</p>}
                 </div>
             </div>
-        )
+        );
     }
+
+    if (!config) return null;
 
     return (
         <div className={`flex items-start gap-2 animate-fade-in-up min-w-0 ${compact ? 'my-2' : 'my-4'}`} style={{ animationDelay }}>

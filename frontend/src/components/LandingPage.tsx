@@ -282,18 +282,38 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                             <p className="text-slate-400 text-sm sm:text-base text-center max-w-xl mx-auto mb-10">{t('landing_features_desc')}</p>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                 {[
-                                    { icon: <UserGroupIcon className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />, title: t('landing_feature_consultium'), bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-                                    { icon: <ShieldCheckIcon className="w-8 h-8 sm:w-10 sm:h-10 text-green-400" />, title: t('landing_feature_safe'), bg: 'bg-green-500/10', border: 'border-green-500/20' },
-                                    { icon: <GlobeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />, title: t('landing_feature_global'), bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-                                    { icon: <HeartPulseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" />, title: t('landing_feature_ecg'), bg: 'bg-red-500/10', border: 'border-red-500/20' },
-                                    { icon: <StethoscopeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />, title: t('landing_feature_drug'), bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-                                    { icon: <ChartBarIcon className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-400" />, title: t('landing_feature_risk'), bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+                                    { icon: <UserGroupIcon className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />, title: t('landing_feature_consultium'), desc: t('landing_feature_consultium_desc'), bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                                    { icon: <ShieldCheckIcon className="w-8 h-8 sm:w-10 sm:h-10 text-green-400" />, title: t('landing_feature_safe'), desc: t('landing_feature_safe_desc'), bg: 'bg-green-500/10', border: 'border-green-500/20' },
+                                    { icon: <GlobeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />, title: t('landing_feature_global'), desc: t('landing_feature_global_desc'), bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+                                    { icon: <HeartPulseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" />, title: t('landing_feature_ecg'), desc: t('landing_feature_ecg_desc'), bg: 'bg-red-500/10', border: 'border-red-500/20' },
+                                    { icon: <StethoscopeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />, title: t('landing_feature_drug'), desc: t('landing_feature_drug_desc'), bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+                                    { icon: <ChartBarIcon className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-400" />, title: t('landing_feature_risk'), desc: t('landing_feature_risk_desc'), bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
                                 ].map((f, i) => (
                                     <div key={i} className={`landing-feature-card p-4 sm:p-5 rounded-2xl bg-slate-800/50 border hover:bg-slate-800/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.border}`} style={{ animationDelay: `${i * 0.08}s` }}>
                                         <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-3 ${f.bg}`}>{f.icon}</div>
-                                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">{f.title}</h3>
+                                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight mb-1.5">{f.title}</h3>
+                                        <p className="text-xs text-slate-400 leading-snug line-clamp-3">{f.desc}</p>
                                     </div>
                                 ))}
+                            </div>
+                            {/* Infografika: platforma samaradorligi */}
+                            <div className="mt-10 p-4 sm:p-6 rounded-2xl bg-slate-800/60 border border-white/10">
+                                <p className="text-xs font-bold text-cyan-400/90 uppercase tracking-wider mb-4 text-center">Platforma samaradorligi</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    {[
+                                        { label: t('landing_stats_protocols'), pct: 94, color: 'bg-blue-500' },
+                                        { label: t('landing_stats_clinics'), pct: 88, color: 'bg-emerald-500' },
+                                        { label: t('landing_stats_analyses'), pct: 98, color: 'bg-violet-500' },
+                                        { label: t('landing_stats_experts'), pct: 92, color: 'bg-cyan-500' },
+                                    ].map((s, i) => (
+                                        <div key={i} className="text-center">
+                                            <div className="h-2 sm:h-2.5 rounded-full bg-slate-700 overflow-hidden mb-2">
+                                                <div className={`h-full rounded-full ${s.color} transition-all duration-1000`} style={{ width: `${s.pct}%` }} />
+                                            </div>
+                                            <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">{s.label}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -302,18 +322,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                     <section className={`landing-slide flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 pt-20 pb-20 ${currentSlide === 2 ? 'landing-slide-active' : ''}`} data-slide-index={2}>
                         <div className="landing-slide-inner w-full max-w-3xl mx-auto text-center">
                             <h2 className="text-2xl sm:text-4xl font-bold mb-4">{t('landing_how_title')} <span className="text-blue-500">{t('landing_how_subtitle')}</span></h2>
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-10 mt-10">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-6 sm:gap-10 mt-10">
                                 {[
-                                    { step: '01', title: t('landing_how_step1'), Icon: DocumentTextIcon, bg: 'bg-blue-500/20', border: 'border-blue-400/40', iconColor: 'text-blue-400' },
-                                    { step: '02', title: t('landing_how_step2'), Icon: BrainCircuitIcon, bg: 'bg-cyan-500/20', border: 'border-cyan-400/40', iconColor: 'text-cyan-400' },
-                                    { step: '03', title: t('landing_how_step3'), Icon: ShieldCheckIcon, bg: 'bg-emerald-500/20', border: 'border-emerald-400/40', iconColor: 'text-emerald-400' },
+                                    { step: '01', title: t('landing_how_step1'), desc: t('landing_how_step1_desc'), Icon: DocumentTextIcon, bg: 'bg-blue-500/20', border: 'border-blue-400/40', iconColor: 'text-blue-400' },
+                                    { step: '02', title: t('landing_how_step2'), desc: t('landing_how_step2_desc'), Icon: BrainCircuitIcon, bg: 'bg-cyan-500/20', border: 'border-cyan-400/40', iconColor: 'text-cyan-400' },
+                                    { step: '03', title: t('landing_how_step3'), desc: t('landing_how_step3_desc'), Icon: ShieldCheckIcon, bg: 'bg-emerald-500/20', border: 'border-emerald-400/40', iconColor: 'text-emerald-400' },
                                 ].map((item, i) => (
-                                    <div key={i} className="landing-step-card flex flex-col items-center gap-3" style={{ animationDelay: `${i * 0.12}s` }}>
+                                    <div key={i} className="landing-step-card flex flex-col items-center gap-3 p-4 rounded-2xl bg-slate-800/40 border border-white/5 hover:border-white/10 transition-all" style={{ animationDelay: `${i * 0.12}s` }}>
                                         <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${item.bg} border ${item.border} flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-lg`}>
                                             <item.Icon className={`w-8 h-8 sm:w-10 sm:h-10 ${item.iconColor}`} />
                                         </div>
                                         <span className="text-xs font-bold text-slate-500">{item.step}</span>
-                                        <p className="text-sm sm:text-base font-bold text-white max-w-[160px] leading-snug">{item.title}</p>
+                                        <p className="text-sm sm:text-base font-bold text-white max-w-[200px] leading-snug text-center">{item.title}</p>
+                                        <p className="text-xs text-slate-400 max-w-[200px] text-center leading-snug">{item.desc}</p>
                                     </div>
                                 ))}
                             </div>

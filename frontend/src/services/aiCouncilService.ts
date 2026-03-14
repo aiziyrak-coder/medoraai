@@ -1072,21 +1072,25 @@ export const runCouncilDebate = async (
     
     onProgress({ type: 'status', message: introMessages[language] || introMessages['uz-C'] });
     let debateHistory: ChatMessage[] = [];
-    
-    // History context for the debate
-    const historyContext = getRelevantHistoryContext(patientData.complaints);
 
-    // Orchestrator Intro - to'liq gap (kesilmasin)
-    const introContentPrompt = `Generate ONE complete short paragraph (3-5 sentences) for the Council Chair opening the medical council. Include: greeting; goal is best diagnosis and treatment per Uzbekistan SSV protocols; only drugs registered in Uzbekistan. Write to the END - do not stop mid-sentence. Output Language: ${langMap[language]}.`;
+    const patientSummaryForRais = `Bemor: ${(patientData.firstName || '')} ${(patientData.lastName || '')}, ${patientData.age || '-'} yosh. Shikoyat: ${(patientData.complaints || '').slice(0, 400)}. Dastlabki tashxislar: ${diagnoses.map(d => d.name).join(', ') || '-'}.`;
+
+    // Rais kirish so'zi — faqat AI yozadi, bemor va holatdan kelib chiqib; hech qanday oldindan matn yo'q
+    const introContentPrompt = `Siz Konsilium Raisi. Quyidagi bemor va holat ma'lumotlariga asosan BIRINCHI ochilish so'zini o'zingiz yozing. Oldindan tayyorlangan ibora yoki shablon ishlatmang — faqat shu bemor va dastlabki tashxislar asosida bitta qisqa paragraf (3-5 jumla). Maqsad: eng yaxshi tashxis va davolash, O'zbekiston SSV protokollari, faqat ro'yxatdan o'tgan dori. Javobni oxirigacha yozing. TIL: ${langMap[language]}.
+
+${patientSummaryForRais}`;
     const introContent = await callGemini(introContentPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
-    
-    const orchestratorIntro: ChatMessage = { id: `sys-intro-${Date.now()}`, author: AIModel.SYSTEM, content: introContent, isSystemMessage: true };
+
+    const orchestratorIntro: ChatMessage = { id: `sys-intro-${Date.now()}`, author: AIModel.SYSTEM, content: (introContent || '').trim(), isSystemMessage: true };
     onProgress({ type: 'message', message: orchestratorIntro });
     debateHistory.push(orchestratorIntro);
     await sleep(12);
 
     const DEBATE_ROUNDS = 3;
-    let currentTopicPrompt = `Summarize the initial state: Patient data and initial diagnoses: ${JSON.stringify(diagnoses)}. Ask each specialist to give their initial evaluation and Red Flags ONLY from their own specialty (each person speaks only from their domain; if the case does not directly concern their specialty, they should say so briefly). Write ONE complete paragraph - do not stop mid-sentence. Output Language: ${langMap[language]}.`;
+    // Rais birinchi mavzusi — faqat bemor va tashxislar asosida AI yozadi, shablon yo'q
+    const currentTopicPrompt = `Siz Konsilium raisi. Quyidagi bemor ma'lumotlari va dastlabki tashxislar asosida BIRINCHI mavzuni o'zingiz yozing: mutaxassislarga dastlabki baho va xavf belgilari (har biri o'z sohasida) berishni so'rang. Oldindan tayyorlangan matn ishlatmang — faqat shu ma'lumotdan kelib chiqib bitta to'liq paragraf yozing. TIL: ${langMap[language]}.
+
+${patientSummaryForRais}`;
     let currentTopic = await callGemini(currentTopicPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
 
     for (let round = 1; round <= DEBATE_ROUNDS; round++) {
@@ -1098,27 +1102,26 @@ export const runCouncilDebate = async (
         };
         onProgress({ type: 'status', message: roundMessages[language] });
         
-        // Orchestrator Turn
-        if (currentTopic.includes("QUESTION FOR USER") || currentTopic.includes("FOYDALANUVCHI UCHUN SAVOL")) {
-             // Extract clean question (remove prefix)
-             const questionMatch = currentTopic.match(/FOYDALANUVCHI UCHUN SAVOL:\s*(.+)/i);
-             const cleanQuestion = questionMatch ? questionMatch[1].trim() : currentTopic;
-             
+        // Orchestrator Turn — savol matni aniq bo'lsagina foydalanuvchidan so'raymiz
+        const questionMatch = currentTopic.match(/FOYDALANUVCHI UCHUN SAVOL:\s*(.+)/i) || currentTopic.match(/QUESTION FOR USER:\s*(.+)/i);
+        const cleanQuestion = questionMatch ? questionMatch[1].trim() : '';
+        const hasRealQuestion = cleanQuestion.length > 5;
+
+        if ((currentTopic.includes("QUESTION FOR USER") || currentTopic.includes("FOYDALANUVCHI UCHUN SAVOL")) && hasRealQuestion) {
              const userQMsg = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: cleanQuestion, isSystemMessage: true };
              onProgress({ type: 'message', message: userQMsg });
              debateHistory.push(userQMsg);
-             
              onProgress({ type: 'user_question', question: cleanQuestion });
-             let userInput = null;
+             let userInput: string | null = null;
              while (!userInput) {
                 await sleep(18);
                 userInput = getUserIntervention();
              }
-             const userMessage = { id: `user-${Date.now()}`, author: AIModel.SYSTEM, content: `User Answer: ${userInput}`, isUserIntervention: true, isSystemMessage: true };
+             const userMessage: ChatMessage = { id: `user-${Date.now()}`, author: AIModel.SYSTEM, content: `Javob: ${userInput}`, isUserIntervention: true, isSystemMessage: true };
              onProgress({ type: 'message', message: userMessage });
              debateHistory.push(userMessage);
         } else {
-             const orchestratorMessage: ChatMessage = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: currentTopic, isSystemMessage: true };
+             const orchestratorMessage: ChatMessage = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: currentTopic.trim(), isSystemMessage: true };
              onProgress({ type: 'message', message: orchestratorMessage });
              debateHistory.push(orchestratorMessage);
         }
@@ -1141,22 +1144,22 @@ export const runCouncilDebate = async (
                 })
                 .join('\n\n');
 
-            const textPrompt = `Siz - bitta alohida shaxs: ${specName} (${specTitle}). Siz faqat o'z mutaxassisligingiz va o'z tajribangiz doirasida gapirasiz.
+            const textPrompt = `Siz - ${specName} (${specTitle}). Sizning butun javobingiz faqat siz tomoningizdan yozilishi kerak: oldindan kiritilgan yoki tayyorlangan hech qanday gap bo'lmasin.
 
-QAT'IY TALAB: Quyidagi BARCHA xabarlarni (Rais + boshqa mutaxassislar) avval O'QING. Keyin o'z fikringizni yozing. Dekorativ yoki umumiy fikr bildirmang - aynan shu munozaradagi fikrlarga javob bering. Javobni OXIRIGACHA yozing - gap yarmida to'xtab qolmasin.
+QAT'IY: Avval quyidagi BARCHA suhbatni va bemor ma'lumotlarini O'QING. Kasallikni va munozarani o'zingiz uchun umumlashtiring. Keyin o'z fikringizni — faqat shu o'qiganlaringiz asosida — boshidan yozing. Hech qanday shablon yoki tayyor ibora (masalan "Bu masala mening soham...", "Tasdiqlayman" va h.k.) ishlatmang. Har bir jumla suhbat va bemor holatidan kelib chiqsin.
 
---- BAHSNING BARCHA XABARLARI (o'qing, keyin javob bering) ---
+--- SUHBAT TARIXI (o'qing, keyin o'z fikringizni yozing) ---
 ${fullDebateText}
---- XABARLAR TUGADI ---
+--- TUGADI ---
 
-Raisning hozirgi savoli/mavzusi: "${currentTopic}"
+Raisning hozirgi mavzusi: "${currentTopic}"
 
-ASOSIY QOIDA (qat'iy):
-1. ALOQASI BOR BO'LSA: Savol yoki bemor holati SIZNING mutaxassisligingizga (${specName} sohasi) to'g'ridan-to'g'ri tegishli bo'lsa - o'z fikringizni ANIQ bildiring. Yuqoridagi boshqa mutaxassislar fikrlariga (aloqasi bor bo'lsa) qisqacha munosabat bildiring. O'z sohangizdagi klinik tajriba, fiziologiya va dalillardan kelib chiqib yozing.
-2. ALOQASI BO'LMASA: Agar bu holat yoki savol sening mutaxassisligingga to'g'ridan-to'g'ri tegishli bo'lmasa - qisqacha: "Bu masala mening soham (${specName}) doirasiga to'g'ridan-to'g'ri kirmaydi." Kerak bo'lsa bir jumla qo'shimcha, keyin to'xtang.
-3. Ma'lumot yetishmasa: "FOYDALANUVCHI UCHUN SAVOL: [shifokordan so'rash kerak bo'lgan aniq savol]."
+QOIDALAR:
+1. Aloqasi BOR bo'lsa: Boshqa mutaxassislar gaplariga javob (qo'shilish, rad, savol), o'z sohangizdagi aniq taklif. Barchasi suhbatdan kelib chiqsin.
+2. Aloqasi YO'Q bo'lsa: Bitta qisqa jumla (o'zingiz yozing), keyin to'xtang.
+3. Shifokordan aniq ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [savol]."
 
-USLUB: 3-6 jumla, aniq. Javobni TO'LIQ yozing - oxirigacha, kesmasdan. O'zbekiston SSV protokollari, ro'yxatdan o'tgan dori. TIL: ${langMap[language]}.`;
+Javob 3-6 jumla, oxirigacha. TIL: ${langMap[language]}.`;
 
             
             const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData);
@@ -1196,16 +1199,14 @@ USLUB: 3-6 jumla, aniq. Javobni TO'LIQ yozing - oxirigacha, kesmasdan. O'zbekist
         }
         
         if (round < DEBATE_ROUNDS) {
-            const summarizationPrompt = `Siz - Konsilium raisi. ${round}-bosqich tugadi.
+            const debateSummary = debateHistory.slice(-10).map(m => `[${m.author === AIModel.SYSTEM ? 'Rais' : m.author}]: ${(m.content || '').trim().slice(0, 300)}`).join('\n');
+            const summarizationPrompt = `Siz - Konsilium raisi. ${round}-bosqich tugadi. Quyidagi suhbatni o'qing va faqat shu suhbatdan kelib chiqib keyingi xabaringizni o'zingiz yozing. Oldindan tayyorlangan matn ishlatmang.
 
-VAZIFANGIZ:
-1. Mutaxassislar o'rtasidagi ASOSIY ZIDDIYAT yoki KELISHMOVCHILIKNI ko'rsating.
-2. Keyingi savolni ANIQ yo'naltiring - qaysi mutaxassislikka tegishli ekanini ayting (masalan: "Kardiolog va Terapevt: ...", "Immunolog: ..."), shunda har bir professor faqat o'z sohasida javob bersin.
-3. Agar shifokordan ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [savol]" yozing.
-4. Javobni TO'LIQ yozing - gap yarmida to'xtab qolmasin.
+--- BOSQICH SUHBATI ---
+${debateSummary}
+--- TUGADI ---
 
-TIL: ${langMap[language]}.
-Tarixi: ${JSON.stringify(debateHistory.slice(-8))}`;
+VAZIFA: Mutaxassislar o'rtasidagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzuni yo'naltiring (qaysi mutaxassisga savol). Agar shifokordan aniq ma'lumot kerak bo'lsa: "FOYDALANUVCHI UCHUN SAVOL: [to'liq savol]". Kerak bo'lmasa yozmang. Javobni oxirigacha yozing. TIL: ${langMap[language]}.`;
             currentTopic = await callGemini(summarizationPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
         }
     }
