@@ -270,3 +270,75 @@
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zM28 2L2 17v32l26 15 26-15V17L28 2z' fill='none' stroke='rgba(0,210,255,0.06)' stroke-width='1'/%3E%3C/svg%3E");
 }
+
+/* =====================================================
+   LANDING: SCROLL-FREE FULL-SCREEN SLIDES (GAME-LIKE)
+   ===================================================== */
+
+.landing-viewport {
+  scroll-behavior: auto;
+  overflow: hidden;
+}
+
+.landing-slides-track {
+  transition: transform 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+
+.landing-slide {
+  flex-shrink: 0;
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Parallax layer */
+.landing-parallax-slow {
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+}
+
+/* Slide content entrance */
+@keyframes landing-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.landing-content-in {
+  animation: landing-content-in 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.landing-content-in-delay-1 { animation-delay: 0.1s; opacity: 0; }
+.landing-content-in-delay-2 { animation-delay: 0.2s; opacity: 0; }
+.landing-content-in-delay-3 { animation-delay: 0.3s; opacity: 0; }
+.landing-content-in-delay-4 { animation-delay: 0.4s; opacity: 0; }
+.landing-content-in-delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+/* Floating glow orbs for landing hero */
+@keyframes landing-orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  33%      { transform: translate(8%, -5%) scale(1.05); opacity: 0.7; }
+  66%      { transform: translate(-5%, 8%) scale(0.98); opacity: 0.6; }
+}
+
+.landing-orb {
+  animation: landing-orb-float 18s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Slide dot indicator */
+.landing-dot {
+  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.landing-dot-active {
+  transform: scale(1.25);
+  background-color: rgba(59, 130, 246, 0.9);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+}

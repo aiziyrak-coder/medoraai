@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
@@ -35,23 +35,9 @@ interface LandingPageProps {
     onOpenAbout?: () => void;
 }
 
-// Inline Phone Icon
-const PhoneIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z" />
-        <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
-    </svg>
-);
-
 const PhoneCallIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-    </svg>
-);
-
-const TelegramIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.62-.2-1.12-.31-1.08-.65.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z" />
     </svg>
 );
 
@@ -61,74 +47,75 @@ const MenuIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
+const ChevronDownIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+);
+
+const ChevronLeftIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
+);
+
+const SLIDE_COUNT = 4;
+
 const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenAbout }) => {
     const { t, language, setLanguage } = useTranslation();
-    const [scrolled, setScrolled] = useState(false);
+    const [currentSlide, setCurrentSlide] = useState(0);
     const [showContactModal, setShowContactModal] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 50);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+    const goNext = useCallback(() => {
+        setCurrentSlide((prev) => (prev + 1) % SLIDE_COUNT);
+    }, []);
+    const goPrev = useCallback(() => {
+        setCurrentSlide((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
     }, []);
 
-    // Smooth scroll function to replace anchor tags
-    const scrollToSection = (id: string) => {
-        const element = document.getElementById(id);
-        if (element) {
-            const headerOffset = 80;
-            const elementPosition = element.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: "smooth"
-            });
-        }
-        setMobileMenuOpen(false); // Close mobile menu if open
-    };
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (mobileMenuOpen || showContactModal) return;
+            switch (e.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    e.preventDefault();
+                    goNext();
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    e.preventDefault();
+                    goPrev();
+                    break;
+                default:
+                    break;
+            }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [goNext, goPrev, mobileMenuOpen, showContactModal]);
 
     return (
-        <div className="min-h-screen w-full max-w-[100vw] bg-slate-950 text-white font-sans overflow-x-hidden selection:bg-blue-500 selection:text-white">
-            
+        <div className="h-screen max-h-screen w-full max-w-[100vw] bg-slate-950 text-white font-sans overflow-hidden selection:bg-blue-500 selection:text-white flex flex-col landing-viewport">
             {/* --- CONTACT MODAL --- */}
             {showContactModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in-up">
-                    <div 
-                        className="bg-slate-900 border border-white/20 w-full max-w-sm rounded-3xl p-8 relative shadow-2xl transform transition-all scale-100"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button 
-                            onClick={() => setShowContactModal(false)}
-                            className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors"
-                        >
+                    <div className="bg-slate-900 border border-white/20 w-full max-w-sm rounded-3xl p-8 relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => setShowContactModal(false)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors">
                             <XIcon className="w-5 h-5" />
                         </button>
-
                         <div className="text-center">
-                            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                            <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/20">
                                 <PhoneCallIcon className="w-10 h-10 text-green-500 animate-pulse" />
                             </div>
-                            
                             <h3 className="text-2xl font-bold text-white mb-2">{t('landing_contact_modal_title')}</h3>
-                            <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                                {t('landing_contact_modal_desc')}
-                            </p>
-
-                            <a
-                                href="tel:+998950442345"
-                                className="block w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl text-lg shadow-lg hover:shadow-green-500/25 transition-all transform hover:scale-105 mb-3 flex items-center justify-center gap-3"
-                            >
-                                <PhoneCallIcon className="w-6 h-6" />
-                                {INSTITUTE_PHONE_1}
+                            <p className="text-slate-400 text-sm mb-8 leading-relaxed">{t('landing_contact_modal_desc')}</p>
+                            <a href="tel:+998950442345" className="block w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl text-lg mb-3 flex items-center justify-center gap-3">
+                                <PhoneCallIcon className="w-6 h-6" /> {INSTITUTE_PHONE_1}
                             </a>
-                            <a
-                                href="tel:+998950482345"
-                                className="block w-full py-4 bg-green-600/80 hover:bg-green-500/90 text-white font-bold rounded-2xl text-lg shadow-lg hover:shadow-green-500/25 transition-all transform hover:scale-105 mb-4 flex items-center justify-center gap-3"
-                            >
-                                <PhoneCallIcon className="w-6 h-6" />
-                                {INSTITUTE_PHONE_2}
+                            <a href="tel:+998950482345" className="block w-full py-4 bg-green-600/80 hover:bg-green-500/90 text-white font-bold rounded-2xl text-lg mb-4 flex items-center justify-center gap-3">
+                                <PhoneCallIcon className="w-6 h-6" /> {INSTITUTE_PHONE_2}
                             </a>
                             <p className="text-slate-400 text-xs mb-1">
                                 <a href={`mailto:${INSTITUTE_EMAIL_1}`} className="hover:text-white">{INSTITUTE_EMAIL_1}</a>
@@ -136,34 +123,27 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                                 <a href={`mailto:${INSTITUTE_EMAIL_2}`} className="hover:text-white">{INSTITUTE_EMAIL_2}</a>
                             </p>
                             <p className="text-slate-500 text-xs">{INSTITUTE_ADDRESS}</p>
-
-                            <p className="text-xs text-slate-500">
-                                {t('landing_contact_modal_call')}
-                            </p>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- MOBILE MENU OVERLAY --- */}
+            {/* --- MOBILE MENU --- */}
             {mobileMenuOpen && (
                 <div className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl flex flex-col justify-center items-center lg:hidden animate-fade-in-up">
-                    <button 
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white"
-                    >
+                    <button onClick={() => setMobileMenuOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white">
                         <XIcon className="w-8 h-8" />
                     </button>
-                    <div className="flex flex-col gap-8 text-center text-xl font-bold">
-                        <button onClick={() => scrollToSection('features')} className="hover:text-blue-400 transition-colors">{t('nav_features')}</button>
-                        <button onClick={() => scrollToSection('how-it-works')} className="hover:text-blue-400 transition-colors">{t('nav_how_it_works')}</button>
-                        <button onClick={() => scrollToSection('testimonials')} className="hover:text-blue-400 transition-colors">{t('nav_reviews')}</button>
+                    <div className="flex flex-col gap-6 text-center text-lg font-bold">
+                        {[0, 1, 2, 3].map((i) => (
+                            <button key={i} onClick={() => { setCurrentSlide(i); setMobileMenuOpen(false); }} className="hover:text-blue-400 transition-colors">
+                                {i === 0 ? t('nav_features').replace(/.*/, 'Bosh sahifa') : i === 1 ? t('nav_features') : i === 2 ? t('nav_how_it_works') : t('landing_cta_bottom_title').slice(0, 20) + '…'}
+                            </button>
+                        ))}
                         <button onClick={() => { onOpenGuide(); setMobileMenuOpen(false); }} className="hover:text-blue-400 transition-colors">{t('nav_guide')}</button>
-                        <div className="pt-8 border-t border-white/10 w-48 mx-auto">
-                            <button 
-                                onClick={onLogin}
-                                className="w-full px-6 py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-blue-50 transition-all"
-                            >
+                        {onOpenAbout && <button onClick={() => { onOpenAbout(); setMobileMenuOpen(false); }} className="hover:text-blue-400 transition-colors">Institut haqida</button>}
+                        <div className="pt-6 border-t border-white/10 w-48 mx-auto">
+                            <button onClick={() => { onLogin(); setMobileMenuOpen(false); }} className="w-full px-6 py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-blue-50 transition-all">
                                 {t('auth_login_button')}
                             </button>
                         </div>
@@ -171,417 +151,186 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                 </div>
             )}
 
-            {/* --- NAVBAR --- */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 w-full ${scrolled ? 'bg-slate-900/90 backdrop-blur-xl border-b border-white/10 py-3 shadow-lg' : 'bg-transparent py-4 md:py-6'}`}>
-                <div className="w-full page-px flex flex-wrap justify-between items-center gap-2 min-w-0">
+            {/* --- FIXED NAV --- */}
+            <nav className="flex-none fixed top-0 left-0 right-0 z-50 py-3 md:py-4 px-4 md:px-6 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+                <div className="flex justify-between items-center gap-2">
                     <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white truncate uppercase">{INSTITUTE_LOGO_TEXT}</span>
-                        <span className="text-[10px] md:text-xs font-medium text-slate-400 tracking-wide hidden sm:block truncate">{INSTITUTE_NAME_FULL}</span>
+                        <span className="text-xs sm:text-sm font-black tracking-tight text-white truncate uppercase">{INSTITUTE_LOGO_TEXT}</span>
+                        <span className="text-[10px] font-medium text-slate-500 hidden sm:block truncate">{INSTITUTE_NAME_FULL}</span>
                     </div>
-                    
-                    {/* Desktop Menu */}
-                    <div className="hidden lg:flex items-center flex-wrap gap-6 xl:gap-8 text-sm font-medium text-slate-300">
-                        <button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">{t('nav_features')}</button>
-                        <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">{t('nav_how_it_works')}</button>
-                        <button onClick={() => scrollToSection('testimonials')} className="hover:text-white transition-colors">{t('nav_reviews')}</button>
-                        <button onClick={onOpenGuide} className="hover:text-white transition-colors">{t('nav_guide')}</button>
-                        {onOpenAbout && (
-                            <button onClick={onOpenAbout} className="hover:text-blue-400 transition-colors font-semibold text-blue-300">
-                                Institut haqida
-                            </button>
-                        )}
+                    <div className="hidden lg:flex items-center gap-4 text-sm font-medium text-slate-400">
+                        <button onClick={() => setCurrentSlide(1)} className="hover:text-white transition-colors">{t('nav_features')}</button>
+                        <button onClick={() => setCurrentSlide(2)} className="hover:text-white transition-colors">{t('nav_how_it_works')}</button>
+                        {onOpenAbout && <button onClick={onOpenAbout} className="text-blue-400 hover:text-blue-300">Institut haqida</button>}
                     </div>
-
-                    <div className="flex items-center gap-3 md:gap-4">
+                    <div className="flex items-center gap-2">
                         <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
-                        <button 
-                            onClick={onLogin}
-                            className="hidden lg:block px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-white text-slate-900 font-bold text-xs md:text-sm hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 transform duration-200"
-                        >
+                        <button onClick={onLogin} className="px-4 py-2 rounded-full bg-white text-slate-900 font-bold text-xs md:text-sm hover:bg-blue-50 transition-all">
                             {t('auth_login_button')}
                         </button>
-                        
-                        {/* Mobile Menu Button */}
-                        <button 
-                            onClick={() => setMobileMenuOpen(true)}
-                            className="lg:hidden p-2 text-slate-300 hover:text-white transition-colors"
-                        >
+                        <button onClick={() => setMobileMenuOpen(true)} className="lg:hidden p-2 text-slate-400 hover:text-white">
                             <MenuIcon className="w-6 h-6" />
                         </button>
                     </div>
                 </div>
             </nav>
 
-            {/* --- HERO SECTION --- */}
-            <header className="relative pt-28 sm:pt-32 pb-16 sm:pb-20 lg:pt-52 lg:pb-40 overflow-hidden w-full">
-                <div className="absolute inset-0 medical-mesh-bg opacity-60"></div>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
-                
-                <div className="w-full page-px relative z-10 text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider mb-4 animate-fade-in-up backdrop-blur-md">
-                        <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                        {t('landing_hero_badge')}
-                    </div>
-                    <p className="text-sm md:text-base text-slate-400 font-semibold mb-3 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
-                        {INSTITUTE_NAME_FULL}
-                    </p>
-                    <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/20 mb-6 animate-fade-in-up" style={{ animationDelay: '0.07s' }}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                        <span
-                            className="text-sm font-black tracking-widest uppercase"
-                            style={{ background: 'linear-gradient(90deg,#38bdf8,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-                        >
-                            {PLATFORM_NAME} {PLATFORM_VERSION}
-                        </span>
-                    </div>
-                    <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] mb-6 sm:mb-8 animate-fade-in-up px-1" style={{animationDelay: '0.1s'}}>
-                        {t('landing_hero_title_1')} <br className="hidden md:block"/>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">{t('landing_hero_title_2')}</span>
-                    </h1>
-                    
-                    <p className="text-sm sm:text-base lg:text-xl text-slate-300 max-w-3xl mx-auto mb-10 sm:mb-12 leading-relaxed animate-fade-in-up font-light px-2 sm:px-4" style={{animationDelay: '0.2s'}}>
-                        {t('landing_hero_desc')}
-                    </p>
-                    
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 animate-fade-in-up px-4" style={{animationDelay: '0.3s'}}>
-                        <button 
-                            onClick={onLogin}
-                            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-xl shadow-blue-600/30 transition-all hover:scale-105 flex items-center justify-center gap-2"
-                        >
-                            {t('landing_cta_start')} <ChevronRightIcon className="w-5 h-5" />
-                        </button>
-                        <button 
-                            onClick={onOpenGuide}
-                            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold text-lg backdrop-blur-sm transition-all flex items-center justify-center gap-2"
-                        >
-                            <PlayIcon className="w-5 h-5" /> {t('landing_cta_guide')}
-                        </button>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="mt-16 sm:mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto border-t border-white/10 pt-8 sm:pt-12 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-                        {[
-                            { label: t('landing_stats_protocols'), value: "15,000+" },
-                            { label: t('landing_stats_clinics'), value: "50+" },
-                            { label: t('landing_stats_analyses'), value: "100K+" },
-                            { label: t('landing_stats_experts'), value: "12+" },
-                        ].map((stat, i) => (
-                            <div key={i} className="text-center">
-                                <p className="text-3xl md:text-4xl font-black text-white mb-1">{stat.value}</p>
-                                <p className="text-xs md:text-sm text-slate-400 font-medium uppercase tracking-wide">{stat.label}</p>
+            {/* --- SLIDES CONTAINER (no scroll) --- */}
+            <div className="flex-1 min-h-0 w-full overflow-hidden">
+                <div
+                    className="landing-slides-track flex h-full"
+                    style={{ transform: `translateX(-${currentSlide * 100}vw)` }}
+                >
+                    {/* SLIDE 0: HERO */}
+                    <section className="landing-slide flex flex-col items-center justify-center relative px-4 sm:px-6 md:px-8 pt-16 pb-24">
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute top-1/4 left-1/4 w-[40vmax] h-[40vmax] rounded-full bg-blue-600/20 blur-[80px] landing-orb" />
+                            <div className="absolute bottom-1/4 right-1/4 w-[30vmax] h-[30vmax] rounded-full bg-cyan-500/15 blur-[60px] landing-orb" style={{ animationDelay: '-6s' }} />
+                            <div className="absolute top-1/2 left-1/2 w-[25vmax] h-[25vmax] rounded-full bg-indigo-500/10 blur-[50px] landing-orb" style={{ animationDelay: '-12s' }} />
+                        </div>
+                        <div className="relative z-10 text-center max-w-4xl mx-auto">
+                            <div className="landing-content-in inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-bold uppercase tracking-wider mb-4">
+                                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                                {t('landing_hero_badge')}
                             </div>
-                        ))}
-                    </div>
-                </div>
-            </header>
-
-            {/* --- FEATURES SECTION --- */}
-            <section id="features" className="py-16 sm:py-24 md:py-32 bg-slate-900 relative w-full">
-                <div className="w-full page-px">
-                    <div className="text-center mb-16 md:mb-20">
-                        <p className="text-sm font-bold text-blue-400/90 mb-3 uppercase tracking-wider">{INSTITUTE_NAME_FULL}</p>
-                        <h2 className="text-3xl md:text-5xl font-bold mb-6">{t('landing_features_title')}</h2>
-                        <p className="text-slate-400 max-w-2xl mx-auto text-base md:text-lg">
-                            {t('landing_features_desc')}
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
-                        {[
-                            {
-                                icon: <UserGroupIcon className="w-10 h-10 text-blue-400" />,
-                                title: t('landing_feature_consultium'),
-                                desc: t('landing_feature_consultium_desc'),
-                                bg: "bg-blue-500/10",
-                                border: "border-blue-500/20"
-                            },
-                            {
-                                icon: <ShieldCheckIcon className="w-10 h-10 text-green-400" />,
-                                title: t('landing_feature_safe'),
-                                desc: t('landing_feature_safe_desc'),
-                                bg: "bg-green-500/10",
-                                border: "border-green-500/20"
-                            },
-                            {
-                                icon: <GlobeIcon className="w-10 h-10 text-purple-400" />,
-                                title: t('landing_feature_global'),
-                                desc: t('landing_feature_global_desc'),
-                                bg: "bg-purple-500/10",
-                                border: "border-purple-500/20"
-                            },
-                            {
-                                icon: <HeartPulseIcon className="w-10 h-10 text-red-400" />,
-                                title: t('landing_feature_ecg'),
-                                desc: t('landing_feature_ecg_desc'),
-                                bg: "bg-red-500/10",
-                                border: "border-red-500/20"
-                            },
-                            {
-                                icon: <StethoscopeIcon className="w-10 h-10 text-orange-400" />,
-                                title: t('landing_feature_drug'),
-                                desc: t('landing_feature_drug_desc'),
-                                bg: "bg-orange-500/10",
-                                border: "border-orange-500/20"
-                            },
-                            {
-                                icon: <ChartBarIcon className="w-10 h-10 text-cyan-400" />,
-                                title: t('landing_feature_risk'),
-                                desc: t('landing_feature_risk_desc'),
-                                bg: "bg-cyan-500/10",
-                                border: "border-cyan-500/20"
-                            }
-                        ].map((feature, i) => (
-                            <div key={i} className={`group p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-[2rem] bg-slate-800/50 border hover:bg-slate-800 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl min-w-0 ${feature.border}`}>
-                                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center mb-6 md:mb-8 transition-transform group-hover:scale-110 ${feature.bg}`}>
-                                    {feature.icon}
-                                </div>
-                                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 text-white">{feature.title}</h3>
-                                <p className="text-slate-400 leading-relaxed font-medium text-sm md:text-base">{feature.desc}</p>
+                            <p className="landing-content-in landing-content-in-delay-1 text-sm text-slate-400 font-semibold mb-2">{INSTITUTE_NAME_FULL}</p>
+                            <div className="landing-content-in landing-content-in-delay-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/20 mb-6">
+                                <span className="text-sm font-black uppercase" style={{ background: 'linear-gradient(90deg,#38bdf8,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                    {PLATFORM_NAME} {PLATFORM_VERSION}
+                                </span>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* --- HOW IT WORKS --- */}
-            <section id="how-it-works" className="py-16 sm:py-24 md:py-32 bg-slate-950 relative overflow-hidden w-full">
-                <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-blue-900/10 to-transparent"></div>
-                <div className="w-full page-px relative z-10">
-                    <div className="flex flex-col lg:flex-row items-center gap-10 sm:gap-12 lg:gap-20">
-                        <div className="w-full lg:w-1/2">
-                            <h2 className="text-3xl md:text-5xl font-bold mb-10 leading-tight text-center lg:text-left">{t('landing_how_title')} <br/><span className="text-blue-500">{t('landing_how_subtitle')}</span></h2>
-                            <div className="space-y-8 md:space-y-12">
+                            <h1 className="landing-content-in landing-content-in-delay-3 text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] mb-4 px-1">
+                                {t('landing_hero_title_1')} <br className="hidden sm:block" />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">{t('landing_hero_title_2')}</span>
+                            </h1>
+                            <p className="landing-content-in landing-content-in-delay-4 text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-8 font-light">
+                                {t('landing_hero_desc')}
+                            </p>
+                            <div className="landing-content-in landing-content-in-delay-5 flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <button onClick={onLogin} className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-xl shadow-blue-600/30 transition-all hover:scale-105 flex items-center justify-center gap-2">
+                                    {t('landing_cta_start')} <ChevronRightIcon className="w-5 h-5" />
+                                </button>
+                                <button onClick={onOpenGuide} className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold flex items-center justify-center gap-2">
+                                    <PlayIcon className="w-5 h-5" /> {t('landing_cta_guide')}
+                                </button>
+                            </div>
+                            <div className="mt-10 sm:mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-2xl mx-auto">
                                 {[
-                                    { step: "01", title: t('landing_how_step1'), desc: t('landing_how_step1_desc'), icon: <DocumentTextIcon className="w-6 h-6 text-white"/> },
-                                    { step: "02", title: t('landing_how_step2'), desc: t('landing_how_step2_desc'), icon: <BrainCircuitIcon className="w-6 h-6 text-white"/> },
-                                    { step: "03", title: t('landing_how_step3'), desc: t('landing_how_step3_desc'), icon: <ShieldCheckIcon className="w-6 h-6 text-white"/> }
-                                ].map((item, i) => (
-                                    <div key={i} className="flex gap-6 md:gap-8 group">
-                                        <div className="relative flex-shrink-0">
-                                            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xl font-bold shadow-lg z-10 relative group-hover:bg-blue-600 group-hover:border-blue-500 transition-colors duration-300">
-                                                {item.icon}
-                                            </div>
-                                            {i !== 2 && <div className="absolute top-12 md:top-16 left-1/2 -translate-x-1/2 w-0.5 h-16 md:h-20 bg-slate-800 group-hover:bg-blue-900 transition-colors delay-100"></div>}
-                                        </div>
-                                        <div className="pt-1 md:pt-2">
-                                            <h4 className="text-xl md:text-2xl font-bold mb-2 md:mb-3 text-white">{item.title}</h4>
-                                            <p className="text-slate-400 text-base md:text-lg leading-relaxed">{item.desc}</p>
-                                        </div>
+                                    { label: t('landing_stats_protocols'), value: '15,000+' },
+                                    { label: t('landing_stats_clinics'), value: '50+' },
+                                    { label: t('landing_stats_analyses'), value: '100K+' },
+                                    { label: t('landing_stats_experts'), value: '12+' },
+                                ].map((s, i) => (
+                                    <div key={i} className="text-center">
+                                        <p className="text-2xl sm:text-3xl font-black text-white">{s.value}</p>
+                                        <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">{s.label}</p>
                                     </div>
                                 ))}
                             </div>
-                            <button onClick={onOpenGuide} className="mt-12 md:mt-16 text-blue-400 font-bold hover:text-blue-300 flex items-center gap-3 text-lg transition-transform hover:translate-x-2 mx-auto lg:mx-0">
+                        </div>
+                        <button onClick={goNext} className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-500 hover:text-white transition-colors animate-bounce">
+                            <span className="text-[10px] uppercase tracking-widest">Keyingi</span>
+                            <ChevronDownIcon className="w-6 h-6" />
+                        </button>
+                    </section>
+
+                    {/* SLIDE 1: FEATURES */}
+                    <section className="landing-slide flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 pt-20 pb-20 overflow-hidden">
+                        <div className="w-full max-w-5xl mx-auto">
+                            <p className="text-xs font-bold text-blue-400/90 mb-2 uppercase tracking-wider text-center">{INSTITUTE_NAME_FULL}</p>
+                            <h2 className="text-2xl sm:text-4xl font-bold mb-8 text-center">{t('landing_features_title')}</h2>
+                            <p className="text-slate-400 text-sm sm:text-base text-center max-w-xl mx-auto mb-10">{t('landing_features_desc')}</p>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                                {[
+                                    { icon: <UserGroupIcon className="w-8 h-8 sm:w-10 sm:h-10 text-blue-400" />, title: t('landing_feature_consultium'), bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                                    { icon: <ShieldCheckIcon className="w-8 h-8 sm:w-10 sm:h-10 text-green-400" />, title: t('landing_feature_safe'), bg: 'bg-green-500/10', border: 'border-green-500/20' },
+                                    { icon: <GlobeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />, title: t('landing_feature_global'), bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+                                    { icon: <HeartPulseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" />, title: t('landing_feature_ecg'), bg: 'bg-red-500/10', border: 'border-red-500/20' },
+                                    { icon: <StethoscopeIcon className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />, title: t('landing_feature_drug'), bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+                                    { icon: <ChartBarIcon className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-400" />, title: t('landing_feature_risk'), bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+                                ].map((f, i) => (
+                                    <div key={i} className={`p-4 sm:p-5 rounded-2xl bg-slate-800/50 border hover:bg-slate-800/80 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.border}`}>
+                                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center mb-3 ${f.bg}`}>{f.icon}</div>
+                                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">{f.title}</h3>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* SLIDE 2: HOW IT WORKS */}
+                    <section className="landing-slide flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 pt-20 pb-20">
+                        <div className="w-full max-w-3xl mx-auto text-center">
+                            <h2 className="text-2xl sm:text-4xl font-bold mb-4">{t('landing_how_title')} <span className="text-blue-500">{t('landing_how_subtitle')}</span></h2>
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 mt-10">
+                                {[
+                                    { step: '01', title: t('landing_how_step1'), icon: <DocumentTextIcon className="w-6 h-6 text-white" /> },
+                                    { step: '02', title: t('landing_how_step2'), icon: <BrainCircuitIcon className="w-6 h-6 text-white" /> },
+                                    { step: '03', title: t('landing_how_step3'), icon: <ShieldCheckIcon className="w-6 h-6 text-white" /> },
+                                ].map((item, i) => (
+                                    <div key={i} className="flex flex-col items-center gap-3">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-lg font-bold group-hover:bg-blue-600 transition-colors">
+                                            {item.icon}
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-500">{item.step}</span>
+                                        <p className="text-sm sm:text-base font-bold text-white max-w-[140px]">{item.title}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <button onClick={onOpenGuide} className="mt-10 text-blue-400 font-bold hover:text-blue-300 flex items-center gap-2 mx-auto">
                                 {t('landing_how_cta')} <ChevronRightIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="w-full lg:w-1/2 relative hidden lg:block">
-                            <div className="absolute inset-0 bg-blue-600/20 blur-[100px] rounded-full"></div>
-                            <div className="relative bg-slate-900 border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500 ring-1 ring-white/10">
-                                {/* Mock UI */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-5 border-b border-white/10 pb-6">
-                                        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center font-bold text-xl shadow-lg">AI</div>
-                                        <div className="space-y-2">
-                                            <div className="h-3 w-40 bg-white/20 rounded-full"></div>
-                                            <div className="h-2 w-24 bg-white/10 rounded-full"></div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div className="h-4 w-full bg-white/5 rounded-full"></div>
-                                        <div className="h-4 w-5/6 bg-white/5 rounded-full"></div>
-                                        <div className="h-4 w-4/6 bg-white/5 rounded-full"></div>
-                                    </div>
-                                    <div className="mt-6 p-6 bg-green-500/10 border border-green-500/20 rounded-2xl flex items-center gap-4">
-                                        <ShieldCheckIcon className="w-8 h-8 text-green-400" />
-                                        <div>
-                                            <p className="text-green-400 font-bold text-lg">Tashxis Tasdiqlandi</p>
-                                            <p className="text-green-300/70 text-sm">Ishonch darajasi: 98%</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            {/* --- TESTIMONIALS --- */}
-            <section id="testimonials" className="py-16 sm:py-24 md:py-32 bg-slate-900 w-full">
-                <div className="w-full page-px">
-                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-center mb-10 sm:mb-16 md:mb-20">{t('landing_testimonials_title')}</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                        {[
-                            { 
-                                name: t('testimonial_1_name'), 
-                                role: t('testimonial_1_role'), 
-                                text: t('testimonial_1_text') 
-                            },
-                            { 
-                                name: t('testimonial_2_name'), 
-                                role: t('testimonial_2_role'), 
-                                text: t('testimonial_2_text') 
-                            },
-                            { 
-                                name: t('testimonial_3_name'), 
-                                role: t('testimonial_3_role'), 
-                                text: t('testimonial_3_text') 
-                            }
-                        ].map((review, i) => (
-                            <div key={i} className="p-6 sm:p-8 md:p-10 bg-white/5 rounded-2xl sm:rounded-[2rem] border border-white/5 hover:bg-white/10 transition-colors relative min-w-0">
-                                <div className="absolute -top-6 left-8 text-6xl text-blue-500 opacity-30 font-serif">"</div>
-                                <div className="flex gap-1 mb-6 text-yellow-500">
-                                    {[1,2,3,4,5].map(s => <span key={s}>в…</span>)}
-                                </div>
-                                <p className="text-slate-300 mb-8 italic text-lg leading-relaxed">"{review.text}"</p>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center">
-                                        <UserCircleIcon className="w-8 h-8 text-slate-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-white text-lg">{review.name}</p>
-                                        <p className="text-xs text-blue-400 font-bold uppercase tracking-wider">{review.role}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* --- CTA --- */}
-            <section className="py-16 sm:py-24 md:py-32 relative overflow-hidden w-full">
-                <div className="absolute inset-0 bg-blue-600/20"></div>
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-transparent to-slate-900"></div>
-                <div className="w-full page-px max-w-4xl mx-auto text-center relative z-10">
-                    <p className="text-sm md:text-base font-bold text-blue-200/90 mb-4 uppercase tracking-wider">{INSTITUTE_NAME_FULL}</p>
-                    <h2 className="text-4xl md:text-6xl font-black mb-6 md:mb-8 tracking-tight">{t('landing_cta_bottom_title')}</h2>
-                    <p className="text-lg md:text-xl text-blue-100 mb-10 md:mb-12 font-light max-w-2xl mx-auto">
-                        {t('landing_cta_bottom_desc')}
-                    </p>
-                    <button 
-                        onClick={onLogin}
-                        className="px-10 py-5 md:px-12 md:py-6 bg-white text-blue-900 font-black text-lg md:text-xl rounded-full shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] hover:scale-105 transition-all duration-300"
-                    >
-                        {t('landing_cta_bottom_btn')}
-                    </button>
-                </div>
-            </section>
-
-            {/* --- FOOTER --- */}
-            <footer className="py-10 sm:py-12 md:py-16 bg-slate-950 border-t border-white/10 text-sm text-slate-400 w-full">
-                <div className="w-full page-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 text-center md:text-left">
-                    <div>
-                        <div className="flex flex-col gap-1 mb-6">
-                            <div className="flex items-center justify-center md:justify-start gap-2">
-                                <BrainCircuitIcon className="w-8 h-8 text-blue-500 flex-shrink-0" />
-                                <span className="text-lg font-black text-white tracking-tight uppercase">{INSTITUTE_LOGO_TEXT}</span>
-                            </div>
-                            <p className="text-sm font-semibold text-blue-300/90">{INSTITUTE_NAME_FULL}</p>
-                        </div>
-                        <p className="leading-relaxed mb-6">{t('auth_marketing_desc').substring(0, 100)}...</p>
-                        <div className="flex justify-center md:justify-start gap-4">
-                            {/* Social Placeholders */}
-                            {[1,2,3].map(i => <div key={i} className="w-8 h-8 bg-white/10 rounded-full hover:bg-blue-600 transition-colors cursor-pointer"></div>)}
-                        </div>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider">{t('landing_footer_platform')}</h4>
-                        <ul className="space-y-4">
-                            <li>
-                                <button onClick={() => scrollToSection('features')} className="hover:text-blue-400 transition-colors">
-                                    {t('nav_features')}
-                                </button>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_price')}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_security')}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_api')}
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider">{t('landing_footer_company')}</h4>
-                        <ul className="space-y-4">
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_about')}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_careers')}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_blog')}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="hover:text-blue-400 transition-colors">
-                                    {t('landing_footer_contact_link')}
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-white mb-6 uppercase tracking-wider">{t('landing_footer_contact')}</h4>
-                        <p className="mb-3 text-sm leading-relaxed">{INSTITUTE_ADDRESS}</p>
-                        <a href="tel:+998950442345" className="block mb-1 text-white font-bold hover:text-blue-400 transition-colors text-sm">{INSTITUTE_PHONE_1}</a>
-                        <a href="tel:+998950482345" className="block mb-3 text-white font-bold hover:text-blue-400 transition-colors text-sm">{INSTITUTE_PHONE_2}</a>
-                        <a href={`mailto:${INSTITUTE_EMAIL_1}`} className="block mb-1 text-slate-300 hover:text-blue-400 transition-colors text-sm">{INSTITUTE_EMAIL_1}</a>
-                        <a href={`mailto:${INSTITUTE_EMAIL_2}`} className="block mb-5 text-slate-300 hover:text-blue-400 transition-colors text-sm">{INSTITUTE_EMAIL_2}</a>
-                        {onOpenAbout && (
-                            <button
-                                onClick={onOpenAbout}
-                                className="w-full py-2.5 px-4 rounded-xl text-sm font-bold text-blue-300 hover:text-white transition-all text-center"
-                                style={{ background:'rgba(59,130,246,0.12)', border:'1px solid rgba(59,130,246,0.25)' }}
-                            >
-                                Institut haqida to'liq ma'lumot →
+                    {/* SLIDE 3: CTA + FOOTER */}
+                    <section className="landing-slide flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 pt-20 pb-20">
+                        <div className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
+                            <p className="text-xs font-bold text-blue-200/90 mb-3 uppercase tracking-wider">{INSTITUTE_NAME_FULL}</p>
+                            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-6 tracking-tight">{t('landing_cta_bottom_title')}</h2>
+                            <p className="text-base sm:text-lg text-slate-300 mb-10 font-light">{t('landing_cta_bottom_desc')}</p>
+                            <button onClick={onLogin} className="px-10 py-5 bg-white text-blue-900 font-black text-lg rounded-full shadow-[0_0_40px_rgba(255,255,255,0.25)] hover:shadow-[0_0_50px_rgba(255,255,255,0.4)] hover:scale-105 transition-all duration-300">
+                                {t('landing_cta_bottom_btn')}
                             </button>
-                        )}
-                    </div>
-                </div>
-                
-                <div className="w-full page-px mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 sm:gap-6 flex-wrap">
-                    <div className="text-center md:text-left">
-                        <p className="text-white font-black text-sm uppercase">{INSTITUTE_LOGO_TEXT}</p>
-                        <p className="text-slate-500 text-xs mt-2">{FOOTER_COPYRIGHT}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">{PLATFORM_NAME} {PLATFORM_VERSION}</p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 bg-white/5 px-4 sm:px-6 py-2.5 rounded-full border border-white/10 backdrop-blur-sm">
-                        <div className="flex items-center gap-2">
-                            <span className="opacity-60 text-xs uppercase tracking-wide">{t('footer_creator')}:</span>
-                            <a href="https://fargana.uz" target="_blank" rel="noopener noreferrer" className="text-white font-bold hover:text-blue-400 transition-colors">
-                                CDCGroup
-                            </a>
+                            <div className="mt-12 pt-8 border-t border-white/10 w-full">
+                                <p className="text-white font-black text-sm uppercase mb-1">{INSTITUTE_LOGO_TEXT}</p>
+                                <p className="text-slate-500 text-xs mb-3">{FOOTER_COPYRIGHT}</p>
+                                <p className="text-slate-600 text-xs mb-4">{PLATFORM_NAME} {PLATFORM_VERSION}</p>
+                                <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-400 mb-4">
+                                    <a href={`tel:+998950442345`} className="hover:text-white">{INSTITUTE_PHONE_1}</a>
+                                    <a href={`tel:+998950482345`} className="hover:text-white">{INSTITUTE_PHONE_2}</a>
+                                    <a href={`mailto:${INSTITUTE_EMAIL_1}`} className="hover:text-white">{INSTITUTE_EMAIL_1}</a>
+                                </div>
+                                <p className="text-slate-500 text-xs mb-4">{INSTITUTE_ADDRESS}</p>
+                                <div className="flex justify-center gap-6">
+                                    <button onClick={() => setShowContactModal(true)} className="text-slate-400 hover:text-white text-xs font-medium">{t('landing_footer_contact')}</button>
+                                    {onOpenAbout && <button onClick={onOpenAbout} className="text-blue-400 hover:text-blue-300 text-xs font-medium">Institut haqida</button>}
+                                </div>
+                            </div>
                         </div>
-                        <span className="hidden sm:block w-px h-4 bg-white/20" />
-                        <div className="flex items-center gap-2">
-                            <span className="opacity-60 text-xs uppercase tracking-wide">{t('footer_support')}:</span>
-                            <a href="https://fargana.uz" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-bold hover:opacity-80 transition-opacity">
-                                CraDev Company
-                            </a>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-6">
-                        <a href="#" className="hover:text-white transition-colors">{t('auth_privacy')}</a>
-                        <a href="#" className="hover:text-white transition-colors">{t('auth_terms')}</a>
-                    </div>
+                    </section>
                 </div>
-            </footer>
+            </div>
+
+            {/* --- SLIDE INDICATORS + ARROWS --- */}
+            <div className="flex-none fixed bottom-6 left-0 right-0 z-40 flex items-center justify-center gap-4 px-4">
+                <button onClick={goPrev} className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all hidden sm:flex items-center justify-center">
+                    <ChevronLeftIcon className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-2">
+                    {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setCurrentSlide(i)}
+                            className={`landing-dot w-2.5 h-2.5 rounded-full ${i === currentSlide ? 'landing-dot-active bg-blue-500' : 'bg-white/30 hover:bg-white/50'}`}
+                            aria-label={`Slide ${i + 1}`}
+                        />
+                    ))}
+                </div>
+                <button onClick={goNext} className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all hidden sm:flex items-center justify-center">
+                    <ChevronRightIcon className="w-5 h-5" />
+                </button>
+            </div>
         </div>
     );
 };
