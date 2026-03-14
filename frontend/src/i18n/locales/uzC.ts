@@ -381,7 +381,6 @@ export const uzC: TranslationSet = {
   specialist_name_allergist: 'Аллерголог',
   specialty_allergist: 'Аллергологийа ва Иммунологийа',
   specialist_name_anesthesiology: 'Анестезиолог',
-  specialty_anesthesiology: 'Анестезиологийа',
   specialist_name_dermatologist: 'Дерматолог',
   specialty_dermatologist: 'Дерматологийа',
   specialist_name_emergency: 'Шошилинч тиббий йордам шифокори',

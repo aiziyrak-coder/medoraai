@@ -406,7 +406,6 @@ export const ru: TranslationSet = {
   specialist_name_allergist: 'Аллерголог',
   specialty_allergist: 'Аллергология и иммунология',
   specialist_name_anesthesiology: 'Анестезиолог',
-  specialty_anesthesiology: 'Анестезиология',
   specialist_name_dermatologist: 'Дерматолог',
   specialty_dermatologist: 'Дерматология',
   specialist_name_emergency: 'Врач неотложной помощи',

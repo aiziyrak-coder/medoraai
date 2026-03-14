@@ -404,7 +404,6 @@ export const en = {
   specialist_name_allergist: 'Allergist',
   specialty_allergist: 'Allergy & Immunology',
   specialist_name_anesthesiology: 'Anesthesiologist',
-  specialty_anesthesiology: 'Anesthesiology',
   specialist_name_dermatologist: 'Dermatologist',
   specialty_dermatologist: 'Dermatology',
   specialist_name_emergency: 'Emergency Physician',
