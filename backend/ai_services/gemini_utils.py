@@ -47,26 +47,37 @@ SPECIALIST_NAMES = [
 
 
 def _patient_text(patient_data):
-    """Build plain text summary of patient data (no base64)."""
+    """Build plain text summary of patient data (no base64). Accepts camelCase or snake_case."""
     d = patient_data or {}
+    first = d.get("firstName") or d.get("first_name") or ""
+    last = d.get("lastName") or d.get("last_name") or ""
+    age = d.get("age") or ""
+    gender = d.get("gender") or ""
+    complaints = d.get("complaints") or ""
     parts = [
-        f"Bemor: {d.get('firstName', '')} {d.get('lastName', '')}, {d.get('age', '')} yosh, {d.get('gender', '')}.",
-        f"Shikoyatlar: {d.get('complaints', '')}",
+        f"Bemor: {first} {last}, {age} yosh, {gender}.",
+        f"Shikoyatlar: {complaints}",
     ]
-    if d.get("history"):
-        parts.append(f"Anamnez: {d['history']}")
-    if d.get("objectiveData"):
-        parts.append(f"Ob'ektiv: {d['objectiveData']}")
-    if d.get("labResults"):
-        parts.append(f"Lab: {d['labResults']}")
+    history = d.get("history") or ""
+    if history:
+        parts.append(f"Anamnez: {history}")
+    obj = d.get("objectiveData") or d.get("objective_data") or ""
+    if obj:
+        parts.append(f"Ob'ektiv: {obj}")
+    lab = d.get("labResults") or d.get("lab_results") or ""
+    if lab:
+        parts.append(f"Lab: {lab}")
     if d.get("allergies"):
         parts.append(f"Allergiya: {d['allergies']}")
-    if d.get("currentMedications"):
-        parts.append(f"Dori-darmonlar: {d['currentMedications']}")
-    if d.get("familyHistory"):
-        parts.append(f"Oila anamnezi: {d['familyHistory']}")
-    if d.get("additionalInfo"):
-        parts.append(f"Qo'shimcha: {d['additionalInfo']}")
+    meds = d.get("currentMedications") or d.get("current_medications") or ""
+    if meds:
+        parts.append(f"Dori-darmonlar: {meds}")
+    fam = d.get("familyHistory") or d.get("family_history") or ""
+    if fam:
+        parts.append(f"Oila anamnezi: {fam}")
+    add = d.get("additionalInfo") or d.get("additional_info") or ""
+    if add:
+        parts.append(f"Qo'shimcha: {add}")
     return "\n".join(parts)
 
 
@@ -118,13 +129,11 @@ def generate_clarifying_questions(patient_data):
     prompt = f"""Siz tibbiy yordamchi AI siz. Bemor ma'lumotlari:
 {text}
 
-MAJBURIY: Savollar FAQAT bemor SHIKOYATI (complaints) va yuqoridagi klinik ma'lumotlardan kelib chiqishi kerak.
-Umumiy yoki oldindan tayyorlangan savollar BERMANG. Har bir savol shikoyat/simptomlar bilan bevosita bog'liq bo'lsin.
-Masalan: agar shikoyat "bosh og'rig'i" bo'lsa — davomiyligi, qanday og'riq, qachon kuchayadi va h.k. shikoyatga oid savollar.
+MAJBURIY: Savollar FAQAT shu bemor SHIKOYATI (complaints) va yuqoridagi ma'lumotlardan kelib chiqishi kerak.
+TAQIQLANGAN: "Shikoyat qachondan boshlangan?", "Qanday davolashlar qo'llanildi?", "Boshqa surunkali kasalliklar bormi?" kabi umumiy/shablon savollar. Bermang.
+Har bir savol shikoyatdagi aniq simptom (masalan bosh og'rig'i, ko'ngil aynishi) ga bog'liq bo'lsin: davomiyligi, qanday kechadi, qachon kuchayadi, qanday davolash qilingan va h.k.
 
-3–5 ta qisqa, aniq savol yozing. Mavjud ma'lumotlar uchun savol bermang.
-AMALIY: Har bir savol shifokor keyingi qadamni aniq qilishiga yordam bersin (davomiylik, og'riq xususiyati, qachon kuchayadi va h.k.).
-ANIQLIK: Savollar faqat shikoyat va klinik kontekstga bevosita bog'liq bo'lsin; umumiy yoki shablon savollar bermang.
+3–5 ta qisqa, aniq savol. Mavjud ma'lumot uchun takroriy savol bermang.
 Javobni faqat JSON massiv: ["Savol 1?", "Savol 2?"]. O'zbek tilida (Lotin)."""
     raw = None
     last_exc = None

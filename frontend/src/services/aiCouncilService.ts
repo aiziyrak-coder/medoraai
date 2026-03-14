@@ -66,13 +66,62 @@ const langMap: Record<Language, string> = {
     'en': 'English'
 };
 
-/** Fallback savollar — AI muvaffaqiyatsiz bo'lsa ham aniqlashtiruv sahifasi ko'rsatiladi */
+/** Fallback savollar — faqat AI va case-based ikkalasi ham ishlamasa ishlatiladi */
 export const CLARIFY_FALLBACK: Record<Language, string[]> = {
     'uz-L': ['Shikoyat qachondan boshlangan?', 'Qanday davolashlar qo\'llanildi?', 'Boshqa surunkali kasalliklar bormi?'],
     'uz-C': ['Шикоят қачондан бошланган?', 'Қандай даволашлар қўлланилди?', 'Бошқа сурункали касалликлар борми?'],
     'ru': ['Когда начались жалобы?', 'Какое лечение применялось?', 'Есть ли другие хронические заболевания?'],
     'en': ['When did the complaints start?', 'What treatment has been used?', 'Any other chronic conditions?'],
 };
+
+/**
+ * Bemor shikoyatlaridan kasallikka xos 3 ta aniqlashtiruvchi savol hosil qiladi.
+ * AI ishlamaganda ham shablon emas, balki shu holatga bog'liq savollar chiqadi.
+ */
+export function getCaseBasedClarificationQuestions(data: PatientData, language: Language): string[] {
+    const complaints = (data?.complaints ?? '').trim();
+    if (!complaints || complaints.length < 3) return [];
+
+    const parts = complaints
+        .split(/[.,;]|\s+va\s+|\s+ham\s+/i)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 2 && s.length < 80);
+    const symptoms = [...new Set(parts)].slice(0, 3);
+    if (symptoms.length === 0) return [];
+
+    const templates: Record<Language, (s: string) => string> = {
+        'uz-L': (s) => [
+            `${s} qachondan boshlanib, qanday kechmoqda?`,
+            `${s} uchun qanday davolash yoki tekshiruv qilingan?`,
+            `${s} bilan birga boshqa shikoyatlar ham bormi?`,
+        ],
+        'uz-C': (s) => [
+            `${s} қачондан бошланиб, қандай кечмоқда?`,
+            `${s} учун қандай даволаш ёки текширув қилинган?`,
+            `${s} билан бирга бошқа шикоятлар ҳам борми?`,
+        ],
+        'ru': (s) => [
+            `Когда началось «${s}» и как протекает?`,
+            `Какое лечение или обследование проводилось по поводу «${s}»?`,
+            `Есть ли другие жалобы вместе с «${s}»?`,
+        ],
+        'en': (s) => [
+            `When did "${s}" start and how does it progress?`,
+            `What treatment or tests were done for "${s}"?`,
+            `Any other symptoms along with "${s}"?`,
+        ],
+    };
+    const t = templates[language];
+    const out: string[] = [];
+    if (symptoms.length === 1) {
+        out.push(t(symptoms[0])[0], t(symptoms[0])[1], t(symptoms[0])[2]);
+    } else if (symptoms.length === 2) {
+        out.push(t(symptoms[0])[0], t(symptoms[1])[1], t(symptoms[0])[2]);
+    } else {
+        out.push(t(symptoms[0])[0], t(symptoms[1])[1], t(symptoms[2])[2]);
+    }
+    return out.filter(Boolean).slice(0, 3);
+}
 
 // --- DYNAMIC SYSTEM INSTRUCTIONS (Kuchli va Aqlli) ---
 const getSystemInstruction = (language: Language): string => {
@@ -859,9 +908,10 @@ export const generateClarifyingQuestions = async (data: PatientData, language: L
         data.objectiveData ? `Ob'ektiv: ${data.objectiveData}` : '',
     ].filter(Boolean).join('\n').slice(0, 800);
 
-    const plainPrompt = `Quyidagi bemor ma'lumotlariga asosan ENG MUHIM 3 ta savol ber.
-Har savol ALOHIDA QATORDA bo'lsin. Raqam yoki belgi qo'yma. Har bir savol 8-12 so'z.
-TIL: ${langMap[language]}.
+    const plainPrompt = `Quyidagi bemor ma'lumotlariga asosan FAQAT shu holatga xos 3 ta aniqlashtiruvchi savol ber.
+UMUMIY SAVOLLAR BERMANG: "Shikoyat qachondan?", "Qanday davolashlar?", "Boshqa kasalliklar?" kabi shablon savollar taqiqlangan.
+Har bir savol bevosita shikoyat/simptom (masalan bosh og'rig'i, ko'ngil aynishi) bilan bog'liq bo'lsin: davomiylik, xususiyat, qachon kuchayadi va h.k.
+Har savol ALOHIDA QATORDA. Raqam qo'yma. TIL: ${langMap[language]}.
 
 ${patientSummary}`;
 

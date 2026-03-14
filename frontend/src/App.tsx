@@ -495,7 +495,7 @@ const AppContent: React.FC = () => {
     };
 
     /** Savollar avval API, keyin Gemini orqali; ikkalasi bo'sh bo'lsa ham fallback savollar bilan aniqlashtiruv ko'rsatiladi. */
-    const CLARIFY_TIMEOUT_MS = 12000;
+    const CLARIFY_TIMEOUT_MS = 18000;
     const handleGenerateClarificationQuestions = async (data: PatientData) => {
         setError(null);
         setIsProcessing(true);
@@ -520,8 +520,9 @@ const AppContent: React.FC = () => {
         }
 
         if (questions.length === 0) {
-            const { CLARIFY_FALLBACK } = await import('./services/aiCouncilService');
-            questions = CLARIFY_FALLBACK[language];
+            const { getCaseBasedClarificationQuestions, CLARIFY_FALLBACK } = await import('./services/aiCouncilService');
+            const caseBased = getCaseBasedClarificationQuestions(data, language);
+            questions = caseBased.length >= 2 ? caseBased : CLARIFY_FALLBACK[language];
         }
 
         setClarificationQuestions(questions);
