@@ -194,7 +194,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                     <div key={model} className="flex items-center gap-2 p-1.5 bg-white rounded border border-blue-100">
                                         <AIAvatar model={model} size="xs" />
                                         <p className="text-xs font-semibold text-blue-900 flex-1 truncate">{t(`specialist_name_${model.toLowerCase()}` as TranslationKey) || spec.name.split('(')[0].trim()}</p>
-                                        <button onClick={() => toggleSpecialist(model)} className="text-red-500 hover:text-red-700 text-xs">вњ•</button>
+                                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleSpecialist(model); }} className="text-red-500 hover:text-red-700 text-xs font-bold" aria-label="O'chirish">×</button>
                                     </div>
                                 );
                             })}

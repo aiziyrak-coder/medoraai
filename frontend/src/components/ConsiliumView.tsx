@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ConsiliumView - Multi-Agent Medical Consilium
  * Vizual ko'rsatish: 3 faza progress + professorlar bahsi + yakuniy xulosa
  */
@@ -75,7 +75,7 @@ const PROFESSOR_COLORS: Record<string, string> = {
 const PROFESSOR_ICONS: Record<string, string> = {
   deepseek: 'рџ§ ',
   llama:    'рџ"љ',
-  mistral:  'вљ•пёЏ',
+  mistral:  'M',
   mini:     'рџ'Љ',
   gpt4o:    'рџЋ"',
 };
@@ -90,10 +90,10 @@ function PhaseIndicator({
     error:   'bg-red-600 text-white',
   };
   const icons: Record<PhaseStatus, string> = {
-    waiting: 'в-‹',
-    running: 'вџі',
-    done:    'вњ"',
-    error:   'вњ-',
+    waiting: '…',
+    running: '⟳',
+    done:    '✓',
+    error:   '×',
   };
   return (
     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${colors[status]}`}>
@@ -120,7 +120,7 @@ function DebateCard({ msg, onDownload }: { msg: DebateMessage; onDownload?: (msg
           <p className="text-xs text-slate-400">{msg.authorTitle}</p>
         </div>
         <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${isDebate ? 'bg-amber-600 text-white' : 'bg-slate-600 text-slate-200'}`}>
-          {isDebate ? 'вљ" Bahslar' : 'рџ"‹ Mustaqil'}
+          {isDebate ? 'Bahslar' : 'Mustaqil'}
         </span>
         {onDownload && (
           <button
@@ -269,7 +269,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                     ? 'bg-slate-700 text-white'
                     : 'text-slate-400 hover:text-white'}`}
               >
-                {tab === 'debate' ? 'вљ" Bahslar' : 'рџ"‹ Xulosa Hisobot'}
+                {tab === 'debate' ? 'Bahslar' : 'Xulosa Hisobot'}
               </button>
             ))}
           </div>
@@ -323,7 +323,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
 
               {Array.isArray(result.final_report?.dissentingOpinions) && result.final_report.dissentingOpinions.length > 0 && (
                 <div className="rounded-xl p-3 bg-amber-950/30 border border-amber-500/30 text-sm text-amber-200">
-                  <p className="font-semibold mb-1">вљ  Farqli fikrlar:</p>
+                  <p className="font-semibold mb-1">Farqli fikrlar:</p>
                   {(result.final_report.dissentingOpinions || []).map((op, i) => (
                     <p key={i}>· {op}</p>
                   ))}
@@ -336,7 +336,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               {/* Consensus Diagnosis */}
               <div className="rounded-2xl bg-emerald-950/30 border border-emerald-500/30 p-4">
-                <h3 className="font-bold text-emerald-300 mb-2">вњ… Konsensus Tashxis</h3>
+                <h3 className="font-bold text-emerald-300 mb-2">Konsensus Tashxis</h3>
                 {(normalizeConsensusDiagnosis(result.final_report?.consensusDiagnosis) || []).slice(0, 3).map((d, i) => (
                   <div key={i} className="mb-2">
                     <div className="flex items-center justify-between">
@@ -351,7 +351,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Critical Finding */}
               {result.final_report.criticalFinding && (
                 <div className="rounded-2xl bg-red-950/40 border border-red-500/50 p-4">
-                  <h3 className="font-bold text-red-300 mb-1">рџљЁ Kritik Topilma</h3>
+                  <h3 className="font-bold text-red-300 mb-1">Kritik Topilma</h3>
                   <p className="text-red-200 text-sm">{result.final_report.criticalFinding.finding}</p>
                   <p className="text-red-300 text-xs mt-1">{result.final_report.criticalFinding.implication}</p>
                 </div>
@@ -360,10 +360,10 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Medications */}
               {Array.isArray(result.final_report?.medicationRecommendations) && result.final_report.medicationRecommendations.length > 0 && (
                 <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-                  <h3 className="font-bold text-white mb-2">рџ'Љ Dori-darmonlar</h3>
+                  <h3 className="font-bold text-white mb-2">Dori-darmonlar</h3>
                   {result.final_report.pharmacologyWarnings?.length > 0 && (
                     <div className="mb-2 p-2 rounded-lg bg-amber-900/40 border border-amber-500/30">
-                      <p className="text-amber-300 text-xs font-semibold">вљ  Farmakolog ogohlantirishlari:</p>
+                      <p className="text-amber-300 text-xs font-semibold">Farmakolog ogohlantirishlari:</p>
                       {(result.final_report.pharmacologyWarnings || []).map((w, i) => (
                         <p key={i} className="text-amber-200 text-xs">· {w}</p>
                       ))}

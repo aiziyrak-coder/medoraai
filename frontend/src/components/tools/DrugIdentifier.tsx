@@ -80,13 +80,13 @@ const DrugIdentifier: React.FC = () => {
                         onClick={() => setMode('text')}
                         className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition ${mode === 'text' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}
                     >
-                        вњЌпёЏ Nom
+                        Nom
                     </button>
                     <button
                         onClick={() => setMode('image')}
                         className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition ${mode === 'image' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}
                     >
-                        рџ"ё Rasm
+                        Rasm
                     </button>
                 </div>
 

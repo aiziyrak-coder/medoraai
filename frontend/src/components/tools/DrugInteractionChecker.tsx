@@ -106,7 +106,7 @@ const DrugInteractionChecker: React.FC = () => {
                                     onClick={() => handleRemoveDrug(index)}
                                     className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 font-bold transition"
                                 >
-                                    вњ•
+                                    ×
                                 </button>
                             )}
                         </div>
