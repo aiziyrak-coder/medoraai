@@ -8,6 +8,8 @@ import * as authServiceLocal from './services/authService';
 import * as caseService from './services/caseService';
 import * as tvLinkService from './services/tvLinkService'; // Import TV Service
 import { useTranslation } from './hooks/useTranslation';
+import { getSpecialistsFromComplaint } from './utils/specialistRecommendation';
+import { checkPatientComplaintConsistency } from './utils/smartValidation';
 import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
@@ -555,35 +557,42 @@ const AppContent: React.FC = () => {
             setAppView('clarification');
         } else {
             setAppView('team_recommendation');
-            await handleRecommendTeamFromData(data);
+            handleRecommendTeamFromData(data);
         }
     };
 
-    const handleRecommendTeamFromData = async (data: PatientData) => {
-        setIsProcessing(true);
-        setStatusMessage(t('team_recommendation_creating'));
-        try {
-            const { recommendSpecialists } = await import('./services/apiAiService');
-            const response = await recommendSpecialists(data);
-            if (response.success && response.data?.recommendations?.length) {
-                setRecommendedTeam(response.data.recommendations);
-                setError(null);
-            } else {
-                throw new Error('API failed');
-            }
-        } catch {
+    /** Tezkor: avval shikoyat bo'yicha 6–10 mutaxassisni darhol ko'rsatadi, keyin fonda API natijasini yangilaydi. */
+    const handleRecommendTeamFromData = (data: PatientData) => {
+        const instant = getSpecialistsFromComplaint(data.complaints ?? '');
+        setRecommendedTeam(instant);
+        setIsProcessing(false);
+        setError(null);
+        (async () => {
             try {
-                const team = await aiService.recommendSpecialists(data, language);
-                setRecommendedTeam(team.recommendations);
-                setError(null);
+                const { recommendSpecialists } = await import('./services/apiAiService');
+                const response = await Promise.race([
+                    recommendSpecialists(data),
+                    new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
+                ]);
+                if (response?.success && response.data?.recommendations?.length) {
+                    setRecommendedTeam(response.data.recommendations);
+                }
             } catch {
-                const defaultSpecialists = [AIModel.INTERNAL_MEDICINE, AIModel.FAMILY_MEDICINE, AIModel.EMERGENCY, AIModel.GEMINI, AIModel.CLAUDE, AIModel.GPT];
-                setRecommendedTeam(defaultSpecialists.map(model => ({ model, reason: 'Standart jamoa' })));
+                try {
+                    const team = await aiService.recommendSpecialists(data, language);
+                    if (team.recommendations?.length) setRecommendedTeam(team.recommendations);
+                } catch { /* keep instant list */ }
             }
-        } finally { setIsProcessing(false); }
+        })();
     };
 
     const handleDataSubmit = async (data: PatientData) => {
+        const consistency = checkPatientComplaintConsistency(data);
+        if (!consistency.consistent) {
+            setError(consistency.message ?? 'Bemor ma\'lumotlari va shikoyat matni mos kelmadi.');
+            return;
+        }
+        setError(null);
         setPatientData(data);
         await handleGenerateClarificationQuestions(data);
     };
@@ -599,7 +608,7 @@ const AppContent: React.FC = () => {
         }
         setPatientData(enrichedPatientData);
         setAppView('team_recommendation');
-        await handleRecommendTeamFromData(enrichedPatientData);
+        handleRecommendTeamFromData(enrichedPatientData);
     };
 
     const handleTeamConfirmation = (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestrator: string) => {
@@ -790,6 +799,13 @@ const AppContent: React.FC = () => {
                 return (
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
                         <BackBar title={t('nav_new_case')} subtitle="Bemor ma'lumotlarini kiriting" onBack={() => handleNavigation('dashboard')} />
+                        {error && (
+                            <div className="mx-4 mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2" role="alert">
+                                <span className="font-semibold shrink-0">{t('validation_data_mismatch_title')}</span>
+                                <span className="flex-1">{error}</span>
+                                <button type="button" onClick={() => setError(null)} className="shrink-0 underline" aria-label={t('close')}>{t('close')}</button>
+                            </div>
+                        )}
                         <div className="flex-1 page-px py-4 overflow-hidden">
                             <DataInputForm onSubmit={handleDataSubmit} isAnalyzing={isProcessing} />
                         </div>
