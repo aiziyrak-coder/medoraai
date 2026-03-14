@@ -66,13 +66,26 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
     const [currentSlide, setCurrentSlide] = useState(0);
     const [showContactModal, setShowContactModal] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     const goNext = useCallback(() => {
+        if (isTransitioning) return;
+        setIsTransitioning(true);
         setCurrentSlide((prev) => (prev + 1) % SLIDE_COUNT);
-    }, []);
+        setTimeout(() => setIsTransitioning(false), 500);
+    }, [isTransitioning]);
     const goPrev = useCallback(() => {
+        if (isTransitioning) return;
+        setIsTransitioning(true);
         setCurrentSlide((prev) => (prev - 1 + SLIDE_COUNT) % SLIDE_COUNT);
-    }, []);
+        setTimeout(() => setIsTransitioning(false), 500);
+    }, [isTransitioning]);
+    const goToSlide = useCallback((index: number) => {
+        if (isTransitioning || index === currentSlide) return;
+        setIsTransitioning(true);
+        setCurrentSlide(index);
+        setTimeout(() => setIsTransitioning(false), 500);
+    }, [currentSlide, isTransitioning]);
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
@@ -136,7 +149,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                     </button>
                     <div className="flex flex-col gap-6 text-center text-lg font-bold">
                         {[0, 1, 2, 3].map((i) => (
-                            <button key={i} onClick={() => { setCurrentSlide(i); setMobileMenuOpen(false); }} className="hover:text-blue-400 transition-colors">
+                            <button key={i} onClick={() => { goToSlide(i); setMobileMenuOpen(false); }} className="hover:text-cyan-400 transition-colors">
                                 {i === 0 ? t('nav_features').replace(/.*/, 'Bosh sahifa') : i === 1 ? t('nav_features') : i === 2 ? t('nav_how_it_works') : t('landing_cta_bottom_title').slice(0, 20) + '…'}
                             </button>
                         ))}
@@ -159,9 +172,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                         <span className="text-[10px] font-medium text-slate-500 hidden sm:block truncate">{INSTITUTE_NAME_FULL}</span>
                     </div>
                     <div className="hidden lg:flex items-center gap-4 text-sm font-medium text-slate-400">
-                        <button onClick={() => setCurrentSlide(1)} className="hover:text-white transition-colors">{t('nav_features')}</button>
-                        <button onClick={() => setCurrentSlide(2)} className="hover:text-white transition-colors">{t('nav_how_it_works')}</button>
-                        {onOpenAbout && <button onClick={onOpenAbout} className="text-blue-400 hover:text-blue-300">Institut haqida</button>}
+                        <button onClick={() => goToSlide(1)} className="hover:text-cyan-400 transition-colors">{t('nav_features')}</button>
+                        <button onClick={() => goToSlide(2)} className="hover:text-cyan-400 transition-colors">{t('nav_how_it_works')}</button>
+                        {onOpenAbout && <button onClick={onOpenAbout} className="text-cyan-400 hover:text-cyan-300">Institut haqida</button>}
                     </div>
                     <div className="flex items-center gap-2">
                         <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
@@ -174,6 +187,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                     </div>
                 </div>
             </nav>
+
+            {/* --- SCAN-LINE OVERLAY (medical/tech transition) --- */}
+            {isTransitioning && <div className="landing-scan-overlay" aria-hidden />}
 
             {/* --- SLIDES CONTAINER (no scroll) --- */}
             <div className="flex-1 min-h-0 w-full overflow-hidden">
@@ -228,10 +244,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                                 ))}
                             </div>
                         </div>
-                        <button onClick={goNext} className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-500 hover:text-white transition-colors animate-bounce">
-                            <span className="text-[10px] uppercase tracking-widest">Keyingi</span>
-                            <ChevronDownIcon className="w-6 h-6" />
-                        </button>
                     </section>
 
                     {/* SLIDE 1: FEATURES */}
@@ -312,24 +324,27 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                 </div>
             </div>
 
-            {/* --- SLIDE INDICATORS + ARROWS --- */}
-            <div className="flex-none fixed bottom-6 left-0 right-0 z-40 flex items-center justify-center gap-4 px-4">
-                <button onClick={goPrev} className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all hidden sm:flex items-center justify-center">
-                    <ChevronLeftIcon className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-2">
-                    {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => setCurrentSlide(i)}
-                            className={`landing-dot w-2.5 h-2.5 rounded-full ${i === currentSlide ? 'landing-dot-active bg-blue-500' : 'bg-white/30 hover:bg-white/50'}`}
-                            aria-label={`Slide ${i + 1}`}
-                        />
-                    ))}
+            {/* --- NAV: bitta pill (meditsina + texnologiya uygun) --- */}
+            <div className="flex-none fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4">
+                <div className="landing-nav-pill flex items-center gap-2 sm:gap-4 py-2.5 px-4 sm:px-6 rounded-full bg-slate-900/90 border border-cyan-500/20 shadow-[0_0_24px_rgba(6,182,212,0.12)] backdrop-blur-xl">
+                    <button onClick={goPrev} className="landing-nav-arrow p-2 rounded-full text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all duration-300" aria-label="Oldingi">
+                        <ChevronLeftIcon className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-1.5 sm:gap-2 mx-1">
+                        {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => goToSlide(i)}
+                                className={`landing-dot w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 ${i === currentSlide ? 'landing-dot-active bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.8)]' : 'bg-white/25 hover:bg-white/45'}`}
+                                aria-label={`Slide ${i + 1}`}
+                            />
+                        ))}
+                    </div>
+                    <button onClick={goNext} className="landing-nav-arrow p-2 rounded-full text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all duration-300 flex items-center gap-1.5" aria-label="Keyingi">
+                        <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest text-slate-500">Keyingi</span>
+                        <ChevronRightIcon className="w-5 h-5" />
+                    </button>
                 </div>
-                <button onClick={goNext} className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all hidden sm:flex items-center justify-center">
-                    <ChevronRightIcon className="w-5 h-5" />
-                </button>
             </div>
         </div>
     );
