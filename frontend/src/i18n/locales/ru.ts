@@ -675,6 +675,7 @@ export const ru: TranslationSet = {
   data_form_vitals_entered: 'Показатели введены',
   validation_required: 'Поле «{field}» обязательно.',
   validation_data_mismatch_title: 'Данные не совпадают',
+  error_save_server_login: 'Войдите в систему, чтобы сохранить анализ на сервере. Сейчас он сохранён только на этом устройстве.',
   tv_videos_separate: 'Разделяйте несколько видео запятой (,).',
   doc_complaints_placeholder: 'Введите жалобы, анамнез и данные объективного осмотра...',
   doc_camera: 'Камера',

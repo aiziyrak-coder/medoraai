@@ -319,10 +319,11 @@ const AppContent: React.FC = () => {
                     };
 
                     const applyHistoryAndRecord = (historyList: AnalysisRecord[], savedRecord: AnalysisRecord) => {
-                        setUserHistory(historyList);
-                        setDashboardStats(caseService.getDashboardStats(historyList));
+                        const list = Array.isArray(historyList) ? historyList : [];
+                        setUserHistory(list);
+                        setDashboardStats(caseService.getDashboardStats(list));
                         setCurrentAnalysisRecord(savedRecord);
-                        aiService.suggestCmeTopics(historyList, language).then(setCmeTopics);
+                        aiService.suggestCmeTopics(list, language).then(setCmeTopics);
                     };
 
                     import('./services/apiAnalysisService').then(({ createAnalysis, updateAnalysis, getAnalyses }) => {
@@ -357,7 +358,9 @@ const AppContent: React.FC = () => {
                                     authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                     caseService.addCaseToLibrary(newRecord);
                                     applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
-                                    setError(patientResponse.error?.message || "Bemor serverga saqlanmadi. Tahlil faqat ushbu qurilmada saqlandi.");
+                                    const errMsg = patientResponse.error?.message;
+                                    const errCode = patientResponse.error?.code;
+                                    setError(errCode === 401 ? (t('error_save_server_login') || "Tahlilni serverga saqlash uchun tizimga kiring. Tahlil hozir ushbu qurilmada saqlandi.") : (errMsg || "Bemor serverga saqlanmadi. Tahlil faqat ushbu qurilmada saqlandi."));
                                     return;
                                 }
                                 const patientId = patientResponse.data.id;
@@ -374,24 +377,26 @@ const AppContent: React.FC = () => {
                                     } else {
                                         authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                         caseService.addCaseToLibrary(newRecord);
-                                        setError(createRes.error?.message || "Tahlil serverga saqlanmadi. Faqat ushbu qurilmada saqlandi.");
+                                        const errCode = createRes.error?.code;
+                                        setError(errCode === 401 ? (t('error_save_server_login') || "Tahlilni serverga saqlash uchun tizimga kiring. Tahlil hozir ushbu qurilmada saqlandi.") : (createRes.error?.message || "Tahlil serverga saqlanmadi. Faqat ushbu qurilmada saqlandi."));
                                     }
                                     return getAnalyses();
                                 }).then((response) => {
-                                    if (response.success && Array.isArray(response.data)) {
+                                    if (response?.success && Array.isArray(response.data)) {
                                         const list = response.data;
                                         const savedRecord = createRes?.success && createRes?.data
                                             ? { ...newRecord, id: String(createRes.data.id), patientId: String(createRes.data.patientId ?? patientId) }
                                             : newRecord;
                                         applyHistoryAndRecord(list, list[0] ?? savedRecord);
                                     } else {
-                                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
+                                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone) ?? [], newRecord);
                                     }
-                                }).catch(() => {
+                                }).catch((err: unknown) => {
                                     authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                                     caseService.addCaseToLibrary(newRecord);
-                                    applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
-                                    setError("Serverga ulanishda xatolik. Tahlil faqat ushbu qurilmada saqlandi.");
+                                    applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone) ?? [], newRecord);
+                                    const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : null;
+                                    setError(msg || "Serverga ulanishda xatolik. Tahlil faqat ushbu qurilmada saqlandi.");
                                 });
                             }).catch(() => {
                                 authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
@@ -400,15 +405,16 @@ const AppContent: React.FC = () => {
                                 setError("Bemor yoki tahlil serverga saqlanmadi. Faqat ushbu qurilmada saqlandi.");
                             });
                         });
-                    }).catch((err) => {
+                    }).catch((err: unknown) => {
                         if (currentAnalysisRecord?.id) {
                             authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
                         } else {
                             authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
                             caseService.addCaseToLibrary(newRecord);
                         }
-                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
-                        setError(err?.message || "Serverga saqlashda xatolik. Tahlil ushbu qurilmada saqlandi.");
+                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone) ?? [], newRecord);
+                        const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : null;
+                        setError(msg || "Serverga saqlashda xatolik. Tahlil ushbu qurilmada saqlandi.");
                     });
                 }
                 break;
