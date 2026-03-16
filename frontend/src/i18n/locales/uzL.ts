@@ -382,7 +382,7 @@ export const uzL: TranslationSet = {
   analysis_ddx_view_list: 'Ro\'yxat Ko\'rinishi',
   analysis_ddx_view_tree: 'Daraxt Ko\'rinishi',
   analysis_user_intervention_placeholder: 'Munozaraga aralashish...',
-  analysis_socratic_question_title: 'Konsilium Raisidan Savol:',
+  analysis_socratic_question_title: 'Konsilium Professoridan Savol:',
   analysis_socratic_answer_placeholder: 'Javobingizni kiriting...',
   analysis_scenario_title: 'Senariy Tahlili',
   analysis_scenario_subtitle: '"Nima bo\'lardi, agar..." savolini berib, alternativ natijalarni o\'rganing.',
@@ -446,7 +446,7 @@ export const uzL: TranslationSet = {
   'specialty_llama 3': 'Onkologiya',
   specialist_name_grok: 'Endokrinolog AI (Grok)',
   specialty_grok: 'Endokrinologiya',
-  specialist_name_system: 'Konsilium Raisi (Orkestrator)',
+  specialist_name_system: 'Konsilium Professori (Orkestrator)',
   specialty_system: 'Boshqaruvchi',
 
   specialist_name_allergist: 'Allergolog',
@@ -552,7 +552,7 @@ export const uzL: TranslationSet = {
   specialty_sexologist: 'Seksopatologiya',
   specialist_name_vertebrologist: 'Vertebrolog',
   specialty_vertebrologist: 'Vertebrologiya',
-  specialist_name_orchestrator: 'Konsilium Raisi',
+  specialist_name_orchestrator: 'Konsilium Professori',
   specialty_orchestrator: 'Boshqaruvchi',
 
   // Analysis flow statuses

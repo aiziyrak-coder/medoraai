@@ -60,7 +60,7 @@ const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubm
                             <p className="mt-1 text-text-primary whitespace-pre-wrap">{item.question}</p>
                         </div>
                         <div className="mt-2 p-4 rounded-lg bg-slate-100 border border-border-color">
-                            <p className="font-semibold text-text-primary">Konsilium Raisi javobi:</p>
+                            <p className="font-semibold text-text-primary">Konsilium Professori javobi:</p>
                             <p className="mt-1 text-text-secondary whitespace-pre-wrap">{item.answer}</p>
                         </div>
                     </div>
@@ -70,7 +70,7 @@ const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubm
             {isLive && !isFinalized && (
                 showFinalizePrompt ? (
                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center animate-fade-in-up">
-                        <p className="font-semibold text-text-primary mb-4">Konsilium Raisi: Yana aniqlashtiruvchi savollaringiz bormi?</p>
+                        <p className="font-semibold text-text-primary mb-4">Konsilium Professori: Yana aniqlashtiruvchi savollaringiz bormi?</p>
                         <div className="flex justify-center gap-4">
                             <button onClick={handleContinue} className="px-5 py-2 text-sm font-semibold text-accent-color-blue bg-slate-100 border border-border-color rounded-lg hover:bg-slate-200 transition-colors">
                                 Ha, bor

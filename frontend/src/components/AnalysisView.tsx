@@ -176,7 +176,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                         {socraticQuestion ? (
                             <div className="animate-fade-in-up">
                                  <div className="p-3 bg-yellow-50/90 border border-yellow-200 rounded-xl mb-3 shadow-sm">
-                                     <p className="text-xs font-bold text-yellow-700 uppercase mb-1">Konsilium Raisidan Savol:</p>
+                                     <p className="text-xs font-bold text-yellow-700 uppercase mb-1">Konsilium Professoridan Savol:</p>
                                      <p className="text-sm italic text-text-primary">"{socraticQuestion}"</p>
                                  </div>
                                  <form onSubmit={handleInterventionSubmit} className="flex gap-2">

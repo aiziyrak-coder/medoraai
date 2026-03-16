@@ -35,7 +35,7 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     const config = AI_SPECIALISTS[author];
 
     if (isThinking && !content) return null;
-    const specialistName = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || config?.name || (author === 'Orchestrator' ? 'Konsilium Raisi' : String(author));
+    const specialistName = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || config?.name || (author === 'Orchestrator' ? 'Konsilium Professori' : String(author));
     const animationDelay = `${Math.random() * 0.3}s`;
     
     if (isSystemMessage || isUserIntervention) {

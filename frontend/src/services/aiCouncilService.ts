@@ -145,7 +145,7 @@ const getSystemInstruction = (language: Language): string => {
 
     DASTUR MAQSADI (muhim): Platforma maqsadi — yangi, samarali davolash yo'llarini topish. SSV va xalqaro protokollar asosiy yo'riqnoma, lekin HAR DOIM ularga qat'iy rioya qilish shart emas: dalil va ilmiy asos bo'lsa, protokollardan voz kechib, innovatsion yoki alternativ davolash usullarini taklif qiling; shunda dastur haqiqatan foydali bo'ladi.
 
-    DIALOG USLUBI (majburiy): Suhbat har doim "Hurmatli Rais va hamkasblar" yoki boshqa rasmiy salomlashuv bilan boshlanishi SHART EMAS. Haqiqiy klinik muhokama kabi yozing: e'tibor KASALLIK, ANIQ TASHXIS va FIKRLARGA qaratsin. Bir-biriga mulozamat ko'rsatish yoki bir-birini rozi qilish maqsad emas — muhimi aniq tashxis va dalilli fikrlar. Ibora qisqa, mazmunli, keraksiz tantanalardan xoli bo'lsin.
+    DIALOG USLUBI (majburiy): Suhbat har doim "Hurmatli professor va hamkasblar" yoki boshqa rasmiy salomlashuv bilan boshlanishi SHART EMAS. Haqiqiy klinik muhokama kabi yozing: e'tibor KASALLIK, ANIQ TASHXIS va FIKRLARGA qaratsin. Bir-biriga mulozamat ko'rsatish yoki bir-birini rozi qilish maqsad emas — muhimi aniq tashxis va dalilli fikrlar. Ibora qisqa, mazmunli, keraksiz tantanalardan xoli bo'lsin.
     `;
 
     const specificInstructions: Record<Language, string> = {
@@ -1041,7 +1041,7 @@ function normalizePrognosisReport(raw: unknown): PrognosisReport | null {
 const generatePrognosisUpdate = async (debateHistory: ChatMessage[], patientData: PatientData, language: Language): Promise<PrognosisReport | null> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...cleanData } = patientData;
-    const debateSnippet = debateHistory.slice(-8).map(m => `[${m.author === AIModel.SYSTEM ? 'Rais' : m.author}]: ${(m.content || '').trim().slice(0, 200)}`).join('\n');
+    const debateSnippet = debateHistory.slice(-8).map(m => `[${m.author === AIModel.SYSTEM ? 'Professor' : m.author}]: ${(m.content || '').trim().slice(0, 200)}`).join('\n');
     const prompt = `Vazifa: Kasallik prognozi (aniq, batafsil). Bemor va munozara asosida quyidagi JSON ni to'ldiring. Umumiy iboralar yozmang — har bir maydon aniq ma'lumot bilan to'liq bo'lsin.
 
 shortTermPrognosis: Qisqa muddatli prognoz (1–3 oy). 2–4 jumla. Yozing: bemorning kutilayotgan holati, davolash ta'siri, ehtimoliy yaxshilanish yoki asoratlar, qanday kuzatish kerak. Masalan: "Davolashga rioya qilsa 2–3 hafta ichida [simptom] kamayadi; 1 oydan keyin laboratoriya nazorati kerak; asoratlar bo'lsa darhol shifokorga murojaat."
@@ -1116,8 +1116,8 @@ Dastlabki tashxislar: ${diagnoses.map(d => d.name).join(', ') || '-'}.
 
 QOIDA: Ob'ektiv ko'rik va (agar bor bo'lsa) yuklangan laboratoriya/diagnostika hujjatlari berilgan; shifokordan ularni so'ramang. Barcha ma'lumotlardan to'liq foydalaning va mutaxassislarga aniq yetkazing.`;
 
-    // Konsiliumda hech qanday oldindan kiritilgan yozuv yo'q — hammasi AI suhbat va kasallikni o'qib o'zidan yozadi. Hujjatlar bo'lsa Rais ularni ko'radi va tahlil qiladi.
-    const introContentPrompt = `Siz Konsilium Raisi. QOIDA: Konsiliumda hech bir matn oldindan kiritilmaydi — barcha yozuv faqat siz quyidagi bemor va kasallik ma'lumotlarini (va agar ilovada bo'lsa — laboratoriya/diagnostika hujjatlarini) O'QIB, TUSHUNIB, umumlashtirib o'zingiz yozasiz. Tayyor ibora yoki shablon ISHLATMANG. "Hurmatli hamkasblar" kabi rasmiy ochilish SHART EMAS — to'g'ridan-to'g'ri bemor va kasallik haqida mazmunli ochilish (3-5 jumla). Ob'ektiv ko'rik (vital) va yuklangan hujjatlar allaqachon berilgan — ularni qayta so'ramang. Agar bemor hujjat yuklagan bo'lsa — asosiy topilmalarni qisqacha yetkazing. Maqsad: aniq tashxis va davolash; e'tibor kasallikga. Javobni oxirigacha yozing. TIL: ${langMap[language]}.
+    // Konsiliumda hech qanday oldindan kiritilgan yozuv yo'q — hammasi AI suhbat va kasallikni o'qib o'zidan yozadi. Hujjatlar bo'lsa Professor ularni ko'radi va tahlil qiladi.
+    const introContentPrompt = `Siz Konsilium Professori. QOIDA: Konsiliumda hech bir matn oldindan kiritilmaydi — barcha yozuv faqat siz quyidagi bemor va kasallik ma'lumotlarini (va agar ilovada bo'lsa — laboratoriya/diagnostika hujjatlarini) O'QIB, TUSHUNIB, umumlashtirib o'zingiz yozasiz. Tayyor ibora yoki shablon ISHLATMANG. "Hurmatli hamkasblar" kabi rasmiy ochilish SHART EMAS — to'g'ridan-to'g'ri bemor va kasallik haqida mazmunli ochilish (3-5 jumla). Ob'ektiv ko'rik (vital) va yuklangan hujjatlar allaqachon berilgan — ularni qayta so'ramang. Agar bemor hujjat yuklagan bo'lsa — asosiy topilmalarni qisqacha yetkazing. Maqsad: aniq tashxis va davolash; e'tibor kasallikga. Javobni oxirigacha yozing. TIL: ${langMap[language]}.
 
 ${patientSummaryForRais}`;
     const introMultimodal = attachmentCount > 0 ? buildMultimodalPrompt(introContentPrompt, patientData) : introContentPrompt;
@@ -1131,7 +1131,7 @@ ${patientSummaryForRais}`;
     const DEBATE_ROUNDS = 3;
     let lastLivePrognosis: PrognosisReport | null = null;
     // Birinchi mavzu — bemor, kasallik va (agar bor bo'lsa) hujjatlar asosida; Rais hujjatlarni ko'radi
-    const currentTopicPrompt = `Siz Konsilium raisi. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi bemor va kasallik ma'lumotlarini (va ilovadagi hujjatlarini) o'qib, o'zingiz birinchi mavzuni yozing. Rasmiy salomlashuv ("Hurmatli hamkasblar" va h.k.) yozmang — to'g'ridan-to'g'ri mavzu va kasallikga e'tibor. Ob'ektiv ko'rik va yuklangan hujjatlar berilgan — shifokordan qayta so'ramang. Mutaxassislardan dastlabki baho va xavf belgilari so'ring; hujjatlar bo'lsa topilmalarni qisqacha yetkazing. Bitta to'liq paragraf, mazmunli. TIL: ${langMap[language]}.
+    const currentTopicPrompt = `Siz Konsilium professori. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi bemor va kasallik ma'lumotlarini (va ilovadagi hujjatlarini) o'qib, o'zingiz birinchi mavzuni yozing. Rasmiy salomlashuv ("Hurmatli hamkasblar" va h.k.) yozmang — to'g'ridan-to'g'ri mavzu va kasallikga e'tibor. Ob'ektiv ko'rik va yuklangan hujjatlar berilgan — shifokordan qayta so'ramang. Mutaxassislardan dastlabki baho va xavf belgilari so'ring; hujjatlar bo'lsa topilmalarni qisqacha yetkazing. Bitta to'liq paragraf, mazmunli. TIL: ${langMap[language]}.
 
 ${patientSummaryForRais}`;
     const topicMultimodal = attachmentCount > 0 ? buildMultimodalPrompt(currentTopicPrompt, patientData) : currentTopicPrompt;
@@ -1184,7 +1184,7 @@ ${patientSummaryForRais}`;
             const recentDebate = debateHistory.slice(-14);
             const fullDebateText = recentDebate
                 .map(m => {
-                    const author = m.author === AIModel.SYSTEM ? 'Konsilium Raisi' : String(m.author);
+                    const author = m.author === AIModel.SYSTEM ? 'Konsilium Professori' : String(m.author);
                     const content = (m.content || '').trim();
                     return `[${author}]: ${content.length > 500 ? content.slice(0, 500) + '...' : content}`;
                 })
@@ -1199,7 +1199,7 @@ ${patientSummaryForRais}`;
 VITAL KO'RSATKICHLAR (shifokor kiritgan — SO'RAMANG, hisobga oling):
 ${objectiveForSpec || '-'}
 ${labForSpec ? `Laboratoriya ma'lumoti: ${labForSpec}` : ''}${attachmentsNoteForSpec}`;
-            const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — suhbat va kasallikni o'qib, o'z fikringizni yozasiz. "Hurmatli Rais" yoki boshqa rasmiy salomlashuv YOZMANG — to'g'ridan-to'g'ri tashxis va fikr. Bir-birini rozi qilish yoki mulozamat ko'rsatish maqsad emas; muhimi aniq tashxis va dalilli fikrlar, e'tibor kasallikga. Ob'ektiv ko'rik va laboratoriya/hujjatlar berilgan — shifokordan so'ramang.
+            const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — suhbat va kasallikni o'qib, o'z fikringizni yozasiz. "Hurmatli professor" yoki boshqa rasmiy salomlashuv YOZMANG — to'g'ridan-to'g'ri tashxis va fikr. Bir-birini rozi qilish yoki mulozamat ko'rsatish maqsad emas; muhimi aniq tashxis va dalilli fikrlar, e'tibor kasallikga. Ob'ektiv ko'rik va laboratoriya/hujjatlar berilgan — shifokordan so'ramang.
 
 --- BEMOR MA'LUMOTLARI (ob'ektiv ko'rik, lab va hujjatlar allaqachon kiritilgan — hisobga oling, qayta so'ramang) ---
 ${bemorSummaryForSpec}
@@ -1244,8 +1244,8 @@ Javob 3-6 jumla, oxirigacha; keraksiz tantana yo'q. TIL: ${langMap[language]}.`;
         }
         
         if (round < DEBATE_ROUNDS) {
-            const debateSummary = debateHistory.slice(-10).map(m => `[${m.author === AIModel.SYSTEM ? 'Rais' : m.author}]: ${(m.content || '').trim().slice(0, 300)}`).join('\n');
-            const summarizationPrompt = `Siz - Konsilium raisi. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi suhbatni o'qib, o'zingiz keyingi mavzuni yozing. "Hurmatli hamkasblar" va boshqa rasmiy salomlashuv YOZMANG; to'g'ridan-to'g'ri mavzu va kasallik/tashxisga e'tibor. Ob'ektiv ko'rik (vital), laboratoriya va yuklangan hujjatlar allaqachon berilgan — shifokordan ularni qayta so'ramang.
+            const debateSummary = debateHistory.slice(-10).map(m => `[${m.author === AIModel.SYSTEM ? 'Professor' : m.author}]: ${(m.content || '').trim().slice(0, 300)}`).join('\n');
+            const summarizationPrompt = `Siz - Konsilium professori. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi suhbatni o'qib, o'zingiz keyingi mavzuni yozing. "Hurmatli hamkasblar" va boshqa rasmiy salomlashuv YOZMANG; to'g'ridan-to'g'ri mavzu va kasallik/tashxisga e'tibor. Ob'ektiv ko'rik (vital), laboratoriya va yuklangan hujjatlar allaqachon berilgan — shifokordan ularni qayta so'ramang.
 
 --- ${round}-BOSQICH SUHBATI (o'qing, keyin o'zingiz yozing) ---
 ${debateSummary}

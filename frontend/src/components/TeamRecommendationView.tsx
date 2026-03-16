@@ -123,7 +123,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             <div className="flex-shrink-0 mb-4 p-2 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
                 <UsersIcon className="w-5 h-5 text-indigo-600" />
                 <div>
-                    <p className="font-bold text-xs text-indigo-900">Konsilium Raisi (Orkestrator)</p>
+                    <p className="font-bold text-xs text-indigo-900">Konsilium Professori (Orkestrator)</p>
                     <p className="text-[9px] text-indigo-600">Munozarani boshqaradi</p>
                 </div>
             </div>
