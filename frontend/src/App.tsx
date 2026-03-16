@@ -213,13 +213,13 @@ const AppContent: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Sahifa yuklanganida: token bo'lsa barcha rollar uchun tahlillarni bazadan (API) yuklash
+    // Sahifa yuklanganida: token bo'lsa barcha rollar uchun tahlillarni faqat API dan yuklash
     useEffect(() => {
         if (!currentUser?.phone) return;
         if (!getAuthToken()) {
-            const history = authServiceLocal.getAnalyses(currentUser.phone);
-            setUserHistory(history);
-            setDashboardStats(caseService.getDashboardStats(history));
+            // Token bo'lmasa, serverdan yuklab bo'lmaydi; lokal saqlashdan foydalanmaymiz
+            setUserHistory([]);
+            setDashboardStats(null);
             return;
         }
         import('./services/apiAnalysisService').then(({ getAnalyses }) => {
@@ -229,21 +229,18 @@ const AppContent: React.FC = () => {
                     setDashboardStats(caseService.getDashboardStats(response.data));
                     aiService.suggestCmeTopics(response.data, language).then(setCmeTopics);
                 } else {
-                    const history = authServiceLocal.getAnalyses(currentUser.phone);
-                    setUserHistory(history);
-                    setDashboardStats(caseService.getDashboardStats(history));
-                    aiService.suggestCmeTopics(history, language).then(setCmeTopics);
+                    // Server javobi yo'q yoki muvaffaqiyatsiz — lokal arxivdan foydalanmaymiz
+                    setUserHistory([]);
+                    setDashboardStats(null);
                 }
             }).catch(() => {
-                const history = authServiceLocal.getAnalyses(currentUser.phone);
-                setUserHistory(history);
-                setDashboardStats(caseService.getDashboardStats(history));
-                aiService.suggestCmeTopics(history, language).then(setCmeTopics);
+                // API xatosida ham lokal fallback ishlatilmaydi
+                setUserHistory([]);
+                setDashboardStats(null);
             });
         }).catch(() => {
-            const history = authServiceLocal.getAnalyses(currentUser.phone);
-            setUserHistory(history);
-            setDashboardStats(caseService.getDashboardStats(history));
+            setUserHistory([]);
+            setDashboardStats(null);
         });
     }, [currentUser, language]);
 
@@ -334,20 +331,19 @@ const AppContent: React.FC = () => {
                             updateAnalysis(analysisIdNum, newRecord).then((res) => {
                                 if (res.success && res.data) {
                                     const fromApi = { ...newRecord, id: String(res.data.id), patientId: res.data.patientId };
-                                    authServiceLocal.updateAnalysis(currentUser.phone, fromApi);
-                                }
-                                return getAnalyses();
-                            }).then((response) => {
-                                if (response.success && response.data) {
-                                    const saved = response.data.find((r) => r.id === String(analysisIdNum)) || newRecord;
-                                    applyHistoryAndRecord(response.data, { ...newRecord, id: String(saved.id), patientId: saved.patientId });
+                                    return getAnalyses().then(response => {
+                                        if (response.success && response.data) {
+                                            const saved = response.data.find((r) => r.id === String(analysisIdNum)) || fromApi;
+                                            applyHistoryAndRecord(response.data, { ...fromApi, id: String(saved.id), patientId: saved.patientId });
+                                        } else {
+                                            applyHistoryAndRecord([fromApi], fromApi);
+                                        }
+                                    });
                                 } else {
-                                    const history = authServiceLocal.getAnalyses(currentUser.phone);
-                                    applyHistoryAndRecord(history, newRecord);
+                                    applyHistoryAndRecord([], newRecord);
                                 }
                             }).catch(() => {
-                                authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
-                                applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
+                                applyHistoryAndRecord([], newRecord);
                             });
                             return;
                         }
@@ -355,9 +351,7 @@ const AppContent: React.FC = () => {
                         import('./services/apiPatientService').then(({ createPatient }) => {
                             createPatient(patientData).then(patientResponse => {
                                 if (!patientResponse.success || !patientResponse.data) {
-                                    authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                    caseService.addCaseToLibrary(newRecord);
-                                    applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
+                                    applyHistoryAndRecord([], newRecord);
                                     const errMsg = patientResponse.error?.message;
                                     const errCode = patientResponse.error?.code;
                                     setError(errCode === 401 ? (t('error_save_server_login') || "Tahlilni serverga saqlash uchun tizimga kiring. Tahlil serverga saqlanmadi.") : (errMsg || "Bemor serverga saqlanmadi."));
@@ -371,48 +365,31 @@ const AppContent: React.FC = () => {
                                             id: String(createRes.data.id),
                                             patientId: String(createRes.data.patientId ?? patientId),
                                         };
-                                        authServiceLocal.saveAnalysis(currentUser.phone, fromApi);
-                                        caseService.addCaseToLibrary(fromApi);
                                         setError(null);
+                                        return getAnalyses().then((response) => {
+                                            if (response?.success && Array.isArray(response.data)) {
+                                                applyHistoryAndRecord(response.data, fromApi);
+                                            } else {
+                                                applyHistoryAndRecord([fromApi], fromApi);
+                                            }
+                                        });
                                     } else {
-                                        authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                        caseService.addCaseToLibrary(newRecord);
                                         const errCode = createRes.error?.code;
                                         setError(errCode === 401 ? (t('error_save_server_login') || "Tahlilni serverga saqlash uchun tizimga kiring. Tahlil serverga saqlanmadi.") : (createRes.error?.message || "Tahlil serverga saqlanmadi."));
-                                    }
-                                    return getAnalyses();
-                                }).then((response) => {
-                                    if (response?.success && Array.isArray(response.data)) {
-                                        const list = response.data;
-                                        const savedRecord = createRes?.success && createRes?.data
-                                            ? { ...newRecord, id: String(createRes.data.id), patientId: String(createRes.data.patientId ?? patientId) }
-                                            : newRecord;
-                                        applyHistoryAndRecord(list, list[0] ?? savedRecord);
-                                    } else {
-                                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone) ?? [], newRecord);
+                                        applyHistoryAndRecord([], newRecord);
                                     }
                                 }).catch((err: unknown) => {
-                                    authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                    caseService.addCaseToLibrary(newRecord);
-                                    applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone) ?? [], newRecord);
+                                    applyHistoryAndRecord([], newRecord);
                                     const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : null;
                                     setError(msg || "Serverga ulanishda xatolik. Tahlil serverga saqlanmadi.");
                                 });
                             }).catch(() => {
-                                authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                                caseService.addCaseToLibrary(newRecord);
-                                applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone), newRecord);
+                                applyHistoryAndRecord([], newRecord);
                                 setError("Bemor yoki tahlil serverga saqlanmadi.");
                             });
                         });
                     }).catch((err: unknown) => {
-                        if (currentAnalysisRecord?.id) {
-                            authServiceLocal.updateAnalysis(currentUser.phone, newRecord);
-                        } else {
-                            authServiceLocal.saveAnalysis(currentUser.phone, newRecord);
-                            caseService.addCaseToLibrary(newRecord);
-                        }
-                        applyHistoryAndRecord(authServiceLocal.getAnalyses(currentUser.phone) ?? [], newRecord);
+                        applyHistoryAndRecord([], newRecord);
                         const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : null;
                         setError(msg || "Serverga saqlashda xatolik. Tahlil serverga saqlanmadi.");
                     });
@@ -430,7 +407,7 @@ const AppContent: React.FC = () => {
     const handleLoginSuccess = (user: User) => {
         setCurrentUser(user);
         setShowLanding(false); // Hide landing after successful login
-        // Barcha rollar uchun tahlillarni bazadan (API) yuklash; token bo'lsa API, aks holda localStorage
+        // Barcha rollar uchun tahlillarni faqat bazadan (API) yuklash; lokal fallback ishlatilmaydi
         import('./services/apiAnalysisService').then(({ getAnalyses }) => {
             getAnalyses().then(response => {
                 if (response.success && response.data) {
@@ -438,23 +415,18 @@ const AppContent: React.FC = () => {
                     setDashboardStats(caseService.getDashboardStats(response.data));
                     aiService.suggestCmeTopics(response.data, language).then(setCmeTopics);
                 } else {
-                    const history = authServiceLocal.getAnalyses(user.phone);
-                    setUserHistory(history);
-                    setDashboardStats(caseService.getDashboardStats(history));
-                    aiService.suggestCmeTopics(history, language).then(setCmeTopics);
+                    setUserHistory([]);
+                    setDashboardStats(null);
                 }
                 setAppView('dashboard');
             }).catch(() => {
-                const history = authServiceLocal.getAnalyses(user.phone);
-                setUserHistory(history);
-                setDashboardStats(caseService.getDashboardStats(history));
-                aiService.suggestCmeTopics(history, language).then(setCmeTopics);
+                setUserHistory([]);
+                setDashboardStats(null);
                 setAppView('dashboard');
             });
         }).catch(() => {
-            const history = authServiceLocal.getAnalyses(user.phone);
-            setUserHistory(history);
-            setDashboardStats(caseService.getDashboardStats(history));
+            setUserHistory([]);
+            setDashboardStats(null);
             setAppView('dashboard');
         });
     };
