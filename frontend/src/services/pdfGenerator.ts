@@ -16,7 +16,7 @@ interface jsPDFInternal {
 export type SpecialistNameResolver = (author: string) => string;
 
 const PDF_FONT = 'times' as const; // Times New Roman — haqiqiy hujjat uslubi
-const LINE_HEIGHT = 7;
+const LINE_HEIGHT = 8;
 const FOOTER_RESERVE = 16;
 
 /** Optional institute branding for document header */
@@ -49,10 +49,10 @@ export const generatePdfReport = (
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(30, 41, 59);
         doc.text(text, margin, y);
-        y += LINE_HEIGHT + 1;
+        y += LINE_HEIGHT;
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, y, pageWidth - margin, y);
-        y += LINE_HEIGHT + 2;
+        y += LINE_HEIGHT;
     };
 
     const addSectionTitle = (text: string) => {
@@ -60,16 +60,16 @@ export const generatePdfReport = (
             doc.addPage();
             y = margin;
         }
-        y += 2;
-        doc.setFontSize(14);
+        y += 1;
+        doc.setFontSize(16);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(30, 41, 59);
         doc.text(text, margin, y);
-        y += LINE_HEIGHT + 1;
+        y += LINE_HEIGHT;
     };
 
     const addText = (text: string, isListItem = false) => {
-        doc.setFontSize(11);
+        doc.setFontSize(14);
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(40, 40, 40);
         const textToSplit = text || 'N/A';
@@ -87,13 +87,13 @@ export const generatePdfReport = (
             doc.text(line, lineX, y);
             y += LINE_HEIGHT;
         });
-        y += 4;
+        y += 2;
     };
 
     const addKeyValue = (key: string, value: string | undefined | null) => {
         if (!value) return;
         const keyString = `${key}:`;
-        doc.setFontSize(11);
+        doc.setFontSize(14);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(40, 40, 40);
         const keyWidth = doc.getTextWidth(keyString) + 4;
@@ -144,7 +144,7 @@ export const generatePdfReport = (
         addKeyValue("Topilma", report.criticalFinding.finding);
         addKeyValue("Oqibat", report.criticalFinding.implication);
         addKeyValue("Shoshilinchlik", report.criticalFinding.urgency);
-        y += 10;
+        y += LINE_HEIGHT;
     }
 
     // --- Main Report Sections ---
