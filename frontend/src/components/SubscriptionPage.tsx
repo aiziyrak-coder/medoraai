@@ -3,7 +3,7 @@ import type { User, SubscriptionPlan } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import * as telegramService from '../services/telegramService';
 import * as apiSubscription from '../services/apiSubscriptionService';
-import * as authService from '../services/authService';
+import * as authService from '../services/apiAuthService';
 import { INSTITUTE_NAME_FULL } from '../constants/brand';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
 import CheckCircleIcon from './icons/CheckCircleIcon';
@@ -120,9 +120,8 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onSubscriptio
             );
 
             if (result.success) {
-                // Update localStorage (fallback auth)
-                authService.updateUserSubscription(user.phone, 'pending');
-                // Trigger App.tsx to refresh user from API (backend already set status to 'pending')
+                // Backend allaqachon statusni 'pending' ga o'zgartirdi
+                // App.tsx yangilansin
                 onSubscriptionPending();
             } else {
                 // Foydalanuvchiga tushunarli xabar

@@ -4,7 +4,6 @@ import type { PatientData, ChatMessage, FinalReport, ProgressUpdate, User, Analy
 import { normalizeConsensusDiagnosis } from './types';
 import * as aiService from './services/aiCouncilService';
 import * as authService from './services/apiAuthService';
-import * as authServiceLocal from './services/authService';
 import * as caseService from './services/caseService';
 import * as tvLinkService from './services/tvLinkService'; // Import TV Service
 import { useTranslation } from './hooks/useTranslation';

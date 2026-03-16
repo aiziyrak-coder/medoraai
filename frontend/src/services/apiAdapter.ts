@@ -1,8 +1,7 @@
 /**
- * API Adapter - Provides fallback to local storage when API is unavailable
+ * API Adapter - Server-only storage (no local fallback)
  */
 import type { User, AnalysisRecord } from '../types';
-import * as localAuthService from './authService';
 import * as apiAuthService from './apiAuthService';
 import { getAuthToken } from './api';
 
@@ -14,64 +13,37 @@ const isApiAvailable = (): boolean => {
 };
 
 /**
- * Get current user with API fallback
+ * Get current user (API only)
  */
 export const getCurrentUser = (): User | null => {
-  // Try API first
-  const apiUser = apiAuthService.getCurrentUser();
-  if (apiUser) {
-    return apiUser;
-  }
-  
-  // Fallback to local
-  return localAuthService.getCurrentUser();
+  return apiAuthService.getCurrentUser();
 };
 
 /**
- * Login with API fallback
+ * Login (API only)
  */
 export const login = async (credentials: { phone: string; password?: string }): Promise<{ success: boolean; message: string }> => {
-  // Try API first if available
   if (isApiAvailable()) {
-    try {
-      const result = await apiAuthService.login({ phone: credentials.phone, password: credentials.password ?? '' });
-      if (result.success) {
-        return result;
-      }
-    } catch {
-      // Fall through to local
-    }
+    return await apiAuthService.login({ phone: credentials.phone, password: credentials.password ?? '' });
   }
-  
-  // Fallback to local
-  return localAuthService.login(credentials);
+  return { success: false, message: 'Serverga ulanish yo\'q. Iltimos, internetni tekshiring.' };
 };
 
 /**
- * Register with API fallback
+ * Register (API only)
  */
 export const register = async (user: User): Promise<{ success: boolean; message: string }> => {
-  // Try API first if available
   if (isApiAvailable()) {
-    try {
-      const result = await apiAuthService.register({
-        phone: user.phone,
-        name: user.name,
-        password: user.password || '',
-        password_confirm: user.password || '',
-        role: user.role,
-        specialties: user.specialties,
-      });
-      if (result.success) {
-        return result;
-      }
-    } catch {
-      // Fall through to local
-    }
+    return await apiAuthService.register({
+      phone: user.phone,
+      name: user.name,
+      password: user.password || '',
+      password_confirm: user.password || '',
+      role: user.role,
+      specialties: user.specialties,
+    });
   }
-  
-  // Fallback to local
-  return localAuthService.register(user);
+  return { success: false, message: 'Serverga ulanish yo\'q. Iltimos, internetni tekshiring.' };
 };
 
 /**
@@ -79,5 +51,4 @@ export const register = async (user: User): Promise<{ success: boolean; message:
  */
 export const logout = (): void => {
   apiAuthService.logout();
-  localAuthService.logout();
 };

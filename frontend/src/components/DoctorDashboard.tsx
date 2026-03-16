@@ -5,7 +5,6 @@ import { getReasoningChainArray } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 import * as aiService from '../services/aiCouncilService';
 import * as authService from '../services/apiAuthService';
-import * as localAuthService from '../services/authService';
 import * as queueService from '../services/queueService';
 import * as settingsService from '../services/settingsService'; 
 import * as tvLinkService from '../services/tvLinkService'; 
@@ -297,22 +296,19 @@ const DocumentsView: React.FC<{ user: User }> = ({ user }) => {
     const { t } = useTranslation();
 
     useEffect(() => {
-        // Load analyses - try API first, fallback to local
+        // Load analyses - faqat API dan
         const loadAnalyses = async () => {
             try {
                 const { getAnalyses } = await import('../services/apiAnalysisService');
                 const response = await getAnalyses();
                 if (response.success && response.data) {
                     setDocs(response.data);
-                    return;
+                } else {
+                    setDocs([]);
                 }
             } catch {
-                // Fallback to local
+                setDocs([]);
             }
-            // Fallback to local storage
-            const { getAnalyses: getLocalAnalyses } = await import('../services/authService');
-            const history = getLocalAnalyses(user.phone);
-            setDocs(history);
         };
         loadAnalyses();
     }, [user.phone]);
@@ -379,13 +375,12 @@ const ProfileView: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
                 if (cancelled) return;
                 if (response.success && response.data) {
                     setStats(caseService.getDashboardStats(response.data));
-                    return;
+                } else {
+                    setStats(null);
                 }
-            } catch { /* Fallback */ }
-            if (cancelled) return;
-            const { getAnalyses: getLocalAnalyses } = await import('../services/authService');
-            const history = getLocalAnalyses(user.phone);
-            setStats(caseService.getDashboardStats(history));
+            } catch { 
+                setStats(null);
+            }
         })();
         return () => { cancelled = true; };
     }, [user.phone]);
@@ -429,8 +424,7 @@ const ProfileView: React.FC<{ user: User, onLogout: () => void }> = ({ user, onL
                 selectedFile, user, selectedPlan.price, undefined
             );
             if (result.success) {
-                const localAuth = await import('../services/authService');
-                localAuth.updateUserSubscription(user.phone, 'pending');
+                // Backend allaqachon statusni 'pending' ga o'zgartirdi
                 setUploadSuccess(true);
                 setSelectedFile(null);
                 setPreviewUrl(null);
@@ -804,11 +798,8 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user, onLogout }) => 
             if (!cancelled) setQueue(updatedQueue as DoctorPatient[]);
         });
 
-        // Assistant
-        const existingAssistant = localAuthService.getAssistant(user.phone);
-        if (existingAssistant) {
-            setAssistantData({ name: existingAssistant.name, phone: existingAssistant.phone, password: '' });
-        }
+        // Assistant - server orqali keladi (API qo'shilganda)
+        // TODO: API endpoint for assistant data
 
         // TV Settings
         setTvSettings(settingsService.getTvSettings(user.phone));
