@@ -244,14 +244,22 @@ export function getReasoningChainArray(d: { reasoningChain?: unknown }): string[
   return [];
 }
 
-/** Ensures consensusDiagnosis is always an array of Diagnosis; normalizes API/Gemini shape. Probability is coerced to a finite number to avoid NaN% display. */
+/** Ensures consensusDiagnosis is always an array of Diagnosis; normalizes API/Gemini shape.
+ *  Probability kelayotgan qiymat ba'zan 0–1 oralig'ida (0.85) yoki 0–100 oralig'ida (85) bo'lishi mumkin.
+ *  Foydalanuvchiga har doim FOIZ ko'rinishida ko'rsatish uchun:
+ *    - agar 0 <= p <= 1 bo'lsa, 100 ga ko'paytiramiz (0.85 -> 85);
+ *    - aks holda p ni o'zini qoldiramiz.
+ */
 export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
   if (Array.isArray(raw)) {
     return raw.map((item: Record<string, unknown>) => {
-      const p = Number(item?.probability ?? 0);
+      const pRaw = Number(item?.probability ?? 0);
+      const pNorm = Number.isFinite(pRaw)
+        ? (pRaw >= 0 && pRaw <= 1 ? pRaw * 100 : pRaw)
+        : 0;
       return {
         name: String(item?.name ?? item?.diagnosis ?? ''),
-        probability: Number.isFinite(p) ? p : 0,
+        probability: Math.round(pNorm),
         justification: String(item?.justification ?? item?.reasoningChain ?? ''),
         evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
         reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : (typeof item?.reasoningChain === 'string' ? [item.reasoningChain] : []),
