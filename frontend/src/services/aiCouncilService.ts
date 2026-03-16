@@ -1130,7 +1130,7 @@ ${patientSummaryForRais}`;
 
     const DEBATE_ROUNDS = 3;
     let lastLivePrognosis: PrognosisReport | null = null;
-    // Birinchi mavzu — bemor, kasallik va (agar bor bo'lsa) hujjatlar asosida; Rais hujjatlarni ko'radi
+    // Birinchi mavzu — bemor, kasallik va (agar bor bo'lsa) hujjatlar asosida; Professor hujjatlarni ko'radi
     const currentTopicPrompt = `Siz Konsilium professori. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi bemor va kasallik ma'lumotlarini (va ilovadagi hujjatlarini) o'qib, o'zingiz birinchi mavzuni yozing. Rasmiy salomlashuv ("Hurmatli hamkasblar" va h.k.) yozmang — to'g'ridan-to'g'ri mavzu va kasallikga e'tibor. Ob'ektiv ko'rik va yuklangan hujjatlar berilgan — shifokordan qayta so'ramang. Mutaxassislardan dastlabki baho va xavf belgilari so'ring; hujjatlar bo'lsa topilmalarni qisqacha yetkazing. Bitta to'liq paragraf, mazmunli. TIL: ${langMap[language]}.
 
 ${patientSummaryForRais}`;
@@ -1166,7 +1166,7 @@ ${patientSummaryForRais}`;
              debateHistory.push(userMessage);
         } else {
              const raisContent = (currentTopic || '').trim();
-             const fallbackRais = language === 'ru' ? 'Следующий вопрос: состояние пациента и диагноз. Ваши выводы?' : language === 'en' ? 'Next: patient state and diagnosis. Your view?' : 'Keyingi mavzu: bemor holati va tashxis. Fikrlar?';
+            const fallbackRais = language === 'ru' ? 'Следующий вопрос: состояние пациента и диагноз. Ваши выводы?' : language === 'en' ? 'Next: patient state and diagnosis. Your view?' : 'Keyingi mavzu: bemor holati va tashxis. Fikrlar?';
              const orchestratorMessage: ChatMessage = { id: `sys-${Date.now()}-${round}`, author: AIModel.SYSTEM, content: raisContent || fallbackRais, isSystemMessage: true };
              onProgress({ type: 'message', message: orchestratorMessage });
              debateHistory.push(orchestratorMessage);
@@ -1209,7 +1209,7 @@ ${bemorSummaryForSpec}
 ${fullDebateText}
 --- TUGADI ---
 
-Raisning hozirgi mavzusi: "${currentTopic}"
+Professorning hozirgi mavzusi: "${currentTopic}"
 
 QOIDALAR:
 1. Aloqasi BOR bo'lsa: Boshqa mutaxassislar gaplariga javob (qo'shilish, rad, savol), o'z sohangizdagi aniq taklif. Hammasi faqat yuqoridagi suhbatdan kelib chiqsin. Rasmiy salomlashuvsiz, mazmunan.
@@ -1230,7 +1230,7 @@ Javob 3-6 jumla, oxirigacha; keraksiz tantana yo'q. TIL: ${langMap[language]}.`;
                 onProgress({ type: 'message', message: specialistMessage });
                 debateHistory.push(specialistMessage);
 
-                // Foydalanuvchidan savolni faqat Rais so'raganda so'raymiz; mutaxassis yozgan savolni faqat suhbatga qo'shamiz, javob kutmaymiz
+                // Foydalanuvchidan savolni faqat professor so'raganda so'raymiz; mutaxassis yozgan savolni faqat suhbatga qo'shamiz, javob kutmaymiz
                 await sleep(15);
             } catch (e) {
                 // error handling

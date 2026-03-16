@@ -10,6 +10,134 @@ import { validateFileSize, validateFileType, validateAge, validateRequired, vali
 import { handleError } from '../utils/errorHandler';
 import { validatePatientDataSmart, getSmartValidationMessage } from '../utils/smartValidation';
 
+type SpecialtyKey = 'gastro' | 'cardio' | 'neuro' | 'therapist' | 'endo';
+
+const COMPLAINT_TEMPLATES: Record<SpecialtyKey, string[]> = {
+    gastro: [
+        "O‘ng yoki chap qorin sohasida takrorlanuvchi og‘riq, ovqatdan keyin kuchayadi.",
+        "Ko‘ngil aynishi, ba’zan qusish, ishtaha pasayishi.",
+        "Qabziyat va ich ketish almashib turishi.",
+        "Ko‘krak ortida achishish, nordon kekirish (reflyuks alomatlari).",
+        "Ovqatlangandan keyin qorin dam bo‘lishi, gaz ajralishi.",
+        "Najasda qon yoki qora najas (melena) paydo bo‘lishi.",
+        "Og‘izda achchiq ta’m va epigastral sohada og‘riq.",
+        "Kecha va och qoringa epigastriydagi achishuvchi og‘riqlar.",
+        "Doimiy og‘irlik hissi o‘ng qovurg‘a ostida.",
+        "Yurish va jismoniy faollikdan keyin kuchayuvchi qorin og‘riqlari."
+    ],
+    cardio: [
+        "Jismoniy zo‘riqishda to‘sh ortida bosuvchi og‘riq.",
+        "Nafas qisilishi, ayniqsa zinadan chiqishda yoki yotganda.",
+        "Yurak urishining tezlashishi va notekisligi (aritmiya hissi).",
+        "Pastki oyoqlarda shish, kun oxirida kuchayadi.",
+        "Bosh aylanishi va hushdan qolish epizodlari.",
+        "Bosim ko‘tarilishi bilan bog‘liq bosh og‘rig‘i.",
+        "Tunda bo‘g‘ilish xurujlari (yurak astmasi).",
+        "Chap qo‘l, bo‘yin yoki jag‘ga tarqaluvchi ko‘krak og‘rig‘i.",
+        "Zaiflik va tez charchash.",
+        "Qon bosimi ko‘tarilganda ko‘krakda noqulaylik."
+    ],
+    neuro: [
+        "Qaytalanib turuvchi bosh og‘rig‘i.",
+        "Qo‘l yoki oyoqlarda uvishish va karaxtlik.",
+        "Bosh aylanishi va beqaror yurish.",
+        "Gapirish qiyinlashishi yoki tili chalg‘ishi.",
+        "Qisqa muddatli hushdan qolish xurujlari.",
+        "Tutilish (epileptik) xurujlari tarixi.",
+        "Bir ko‘zda yoki bir tomonda ko‘rishning pasayishi.",
+        "Yuz nervi falaji, mimikaning buzilishi.",
+        "Uyqu buzilishi va tunda qo‘rquv bilan uyg‘onish.",
+        "Xotira pasayishi, diqqatni jamlay olmaslik."
+    ],
+    therapist: [
+        "Umumiy holsizlik, tez charchash.",
+        "Isitma yoki subfebril harorat uzoq davom etishi.",
+        "Ishtahaning pasayishi va vazn yo‘qotish.",
+        "Bo‘g‘imlarda og‘riq va qotish.",
+        "Quruq yoki balg‘amli yo‘tal.",
+        "Terida toshmalar yoki qichishish.",
+        "Uyqu va kayfiyat buzilishlari.",
+        "Qon bosimi o‘zgaruvchanligi, bosh og‘rig‘i.",
+        "Qon tekshiruvlarida anemiya aniqlangan.",
+        "Surunkali kasalliklar fonida umumiy ahvolning yomonlashuvi."
+    ],
+    endo: [
+        "Qattiq chanqash va tez-tez siyishga chiqish.",
+        "Keskin yoki sekin vazn yo‘qotish / ortishi.",
+        "Qo‘l va oyoqlarda uvishish (diabetik neyropatiya alomatlari).",
+        "Teri quruqligi, soch to‘kilishi.",
+        "Issiq yoki sovuqqa toqat qilmaslik.",
+        "Bo‘yin old qismida bo‘rtma (qalqonsimon bez kattalashishi).",
+        "Ayollarda hayz siklining buzilishi.",
+        "Uyquchanlik yoki aksincha bezovtalik, yurak urish tezlashishi.",
+        "Lab va yuzda giperpigmentatsiya yoki oq dog‘lar.",
+        "Diabet bo‘yicha nazoratning yomonlashuvi (glyukoza yuqori)."
+    ],
+};
+
+const HISTORY_TEMPLATES: Record<SpecialtyKey, string[]> = {
+    gastro: [
+        "Shikoyatlar taxminan 6 oy oldin boshlangan, asta-sekin kuchayib bormoqda.",
+        "Ovqatlanish tartibi va ratsionidagi xatolar fonida shikoyatlar kuchayadi.",
+        "Oldin oshqozon-ichak kasalliklari bo‘yicha davolangan, to‘liq remissiya bo‘lmagan.",
+        "Yaqinda NSAID guruhidagi og‘riq qoldiruvchi dorilarni qabul qilgan.",
+        "Chekish va muntazam choy/kofe iste’moli mavjud.",
+        "Oila a’zolarida oshqozon-yarali kasallik tarixi bor.",
+        "Jarrohlik aralashuvi (appendektomiya va boshqalar) tarixi mavjud.",
+        "Stress davrlarida dispeptik shikoyatlar kuchayadi.",
+        "Profilaktik gastroskopiya o‘tkazilmagan yoki anchadan beri o‘tkazilmagan.",
+        "Dori va parhezga rioya qilmaganda simptomlar tez qaytadi."
+    ],
+    cardio: [
+        "Arterial gipertenziya tashxisi bir necha yil oldin qo‘yilgan, doimiy davolashga rioya qilinmagan.",
+        "Yurak tomirlari bo‘yicha irsiy yuklama mavjud.",
+        "Chekish staji 10 yildan ortiq.",
+        "Jismoniy faollik keskin kamaygan, o‘tirish tarzidagi turmush tarzi.",
+        "Qon lipidlarida dislipidemiya aniqlangan, davolash yetarli bo‘lmagan.",
+        "Oldin yurak ishemik kasalligi yoki stenokardiya bo‘yicha kuzatuvda bo‘lgan.",
+        "Qon bosimini nazorat qilish uy sharoitida yetarli emas.",
+        "O‘tkir respirator infeksiyadan so‘ng shikoyatlar kuchaygan.",
+        "Emosional stressdan so‘ng ko‘krak og‘rig‘i paydo bo‘la boshlagan.",
+        "Doimiy dori qabul qilish rejimi tez-tez buzilib turgan."
+    ],
+    neuro: [
+        "Bosh og‘riqlari bir necha yillardan beri takrorlanib keladi, oxirgi oylarda chastotasi oshgan.",
+        "Uyqu yetishmasligi va ish stressi fonida simptomlar kuchayadi.",
+        "Oldin bosh miya jarohati (YUT) bo‘lgan.",
+        "Nevrologik kasalliklar bo‘yicha oila tarixida holatlar bor.",
+        "Migren bo‘yicha davolangan, ammo profilaktika kurslari bajarilmagan.",
+        "Qon bosimining o‘zgarishi bosh aylanish xurujlari bilan birga kechadi.",
+        "Epileptik tutilish bo‘yicha kuzatuvda bo‘lgan / tekshiruv o‘tkazilgan.",
+        "Kompyuter oldida uzoq ishlash sababli bo‘yin mushaklarida zo‘riqish mavjud.",
+        "Oldingi MRT/KT tekshiruvlari cheklangan bo‘lgan yoki o‘tkazilmagan.",
+        "Oxirgi vaqtlarda kognitiv funksiyalar pasaygani sezilgan."
+    ],
+    therapist: [
+        "Surunkali kasalliklar fonida umumiy ahvol so‘nggi oyda yomonlashgan.",
+        "So‘nggi 2–3 oy davomida tez-tez O‘RVI bilan og‘rigan.",
+        "Ovqatlanish tartibi buzilgan, kunlik ratsion balanssiz.",
+        "Uy sharoitida o‘z-o‘zini davolash uchun dorilarni nazoratsiz qabul qilgan.",
+        "Profilaktik ko‘riklarga muntazam qatnashmagan.",
+        "Allergik anamnez ijobiy, mavsumiy rinit/toshmalar kuzatilgan.",
+        "Jismoniy faollik yetarli emas.",
+        "Uyqu rejimi buzilgan, tungi uyqu sifatsiz.",
+        "Anemiya bo‘yicha ilgari ham laborator o‘zgarishlar aniqlangan.",
+        "So‘nggi emlashlar kalendarga mos ravishda o‘tkazilmagan."
+    ],
+    endo: [
+        "Qandli diabet tashxisi bir necha yil oldin qo‘yilgan, nazorat yetarli emas.",
+        "Insulin yoki peroral dori rejimiga to‘liq rioya qilinmagan.",
+        "Oilaviy anamnezda endokrin kasalliklar mavjud.",
+        "Qalqonsimon bez bo‘yicha avval ham tekshiruvdan o‘tgan yoki davolangan.",
+        "Oxirgi oylarda vazn va ishtaha keskin o‘zgargan.",
+        "Poliuriya va polidipsiya simptomlari asta-sekin paydo bo‘lgan.",
+        "Gipoglikemiya epizodlari kuzatilgan.",
+        "Ayollarda hayz sikli buzilishi / bepushtlik bo‘yicha shikoyatlar bor.",
+        "Steroid dorilarni uzoq muddat qabul qilgan anamnez mavjud.",
+        "Gormonlar darajasi avval ham o‘zgarib turgan."
+    ],
+};
+
 interface DataInputFormProps {
     isAnalyzing: boolean;
     onSubmit: (data: PatientData) => void;
@@ -71,6 +199,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         familyHistory: '',
         additionalInfo: '',
     });
+    const [selectedSpecialty, setSelectedSpecialty] = useState<SpecialtyKey | ''>('');
+    const [selectedComplaintIdx, setSelectedComplaintIdx] = useState<number | ''>('');
+    const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | ''>('');
     
     // Vitals State
     const [vitals, setVitals] = useState({
@@ -99,6 +230,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
         const msg = getSmartValidationMessage(res, t);
         setSmartMessage(msg);
     }, [formData, vitals.bpSystolic, vitals.heartRate, t]);
+
+    const appendToField = (field: 'complaints' | 'history', text: string) => {
+        setFormData(prev => {
+            const base = (prev[field] || '').trim();
+            const sep = base ? '\n' : '';
+            return { ...prev, [field]: `${base}${sep}${text}` };
+        });
+    };
 
     const handleChange = (field: keyof PatientData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -455,17 +594,92 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                             </div>
 
                             <div className="flex-grow flex flex-col gap-2 min-h-0">
-                                <div className="flex-grow flex flex-col">
-                                    <Textarea 
-                                        id="complaints" 
-                                        label={t('data_input_complaints_label')} 
-                                        placeholder={t('data_input_complaints_placeholder')}
-                                        value={formData.complaints || ''} 
-                                        onChange={e => handleChange('complaints', e.target.value)} 
-                                        required 
-                                        className="flex-grow"
-                                    />
-                                    {formErrors.complaints && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.complaints}</p>}
+                                <div className="flex flex-col gap-1">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <div className="flex flex-col">
+                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+                                                Mutaxassislik (shablonlar)
+                                            </label>
+                                            <select
+                                                value={selectedSpecialty}
+                                                onChange={e => {
+                                                    const value = e.target.value as SpecialtyKey | '';
+                                                    setSelectedSpecialty(value);
+                                                    setSelectedComplaintIdx('');
+                                                    setSelectedHistoryIdx('');
+                                                }}
+                                                className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg"
+                                            >
+                                                <option value="">Erkin matn</option>
+                                                <option value="gastro">Gastroenterologiya</option>
+                                                <option value="cardio">Kardiologiya</option>
+                                                <option value="neuro">Nevrologiya</option>
+                                                <option value="therapist">Terapiya</option>
+                                                <option value="endo">Endokrinologiya</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+                                                Tipik shikoyat
+                                            </label>
+                                            <select
+                                                value={selectedComplaintIdx}
+                                                onChange={e => {
+                                                    const idx = e.target.value === '' ? '' : Number(e.target.value);
+                                                    setSelectedComplaintIdx(idx);
+                                                    if (selectedSpecialty && idx !== '' && COMPLAINT_TEMPLATES[selectedSpecialty][idx]) {
+                                                        appendToField('complaints', COMPLAINT_TEMPLATES[selectedSpecialty][idx]);
+                                                    }
+                                                }}
+                                                disabled={!selectedSpecialty}
+                                                className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg disabled:bg-slate-100 disabled:text-slate-400"
+                                            >
+                                                <option value="">Qo‘shish uchun tanlang...</option>
+                                                {selectedSpecialty &&
+                                                    COMPLAINT_TEMPLATES[selectedSpecialty].map((item, idx) => (
+                                                        <option key={idx} value={idx}>
+                                                            {item.slice(0, 80)}{item.length > 80 ? '…' : ''}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+                                                Anamnez (tarix) shabloni
+                                            </label>
+                                            <select
+                                                value={selectedHistoryIdx}
+                                                onChange={e => {
+                                                    const idx = e.target.value === '' ? '' : Number(e.target.value);
+                                                    setSelectedHistoryIdx(idx);
+                                                    if (selectedSpecialty && idx !== '' && HISTORY_TEMPLATES[selectedSpecialty][idx]) {
+                                                        appendToField('history', HISTORY_TEMPLATES[selectedSpecialty][idx]);
+                                                    }
+                                                }}
+                                                disabled={!selectedSpecialty}
+                                                className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg disabled:bg-slate-100 disabled:text-slate-400"
+                                            >
+                                                <option value="">Qo‘shish uchun tanlang...</option>
+                                                {selectedSpecialty &&
+                                                    HISTORY_TEMPLATES[selectedSpecialty].map((item, idx) => (
+                                                        <option key={idx} value={idx}>
+                                                            {item.slice(0, 80)}{item.length > 80 ? '…' : ''}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="flex-grow flex flex-col">
+                                        <Textarea 
+                                            id="complaints" 
+                                            label={t('data_input_complaints_label')} 
+                                            placeholder={t('data_input_complaints_placeholder')}
+                                            value={formData.complaints || ''} 
+                                            onChange={e => handleChange('complaints', e.target.value)} 
+                                            className="flex-grow"
+                                        />
+                                        {formErrors.complaints && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.complaints}</p>}
+                                    </div>
                                 </div>
                                 <Textarea 
                                     id="history" 
