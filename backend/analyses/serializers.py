@@ -52,26 +52,10 @@ class AnalysisRecordCreateSerializer(serializers.ModelSerializer):
         ]
     
     def create(self, validated_data):
-        from accounts.utils import check_usage_limit, increment_usage
-        
         user = self.context['request'].user
-        
-        # Check usage limit
-        can_proceed, remaining = check_usage_limit(user, 'analyses')
-        if not can_proceed:
-            raise serializers.ValidationError({
-                'non_field_errors': [
-                    "Oylik tahlil limitiga yetdingiz. Keyingi oyda qayta urinib ko'ring."
-                ]
-            })
-        
         validated_data['created_by'] = user
-        instance = super().create(validated_data)
-        
-        # Increment usage counter
-        increment_usage(user, 'analyses')
-        
-        return instance
+        # Tahlillar har doim bazaga saqlansin — bu yerda limit tekshiruvi o‘chirildi
+        return super().create(validated_data)
 
 
 class AnalysisRecordUpdateSerializer(serializers.ModelSerializer):
