@@ -16,8 +16,8 @@ interface jsPDFInternal {
 export type SpecialistNameResolver = (author: string) => string;
 
 const PDF_FONT = 'times' as const; // Times New Roman — haqiqiy hujjat uslubi
-const LINE_HEIGHT = 8;
-const FOOTER_RESERVE = 18;
+const LINE_HEIGHT = 7;
+const FOOTER_RESERVE = 16;
 
 /** Optional institute branding for document header */
 export interface InstituteBranding {
@@ -49,10 +49,10 @@ export const generatePdfReport = (
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(30, 41, 59);
         doc.text(text, margin, y);
-        y += LINE_HEIGHT + 2;
+        y += LINE_HEIGHT + 1;
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, y, pageWidth - margin, y);
-        y += LINE_HEIGHT + 4;
+        y += LINE_HEIGHT + 2;
     };
 
     const addSectionTitle = (text: string) => {
@@ -60,12 +60,12 @@ export const generatePdfReport = (
             doc.addPage();
             y = margin;
         }
-        y += 4;
+        y += 2;
         doc.setFontSize(14);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(30, 41, 59);
         doc.text(text, margin, y);
-        y += LINE_HEIGHT + 2;
+        y += LINE_HEIGHT + 1;
     };
 
     const addText = (text: string, isListItem = false) => {
@@ -112,35 +112,6 @@ export const generatePdfReport = (
         });
         y += requiredHeight + 6;
     };
-    
-    // --- Institute branding (logo + name) at top of first page ---
-    if (branding?.instituteName || branding?.instituteLogoDataUrl) {
-        const logoSize = 16;
-        if (branding.instituteLogoDataUrl) {
-            try {
-                const imgData = branding.instituteLogoDataUrl.includes('base64,')
-                    ? branding.instituteLogoDataUrl.split(',')[1]
-                    : branding.instituteLogoDataUrl;
-                if (imgData) {
-                    doc.addImage(imgData, 'PNG', margin, y, logoSize, logoSize);
-                }
-            } catch {
-                // ignore image errors
-            }
-        }
-        if (branding.instituteName) {
-            doc.setFontSize(11);
-            doc.setFont(PDF_FONT, 'bold');
-            doc.setTextColor(30, 41, 59);
-            const nameX = branding.instituteLogoDataUrl ? margin + logoSize + 6 : margin;
-            const nameY = branding.instituteLogoDataUrl ? y + logoSize / 2 + 3 : y + 4;
-            doc.text(branding.instituteName, nameX, nameY);
-        }
-        y += (branding.instituteLogoDataUrl ? logoSize : LINE_HEIGHT) + 6;
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, y, pageWidth - margin, y);
-        y += LINE_HEIGHT + 6;
-    }
 
     // --- Page 1: Title and Patient Info (rasmiy hujjat uslubi) ---
     addHeader("KONSILIUM: Yakuniy Klinik Xulosa");
@@ -148,23 +119,23 @@ export const generatePdfReport = (
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
     doc.text("Rasmiy tibbiy maslahat hujjati - doktor tavsiyasi sifatida. Faqat ma'lumot uchun.", margin, y);
-    y += LINE_HEIGHT;
+    y += LINE_HEIGHT - 1;
     const reportDate = new Date();
     const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
     doc.text(`Hisobot sanasi: ${dateStr}`, margin, y);
-    y += LINE_HEIGHT + 6;
+    y += LINE_HEIGHT + 3;
 
     addSectionTitle("Bemor Ma'lumotlari");
     addKeyValue("Bemor", `${patientData.firstName} ${patientData.lastName}`);
     addKeyValue("Yoshi", patientData.age);
     addKeyValue("Jinsi", patientData.gender === 'male' ? 'Erkak' : patientData.gender === 'female' ? 'Ayol' : 'Boshqa');
-    y += 5;
+    y += 3;
     addKeyValue("Shikoyatlar va Anamnez", patientData.complaints);
-    y += 5;
+    y += 3;
     addKeyValue("Kasallik Tarixi", patientData.history);
-    y += 5;
+    y += 3;
     addKeyValue("Ob'ektiv Ko'rik", patientData.objectiveData);
-    y += 5;
+    y += 3;
     addKeyValue("Laborator Tahlillar", patientData.labResults);
     
     // --- Critical Finding (if any) ---
@@ -180,54 +151,54 @@ export const generatePdfReport = (
     addHeader("Konsilium Konsensusi");
 
     addSectionTitle("Eng Ehtimolli Tashxis(lar)");
-    normalizeConsensusDiagnosis(report.consensusDiagnosis).forEach(diag => {
+    normalizeConsensusDiagnosis(report.consensusDiagnosis).slice(0, 5).forEach(diag => {
         const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
         addKeyValue("Tashxis", `${diag.name} (${pct})`);
         addKeyValue("Dalillilik Darajasi", diag.evidenceLevel || "N/A");
         addKeyValue("Asoslash", diag.justification);
-        y += 5;
+        y += 3;
     });
     
     if (report.adverseEventRisks && report.adverseEventRisks.length > 0) {
         addSectionTitle("Dori vositalarining nojo'ya ta'sir xavfi");
-        report.adverseEventRisks.forEach(risk => {
+        report.adverseEventRisks.slice(0, 6).forEach(risk => {
             addKeyValue("Dori", risk.drug);
             addKeyValue("Xavf", `${risk.risk} (ehtimollik ~${Math.round(risk.probability * 100)}%)`);
             y += 3;
         });
-        y += 5;
+        y += 3;
     }
 
     addSectionTitle("Tavsiya Etilgan Davolash Rejasi");
-    (Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).forEach(step => {
+    (Array.isArray(report.treatmentPlan) ? report.treatmentPlan.slice(0, 10) : []).forEach(step => {
         const s = typeof step === 'string' ? step : (typeof step === 'object' && step !== null ? Object.values(step as Record<string, unknown>).filter(Boolean).join(' - ') : String(step ?? ''));
         addText(s, true);
     });
     
-    y += 5;
+    y += 3;
     addSectionTitle("Dori-Darmonlar bo'yicha Tavsiyalar");
-    (Array.isArray(report.medicationRecommendations) ? report.medicationRecommendations : []).forEach(med => {
+    (Array.isArray(report.medicationRecommendations) ? report.medicationRecommendations.slice(0, 10) : []).forEach(med => {
         addKeyValue("Nomi", med.name);
         addKeyValue("Doza", med.dosage);
         addKeyValue("Izoh", med.notes);
-        y += 3;
+        y += 2;
     });
 
     if (report.unexpectedFindings) {
-        y += 5;
+        y += 3;
         addSectionTitle("Kutilmagan Bog'liqliklar va Gipotezalar");
         addText(report.unexpectedFindings);
     }
     
-    y += 5;
+    y += 3;
     addSectionTitle("Inkor Etilgan Gipotezalar");
-    (Array.isArray(report.rejectedHypotheses) ? report.rejectedHypotheses : []).forEach(hyp => {
+    (Array.isArray(report.rejectedHypotheses) ? report.rejectedHypotheses.slice(0, 5) : []).forEach(hyp => {
         addKeyValue("Gipoteza", hyp.name);
         addKeyValue("Rad etish sababi", hyp.reason);
-        y += 3;
+        y += 2;
     });
 
-    y += 5;
+    y += 3;
     const recommendedTestStr = (t: unknown): string => {
         if (typeof t === 'string') return t;
         if (t && typeof t === 'object') {
@@ -237,7 +208,7 @@ export const generatePdfReport = (
         return String(t ?? '');
     };
     addSectionTitle("Tavsiya Etiladigan Qo'shimcha Tekshiruvlar");
-    (Array.isArray(report.recommendedTests) ? report.recommendedTests : []).forEach(test => addText(recommendedTestStr(test), true));
+    (Array.isArray(report.recommendedTests) ? report.recommendedTests.slice(0, 10) : []).forEach(test => addText(recommendedTestStr(test), true));
 
     if (report.uzbekistanLegislativeNote) {
         y += 5;
@@ -265,7 +236,7 @@ export const generatePdfReport = (
         y += LINE_HEIGHT + 4;
         const stripSalutation = (text: string) =>
             text.replace(/^\s*Hurmatli\s+Kengash\s+Raisi\s*,?\s*/i, '').trim();
-        lastByAuthor.forEach((msg, author) => {
+        Array.from(lastByAuthor.entries()).slice(0, 6).forEach(([author, msg]) => {
             const authorName = specialistName(author);
             if (y > pageHeight - 60) {
                 doc.addPage();
@@ -290,7 +261,7 @@ export const generatePdfReport = (
                 doc.text(line, margin, y);
                 y += LINE_HEIGHT;
             });
-            y += 8;
+            y += 5;
         });
         y += 8;
     }
