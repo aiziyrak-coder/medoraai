@@ -102,34 +102,15 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
       return { success: false, message };
     }
     
-    // Fallback to local storage if API fails
-    const { register: localRegister } = await import('./authService');
-    const localResult = localRegister({
-      phone: data.phone,
-      name: data.name,
-      password: data.password,
-      role: data.role,
-      specialties: data.specialties,
-    });
-    
-    return localResult;
+    return {
+      success: false,
+      message: "Serverga ulanib bo'lmadi. Iltimos, internetni tekshiring.",
+    };
   } catch (error) {
-    // Fallback to local storage
-    try {
-      const { register: localRegister } = await import('./authService');
-      return localRegister({
-        phone: data.phone,
-        name: data.name,
-        password: data.password,
-        role: data.role,
-        specialties: data.specialties,
-      });
-    } catch {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : "Ro'yxatdan o'tishda xatolik yuz berdi.",
-      };
-    }
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Ro'yxatdan o'tishda xatolik yuz berdi.",
+    };
   }
 };
 
@@ -163,36 +144,15 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
       return { success: false, message };
     }
     
-    // Fallback to local storage if API fails
-    const { login: localLogin } = await import('./authService');
-    const localResult = localLogin(credentials);
-    
-    if (localResult.success) {
-      const user = getCurrentUser();
-      if (user) {
-        saveUserData(user);
-      }
-    }
-    
-    return localResult;
+    return {
+      success: false,
+      message: "Serverga ulanib bo'lmadi. Iltimos, internetni tekshiring.",
+    };
   } catch (error) {
-    // Fallback to local storage
-    try {
-      const { login: localLogin } = await import('./authService');
-      const result = localLogin(credentials);
-      if (result.success) {
-        const user = getCurrentUser();
-        if (user) {
-          saveUserData(user);
-        }
-      }
-      return result;
-    } catch {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : "Kirishda xatolik yuz berdi.",
-      };
-    }
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Kirishda xatolik yuz berdi.",
+    };
   }
 };
 
