@@ -281,6 +281,7 @@ export const en = {
   data_input_template_select: 'Select a template...',
   data_input_patient_name: 'Patient First Name',
   data_input_patient_lastname: 'Patient Last Name',
+  data_input_patient_fathername: 'Patient Middle Name / Patronymic',
   data_input_age: 'Age',
   data_input_allergies: 'Allergies',
   data_input_current_medications: 'Current medications',

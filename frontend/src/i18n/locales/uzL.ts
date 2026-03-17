@@ -284,6 +284,7 @@ export const uzL: TranslationSet = {
   data_input_template_select: 'Shablon tanlang...',
   data_input_patient_name: 'Bemor Ismi',
   data_input_patient_lastname: 'Bemor Familiyasi',
+  data_input_patient_fathername: 'Otasining ismi',
   data_input_age: 'Yoshi',
   data_input_allergies: 'Allergiya',
   data_input_current_medications: 'Joriy dori-darmonlar',

@@ -283,6 +283,7 @@ export const ru: TranslationSet = {
   data_input_template_select: 'Выберите шаблон...',
   data_input_patient_name: 'Имя пациента',
   data_input_patient_lastname: 'Фамилия пациента',
+  data_input_patient_fathername: 'Отчество пациента',
   data_input_age: 'Возраст',
   data_input_allergies: 'Аллергия',
   data_input_current_medications: 'Текущие препараты',
