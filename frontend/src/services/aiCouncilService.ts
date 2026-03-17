@@ -1130,8 +1130,6 @@ ${patientSummaryForRais}`;
     const orchestratorIntro: ChatMessage = { id: `sys-intro-${Date.now()}`, author: AIModel.SYSTEM, content: (introContent || '').trim(), isSystemMessage: true };
     onProgress({ type: 'message', message: orchestratorIntro });
     debateHistory.push(orchestratorIntro);
-    // Faqat vizual effekt uchun juda qisqa pauza
-    await sleep(3);
 
     // Raundlar tushunchasini UI dan olib tashlaymiz: ichki hisob-kitob uchun 1 marta aylanish
     const DEBATE_ROUNDS = 1;
@@ -1179,9 +1177,6 @@ ${patientSummaryForRais}`;
              onProgress({ type: 'message', message: orchestratorMessage });
              debateHistory.push(orchestratorMessage);
         }
-        
-        // Sun'iy pauzani juda kichik qiymatga tushiramiz
-        await sleep(2);
 
         // Specialists Turn (faqat eng muhim 2 ta mutaxassis – maksimal tezlik uchun)
         const limitedSpecialists = specialistsConfig.slice(0, 2);
@@ -1227,15 +1222,15 @@ QOIDALAR:
 3. Shifokordan savol: faqat hayotiy xavf yoki tashxisni aniqlash uchun boshqa iloji bo'lmaganda "FOYDALANUVCHI UCHUN SAVOL: [savol]" yozing; aks holda yozmang.
 4. Ob'ektiv ko'rik (qon bosimi, puls, harorat, SpO2, nafas) yuqorida berilgan — shifokordan HECH QACHON so'ramang, xulosangizda hisobga oling.
 5. Laboratoriya va diagnostika hujjatlari (agar yuklangan bo'lsa) quyida/ilovada — ularni tahlil qiling, xulosangizda ishlating. Bu ma'lumotlarni shifokordan SO'RAMANG — allaqachon berilgan.
-6. Javobingiz uch bo'limdan iborat bo'lsin: (1) "Asosiy tashxis va dalillar" — asosiy ehtimol tashxis va 2–3 asosiy dalil; (2) "Differensial tashxislar" — kamida 2 ta muqobil tashxis va nima uchun kamroq ehtimol; (3) "Tavsiya va keyingi qadamlar" — asosiy tekshiruvlar va davolashning qisqa rejasi.
+6. Javobingiz aniq strukturada bo'lsin, lekin faqat matn ko'rinishida (bullet yoki yulduzcha ishlatmang): avval "Asosiy tashxis va dalillar" (asosiy tashxis va 2–3 asosiy dalil), keyin "Differensial tashxislar" (kamida 2 ta muqobil tashxis va nima uchun kamroq ehtimol), oxirida "Tavsiya va keyingi qadamlar" (asosiy tekshiruvlar va davolashning qisqa rejasi).
 
-Javob 6–10 jumla atrofida bo'lsin: qisqa, lekin CHUQUR va batafsil tahlil qiling, gap o'rtada uzilib qolmasin. Keraksiz tantana yo'q. TIL: ${langMap[language]}.`;
+Javob 6–10 juda mazmunli jumla bo'lsin: qisqa, lekin CHUQUR va batafsil tahlil qiling, gap o'rtada uzilib qolmasin. Keraksiz tantana yo'q. TIL: ${langMap[language]}.`;
 
             
             const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData, pastCasesForContext);
             
             try {
-                const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 3072) as string;
+                const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 4096) as string;
                 const trimmed = (responseText || '').trim();
                 const specialistMessage: ChatMessage = { id: `${spec.role}-${Date.now()}`, author: spec.role, content: trimmed };
                 onProgress({ type: 'message', message: specialistMessage });
@@ -1274,8 +1269,6 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         'en': 'Preparing final report...'
     };
     onProgress({ type: 'status', message: finalizingMessages[language] });
-    // Yakuniy hisobotdan oldingi kutish ham minimal
-    await sleep(2);
 
     const finalReportSchema = {
         type: 'object',
