@@ -457,19 +457,24 @@ export interface HealthCheckResult {
 
 /**
  * Check backend health (for connectivity banner / offline detection).
- * Returns ok + status so UI can show DNS hint when status is 400.
+ * Uses same origin as the page so CORS/redirect do not cause false "offline".
+ * On timeout/network error we report ok: true so the banner does not block the user.
  */
 export const checkApiHealth = async (): Promise<HealthCheckResult> => {
+  const healthUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/health/`
+      : `${HOST_BASE}/health/`;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(`${HOST_BASE}/health/`, { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(healthUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
-    // 2xx: healthy. 400: DNS/redirect issue. 5xx: server error → offline.
-    // 3xx, 4xx (except 400): server is up (just redirecting or auth-protected)
+    // 2xx: healthy. 400: DNS/redirect. 5xx: server error.
     const isServerUp = res.status < 500 && res.status !== 400;
     return { ok: isServerUp, status: res.status };
   } catch {
-    return { ok: false };
+    // Vaqtinchalik tarmoq xatosi — banner ko'rsatmaymiz, saqlash o'zida xato chiqaradi
+    return { ok: true, status: undefined };
   }
 };
