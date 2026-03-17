@@ -41,15 +41,17 @@ class AnalysisRecordSerializer(serializers.ModelSerializer):
 
 
 class AnalysisRecordCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating analysis record"""
+    """Serializer for creating analysis record. id is read_only so create response includes it."""
     
     class Meta:
         model = AnalysisRecord
         fields = [
+            'id',
             'patient', 'external_patient_id', 'patient_data',
             'debate_history', 'final_report', 'follow_up_history',
             'selected_specialists', 'detected_medications'
         ]
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         user = self.context['request'].user

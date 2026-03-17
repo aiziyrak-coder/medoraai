@@ -57,9 +57,9 @@ const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
     priceEstimate: m?.priceEstimate ?? m?.price_estimate != null ? String(m.price_estimate) : undefined,
   }));
   return {
-    id: api.id.toString(),
+    id: String(api?.id ?? api?.pk ?? ''),
     patientId,
-    date: api.created_at,
+    date: api?.created_at ?? new Date().toISOString(),
     patientData: api.patient_data as unknown as AnalysisRecord['patientData'],
     debateHistory: api.debate_history || [],
     finalReport: {

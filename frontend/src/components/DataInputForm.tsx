@@ -143,23 +143,23 @@ interface DataInputFormProps {
     onSubmit: (data: PatientData) => void;
 }
 
-// Ultra-compact Input component (label/placeholder yaxshi ko-rinishi uchun qorong-u matn)
+// Ultra-compact Input (barcha yozuvlar kichik — sig‘ishi uchun)
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string }> = ({ id, label, className, ...props }) => (
     <div className={`flex flex-col ${className}`}>
-        <label htmlFor={id} className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+        <label htmlFor={id} className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
             {label}
         </label>
-        <input id={id} {...props} className="block w-full text-xs text-slate-800 common-input py-1.5 px-2 bg-white/80 focus:bg-white placeholder-slate-500 transition-all duration-200 border border-slate-200 shadow-sm focus:ring-1 focus:ring-blue-400 rounded-lg" />
+        <input id={id} {...props} className="block w-full text-[11px] text-slate-800 common-input py-1 px-1.5 bg-white/80 focus:bg-white placeholder-slate-500 transition-all duration-200 border border-slate-200 shadow-sm focus:ring-1 focus:ring-blue-400 rounded" />
     </div>
 );
 
-// Ultra-compact Textarea with flexible height
+// Ultra-compact Textarea
 const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string }> = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string }>(({ id, label, className, ...props }, ref) => (
      <div className={`flex flex-col h-full ${className}`}>
-        <label htmlFor={id} className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+        <label htmlFor={id} className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
             {label}
         </label>
-        <textarea id={id} {...props} className="block w-full flex-grow text-xs text-slate-800 common-input py-2 px-2 bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 resize-none rounded-lg" ref={ref} />
+        <textarea id={id} {...props} className="block w-full flex-grow text-[11px] text-slate-800 common-input py-1.5 px-1.5 bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 resize-none rounded" ref={ref} />
     </div>
 ));
 
@@ -167,19 +167,19 @@ const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label
     const inputId = id || `vital-${label.replace(/\s+/g, '-').toLowerCase()}`;
     return (
         <div className="flex flex-col">
-            <div className={`bg-white/70 p-1.5 rounded-lg border flex flex-col justify-between ${
+            <div className={`bg-white/70 p-1 rounded border flex flex-col justify-between ${
                 error ? 'border-red-400 bg-red-50/50' : 'border-slate-200'
             }`}>
-                <label htmlFor={inputId} className="text-[9px] font-bold text-slate-700 uppercase">{label}</label>
-                <div className="flex items-baseline gap-1">
-                    <input id={inputId} name={inputId} aria-label={label} {...props} className={`w-full bg-transparent text-sm font-bold outline-none p-0 ${
+                <label htmlFor={inputId} className="text-[8px] font-bold text-slate-700 uppercase">{label}</label>
+                <div className="flex items-baseline gap-0.5">
+                    <input id={inputId} name={inputId} aria-label={label} {...props} className={`w-full bg-transparent text-[11px] font-bold outline-none p-0 ${
                         error ? 'text-red-700' : 'text-slate-800'
                     }`} placeholder="0" />
-                    <span className="text-[9px] text-slate-600">{unit}</span>
+                    <span className="text-[8px] text-slate-600">{unit}</span>
                 </div>
             </div>
             {error && (
-                <p className="text-[9px] text-red-600 mt-0.5 px-1 font-medium leading-tight">{error}</p>
+                <p className="text-[8px] text-red-600 mt-0.5 px-0.5 font-medium leading-tight">{error}</p>
             )}
         </div>
     );
@@ -481,15 +481,15 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
             <form onSubmit={handleSubmit} className="flex-grow flex flex-col min-h-0">
                 
                 {/* Header & Submit Button */}
-                <div className="flex-shrink-0 flex justify-between items-center mb-4 px-1">
+                <div className="flex-shrink-0 flex justify-between items-center mb-2 px-1">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-800">{t('data_form_new_case')}</h2>
-                        <p className="text-xs text-text-secondary">{t('data_form_subtitle')}</p>
+                        <h2 className="text-sm font-bold text-slate-800">{t('data_form_new_case')}</h2>
+                        <p className="text-[10px] text-text-secondary">{t('data_form_subtitle')}</p>
                     </div>
                     <button 
                         type="submit" 
                         disabled={isAnalyzing} 
-                        className="shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm py-2.5 px-6 rounded-xl transform transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-blue-500/30 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="shadow shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs py-2 px-4 rounded-lg transform transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500/30 flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isAnalyzing ? (
                             <>
@@ -507,57 +507,57 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
                 {/* Aqlli maslahat / ogohlantirish */}
                 {(smartMessage || formErrors._smart) && (
-                    <div className={`flex-shrink-0 mb-3 px-3 py-2 rounded-xl text-xs font-medium ${formErrors._smart ? 'bg-red-100 border border-red-300 text-red-800' : 'bg-blue-100 border border-blue-300 text-blue-900'}`}>
+                    <div className={`flex-shrink-0 mb-2 px-2 py-1.5 rounded-lg text-[10px] font-medium ${formErrors._smart ? 'bg-red-100 border border-red-300 text-red-800' : 'bg-blue-100 border border-blue-300 text-blue-900'}`}>
                         {formErrors._smart ? formErrors._smart : smartMessage}
                     </div>
                 )}
 
-                <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-12 gap-3 min-h-0"> 
+                <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-12 gap-2 min-h-0"> 
                     
                     {/* LEFT COLUMN: Demographics & Other Info (3 cols) */}
-                    <div className="lg:col-span-2 2xl:col-span-3 flex flex-col gap-3 h-full overflow-hidden">
+                    <div className="lg:col-span-2 2xl:col-span-3 flex flex-col gap-2 h-full overflow-hidden">
                         {/* Demographics */}
-                        <div className="glass-panel p-3 space-y-2 flex-shrink-0">
-                            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[10px]">1</span>
+                        <div className="glass-panel p-2 space-y-1.5 flex-shrink-0">
+                            <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
+                                <span className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[8px]">1</span>
                                 {t('data_form_section_passport')}
                             </h3>
                             <div>
                                 <Input id="firstName" label={t('data_input_patient_name')} type="text" value={formData.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required placeholder={t('data_input_placeholder_firstname')} />
-                                {formErrors.firstName && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.firstName}</p>}
+                                {formErrors.firstName && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.firstName}</p>}
                             </div>
                             <div>
                                 <Input id="lastName" label={t('data_input_patient_lastname')} type="text" value={formData.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required placeholder={t('data_input_placeholder_lastname')} />
-                                {formErrors.lastName && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.lastName}</p>}
+                                {formErrors.lastName && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.lastName}</p>}
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-1.5">
                                 <div>
                                     <div className="flex flex-col">
                                         <div className={formErrors.age ? 'border-2 border-red-500 rounded-lg' : ''}>
                                             <Input id="age" label={t('data_input_age')} type="number" value={formData.age || ''} onChange={e => handleChange('age', e.target.value)} required placeholder={t('data_input_placeholder_age')} min="0" max="120" />
                                         </div>
                                         {formErrors.age && (
-                                            <p className="text-[10px] text-red-600 mt-0.5 px-1 font-medium leading-tight">{formErrors.age}</p>
+                                            <p className="text-[9px] text-red-600 mt-0.5 px-0.5 font-medium leading-tight">{formErrors.age}</p>
                                         )}
                                     </div>
-                                    {formErrors.age && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.age}</p>}
+                                    {formErrors.age && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.age}</p>}
                                 </div>
                                 <div className="flex flex-col">
-                                    <label htmlFor="gender" className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">{t('data_input_gender')}</label>
-                                    <select id="gender" value={formData.gender || ''} onChange={e => handleChange('gender', e.target.value)} required className={`block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg ${formErrors.gender ? 'ring-1 ring-red-500' : ''}`}>
+                                    <label htmlFor="gender" className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">{t('data_input_gender')}</label>
+                                    <select id="gender" value={formData.gender || ''} onChange={e => handleChange('gender', e.target.value)} required className={`block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded ${formErrors.gender ? 'ring-1 ring-red-500' : ''}`}>
                                         <option value="">{t('data_input_gender_select')}</option>
                                         <option value="male">{t('data_input_gender_male')}</option>
                                         <option value="female">{t('data_input_gender_female')}</option>
                                     </select>
-                                    {formErrors.gender && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.gender}</p>}
+                                    {formErrors.gender && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.gender}</p>}
                                 </div>
                             </div>
                         </div>
                         
                         {/* Allergiya va dori-darmonlar (xavfsizlik uchun muhim) */}
-                        <div className="glass-panel p-3 space-y-2 flex-shrink-0">
-                            <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[10px]">!</span>
+                        <div className="glass-panel p-2 space-y-1.5 flex-shrink-0">
+                            <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
+                                <span className="w-4 h-4 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[8px]">!</span>
                                 {t('data_form_section_safety')}
                             </h3>
                             <div>
@@ -569,9 +569,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                         </div>
 
                         {/* Other Information (Replaces old File Upload) */}
-                        <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
-                             <h3 className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[10px]">4</span>
+                        <div className="glass-panel p-2 flex-grow flex flex-col min-h-0">
+                             <h3 className="text-[10px] font-bold text-slate-800 mb-1.5 flex items-center gap-1">
+                                <span className="w-4 h-4 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[8px]">4</span>
                                 {t('data_form_section_other_info')}
                             </h3>
                             <Textarea 
@@ -586,18 +586,18 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                     </div>
 
                     {/* MIDDLE COLUMN: Clinical Data & Vitals (5 cols) */}
-                    <div className="lg:col-span-2 2xl:col-span-5 flex flex-col gap-3 h-full overflow-hidden">
-                        <div className="glass-panel p-3 flex-grow flex flex-col min-h-0">
-                            <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                                <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[10px] font-bold">2</div>
-                                <h3 className="text-xs font-bold text-slate-800">{t('data_form_clinical_data')}</h3>
+                    <div className="lg:col-span-2 2xl:col-span-5 flex flex-col gap-2 h-full overflow-hidden">
+                        <div className="glass-panel p-2 flex-grow flex flex-col min-h-0">
+                            <div className="flex items-center gap-1 mb-1.5 flex-shrink-0">
+                                <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[8px] font-bold">2</div>
+                                <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_clinical_data')}</h3>
                             </div>
 
-                            <div className="flex-grow flex flex-col gap-2 min-h-0">
+                            <div className="flex-grow flex flex-col gap-1.5 min-h-0">
                                 <div className="flex flex-col gap-1">
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+                                            <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
                                                 Mutaxassislik (shablonlar)
                                             </label>
                                             <select
@@ -608,7 +608,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                                     setSelectedComplaintIdx('');
                                                     setSelectedHistoryIdx('');
                                                 }}
-                                                className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg"
+                                                className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded"
                                             >
                                                 <option value="">Erkin matn</option>
                                                 <option value="gastro">Gastroenterologiya</option>
@@ -619,7 +619,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+                                            <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
                                                 Tipik shikoyat
                                             </label>
                                             <select
@@ -632,7 +632,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                                     }
                                                 }}
                                                 disabled={!selectedSpecialty}
-                                                className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg disabled:bg-slate-100 disabled:text-slate-400"
+                                                className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded disabled:bg-slate-100 disabled:text-slate-400"
                                             >
                                                 <option value="">Qo‘shish uchun tanlang...</option>
                                                 {selectedSpecialty &&
@@ -644,7 +644,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
-                                            <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-1 mb-0.5">
+                                            <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
                                                 Anamnez (tarix) shabloni
                                             </label>
                                             <select
@@ -657,7 +657,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                                     }
                                                 }}
                                                 disabled={!selectedSpecialty}
-                                                className="block w-full text-xs common-input py-1.5 px-2 bg-white/60 focus:bg-white border-none rounded-lg disabled:bg-slate-100 disabled:text-slate-400"
+                                                className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded disabled:bg-slate-100 disabled:text-slate-400"
                                             >
                                                 <option value="">Qo‘shish uchun tanlang...</option>
                                                 {selectedSpecialty &&
@@ -678,7 +678,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                                             onChange={e => handleChange('complaints', e.target.value)} 
                                             className="flex-grow"
                                         />
-                                        {formErrors.complaints && <p className="text-[10px] text-red-500 mt-0.5 ml-1">{formErrors.complaints}</p>}
+                                        {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
                                 </div>
                                 <Textarea 
@@ -692,19 +692,19 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
                             </div>
                         </div>
 
-                        {/* Structured Vitals (Replaces old Objective Data Textarea) */}
-                        <div className="glass-panel p-3 flex-shrink-0">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                                <h3 className="text-xs font-bold text-slate-800">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
+                        {/* Structured Vitals */}
+                        <div className="glass-panel p-2 flex-shrink-0">
+                            <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                                <h3 className="text-[10px] font-bold text-slate-800">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
                                 <button
                                     type="button"
                                     onClick={fillNormalVitals}
-                                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-700 hover:bg-sky-200 border border-sky-200 transition-colors"
+                                    className="text-[9px] font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-700 hover:bg-sky-200 border border-sky-200 transition-colors"
                                 >
                                     {t('vitals_normal_btn')}
                                 </button>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-3 gap-1.5">
                                 <VitalInput id="vital-bp-systolic" label={t('data_form_vitals_bp_sys')} unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
                                 <VitalInput id="vital-bp-diastolic" label={t('data_form_vitals_bp_dia')} unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
                                 <VitalInput id="vital-heart-rate" label={t('data_form_vitals_pulse')} unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} error={vitalErrors.heartRate} />
@@ -717,47 +717,47 @@ const DataInputForm: React.FC<DataInputFormProps> = ({ isAnalyzing, onSubmit }) 
 
                     {/* RIGHT COLUMN: Diagnostics & Lab Uploads (4 cols) */}
                     <div className="lg:col-span-2 2xl:col-span-4 h-full overflow-hidden">
-                         <div className="glass-panel p-3 h-full flex flex-col">
-                            <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                                <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[10px] font-bold">3</div>
-                                <h3 className="text-xs font-bold text-slate-800">{t('data_form_diagnostics')}</h3>
+                         <div className="glass-panel p-2 h-full flex flex-col">
+                            <div className="flex items-center gap-1 mb-1.5 flex-shrink-0">
+                                <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[8px] font-bold">3</div>
+                                <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_diagnostics')}</h3>
                             </div>
                             
                             <div 
                                 onClick={() => fileInputRef.current?.click()} 
-                                className="flex-grow border-2 border-dashed border-teal-200 bg-teal-50/30 rounded-xl flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group min-h-0 relative"
+                                className="flex-grow border-2 border-dashed border-teal-200 bg-teal-50/30 rounded-lg flex flex-col items-center justify-center p-2 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group min-h-0 relative"
                             >
-                                <UploadCloudIcon className="h-10 w-10 text-teal-400 mb-2 group-hover:scale-110 transition-transform"/>
-                                <p className="text-sm font-bold text-teal-700 text-center">{t('data_form_upload_files')}</p>
-                                <p className="text-[10px] text-teal-600/70 text-center mt-1 px-4">
+                                <UploadCloudIcon className="h-7 w-7 text-teal-400 mb-1 group-hover:scale-110 transition-transform"/>
+                                <p className="text-[11px] font-bold text-teal-700 text-center">{t('data_form_upload_files')}</p>
+                                <p className="text-[9px] text-teal-600/70 text-center mt-0.5 px-2">
                                     {t('data_form_upload_hint')}
                                 </p>
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
                             </div>
 
                             {/* File List */}
-                            <div className="mt-3 flex-shrink-0 max-h-[150px] overflow-y-auto custom-scrollbar space-y-1">
+                            <div className="mt-2 flex-shrink-0 max-h-[120px] overflow-y-auto custom-scrollbar space-y-0.5">
                                 {attachments.map(file => (
-                                    <div key={file.name} className="flex items-center justify-between bg-white/60 px-3 py-2 rounded-lg border border-slate-200 text-xs">
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <DocumentTextIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                            <span className="truncate max-w-[150px] font-medium text-slate-700" title={file.name}>{file.name}</span>
-                                            <span className="text-[9px] text-slate-400">({(file.size / 1024 / 1024).toFixed(2)}MB)</span>
+                                    <div key={file.name} className="flex items-center justify-between bg-white/60 px-2 py-1 rounded border border-slate-200 text-[10px]">
+                                        <div className="flex items-center gap-1 overflow-hidden">
+                                            <DocumentTextIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                            <span className="truncate max-w-[130px] font-medium text-slate-700" title={file.name}>{file.name}</span>
+                                            <span className="text-[8px] text-slate-400">({(file.size / 1024 / 1024).toFixed(2)}MB)</span>
                                         </div>
-                                        <button onClick={(e) => {e.stopPropagation(); removeAttachment(file.name)}} className="text-slate-400 hover:text-red-500 font-bold p-1 rounded hover:bg-red-50 transition-colors" aria-label={`${t('data_form_remove_file')} ${file.name}`}>&times;</button>
+                                        <button onClick={(e) => {e.stopPropagation(); removeAttachment(file.name)}} className="text-slate-400 hover:text-red-500 font-bold p-0.5 rounded hover:bg-red-50 transition-colors text-sm leading-none" aria-label={`${t('data_form_remove_file')} ${file.name}`}>&times;</button>
                                     </div>
                                 ))}
                                 {Object.keys(fileErrors).length > 0 && (
-                                    <div className="space-y-1">
+                                    <div className="space-y-0.5">
                                         {Object.entries(fileErrors).map(([fileName, error]) => (
-                                            <div key={fileName} className="text-[10px] text-red-500 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                            <div key={fileName} className="text-[9px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
                                                 <strong>{fileName}:</strong> {error}
                                             </div>
                                         ))}
                                     </div>
                                 )}
                                 {attachments.length === 0 && Object.keys(fileErrors).length === 0 && (
-                                    <p className="text-[10px] text-center text-slate-400 italic py-2">{t('data_form_no_files')}</p>
+                                    <p className="text-[9px] text-center text-slate-400 italic py-1">{t('data_form_no_files')}</p>
                                 )}
                             </div>
                         </div>

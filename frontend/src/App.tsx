@@ -334,7 +334,7 @@ const AppContent: React.FC = () => {
                                     return getAnalyses().then(response => {
                                         if (response.success && response.data) {
                                             const saved = response.data.find((r) => r.id === String(analysisIdNum)) || fromApi;
-                                            applyHistoryAndRecord(response.data, { ...fromApi, id: String(saved.id), patientId: saved.patientId });
+                                            applyHistoryAndRecord(response.data, { ...fromApi, id: String(saved?.id ?? fromApi.id ?? ''), patientId: saved?.patientId ?? fromApi.patientId ?? '' });
                                         } else {
                                             applyHistoryAndRecord([fromApi], fromApi);
                                         }
@@ -355,8 +355,8 @@ const AppContent: React.FC = () => {
                                 if (createRes.success && createRes.data) {
                                     const fromApi = {
                                         ...newRecord,
-                                        id: String(createRes.data.id),
-                                        patientId: String(createRes.data.patientId ?? patientId),
+                                        id: String((createRes.data as { id?: unknown }).id ?? ''),
+                                        patientId: String((createRes.data as { patientId?: unknown }).patientId ?? patientId ?? ''),
                                     };
                                     setError(null);
                                     return getAnalyses().then((response) => {
