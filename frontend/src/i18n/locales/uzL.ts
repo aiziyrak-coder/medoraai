@@ -236,6 +236,7 @@ export const uzL: TranslationSet = {
   dashboard_tools_desc: 'Kundalik vazifalar uchun AI yordamchi vositalaridan foydalaning.',
   dashboard_start: 'Boshlash',
   dashboard_stats_title: 'Shaxsiy Analitika',
+  dashboard_analytics_title: 'Analitika Hub',
   dashboard_cme_title: 'Siz uchun Tavsiyalar (UTT)',
   dashboard_recent_analyses_title: 'So\'nggi Tahlillar',
   dashboard_stats_loading: 'Statistika yuklanmoqda...',
