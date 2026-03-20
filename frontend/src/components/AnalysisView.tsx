@@ -224,7 +224,12 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                                             </p>
                                         </div>
                                     )}
-                                    {livePrognosis && <PrognosisCard prognosis={livePrognosis} />}
+                                    {(isAnalyzing || livePrognosis) && (
+                                        <PrognosisCard
+                                            prognosis={livePrognosis}
+                                            isLoading={isAnalyzing && !livePrognosis}
+                                        />
+                                    )}
                                     <p className="text-sm font-semibold text-text-primary italic">Yakuniy hisobot konsilium tugagach shu yerda chiqadi.</p>
                                 </div>
                             )}
