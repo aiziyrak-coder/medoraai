@@ -36,6 +36,8 @@ Repo: **Settings → Secrets and variables → Actions** — qo‘shing:
 
 Keyin: **Actions → Deploy server → Run workflow**.
 
+**Avtomatik deploy:** `main` ga `frontend/`, `backend/`, `deploy/` o‘zgarishi bilan push qilinsa, shu workflow serverda ham `server-deploy.sh` ni ishga tushiradi (secretlar mavjud bo‘lsa). Secretlar yo‘q bo‘lsa, workflow xato beradi — yoki faqat qo‘lda **Run workflow** ishlating.
+
 Fayl: `.github/workflows/deploy-server.yml`
 
 ---

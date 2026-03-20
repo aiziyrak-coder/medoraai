@@ -1,16 +1,26 @@
 # Serverda: git pull + migrate + frontend build + backend restart (deploy/server-deploy.sh)
 #
-# GitHub → Settings → Secrets → Actions:
-#   DEPLOY_HOST     (masalan 167.71.53.238)
+# GitHub → Settings → Secrets and variables → Actions:
+#   DEPLOY_HOST     (masalan medora.cdcgroup.uz yoki IP)
 #   DEPLOY_USER     (odatda root)
-#   DEPLOY_SSH_KEY  (SSH private key)
+#   DEPLOY_SSH_KEY  (SSH private key, to'liq matn)
+#   DEPLOY_PORT     (ixtiyoriy, default 22)
 #
-# Keyin: Actions → Deploy server → Run workflow
+# Qo'lda: Actions → Deploy server → Run workflow
+# Avtomatik: main ga push (frontend/backend/deploy o'zgarganda) — yuqoridagi secretlar bo'lsa server yangilanadi
 
 name: Deploy server
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'deploy/**'
+      - '.github/workflows/deploy-server.yml'
 
 concurrency:
   group: deploy-server
