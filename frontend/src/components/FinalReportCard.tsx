@@ -269,7 +269,16 @@ const FinalReportCard: React.FC<{
                                 {safePlan.map((item, index) => <li key={index}>{item}</li>)}
                             </ul>
                             ) : (
-                                <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+                                <div className="space-y-2 text-sm text-slate-600">
+                                    <p className="italic text-slate-500">
+                                        Yakuniy JSONda davolash rejasi bo‘sh kelgan. Quyidagi «Dori-darmonlar» bo‘limi va konsensus tashxisiga qarab, «Tahrirlash» orqali 3–5 ta aniq qadamni qo‘lda yozishingiz mumkin.
+                                    </p>
+                                    {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) && (
+                                        <p className="text-xs text-slate-500">
+                                            Masalan, dori blokidagi tavsiyalar asosida: birinchi qadam — tashxisni tasdiqlash / qo‘shimcha tekshiruv; keyingi qadamlar — dori rejasi va kuzatuv.
+                                        </p>
+                                    )}
+                                </div>
                             )}
                             {onUpdateReport && !isScenario && (
                                 <button onClick={() => setIsEditingPlan(true)} className="flex items-center gap-2 text-sm font-semibold text-accent-color-blue bg-slate-200/50 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors mt-3">

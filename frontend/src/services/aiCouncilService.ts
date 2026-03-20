@@ -1218,8 +1218,8 @@ QAT'IY:
 ${patientSummaryForRais}`;
     const professorMultimodal =
         attachmentCount > 0 ? buildMultimodalPrompt(professorOpeningPrompt, patientData, pastCasesForContext) : professorOpeningPrompt;
-    // 4096 token — kesilishning oldini olish; bitta chaqiruv (oldingi 1024+1024 takrori olib tashlandi)
-    let currentTopic = (await callGemini(professorMultimodal, DEPLOY_FAST, undefined, false, systemInstr, true, 4096)) as string;
+    // Professor yakuniy gaplari uchun keng limit — oxirida kesilmasin
+    let currentTopic = (await callGemini(professorMultimodal, DEPLOY_FAST, undefined, false, systemInstr, true, 8192)) as string;
     currentTopic = (currentTopic || '').trim();
 
     const orchestratorIntro: ChatMessage = {
@@ -1267,33 +1267,34 @@ ${patientSummaryForRais}`;
             // Professorning to'liq matni allaqachon yuqorida bitta xabar sifatida yuborilgan — shu yerda qayta yubormaymiz (takror va yarim gaplar oldini olish).
         }
 
-        // Specialists Turn (faqat eng muhim 2 ta mutaxassis – maksimal tezlik uchun)
-        const limitedSpecialists = specialistsConfig.slice(0, 2);
-        for (const spec of limitedSpecialists) {
-            onProgress({ type: 'thinking', model: spec.role });
-            const specialist = AI_SPECIALISTS[spec.role];
+        /** Eng ko'pi bilan 4 ta mutaxassis; parallel chaqiruv + qisqa javob (umumiy vaqt qisqaroq) */
+        const limitedSpecialists = specialistsConfig.slice(0, 4);
+        const recentDebate = debateHistory.slice(-14);
+        const fullDebateText = recentDebate
+            .map(m => {
+                const author = m.author === AIModel.SYSTEM ? 'Konsilium Professori' : String(m.author);
+                const content = (m.content || '').trim();
+                return `[${author}]: ${content.length > 2000 ? content.slice(0, 2000) + '…' : content}`;
+            })
+            .join('\n\n');
 
-            const specName = specialist?.name || String(spec.role);
-            const specTitle = specialist?.title || 'mutaxassis';
-            const recentDebate = debateHistory.slice(-14);
-            const fullDebateText = recentDebate
-                .map(m => {
-                    const author = m.author === AIModel.SYSTEM ? 'Konsilium Professori' : String(m.author);
-                    const content = (m.content || '').trim();
-                    return `[${author}]: ${content.length > 2000 ? content.slice(0, 2000) + '…' : content}`;
-                })
-                .join('\n\n');
-
-            const objectiveForSpec = (patientData.objectiveData || '').trim();
-            const labForSpec = (patientData.labResults || '').trim().slice(0, 300);
-            const attachmentsNoteForSpec = attachmentCount > 0
-                ? `\nLABORATORIYA/DIAGNOSTIKA HUJJATLARI: Bemor ${attachmentCount} ta fayl yuklagan (quyida ilovada). Ularni TAHLIL QILING, xulosangizda ishlating. Bu hujjatlar allaqachon berilgan — shifokordan SO'RAMANG.`
-                : '';
-            const bemorSummaryForSpec = `Shikoyat: ${(patientData.complaints || '').slice(0, 400)}.
+        const objectiveForSpec = (patientData.objectiveData || '').trim();
+        const labForSpec = (patientData.labResults || '').trim().slice(0, 300);
+        const attachmentsNoteForSpec = attachmentCount > 0
+            ? `\nLABORATORIYA/DIAGNOSTIKA HUJJATLARI: Bemor ${attachmentCount} ta fayl yuklagan (quyida ilovada). Ularni TAHLIL QILING, xulosangizda ishlating. Bu hujjatlar allaqachon berilgan — shifokordan SO'RAMANG.`
+            : '';
+        const bemorSummaryForSpec = `Shikoyat: ${(patientData.complaints || '').slice(0, 400)}.
 VITAL KO'RSATKICHLAR (shifokor kiritgan — SO'RAMANG, hisobga oling):
 ${objectiveForSpec || '-'}
 ${labForSpec ? `Laboratoriya ma'lumoti: ${labForSpec}` : ''}${attachmentsNoteForSpec}`;
-            const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — suhbat va kasallikni o'qib, o'z fikringizni yozasiz. "Hurmatli professor" yoki boshqa rasmiy salomlashuv YOZMANG — to'g'ridan-to'g'ri tashxis va fikr. Bir-birini rozi qilish yoki mulozamat ko'rsatish maqsad emas; muhimi aniq tashxis va dalilli, CHUQUR tahlil; e'tibor kasallikga. Ob'ektiv ko'rik va laboratoriya/hujjatlar berilgan — shifokordan so'ramang.
+
+        const specialistOutcomes = await Promise.all(
+            limitedSpecialists.map(async (spec, idx) => {
+                onProgress({ type: 'thinking', model: spec.role });
+                const specialist = AI_SPECIALISTS[spec.role];
+                const specName = specialist?.name || String(spec.role);
+                const specTitle = specialist?.title || 'mutaxassis';
+                const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — suhbat va kasallikni o'qib, o'z fikringizni yozasiz. "Hurmatli professor" yoki boshqa rasmiy salomlashuv YOZMANG — to'g'ridan-to'g'ri tashxis va fikr. Bir-birini rozi qilish yoki mulozamat ko'rsatish maqsad emas; muhimi aniq tashxis va dalilli, CHUQUR tahlil; e'tibor kasallikga. Ob'ektiv ko'rik va laboratoriya/hujjatlar berilgan — shifokordan so'ramang.
 
 --- BEMOR MA'LUMOTLARI (ob'ektiv ko'rik, lab va hujjatlar allaqachon kiritilgan — hisobga oling, qayta so'ramang) ---
 ${bemorSummaryForSpec}
@@ -1311,23 +1312,31 @@ QOIDALAR:
 3. Shifokordan savol: faqat hayotiy xavf yoki tashxisni aniqlash uchun boshqa iloji bo'lmaganda "FOYDALANUVCHI UCHUN SAVOL: [savol]" yozing; aks holda yozmang.
 4. Ob'ektiv ko'rik (qon bosimi, puls, harorat, SpO2, nafas) yuqorida berilgan — shifokordan HECH QACHON so'ramang, xulosangizda hisobga oling.
 5. Laboratoriya va diagnostika hujjatlari (agar yuklangan bo'lsa) quyida/ilovada — ularni tahlil qiling, xulosangizda ishlating. Bu ma'lumotlarni shifokordan SO'RAMANG — allaqachon berilgan.
-6. Javobingiz aniq strukturada bo'lsin, lekin faqat matn ko'rinishida (bullet yoki yulduzcha ishlatmang): avval "Asosiy tashxis va dalillar" (asosiy tashxis va 2–3 asosiy dalil), keyin "Differensial tashxislar" (kamida 2 ta muqobil tashxis va nima uchun kamroq ehtimol), oxirida "Tavsiya va keyingi qadamlar" (asosiy tekshiruvlar va davolashning qisqa rejasi).
+6. Javob tuzilishi (faqat matn, bullet/yulduzcha yo'q): (1) Asosiy tashxis va 2 ta asosiy dalil — har biri 1 qisqa jumla. (2) 2 ta differensial — har biri 1 jumla (nimaga kamroq ehtimol). (3) Tavsiya — 1–2 jumla (tekshiruv + davolash yo'nalishi).
 
-Javob 6–10 juda mazmunli jumla bo'lsin: qisqa, lekin CHUQUR va batafsil tahlil qiling, gap o'rtada uzilib qolmasin. Keraksiz tantana yo'q. TIL: ${langMap[language]}.
-OXIRGI QOIDA: javobni to'liq yakunlang — oxirgi jumla nuqta bilan tugasin; jumla yarmida to'xtamang. Agar cheklov bo'lsa, qisqaroq yozing, lekin har bir fikr to'liq bo'lsin.`;
+JAMI 4–6 QISQA, ANIQ jumla. Ortiqcha tafsilot va tantana YO'Q. TIL: ${langMap[language]}.
+OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
 
-            
-            const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData, pastCasesForContext);
-            
-            try {
-                const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 8192) as string;
-                const trimmed = (responseText || '').trim();
-                const specialistMessage: ChatMessage = { id: `${spec.role}-${Date.now()}`, author: spec.role, content: trimmed };
-                onProgress({ type: 'message', message: specialistMessage });
-                debateHistory.push(specialistMessage);
+                const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData, pastCasesForContext);
+                try {
+                    const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 2048) as string;
+                    const trimmed = (responseText || '').trim();
+                    const specialistMessage: ChatMessage = {
+                        id: `${spec.role}-${Date.now()}-${idx}`,
+                        author: spec.role,
+                        content: trimmed,
+                    };
+                    return { ok: true as const, message: specialistMessage };
+                } catch {
+                    return { ok: false as const, message: null };
+                }
+            }),
+        );
 
-            } catch (e) {
-                // error handling
+        for (const out of specialistOutcomes) {
+            if (out.ok && out.message) {
+                onProgress({ type: 'message', message: out.message });
+                debateHistory.push(out.message);
             }
         }
         
@@ -1384,7 +1393,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         LANGUAGE: ${langMap[language]}.
         REQUIREMENTS:
         1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: qaysi SSV protokoliga mos yoki "protokoldan chetga chiqish: [sabab]" (agar yangi/samarali yondashuv taklif qilsangiz).
-        2. treatmentPlan: SSV protokollarini asos qiling; agar yangi yoki protokoldan farq qiluvchi samarali yo'l taklif qilsangiz, qisqacha sababini ko'rsating. Batafsil va tartibli; shoshilinch bo'lsa birinchi qadamlar aniq.
+        2. treatmentPlan: MAJBURIY, bo'sh massiv QAYTARMANG. 3-7 ketma-ket qadam, har biri 1 qisqa, aniq jumla (amaliy). SSV protokollarini asos qiling; protokoldan chetga chiqsangiz 1 qisqa sabab. Shoshilinch bo'lsa birinchi qadamlar birinchi bo'lsin.
         3. medicationRecommendations: MAJBURIY — HECH QACHON bo'sh massiv qoldirmang. Tashxis va kasallik asosida o'zingiz (dalillarga tayanib) O'zbekistonda mavjud, bemor uchun eng foydali va kerakli dorilarni tavsiya qiling; ortiqcha dori yozmang — faqat zarur va samarali. Har bir dori uchun: (a) name — ANIQ SAVDO NOMI (Nimesil, Sumamed, Metformin, Paratsetamol, Amlodipin, Omeprazol, Enalapril, Augmentin, Ibuprofen va h.k.). (b) dosage — aniq doza (masalan "500 mg kuniga 2 marta, 7 kun"). (c) notes — HAR BIR DORI UCHUN qo'llanma: qanday ichish (ovqatdan oldin/keyin, suv bilan va h.k.), kuniga necha marta, davomiylik; qisqa yo'riqnoma. (d) localAvailability — "O'zbekistonda mavjud" yoki muqobil savdo nomlari. Allergiya va dori o'zaro ta'sirini hisobga oling. Kamida 1 ta, odatda 2–5 ta zarur dori bo'lsin.
         4. criticalFinding: MAJBURIY. Agar suhbatda yoki bemor ma'lumotlarida hayotga xavf, shoshilinch holat, kritik topilma (masalan anafilaksiya, miokard infarkt, insult, jiddiy qon ketish, septik shok, nafas yetishmovchiligi, xavfli aritmiya va h.k.) tilga olingan yoki ehtimoli bor bo'lsa — to'ldiring: finding (qisqa, aniq), implication (oqibat), urgency ("High" yoki "Medium"). Barchasi o'zbekcha. Yo'q bo'lsa null/bo'sh.
         5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
@@ -1478,7 +1487,40 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             return String(item ?? '');
         };
         const rawPlan = Array.isArray(rawReport.treatmentPlan) ? rawReport.treatmentPlan : [];
-        const treatmentPlan = rawPlan.map(planItemToStr).filter(s => s.trim());
+        let treatmentPlan = rawPlan.map(planItemToStr).filter(s => s.trim());
+        if (treatmentPlan.length === 0) {
+            const diagnosisNames = normalizeConsensusDiagnosis(rawReport.consensusDiagnosis)
+                .map(d => d.name)
+                .filter(Boolean)
+                .slice(0, 3);
+            const medHints = medicationRecommendations
+                .map(m => `${String(m.name ?? '').trim()}: ${String(m.dosage ?? '').trim()}`)
+                .filter(s => s.length > 3)
+                .slice(0, 5)
+                .join('; ');
+            if (diagnosisNames.length > 0 || medHints) {
+                try {
+                    const fallbackPlanPrompt = `Klinik tashxis(lar): ${diagnosisNames.join(', ') || 'aniq emas'}.
+Tavsiya etilgan dorilar (qisqa): ${medHints || 'kiritilmagan'}.
+Vazifa: 3-5 ta ketma-ket davolash bosqichi — har biri bitta qisqa, aniq jumla (amaliy qadam). Ortiqcha izoh yo'q. TIL: ${langMap[language]}.
+FAQAT JSON massiv: ["...","..."].`;
+                    const fallbackRaw = await callGemini(
+                        fallbackPlanPrompt,
+                        DEPLOY_FAST,
+                        { type: 'array', items: { type: 'string' } },
+                        false,
+                        systemInstr,
+                        true,
+                        1024,
+                    ) as unknown;
+                    const arr = Array.isArray(fallbackRaw) ? fallbackRaw : [];
+                    const cleaned = arr.map((s) => String(s ?? '').trim()).filter(Boolean);
+                    if (cleaned.length > 0) treatmentPlan = cleaned;
+                } catch {
+                    // ignore fallback failure
+                }
+            }
+        }
 
         const prognosisStatusMessages: Record<Language, string> = {
             'uz-L': 'Kasallik prognozi tayyorlanmoqda...',

@@ -752,27 +752,33 @@ const AppContent: React.FC = () => {
     };
     
     const handleUpdateReport = useCallback((updatedReport: Partial<FinalReport>) => {
-        if (!currentAnalysisRecord || !currentUser) return;
-        const merged = { ...currentAnalysisRecord.finalReport, ...updatedReport };
+        const baseReport = (currentAnalysisRecord?.finalReport as FinalReport | undefined) ?? finalReport;
+        if (!baseReport) return;
+        const merged = { ...baseReport, ...updatedReport };
         const newFinalReport: FinalReport = {
             ...merged,
-            consensusDiagnosis: normalizeConsensusDiagnosis(merged.consensusDiagnosis ?? (currentAnalysisRecord.finalReport as FinalReport)?.consensusDiagnosis),
+            consensusDiagnosis: normalizeConsensusDiagnosis(
+                merged.consensusDiagnosis ?? baseReport.consensusDiagnosis,
+            ),
         } as FinalReport;
         setFinalReport(newFinalReport);
+        if (!currentAnalysisRecord || !currentUser) {
+            return;
+        }
         const updatedRecord = { ...currentAnalysisRecord, finalReport: newFinalReport as FinalReport };
         setCurrentAnalysisRecord(updatedRecord);
-        const updatedHistory = userHistory.map(r => r.id === updatedRecord.id ? updatedRecord : r);
+        const updatedHistory = userHistory.map(r => (r.id === updatedRecord.id ? updatedRecord : r));
         setUserHistory(updatedHistory);
-        
-        // Update in API
+
         import('./services/apiAnalysisService').then(({ updateAnalysis }) => {
-            if (currentAnalysisRecord.id && !isNaN(parseInt(currentAnalysisRecord.id))) {
-                updateAnalysis(parseInt(currentAnalysisRecord.id), updatedRecord).catch(() => {
+            const idNum = parseInt(currentAnalysisRecord.id, 10);
+            if (!isNaN(idNum) && idNum > 0) {
+                updateAnalysis(idNum, updatedRecord).catch(() => {
                     // Error already handled by API service, silently fail
                 });
             }
         });
-    }, [currentAnalysisRecord, currentUser, userHistory]);
+    }, [currentAnalysisRecord, currentUser, userHistory, finalReport]);
 
     const viewHistoryItem = (record: AnalysisRecord) => {
         setCurrentAnalysisRecord(record);
