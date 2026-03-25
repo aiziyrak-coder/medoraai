@@ -38,3 +38,8 @@ export const INSTITUTE_ADDRESS = "Fargʻona sh, Yangi Turon, 2-a uy";
 
 /** Footer copyright line */
 export const FOOTER_COPYRIGHT = "©CDCGroup 2026 FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITUTI";
+
+/** Institute official website */
+export const INSTITUTE_WEBSITE = "https://fjsti.uz/";
+/** MedoraAI platform website */
+export const PLATFORM_WEBSITE = "medora.cdcgroup.uz";

@@ -15,6 +15,8 @@ import {
     INSTITUTE_ADDRESS,
     FOOTER_COPYRIGHT,
     PLATFORM_NAME,
+    INSTITUTE_WEBSITE,
+    PLATFORM_WEBSITE,
 } from '../constants/brand';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
@@ -388,10 +390,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                                 <p className="text-slate-800 font-black text-sm uppercase mb-1">{INSTITUTE_LOGO_TEXT}</p>
                                 <p className="text-slate-400 text-xs mb-3">{FOOTER_COPYRIGHT}</p>
                                 <p className="text-slate-500 text-xs mb-4">{PLATFORM_NAME}</p>
-                                <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mb-4">
+                                <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mb-2">
                                     <a href={`tel:+998950442345`} className="hover:text-violet-600">{INSTITUTE_PHONE_1}</a>
                                     <a href={`tel:+998950482345`} className="hover:text-violet-600">{INSTITUTE_PHONE_2}</a>
                                     <a href={`mailto:${INSTITUTE_EMAIL_1}`} className="hover:text-violet-600">{INSTITUTE_EMAIL_1}</a>
+                                </div>
+                                <div className="flex flex-wrap justify-center gap-4 text-xs mb-2">
+                                    <a href={INSTITUTE_WEBSITE} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:text-violet-800 font-medium">fjsti.uz</a>
+                                    <a href={`https://${PLATFORM_WEBSITE}`} target="_blank" rel="noopener noreferrer" className="text-fuchsia-600 hover:text-fuchsia-800 font-medium">{PLATFORM_WEBSITE}</a>
                                 </div>
                                 <p className="text-slate-400 text-xs mb-4">{INSTITUTE_ADDRESS}</p>
                                 <div className="flex justify-center gap-6">

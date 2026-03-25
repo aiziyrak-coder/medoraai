@@ -446,32 +446,39 @@ export const generatePdfReport = async (
     
     // === PLATFORM PROMO SECTION (on last page) ===
     doc.setPage(pageCount);
-    const promoY = pageHeight - FOOTER_RESERVE - 15;
+    const promoY = pageHeight - FOOTER_RESERVE - 18;
     
-    // Draw promo background box
+    // Draw promo background box (taller to fit 3 rows)
     doc.setFillColor(248, 250, 252);
-    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 13, 'F');
+    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'F');
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.3);
-    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 13, 'S');
+    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'S');
     
-    // Promo text
+    // Row 1: Platform name + link
     doc.setFontSize(7);
     doc.setFont(PDF_FONT, 'bold');
     doc.setTextColor(50, 60, 80);
     doc.text(promoText, MARGIN + 3, promoY + 2);
-    
-    // Platform link
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(30, 100, 180);
     doc.text(promoLink, MARGIN + 70, promoY + 2);
     
-    // Phone number
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Tel: ${promoPhone}`, MARGIN + 3, promoY + 6);
+    // Row 2: Two phone numbers
+    doc.setTextColor(60, 60, 60);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.text(`Tel: ${promoPhone}  |  +998 95 048-23-45`, MARGIN + 3, promoY + 6);
+    
+    // Row 3: Institute website
+    doc.setFont(PDF_FONT, 'italic');
+    doc.setTextColor(30, 100, 180);
+    doc.text('www.fjsti.uz', MARGIN + 3, promoY + 10);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text("  — Farg'ona jamoat salomatligi tibbiyot instituti rasmiy sayti", MARGIN + 20, promoY + 10);
     
     // Institute logo (small)
-    const logoSize = 8;
+    const logoSize = 10;
     const logoX = pageWidth - MARGIN - logoSize - 3;
     const logoY = promoY;
     if (branding?.instituteLogoDataUrl) {
