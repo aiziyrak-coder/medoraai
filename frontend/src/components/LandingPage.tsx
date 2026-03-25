@@ -63,6 +63,12 @@ const ChevronLeftIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
+const TelegramIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 24 24">
+        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.318.023.46.14.097.073.156.162.195.258.036.09.06.21.07.36.012.16.012.37.012.62v4.88c0 .25 0 .46-.012.62-.01.15-.034.27-.07.36a.65.65 0 0 1-.195.258c-.142.117-.36.142-.46.14-.16-.002-.31-.014-.46-.065l-3.09-1.16v2.44c0 .21-.084.41-.234.56-.15.15-.35.234-.56.234h-1.5c-.21 0-.41-.084-.56-.234a.795.795 0 0 1-.234-.56v-2.44l-3.09 1.16c-.15.05-.3.063-.46.065-.1.002-.318-.023-.46-.14a.65.65 0 0 1-.195-.258c-.036-.09-.06-.21-.07-.36-.012-.16-.012-.37-.012-.62v-4.88c0-.25 0-.46.012-.62.01-.15.034-.27.07-.36a.65.65 0 0 1 .195-.258c.142-.117.36-.142.46-.14.16.002.31.014.46.065l3.09 1.16V8.5c0-.21.084-.41.234-.56.15-.15.35-.234.56-.234h1.5c.21 0 .41.084.56.234.15.15.234.35.234.56v2.44l3.09-1.16c.15-.05.3-.063.46-.065z"/>
+    </svg>
+);
+
 const SLIDE_COUNT = 4;
 
 const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenAbout }) => {
@@ -72,6 +78,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [transitionDirection, setTransitionDirection] = useState<'next' | 'prev'>('next');
+    const [scrolled, setScrolled] = useState(false);
     const viewportRef = useRef<HTMLDivElement>(null);
 
     const goNext = useCallback(() => {
@@ -117,6 +124,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, [goNext, goPrev, mobileMenuOpen, showContactModal]);
+
+    // Scroll listener for navbar background
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 50);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToSection = (id: string) => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+    };
 
     /** Scroll qilsa ham boshqa slaydga o'tadi: pastga = keyingi, yuqoriga = oldingi */
     useEffect(() => {
