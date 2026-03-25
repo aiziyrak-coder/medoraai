@@ -186,7 +186,7 @@ export const ConsultationMonitor: React.FC<Props> = ({
       {/* Critical Alert */}
       {alertMsg && (
         <div className="rounded-2xl bg-red-950/60 border border-red-500 p-3 flex items-center gap-2 animate-pulse">
-          <span className="text-2xl"><p className="text-red-200 text-sm font-medium">{alertMsg}</p>
+          <span className="text-2xl">⚠️</span><p className="text-red-200 text-sm font-medium">{alertMsg}</p>
         </div>
       )}
 
@@ -272,7 +272,8 @@ export const ConsultationMonitor: React.FC<Props> = ({
               }`}>
                 {labels[currentSpeaker]}
               </span>
-              <span className="text-slate-400 italic">{interim}</div>
+              <span className="text-slate-400 italic">{interim}</span>
+            </div>
           )}
         </div>
       )}

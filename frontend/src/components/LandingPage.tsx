@@ -419,9 +419,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    </div>
                 </div>
-            </div>
+            </section>
 
             {/* --- TESTIMONIALS --- */}
             <section id="testimonials" className="py-24 md:py-32 relative">
