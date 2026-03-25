@@ -670,19 +670,17 @@ const AppContent: React.FC = () => {
         if (!patientData) return;
         setSelectedSpecialistsConfig(confirmedTeam);
         setOrchestratorModel(orchestrator);
-        setDifferentialDiagnoses([]);
         setError(null);
         setDebateHistory([]);
         setFinalReport(null);
         setAppView('live_analysis');
-        if (differentialDiagnoses.length > 0) {
-            setStatusMessage(t('ddx_feedback_prompt'));
-            return;
-        }
         setIsProcessing(true);
         setStatusMessage(t('debate_start_status'));
         const enrichedPatientData = { ...patientData, userDiagnosisFeedback: diagnosisFeedback };
         setPatientData(enrichedPatientData);
+        // Capture current ddx before clearing
+        const currentDdx = differentialDiagnoses.slice();
+        setDifferentialDiagnoses([]);
 
         if (currentUser) {
             try {
@@ -707,7 +705,7 @@ const AppContent: React.FC = () => {
             setUserIntervention(null);
             return intervention;
         };
-        aiService.runCouncilDebate(enrichedPatientData, [], confirmedTeam, orchestrator, handleProgress, getUserInterventionCallback, language, userHistory);
+        aiService.runCouncilDebate(enrichedPatientData, currentDdx, confirmedTeam, orchestrator, handleProgress, getUserInterventionCallback, language, userHistory);
     };
 
     const handleStartDebate = async () => {
