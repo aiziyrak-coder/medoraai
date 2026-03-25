@@ -178,7 +178,7 @@ const getSystemInstruction = (language: Language): string => {
     4. Overconfidence dan saqlaning: dalil yetarli bo'lmasa yoki shubha bo'lsa, "Qo'shimcha tekshiruv kerak" yoki "Tasdiqlash uchun laboratoriya/rentgen kerak" deb aniq yozing; taxminiy tashxisni yakuniy deb bermang.
     5. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa, finding, implication va urgency ni aniq to'ldiring.
     AMALIY YORDAM (majburiy): Javoblaringiz shifokor darhol qo'llashi mumkin bo'lsin. Dori nomi + aniq doza + kuniga necha marta + davomiyligi; davolash rejasi 1-qadam, 2-qadam tarzida; SSV protokolga havola yoki agar taklif protokoldan farq qilsa — protokoldan voz kechish sababini (dalil asosida) ko'rsating; "darhol qilish kerak" va "keyinroq/kuzatuv" ni ajrating. Umumiy so'zlar o'rniga konkret, amaliy tavsiyalar bering.
-    ANIQLIK (majburiy): (1) Faqat kiritilgan ma'lumot va klinik dalillarga asoslangan xulosa chiqaring; ma'lumot yetishmasa "Tasdiqlash uchun ... tekshiruv kerak" deb aniq yozing. (2) Har bir tashxis uchun probability (0-100) ni faqat dalil kuchiga mos RAQAM sifatida bering — taxminiy yoki "chiroyli" shablonlar (masalan doim 60/25/20, 50/50, 75/25) ISHLATMANG; shubha bo'lsa pastroq bering. Bir nechta differensial tashxis bo'lsa, ular bir-birini istisno qiluvchi bo'lishi uchun probability lar yig'indisi 100% ga yaqin bo'lishi kerak. (3) reasoningChain va justification da "nima uchun shunday" savoliga aniq javob bo'lsin; umumiy iboralardan saqlaning. (4) SSV protokol havolasi yoki protokoldan chetga chiqish sababi (dalil bilan). (5) Taxminiy tashxisni yakuniy deb yozmang; differensial tashxisda eng ehtimolini birinchi qo'ying va dalil asosini ko'rsating.
+    ANIQLIK (majburiy): (1) Faqat kiritilgan ma'lumot va klinik dalillarga asoslangan xulosa chiqaring; ma'lumot yetishmasa "Tasdiqlash uchun ... tekshiruv kerak" deb aniq yozing. (2) Har bir tashxis uchun probability (0-100) ni faqat dalil kuchiga mos RAQAM sifatida bering — KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%, shubhali=<70%. Taxminiy yoki "chiroyli" shablonlar (masalan doim 60/25/20, 50/50, 75/25) ISHLATMANG. Bir nechta differensial tashxis bo'lsa, ular bir-birini istisno qiluvchi bo'lishi uchun probability lar yig'indisi 100% ga yaqin bo'lishi kerak. (3) reasoningChain va justification da "nima uchun shunday" savoliga aniq javob bo'lsin; umumiy iboralardan saqlaning. (4) SSV protokol havolasi yoki protokoldan chetga chiqish sababi (dalil bilan). (5) Taxminiy tashxisni yakuniy deb yozmang; differensial tashxisda eng ehtimolini birinchi qo'ying va dalil asosini ko'rsating.
     `;
 };
 
@@ -585,7 +585,7 @@ const getFastDoctorSystemInstruction = (language: Language): string => {
     const til = langMap[language];
     return `Siz shifokor uchun amaliy tibbiy yordamchisiz. Javob: ${til}, FAQAT JSON.
 QOIDALAR: Tashxis nomi aniq; justification 2-3 jumla dalilli; treatmentPlan 3-5 aniq qadam; medications: O'zbekistonda mavjud savdo nomi + doza + davomiylik; uzbekProtocolMatch: SSV protokolga mos yoki protokoldan chetga chiqish sababi (dalil bilan). criticalFinding faqat shoshilinch bo'lsa. Dastur maqsadi yangi samarali davolash topish — dalil bo'lsa protokoldan voz kechish mumkin.
-ANIQLIK: Faqat berilgan ma'lumotga tayaning; probability ni dalil kuchiga mos qo'ying; reasoningChain har qadamda "nima uchun" javob bersin. SSV havola yoki protokoldan chetga chiqish sababini yozing.`;
+ANIQLIK: Faqat berilgan ma'lumotga tayaning; probability ni dalil kuchiga mos qo'ying (KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%); reasoningChain har qadamda "nima uchun" javob bersin. SSV havola yoki protokoldan chetga chiqish sababini yozing.`;
 };
 
 export const generateFastDoctorConsultation = async (
@@ -594,7 +594,7 @@ export const generateFastDoctorConsultation = async (
     language: Language
 ): Promise<FinalReport> => {
     const systemInstr = getFastDoctorSystemInstruction(language);
-    const promptText = `Tashxis (name, probability 0-100 dalilga mos — taxminiy 60/25/75 kabi shablon raqamlar yo'q, justification 2 jumla, reasoningChain 3 band, uzbekProtocolMatch). treatmentPlan 3-5 qadam. medications: name, dosage, frequency, duration, timing, instructions (qanday ichish, 1 jumla). recommendedTests, criticalFinding agar kerak. Til: ${langMap[language]}. JSON.`;
+    const promptText = `Tashxis (name, probability 0-100 dalilga mos — KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%; taxminiy 60/25/75 kabi shablon raqamlar yo'q, justification 2 jumla, reasoningChain 3 band, uzbekProtocolMatch). treatmentPlan 3-5 qadam. medications: name, dosage, frequency, duration, timing, instructions (qanday ichish, 1 jumla). recommendedTests, criticalFinding agar kerak. Til: ${langMap[language]}. JSON.`;
 
     const finalReportSchema = {
         type: 'object',
@@ -708,7 +708,7 @@ export const generateFastDoctorConsultationStream = async (
     onChunk: (text: string) => void
 ): Promise<FinalReport> => {
     const systemInstr = getSystemInstruction(language);
-    const promptText = `Tez tahlil. Javobni FAQAT quyidagi JSON ko'rinishida bering, boshqa matn yozmang. primaryDiagnosis: { name, probability (0-100, faqat klinik dalilga mos raqam; taxminiy 60/25/75 kabi shablonlar yo'q), justification, reasoningChain, uzbekProtocolMatch }, treatmentPlan: [], medications: [{ name, dosage, frequency, duration, timing, instructions }], recommendedTests: [], criticalFinding: { finding, implication, urgency }. Til: ${langMap[language]}.`;
+    const promptText = `Tez tahlil. Javobni FAQAT quyidagi JSON ko'rinishida bering, boshqa matn yozmang. primaryDiagnosis: { name, probability (0-100, KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%; taxminiy 60/25/75 kabi shablonlar yo'q), justification, reasoningChain, uzbekProtocolMatch }, treatmentPlan: [], medications: [{ name, dosage, frequency, duration, timing, instructions }], recommendedTests: [], criticalFinding: { finding, implication, urgency }. Til: ${langMap[language]}.`;
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     let fullText = '';
     try {
@@ -1327,7 +1327,7 @@ OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
 
                 const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData, pastCasesForContext);
                 try {
-                    const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 2048) as string;
+                    const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 4096) as string;
                     const trimmed = (responseText || '').trim();
                     const specialistMessage: ChatMessage = {
                         id: `${spec.role}-${Date.now()}-${idx}`,

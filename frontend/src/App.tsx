@@ -557,9 +557,9 @@ const AppContent: React.FC = () => {
         }
     };
 
-    /** Tezkor: avval shikoyat bo'yicha 6–10 mutaxassisni darhol ko'rsatadi, keyin fonda API natijasini yangilaydi. */
+    /** Tezkor: avval bemorning barcha ma'lumotlari bo'yicha 6–10 mutaxassisni darhol ko'rsatadi, keyin fonda API natijasini yangilaydi. */
     const handleRecommendTeamFromData = (data: PatientData) => {
-        const instant = getSpecialistsFromComplaint(data.complaints ?? '');
+        const instant = getSpecialistsFromComplaint(data);
         setRecommendedTeam(instant);
         setIsProcessing(false);
         setError(null);

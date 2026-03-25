@@ -407,5 +407,69 @@
   letter-spacing: 0.02em;
 }
 .institute-about-btn:hover {
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(6, 182, 212, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(168, 85, 247, 0.04) 100%);
+}
+
+/* ===== LIGHT THEME LANDING PAGE ===== */
+.landing-light-theme {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 25%, #fdf4ff 50%, #f0f9ff 75%, #f5f3ff 100%);
+}
+
+/* Animated gradient background */
+.bg-gradient-animated {
+  background: linear-gradient(-45deg, #f5f3ff, #fdf4ff, #f0f9ff, #ede9fe, #fae8ff, #e0f2fe);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Floating orbs animation */
+@keyframes float-1 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, -30px) rotate(120deg); }
+  66% { transform: translate(-20px, 20px) rotate(240deg); }
+}
+
+@keyframes float-2 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(-40px, 20px) rotate(-120deg); }
+  66% { transform: translate(30px, -40px) rotate(-240deg); }
+}
+
+@keyframes float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -20px) scale(1.1); }
+}
+
+.animate-float-1 {
+  animation: float-1 20s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-2 25s ease-in-out infinite;
+}
+
+.animate-float-3 {
+  animation: float-3 18s ease-in-out infinite;
+}
+
+/* Light theme nav pill */
+.landing-light-theme .landing-nav-pill:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.15);
+}
+
+/* Light theme dot pulse */
+.landing-light-theme .landing-dot-active {
+  animation: landing-dot-pulse-light 2s ease-in-out infinite;
+}
+
+@keyframes landing-dot-pulse-light {
+  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.5), 0 0 16px rgba(139, 92, 246, 0.25); }
+  50%      { box-shadow: 0 0 14px rgba(139, 92, 246, 0.8), 0 0 28px rgba(139, 92, 246, 0.35); }
 }

@@ -176,7 +176,8 @@ MUSTAQIL TAHLIL QOIDALARI:
 2. O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) milliy klinik protokollariga rioya qiling.
 3. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dori-darmonlarni tavsiya qiling.
 4. Har bir xulosa uchun ilmiy asoslash (reasoning_chain) majburiy.
-5. FAQAT JSON formatida javob qaytaring."""
+5. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%, shubhali = <70%.
+6. FAQAT JSON formatida javob qaytaring."""
 
 _P1_USER = """\
 BEMOR MA'LUMOTLARI:
@@ -210,7 +211,7 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.15, max_tokens=1500)
+                            response_json=True, temperature=0.15, max_tokens=2500)
         result = parse_json(raw, f"p1_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -259,7 +260,8 @@ DEBATE VA REFUTATION QOIDALARI:
 3. HIMOYA: O'z tashxisingizni yangilangan dalillar bilan QUVVATLANG.
 4. REVIZIYA: Agar boshqa professor kuchli dalil keltirgan bo'lsa, pozitsiyangizni
    yangilashingiz MUMKIN va KERAK  -  bu ilmiy halollik belgisi.
-5. FAQAT JSON formatida javob qaytaring."""
+5. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%, shubhali = <70%.
+6. FAQAT JSON formatida javob qaytaring."""
 
 _P2_USER = """\
 BEMOR:
@@ -324,7 +326,7 @@ def _phase2_single(agent: Agent, patient_str: str,
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.2, max_tokens=1800)
+                            response_json=True, temperature=0.2, max_tokens=3000)
         result = parse_json(raw, f"p2_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -408,7 +410,8 @@ KONSENSUS QAROR QOIDALARI:
 2. Eng kuchli dalillar bilan qo'llab-quvvatlangan tashxisni tanlang.
 3. O'zbekiston SSV milliy klinik protokollariga to'liq muvofiqlikni ta'minlang.
 4. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dorilar tavsiya qiling.
-5. FAQAT JSON formatida javob qaytaring."""
+5. EHTIMOLLIK (probability): Agar dalillar KUCHLI bo'lsa, 90-97% bering. 85-89% faqat o'rtacha dalillar uchun. 70-84% zaif dalillar uchun. 70% dan past faqat shubhali holatlarda.
+6. FAQAT JSON formatida javob qaytaring."""
 
 _P3_USER = """\
 BEMOR:
@@ -428,7 +431,7 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   "consensus_diagnosis": {{
     "name": "Asosiy tashxis nomi",
     "icd10": "X00.0",
-    "probability": 88,
+    "probability": 94,
     "justification": "Barcha dalillarni hisobga olgan xulosaning asosi ...",
     "evidence_level": "A",
     "reasoning_chain": ["Qadam 1 ...", "Qadam 2 ..."],
@@ -436,7 +439,7 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
     "strongest_supporter": "deepseek"
   }},
   "differential_diagnoses": [
-    {{"name": "Alt tashxis", "probability": 20, "reason": "Nega kam ehtimol"}}
+    {{"name": "Alt tashxis", "probability": 6, "reason": "Nega kam ehtimol"}}
   ],
   "rejected_hypotheses": [
     {{"name": "Rad etilgan tashxis", "reason": "Kim nima asosida rad etdi"}}
@@ -491,7 +494,7 @@ def run_phase3(patient_str: str, p1: list[dict],
     try:
         raw    = call_model(ORCHESTRATOR.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.05, max_tokens=4500)
+                            response_json=True, temperature=0.05, max_tokens=6000)
         result = parse_json(raw, "p3_consensus")
         result = result if isinstance(result, dict) else {}
         result["agent_weights_used"] = weights
