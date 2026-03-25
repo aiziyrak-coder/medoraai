@@ -24,9 +24,9 @@ export const INSTITUTE_LOGO_TEXT = "FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITU
 export const INSTITUTE_LOGO_SRC = '/institute-logo.png';
 
 /** Primary phone */
-export const INSTITUTE_PHONE_1 = "+998 95 044-23-45";
+export const INSTITUTE_PHONE_1 = "+998 99 575 11 11";
 /** Secondary phone */
-export const INSTITUTE_PHONE_2 = "+998 95 048-23-45";
+export const INSTITUTE_PHONE_2 = "+998 90 786 38 88";
 
 /** Primary email */
 export const INSTITUTE_EMAIL_1 = "info@fjsti.uz";

@@ -13,9 +13,9 @@ interface jsPDFInternal {
 
 const PDF_FONT = 'times' as const;
 const LINE_HEIGHT = 5;
-const COMPACT_LINE = 4;
-const FOOTER_RESERVE = 10;
-const MARGIN = 12;
+const COMPACT_LINE = 3.5;
+const FOOTER_RESERVE = 12;
+const MARGIN = 10;
 const PLATFORM_URL = 'https://medora.cdcgroup.uz';
 
 export interface InstituteBranding {
@@ -430,7 +430,8 @@ export const generatePdfReport = async (
     // Platform promo text for last page
     const promoText = "AI Tibbiy Konsilium Platformasi - MedoraAI";
     const promoLink = "medora.cdcgroup.uz";
-    const promoPhone = "+998 95 044-23-45";
+    const promoPhone = "+998 99 575 11 11";
+    const promoPhone2 = "+998 90 786 38 88";
     
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -467,7 +468,7 @@ export const generatePdfReport = async (
     // Row 2: Two phone numbers
     doc.setTextColor(60, 60, 60);
     doc.setFont(PDF_FONT, 'normal');
-    doc.text(`Tel: ${promoPhone}  |  +998 95 048-23-45`, MARGIN + 3, promoY + 6);
+    doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
     
     // Row 3: Institute website
     doc.setFont(PDF_FONT, 'italic');
