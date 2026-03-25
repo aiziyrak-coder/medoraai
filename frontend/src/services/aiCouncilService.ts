@@ -1317,18 +1317,10 @@ ${patientSummaryForRais}`;
 
         /** Eng ko'pi bilan 4 ta mutaxassis; parallel chaqiruv + qisqa javob (umumiy vaqt qisqaroq) */
         const limitedSpecialists = specialistsConfig.slice(0, 4);
-        const recentDebate = debateHistory.slice(-14);
-        const fullDebateText = recentDebate
-            .map(m => {
-                const author = m.author === AIModel.SYSTEM ? 'Konsilium Professori' : String(m.author);
-                const content = (m.content || '').trim();
-                return `[${author}]: ${content.length > 2000 ? content.slice(0, 2000) + '…' : content}`;
-            })
-            .join('\n\n');
-
+        for (const spec of limitedSpecialists) {
             const historyJson = JSON.stringify(sliceDebateHistoryForPrompt(debateHistory, DEBATE_HISTORY_PROMPT_MAX_MESSAGES));
             const textPrompt = `
-                Role: ${specialist?.name || spec.role}.
+                Role: ${spec.role}.
                 Task: Answer the Chair's question: "${currentTopic}". Use your specialty expertise.
                 REQUIREMENTS:
                 1. Reference O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) approved clinical protocols where applicable.
@@ -1339,9 +1331,9 @@ ${patientSummaryForRais}`;
                 6. CRITICAL: Complete every answer fully. End with a proper sentence (final punctuation). Do NOT stop mid-sentence or mid-thought.
                 Recent debate history (chronological): ${historyJson}
             `;
-            
+                    
             const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData);
-            
+                    
             try {
                 const responseText = await callGemini(
                     specialistMultimodalPrompt,
