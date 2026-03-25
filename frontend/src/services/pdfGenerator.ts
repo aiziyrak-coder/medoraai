@@ -276,15 +276,16 @@ export const generatePdfReport = async (
 
     // === CRITICAL FINDING (compact) ===
     if (report.criticalFinding && report.criticalFinding.finding) {
-        if (y > pageHeight - 40) {
+        if (y > pageHeight - 50) {
             doc.addPage();
             y = MARGIN;
         }
+        // Increase box height to fit two lines
         doc.setFillColor(255, 245, 245);
-        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 12, 'F');
+        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 16, 'F');
         doc.setDrawColor(220, 100, 100);
         doc.setLineWidth(0.5);
-        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 12, 'S');
+        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 16, 'S');
         doc.setFontSize(8);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(180, 50, 50);
@@ -292,10 +293,15 @@ export const generatePdfReport = async (
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(80, 40, 40);
         const cfText = (report.criticalFinding.finding + ' - ' + report.criticalFinding.implication).substring(0, 120);
-        const cfSplit = doc.splitTextToSize(cfText, pageWidth - MARGIN * 2 - 75);
-        doc.text(cfSplit[0] || '', MARGIN + 75, y + 4);
-        doc.text(`Shoshilinchlik: ${report.criticalFinding.urgency}`, MARGIN + 3, y + 9);
-        y += 14;
+        const cfSplit = doc.splitTextToSize(cfText, pageWidth - MARGIN * 2 - 6);
+        doc.text(cfSplit[0] || '', MARGIN + 3, y + 9);
+        if (cfSplit[1]) {
+            doc.text(cfSplit[1], MARGIN + 3, y + 13);
+        }
+        doc.setFont(PDF_FONT, 'bold');
+        doc.setTextColor(180, 50, 50);
+        doc.text(`Shoshilinchlik: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, y + 13, { align: 'right' });
+        y += 20;
     }
 
     // === CONSENSUS SECTION ===
