@@ -1,11 +1,11 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { AnalysisRecord } from '../types';
-import { useTranslation } from '../hooks/useTranslation';
+import { normalizeConsensusDiagnosis } from '../types';
+import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 import DocumentReportIcon from './icons/DocumentReportIcon';
 import VideoCameraIcon from './icons/VideoCameraIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import SearchIcon from './icons/SearchIcon';
-import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 
 const PAGE_SIZE = 25;
 
@@ -62,6 +62,63 @@ interface HistoryViewProps {
 
 const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, onStartConsultation, onViewCaseLibrary }) => {
     const { t } = useTranslation();
+    
+    // State hooks
+    const [searchQuery, setSearchQuery] = useState('');
+    const [datePreset, setDatePreset] = useState<DatePreset>('all');
+    const [sort, setSort] = useState<SortKey>('date_desc');
+    const [gender, setGender] = useState<GenderFilter>('all');
+    const [page, setPage] = useState(0);
+    
+    // Filter and sort logic
+    const filteredSorted = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        const cutoff = getCutoffMs(datePreset);
+        
+        let result = analyses.filter(r => {
+            if (!matchesDate(r, cutoff)) return false;
+            if (!matchesGender(r, gender)) return false;
+            if (!q) return true;
+            return getRecordSearchBlob(r).includes(q);
+        });
+        
+        result.sort((a, b) => {
+            switch (sort) {
+                case 'date_asc':
+                    return new Date(a.date).getTime() - new Date(b.date).getTime();
+                case 'name_asc':
+                    return (a.patientData.lastName || '').localeCompare(b.patientData.lastName || '');
+                case 'date_desc':
+                default:
+                    return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+        });
+        
+        return result;
+    }, [analyses, searchQuery, datePreset, gender, sort]);
+    
+    const totalFiltered = filteredSorted.length;
+    const pageCount = Math.ceil(totalFiltered / PAGE_SIZE);
+    const safePage = Math.max(0, Math.min(page, pageCount - 1));
+    const from = totalFiltered === 0 ? 0 : safePage * PAGE_SIZE + 1;
+    const to = Math.min((safePage + 1) * PAGE_SIZE, totalFiltered);
+    const pageSlice = filteredSorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+    
+    const hasActiveFilters = searchQuery || datePreset !== 'all' || gender !== 'all';
+    
+    const resetFilters = useCallback(() => {
+        setSearchQuery('');
+        setDatePreset('all');
+        setSort('date_desc');
+        setGender('all');
+        setPage(0);
+    }, []);
+    
+    // Reset page when filters change
+    useEffect(() => {
+        setPage(0);
+    }, [searchQuery, datePreset, gender, sort]);
+    
     if (analyses.length === 0) {
         return (
             <div className="text-center py-16 animate-fade-in-up">
@@ -71,7 +128,16 @@ const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, o
             </div>
         );
     }
-
+    
+    const periodButtons: { key: DatePreset; labelKey: TranslationKey }[] = [
+        { key: 'all', labelKey: 'archive_period_all' },
+        { key: '7d', labelKey: 'archive_period_7d' },
+        { key: '30d', labelKey: 'archive_period_30d' },
+        { key: '90d', labelKey: 'archive_period_90d' },
+    ];
+    
+    const selectClass = 'rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40';
+    
     return (
         <div className="animate-fade-in-up space-y-5 md:space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
