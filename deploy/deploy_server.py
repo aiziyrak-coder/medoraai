@@ -42,7 +42,7 @@ def deploy():
         print()
         
         # Step 1: Pull from GitHub (with stash to handle local changes)
-        print("[2/4] Pulling latest changes from GitHub...")
+        print("[2/6] Pulling latest changes from GitHub...")
         stdin, stdout, stderr = client.exec_command(
             f"cd {REMOTE_DIR} && git stash && git pull origin main",
             timeout=60
@@ -60,9 +60,42 @@ def deploy():
         
         # Small delay
         time.sleep(1)
+
+        # Step 2: Build frontend
+        print("[3/6] Building frontend (npm run build)...")
+        stdin, stdout, stderr = client.exec_command(
+            f"cd {REMOTE_DIR}/frontend && npm run build",
+            timeout=180
+        )
+        output = stdout.read().decode('utf-8')
+        error = stderr.read().decode('utf-8')
+        if output:
+            print(output[-2000:])  # last 2000 chars
+        if error and 'warn' not in error.lower()[:20]:
+            print(f"BUILD WARNING: {error[-1000:]}")
+        print("✓ Frontend built")
+        print()
+
+        # Step 3: Copy frontend/dist -> /root/medoraai/dist (nginx root)
+        print("[4/6] Copying frontend dist to /root/medoraai/dist/ ...")
+        stdin, stdout, stderr = client.exec_command(
+            f"cp -r {REMOTE_DIR}/frontend/dist/. {REMOTE_DIR}/dist/ && nginx -t && systemctl reload nginx",
+            timeout=30
+        )
+        output = stdout.read().decode('utf-8')
+        error = stderr.read().decode('utf-8')
+        if output:
+            print(output)
+        if error:
+            # nginx -t outputs to stderr even on success
+            print(f"Nginx: {error.strip()}")
+        print("✓ Frontend deployed and nginx reloaded")
+        print()
+
+        time.sleep(1)
         
-        # Step 2: Restart service
-        print("[3/4] Restarting backend service...")
+        # Step 5: Restart service
+        print("[5/6] Restarting backend service...")
         stdin, stdout, stderr = client.exec_command(
             "sudo systemctl restart medoraai-backend-8001.service",
             timeout=30
@@ -80,8 +113,8 @@ def deploy():
         # Small delay
         time.sleep(2)
         
-        # Step 3: Check service status
-        print("[4/4] Checking service status...")
+        # Step 6: Check service status
+        print("[6/6] Checking service status...")
         stdin, stdout, stderr = client.exec_command(
             "sudo systemctl status medoraai-backend-8001.service --no-pager -l",
             timeout=30
@@ -97,6 +130,7 @@ def deploy():
             print("=" * 60)
             print()
             print("Backend service is running.")
+            print("Frontend: https://medora.cdcgroup.uz")
             print("Test URL: https://medora.cdcgroup.uz/api/ai/clarifying-questions/")
             print()
             return True

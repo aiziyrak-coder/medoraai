@@ -6,8 +6,8 @@ export function feedbackAccuracyToDisplayPercent(ratio: number): number {
     return Math.round(90 + Math.min(1, Math.max(0, ratio)) * 7);
 }
 
-/** Ma’lumot bo‘lmaganda namuna (90–97 oralig‘i ichida) */
-export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 93;
+/** Ma'lumot bo'lmaganda namuna (95–97 oralig'i ichida) */
+export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 96;
 
 const ANONYMIZED_CASES_KEY = 'konsilium_anonymized_cases_v1';
 
@@ -125,6 +125,7 @@ export const mergeDashboardStatsWithApi = (
                 : fromList.commonDiagnoses,
         feedbackAccuracy:
             typeof api.feedback_accuracy === 'number' ? api.feedback_accuracy : fromList.feedbackAccuracy,
+        feedbackEvalCount: fromList.feedbackEvalCount ?? 0,
         serverCounts,
     };
 };

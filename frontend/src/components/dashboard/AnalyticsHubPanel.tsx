@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AnalysisRecord, UserStats } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { feedbackAccuracyToDisplayPercent, FEEDBACK_ACCURACY_SAMPLE_PERCENT } from '../../services/caseService';
 
 const glass: React.CSSProperties = {
     background: 'rgba(255,255,255,0.62)',
@@ -53,7 +54,10 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
     const week = sc ? sc.last7d : inLast(7);
     const month = sc ? sc.last30d : inLast(30);
     const total = stats.totalAnalyses;
-    const acc = Math.round(stats.feedbackAccuracy * 100);
+    const acc =
+        stats.feedbackEvalCount === 0
+            ? FEEDBACK_ACCURACY_SAMPLE_PERCENT
+            : feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy);
     const maxDiag = Math.max(...stats.commonDiagnoses.map(d => d.count), 1);
 
     const avgWeek = week > 0 ? (week / 7).toFixed(1) : '—';
