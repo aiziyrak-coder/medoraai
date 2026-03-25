@@ -346,17 +346,36 @@ def generate_clarifying_questions(patient_data: dict) -> list[str]:
     return [str(q) for q in qs if q][:8]
 
 
-def recommend_specialists(patient_data: dict) -> list[dict]:
-    if USE_GEMINI:
-        from . import gemini_utils
-        return gemini_utils.recommend_specialists(patient_data)
+def recommend_specialists(
+    patient_data: dict,
+    differential_diagnoses: list | None = None,
+) -> list[dict]:
     text = patient_text(patient_data)
     names = ", ".join(SPECIALIST_NAMES[:40])
+    dd_block = ""
+    if differential_diagnoses:
+        lines = []
+        for d in differential_diagnoses[:8]:
+            if isinstance(d, dict):
+                nm = str(d.get("name", "?"))
+                pr = d.get("probability", "")
+                j = str(d.get("justification", ""))[:400]
+                lines.append(f"- {nm} (~{pr}%): {j}")
+            else:
+                lines.append(f"- {d}")
+        dd_block = (
+            "\n\nDIFFERENSIAL TASHXISLAR (konsilium uchun asos — mutaxassislarni aynan shu yo'nalishlarga moslang):\n"
+            + "\n".join(lines)
+            + "\n"
+        )
     prompt = (
-        f"Bemor:\n{text}\n\n"
-        f"5 - 6 ta mutaxassis tanlang. Faqat: {names}.\n"
-        "Har biri uchun sabab bering.\n"
-        '{"recommendations": [{"model": "Nom", "reason": "Sabab"}]}'
+        f"Bemor:\n{text}\n{dd_block}\n"
+        "Vazifa: Yuqoridagi holat va (agar berilgan bo'lsa) differensial tashxislarga ASOSLANIB, "
+        "5–6 ta mutaxassisni tanlang. Har safar bir xil \"umumiy\" jamoani takrorlamang — "
+        "kasallikka tegishli organ tizimi va nazariy holat bo'yicha kerakli profillar "
+        "(masalan: buyrak + qon — Nephrologist + Hematologist; yurak — kardiologik AI; nafas — Pulmonologist).\n"
+        f"Faqat quyidagi nomlardan tanlang: {names}.\n"
+        'Har biri uchun qisqa sabab: {"recommendations": [{"model": "Nom", "reason": "Nega aynan bu mutaxassis"}]}'
     )
     msgs = build_messages(
         "Tibbiy maslahatchisi. O'zbek tilida (Lotin).",

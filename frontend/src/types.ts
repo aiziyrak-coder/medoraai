@@ -448,13 +448,10 @@ export interface AnalysisStatsPayload {
 export interface UserStats {
   totalAnalyses: number;
   commonDiagnoses: { name: string; count: number }[];
-  feedbackAccuracy: number; // 0-1, how often user feedback matched final diagnosis
-  /** Server aggregatsiyasi: ro'yxat page_size bilan cheklanmaganda */
-  serverCounts?: {
-    last24h: number;
-    last7d: number;
-    last30d: number;
-  };
+  /** 0–1, sizning «ehtimoli yuqori» belgilagan tashxislar yakuniy tashxis bilan mos kelishi */
+  feedbackAccuracy: number;
+  /** DDx bo‘yicha fikr kiritilgan holatlar soni (0 bo‘lsa ko‘rsatkich namuna) */
+  feedbackEvalCount: number;
 }
 
 export interface AnonymizedCase {

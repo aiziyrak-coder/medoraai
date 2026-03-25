@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import type { AnalysisRecord } from '../types';
-import { normalizeConsensusDiagnosis } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 import DocumentReportIcon from './icons/DocumentReportIcon';
 import VideoCameraIcon from './icons/VideoCameraIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
@@ -60,96 +60,14 @@ interface HistoryViewProps {
     onViewCaseLibrary: () => void;
 }
 
-const selectClass =
-    'rounded-xl border border-slate-200/90 bg-white/80 px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 min-w-0';
-
-const HistoryView: React.FC<HistoryViewProps> = ({
-    analyses,
-    onSelectAnalysis,
-    onStartConsultation,
-    onViewCaseLibrary,
-}) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, onStartConsultation, onViewCaseLibrary }) => {
     const { t } = useTranslation();
-
-    const [searchQuery, setSearchQuery] = useState('');
-    const [datePreset, setDatePreset] = useState<DatePreset>('all');
-    const [sort, setSort] = useState<SortKey>('date_desc');
-    const [gender, setGender] = useState<GenderFilter>('all');
-    const [page, setPage] = useState(0);
-
-    const filteredSorted = useMemo(() => {
-        const q = searchQuery.trim().toLowerCase();
-        const cutoff = getCutoffMs(datePreset);
-
-        let list = analyses.filter(r => matchesDate(r, cutoff) && matchesGender(r, gender));
-
-        if (q) {
-            list = list.filter(r => getRecordSearchBlob(r).includes(q));
-        }
-
-        const sorted = [...list].sort((a, b) => {
-            if (sort === 'name_asc') {
-                const na = `${a.patientData.lastName} ${a.patientData.firstName}`.trim().toLowerCase();
-                const nb = `${b.patientData.lastName} ${b.patientData.firstName}`.trim().toLowerCase();
-                return na.localeCompare(nb, undefined, { sensitivity: 'base' });
-            }
-            const ta = new Date(a.date).getTime();
-            const tb = new Date(b.date).getTime();
-            if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
-            if (Number.isNaN(ta)) return 1;
-            if (Number.isNaN(tb)) return -1;
-            return sort === 'date_desc' ? tb - ta : ta - tb;
-        });
-
-        return sorted;
-    }, [analyses, searchQuery, datePreset, gender, sort]);
-
-    useEffect(() => {
-        setPage(0);
-    }, [searchQuery, datePreset, gender, sort, analyses.length]);
-
-    const totalFiltered = filteredSorted.length;
-    const pageCount = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
-    const safePage = Math.min(page, pageCount - 1);
-    const pageSlice = useMemo(() => {
-        const start = safePage * PAGE_SIZE;
-        return filteredSorted.slice(start, start + PAGE_SIZE);
-    }, [filteredSorted, safePage]);
-
-    useEffect(() => {
-        if (page > pageCount - 1) setPage(Math.max(0, pageCount - 1));
-    }, [page, pageCount]);
-
-    const hasActiveFilters =
-        searchQuery.trim() !== '' ||
-        datePreset !== 'all' ||
-        gender !== 'all' ||
-        sort !== 'date_desc';
-
-    const resetFilters = useCallback(() => {
-        setSearchQuery('');
-        setDatePreset('all');
-        setGender('all');
-        setSort('date_desc');
-        setPage(0);
-    }, []);
-
-    const from = totalFiltered === 0 ? 0 : safePage * PAGE_SIZE + 1;
-    const to = Math.min((safePage + 1) * PAGE_SIZE, totalFiltered);
-
-    const periodButtons: { key: DatePreset; labelKey: TranslationKey }[] = [
-        { key: 'all', labelKey: 'archive_period_all' },
-        { key: '7d', labelKey: 'archive_period_7d' },
-        { key: '30d', labelKey: 'archive_period_30d' },
-        { key: '90d', labelKey: 'archive_period_90d' },
-    ];
-
     if (analyses.length === 0) {
         return (
             <div className="text-center py-16 animate-fade-in-up">
                 <DocumentReportIcon className="mx-auto w-16 h-16 text-slate-300" />
-                <h3 className="mt-4 text-xl font-semibold text-text-primary">{t('archive_empty_title')}</h3>
-                <p className="mt-2 text-text-secondary max-w-md mx-auto">{t('archive_empty_subtitle')}</p>
+                <h3 className="mt-4 text-xl font-semibold text-text-primary">{t('history_empty_title')}</h3>
+                <p className="mt-2 text-text-secondary">{t('history_empty_desc')}</p>
             </div>
         );
     }
@@ -158,16 +76,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({
         <div className="animate-fade-in-up space-y-5 md:space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary">{t('archive_title')}</h2>
-                    <p className="text-text-secondary mt-1">{t('archive_subtitle')}</p>
+                    <h2 className="text-2xl font-bold text-text-primary">{t('history_title')}</h2>
+                    <p className="text-text-secondary">{t('history_view_subtitle')}</p>
                 </div>
-                <button
-                    type="button"
-                    onClick={onViewCaseLibrary}
-                    className="flex items-center justify-center gap-2 text-sm font-semibold animated-gradient-button px-4 py-2.5 shrink-0"
-                >
-                    <BookOpenIcon className="w-5 h-5" />
-                    <span>Holatlar Kutubxonasi</span>
+                <button onClick={onViewCaseLibrary} className="flex items-center gap-2 text-sm font-semibold animated-gradient-button px-4 py-2">
+                    <BookOpenIcon className="w-5 h-5"/>
+                    <span>{t('history_case_library_btn')}</span>
                 </button>
             </div>
 

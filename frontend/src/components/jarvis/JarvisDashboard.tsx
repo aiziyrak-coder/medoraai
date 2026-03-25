@@ -34,7 +34,8 @@ function DiagnosisCard({ diagnosis, onDismiss }: DiagnosisCardProps) {
     <div className="rounded-2xl bg-slate-800/80 border border-emerald-500/40 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="font-bold text-emerald-300 text-sm">AI Tashxis Xulosasi</h4>
-        <button onClick={onDismiss} className="text-slate-500 hover:text-white text-lg"></div>
+        <button onClick={onDismiss} className="text-slate-500 hover:text-white text-lg">&times;</button>
+      </div>
 
       {/* Complaints summary */}
       {diagnosis.patient_complaints_summary && (

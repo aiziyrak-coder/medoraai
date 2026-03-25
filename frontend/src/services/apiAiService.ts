@@ -230,10 +230,14 @@ export const generateClarifyingQuestions = async (
 
 export const recommendSpecialists = async (
   patientData: PatientData,
+  differentialDiagnoses?: Diagnosis[],
 ): Promise<ApiResponse<{ recommendations: Array<{ model: AIModel; reason: string }> }>> => {
   const response = await apiPost<{ recommendations: Array<{ model: string; reason: string }> }>(
     '/ai/recommend-specialists/',
-    { patient_data: patientData },
+    {
+      patient_data: patientData,
+      differential_diagnoses: differentialDiagnoses ?? [],
+    },
   );
   if (response.success && response.data) {
     const recs = Array.isArray(response.data.recommendations) ? response.data.recommendations : [];

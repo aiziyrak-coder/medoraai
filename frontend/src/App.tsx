@@ -14,6 +14,7 @@ import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
 import { getAuthToken, clearTokens } from './services/api';
+import { inferFallbackSpecialists } from './utils/specialistTeamFallback';
 
 // --- Views & Components ---
 import AuthPage from './components/AuthPage';
@@ -56,29 +57,38 @@ const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 );
 
 // --- MOBILE BLOCKER COMPONENT ---
-const MobileBlocker: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
-    <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-8 text-center animate-fade-in-up">
-        <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-            <MonitorIcon className="w-12 h-12 text-blue-400" />
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-4">Qurilma mos kelmadi</h2>
-        <p className="text-slate-300 text-lg leading-relaxed max-w-md">
-            Hurmatli foydalanuvchi, <strong>{INSTITUTE_NAME_SHORT}</strong> ({INSTITUTE_NAME_FULL}) tizimining to'liq funksionalidan foydalanish uchun, iltimos, 
-            <span className="text-blue-400 font-bold"> Kompyuter</span> yoki <span className="text-blue-400 font-bold">Planshet</span> orqali kiring.
-        </p>
-        <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-white/10">
-            <p className="text-sm text-slate-400">
-                Telefon orqali faqat <span className="text-white font-semibold">Shifokor</span> va <span className="text-white font-semibold">Registrator</span> rejimidan foydalanish mumkin.
+const MobileBlocker: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
+    const { t } = useTranslation();
+    return (
+        <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-8 text-center animate-fade-in-up">
+            <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+                <MonitorIcon className="w-12 h-12 text-blue-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-4">{t('mobile_block_title')}</h2>
+            <p className="text-slate-300 text-lg leading-relaxed max-w-md">
+                {t('mobile_block_intro_prefix')}
+                <strong>MEDORA AI</strong>
+                {t('mobile_block_intro_suffix')}
+                <span className="text-blue-400 font-bold"> {t('mobile_block_computer')}</span>
+                {t('mobile_block_or')}
+                <span className="text-blue-400 font-bold">{t('mobile_block_tablet')}</span>
+                {t('mobile_block_intro_end')}
             </p>
+            <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-white/10">
+                <p className="text-sm text-slate-400">
+                    {t('mobile_block_footer')}
+                </p>
+            </div>
+            <button
+                type="button"
+                onClick={onLogout}
+                className="mt-8 text-sm font-bold text-blue-400 hover:text-white transition-colors underline"
+            >
+                {t('mobile_block_back')}
+            </button>
         </div>
-        <button 
-            onClick={onLogout}
-            className="mt-8 text-sm font-bold text-blue-400 hover:text-white transition-colors underline"
-        >
-            &larr; Login sahifasiga qaytish
-        </button>
-    </div>
-);
+    );
+};
 
 const AppContent: React.FC = () => {
     // --- STATE MANAGEMENT ---
@@ -617,7 +627,43 @@ const AppContent: React.FC = () => {
         }
         setPatientData(enrichedPatientData);
         setAppView('team_recommendation');
-        handleRecommendTeamFromData(enrichedPatientData);
+        setIsProcessing(true);
+        setStatusMessage(t('ddx_generating'));
+        let diagnoses: Diagnosis[] = [];
+        try {
+            const { generateInitialDiagnoses, recommendSpecialists } = await import('./services/apiAiService');
+            try {
+                const ddxResp = await generateInitialDiagnoses(enrichedPatientData);
+                if (ddxResp.success && ddxResp.data?.length) {
+                    diagnoses = ddxResp.data;
+                } else {
+                    throw new Error('ddx api empty');
+                }
+            } catch {
+                try {
+                    diagnoses = await aiService.generateInitialDiagnoses(enrichedPatientData, language);
+                } catch {
+                    diagnoses = [];
+                }
+            }
+            setDifferentialDiagnoses(diagnoses);
+
+            setStatusMessage(t('team_recommendation_creating'));
+            const response = await recommendSpecialists(enrichedPatientData, diagnoses.length ? diagnoses : undefined);
+            if (response.success && response.data?.recommendations?.length) {
+                setRecommendedTeam(response.data.recommendations);
+            } else {
+                throw new Error('API failed');
+            }
+        } catch (e) {
+            try {
+                const team = await aiService.recommendSpecialists(enrichedPatientData, language, diagnoses);
+                setRecommendedTeam(team.recommendations);
+            } catch (fallbackError) {
+                setError(t('team_recommendation_auto_error'));
+                setRecommendedTeam(inferFallbackSpecialists(enrichedPatientData, diagnoses));
+            }
+        } finally { setIsProcessing(false); }
     };
 
     const handleTeamConfirmation = async (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestrator: string) => {
@@ -629,6 +675,10 @@ const AppContent: React.FC = () => {
         setDebateHistory([]);
         setFinalReport(null);
         setAppView('live_analysis');
+        if (differentialDiagnoses.length > 0) {
+            setStatusMessage(t('ddx_feedback_prompt'));
+            return;
+        }
         setIsProcessing(true);
         setStatusMessage(t('debate_start_status'));
         const enrichedPatientData = { ...patientData, userDiagnosisFeedback: diagnosisFeedback };

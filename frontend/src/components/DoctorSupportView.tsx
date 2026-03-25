@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef, useCallback } from 'react';
 import type { PatientData } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 import {
   runDoctorSupport,
   runDoctorSupportStream,
@@ -203,6 +204,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
 }
 
 export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onError }) => {
+  const { t } = useTranslation();
   const [taskType,    setTaskType]    = useState<DoctorTaskType>(TASK_QUICK_CONSULT);
   const [query,       setQuery]       = useState('');
   const [loading,     setLoading]     = useState(false);
@@ -315,7 +317,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
       <textarea
         value={query}
         onChange={e => setQuery(e.target.value)}
-        placeholder="Qo'shimcha so'rov yoki savolingiz (ixtiyoriy)..."
+        placeholder={t('doctor_support_placeholder')}
         className="w-full rounded-xl bg-slate-800/60 border border-slate-600/30 text-slate-200
                    placeholder-slate-500 p-3 text-sm resize-none focus:outline-none focus:border-sky-500
                    h-20"

@@ -251,9 +251,10 @@ def recommend_specialists(request):
     if not _gemini_ok():
         return Response({"success": True, "data": {"recommendations": []}, "warning": "AI backend da sozlanmagan."})
     try:
-        recs = gemini_utils.recommend_specialists(patient_data)
-        if not recs:
-            return Response({"success": True, "data": {"recommendations": []}, "warning": "AI tavsiya qaytarmadi."})
+        dd = request.data.get("differential_diagnoses") or request.data.get("diagnoses")
+        if dd is not None and not isinstance(dd, list):
+            dd = []
+        recs = azure_recommend(patient_data, differential_diagnoses=dd or None)
         return Response({"success": True, "data": {"recommendations": recs}})
     except Exception as exc:
         logger.exception("Recommend specialists error: %s", exc)
