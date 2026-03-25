@@ -62,6 +62,18 @@ function getAI(): OpenAI {
 const DEPLOY_FAST = import.meta.env.VITE_AZURE_DEPLOY_MINI || 'medora-mini';
 const DEPLOY_PRO = import.meta.env.VITE_AZURE_DEPLOY_GPT4O || 'medora-gpt4o';
 
+/** Konsilium: mutaxassis javobi chiqish tokenlari (4096 da ko‘p hollarda kesilib qolgan) */
+const DEBATE_SPECIALIST_MAX_OUTPUT_TOKENS = 8192;
+/** Promptdagi munozara tarixi: oxirgi N ta xabar (katta JSON kontekstni yeydi, chiqish uchun joy qoladi) */
+const DEBATE_HISTORY_PROMPT_MAX_MESSAGES = 36;
+/** Yakuniy hisobot prompti uchun maks. xabarlar */
+const DEBATE_HISTORY_FINAL_REPORT_MAX_MESSAGES = 48;
+
+function sliceDebateHistoryForPrompt(history: ChatMessage[], maxMessages: number): ChatMessage[] {
+    if (history.length <= maxMessages) return history;
+    return history.slice(-maxMessages);
+}
+
 /** Map old Gemini model names → Azure deployments */
 function mapModel(geminiModel: string): string {
   const m = geminiModel.toLowerCase();
@@ -326,7 +338,14 @@ const callGemini = async (
         }
 
         const response = await getAI().chat.completions.create(reqParams);
-        const text = response.choices[0]?.message?.content ?? '';
+        const choice = response.choices[0];
+        const text = choice?.message?.content ?? '';
+        if (choice?.finish_reason === 'length') {
+            logger.warn('Azure: javob max_tokens tufayli kesilgan', {
+                deployment,
+                max_tokens: reqParams.max_tokens,
+            });
+        }
 
         if (wantJson) {
             // Strip markdown fences if present
@@ -683,11 +702,35 @@ export const generateClarifyingQuestions = async (data: PatientData, language: L
     return result.length > 0 ? result : [];
 };
 
-export const recommendSpecialists = async (data: PatientData, language: Language): Promise<{ recommendations: { model: AIModel; reason: string }[] }> => {
+export const recommendSpecialists = async (
+    data: PatientData,
+    language: Language,
+    differentialDiagnoses?: Diagnosis[]
+): Promise<{ recommendations: { model: AIModel; reason: string }[] }> => {
     const systemInstr = getSystemInstruction(language);
     const availableSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM).join(', ');
+    const ddBlock =
+        differentialDiagnoses && differentialDiagnoses.length > 0
+            ? `\n\nDIFFERENTIAL DIAGNOSES (must drive specialist choice — pick experts whose real clinical scope covers these hypotheses, not a generic repeated team):\n${differentialDiagnoses
+                  .slice(0, 8)
+                  .map(
+                      (d, i) =>
+                          `${i + 1}. ${d.name} (~${d.probability}%): ${(d.justification || '').slice(0, 400)}`
+                  )
+                  .join('\n')}`
+            : '';
     const prompt = buildMultimodalPrompt(
-        `Analyze the patient's clinical case. Select 5-6 specialists from: [${availableSpecialists}]. Provide a short reason for each. Return JSON { "recommendations": [{ "model": "SpecialistName", "reason": "Reason..." }] }. Output Language: ${langMap[language]}.`,
+        `You are a senior clinical triage specialist for Uzbekistan (SSV protocols).
+${ddBlock}
+
+TASK:
+1. Based on the patient data${differentialDiagnoses?.length ? ' AND the differential diagnoses above' : ''}, select EXACTLY 5–6 specialists from: [${availableSpecialists}].
+2. Each pick must be justified by organ system / disease mechanism (e.g. renal anemia → Nephrologist + Hematologist; pneumonia → Pulmonologist + Internal Medicine).
+3. Do NOT return the same default mix every time — vary roles to match THIS case. Avoid redundant overlaps (e.g. multiple generalists without reason).
+4. Use the exact "model" strings from the list (e.g. "Nephrologist", "Gemini", "GPT-4o").
+
+Return JSON ONLY: { "recommendations": [{ "model": "SpecialistName", "reason": "Why this specialist for THIS case..." }] }.
+Output Language for "reason": ${langMap[language]}.`,
         data
     );
     
@@ -841,6 +884,7 @@ export const runCouncilDebate = async (
             onProgress({ type: 'thinking', model: spec.role });
             const specialist = AI_SPECIALISTS[spec.role];
 
+            const historyJson = JSON.stringify(sliceDebateHistoryForPrompt(debateHistory, DEBATE_HISTORY_PROMPT_MAX_MESSAGES));
             const textPrompt = `
                 Role: ${specialist?.name || spec.role}.
                 Task: Answer the Chair's question: "${currentTopic}". Use your specialty expertise.
@@ -850,13 +894,22 @@ export const runCouncilDebate = async (
                 3. Debate scientifically; use reasoning and evidence.
                 4. If you need clarification from the patient/doctor (e.g. specific lab value, symptom detail), mention it in your response: "Ma'lumot kerak: [question]" and the Chair will ask the user.
                 5. LANGUAGE: ${langMap[language]} ONLY.
-                History: ${JSON.stringify(debateHistory)}
+                6. CRITICAL: Complete every answer fully. End with a proper sentence (final punctuation). Do NOT stop mid-sentence or mid-thought.
+                Recent debate history (chronological): ${historyJson}
             `;
             
             const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData);
             
             try {
-                const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
+                const responseText = await callGemini(
+                    specialistMultimodalPrompt,
+                    DEPLOY_PRO,
+                    undefined,
+                    false,
+                    systemInstr,
+                    true,
+                    DEBATE_SPECIALIST_MAX_OUTPUT_TOKENS
+                ) as string;
                 const specialistMessage: ChatMessage = { id: `${spec.role}-${Date.now()}`, author: spec.role, content: responseText };
                 onProgress({ type: 'message', message: specialistMessage });
                 debateHistory.push(specialistMessage);
@@ -877,7 +930,7 @@ export const runCouncilDebate = async (
                 Task: Summarize the round and ask a sharp, clarifying question for the next round OR if critical information is missing (e.g. vital signs, specific symptoms, duration, severity), ask the USER by prefixing: "FOYDALANUVCHI UCHUN SAVOL: [your question]". Keep in mind SSV clinical protocols and Uzbekistan context.
                 IMPORTANT: If you need clarification from the patient/doctor, use "FOYDALANUVCHI UCHUN SAVOL:" prefix so the system can ask the user.
                 LANGUAGE: ${langMap[language]}.
-                History: ${JSON.stringify(debateHistory)}
+                History: ${JSON.stringify(sliceDebateHistoryForPrompt(debateHistory, DEBATE_HISTORY_FINAL_REPORT_MAX_MESSAGES))}
             `;
             currentTopic = await callGemini(summarizationPrompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
         }
@@ -928,7 +981,7 @@ export const runCouncilDebate = async (
         4. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa to'ldiring; yo'q bo'lsa bo'sh qoldiring.
         5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
         6. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV tasdiqlangan klinik protokollariga muvofiq" yoki tegishli qisqacha eslatma.
-        Debate history: ${JSON.stringify(debateHistory)}
+        Debate history: ${JSON.stringify(sliceDebateHistoryForPrompt(debateHistory, DEBATE_HISTORY_FINAL_REPORT_MAX_MESSAGES))}
     `;
     
     const finalReportMultimodalPrompt = buildMultimodalPrompt(finalReportTextPrompt, patientData);

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AnonymizedCase } from '../types';
 import * as caseService from '../services/caseService';
 import SearchIcon from './icons/SearchIcon';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface CaseLibraryViewProps {
     onBack: () => void;
@@ -9,6 +10,7 @@ interface CaseLibraryViewProps {
 }
 
 const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatientComplaints }) => {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [cases, setCases] = useState<AnonymizedCase[]>(() => caseService.getAnonymizedCases());
     
@@ -31,10 +33,10 @@ const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatien
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <button onClick={onBack} className="text-sm font-semibold text-accent-color-blue hover:underline mb-1">
-                        &larr; Orqaga
+                        &larr; {t('back')}
                     </button>
-                    <h2 className="text-2xl font-bold text-text-primary">Holatlar Kutubxonasi</h2>
-                    <p className="text-text-secondary">Anonimlashtirilgan klinik holatlar arxivi</p>
+                    <h2 className="text-2xl font-bold text-text-primary">{t('case_library_title')}</h2>
+                    <p className="text-text-secondary">{t('case_library_subtitle')}</p>
                 </div>
             </div>
             
@@ -44,7 +46,7 @@ const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatien
                         type="text"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Kalit so'z bo'yicha qidirish (masalan, 'insult', 'kardiologiya')..."
+                        placeholder={t('case_library_placeholder')}
                         className="w-full common-input pl-10"
                     />
                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />

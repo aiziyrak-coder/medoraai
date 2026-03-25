@@ -343,7 +343,10 @@ export interface CMETopic {
 export interface UserStats {
   totalAnalyses: number;
   commonDiagnoses: { name: string; count: number }[];
-  feedbackAccuracy: number; // 0-1, how often user feedback matched final diagnosis
+  /** 0–1, sizning «ehtimoli yuqori» belgilagan tashxislar yakuniy tashxis bilan mos kelishi */
+  feedbackAccuracy: number;
+  /** DDx bo‘yicha fikr kiritilgan holatlar soni (0 bo‘lsa ko‘rsatkich namuna) */
+  feedbackEvalCount: number;
 }
 
 export interface AnonymizedCase {

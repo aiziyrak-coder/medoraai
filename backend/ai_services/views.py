@@ -233,7 +233,10 @@ def recommend_specialists(request):
     if not _azure_ok():
         return _azure_not_configured()
     try:
-        recs = azure_recommend(patient_data)
+        dd = request.data.get("differential_diagnoses") or request.data.get("diagnoses")
+        if dd is not None and not isinstance(dd, list):
+            dd = []
+        recs = azure_recommend(patient_data, differential_diagnoses=dd or None)
         return Response({"success": True, "data": {"recommendations": recs}})
     except Exception as exc:
         logger.exception("Recommend specialists error: %s", exc)

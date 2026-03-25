@@ -17,7 +17,7 @@ interface DrugInfo {
 }
 
 const DrugIdentifier: React.FC = () => {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const [searchText, setSearchText] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
@@ -39,13 +39,13 @@ const DrugIdentifier: React.FC = () => {
         setIsAnalyzing(true);
         try {
             if (mode === 'text' && searchText.trim()) {
-                const info = await identifyDrugByName(searchText, 'uz-L');
+                const info = await identifyDrugByName(searchText, language);
                 setResult(info);
             } else if (mode === 'image' && imageFile) {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     const base64 = (e.target?.result as string).split(',')[1];
-                    const info = await identifyDrugByImage(base64, imageFile.type, 'uz-L');
+                    const info = await identifyDrugByImage(base64, imageFile.type, language);
                     setResult(info);
                     setIsAnalyzing(false);
                 };
@@ -67,10 +67,9 @@ const DrugIdentifier: React.FC = () => {
                         <span className="text-2xl">🔍</span>
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Dori Aniqlash</h2>
+                        <h2 className="text-xl font-bold text-white">{t('drug_identifier_title')}</h2>
                             <p className="text-xs text-slate-400">
-                                Dori nomi yoki qadoq rasmini kiriting. Tizim faol modda, asosiy ko'rsatmalar, kontrendikatsiyalar va qabul qilish yo'riqnomasi bo'yicha ma'lumot beradi.
-                                Bu klinik qarorni to'liq almashtirmaydi, lekin tez orientatsiya uchun yordam beradi.
+                                {t('drug_identifier_hint')}
                             </p>
                     </div>
                 </div>

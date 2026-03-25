@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FinalReport, PatientEducationTopic } from '../../types';
 import * as aiService from '../../services/aiCouncilService';
 import SpinnerIcon from '../icons/SpinnerIcon';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface PatientEducationPortalProps {
     report: FinalReport;
@@ -19,25 +20,25 @@ const PatientEducationPortal: React.FC<PatientEducationPortalProps> = ({ report,
     useEffect(() => {
         setIsLoading(true);
         setError(null);
-        aiService.generatePatientEducationContent(report, language)
+        aiService.generatePatientEducationContent(report, contentLang)
             .then(setContent)
-            .catch(() => setError("Ma'lumotlarni yuklashda xatolik yuz berdi."))
+            .catch(() => setError(t('patient_education_load_error')))
             .finally(() => setIsLoading(false));
-    }, [report, language]);
+    }, [report, contentLang, t]);
 
     return (
         <div className="glass-panel p-6 md:p-8 animate-fade-in-up">
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <button onClick={onBack} className="text-sm font-semibold text-accent-color-blue hover:underline mb-1">
-                        &larr; Tahlilga qaytish
+                        {t('patient_education_back')}
                     </button>
-                    <h2 className="text-2xl font-bold text-text-primary">Bemor uchun Ma'lumot Portali</h2>
-                    <p className="text-text-secondary">Tashxis va davolash rejasi haqida sodda tilda ma'lumot.</p>
+                    <h2 className="text-2xl font-bold text-text-primary">{t('patient_education_title')}</h2>
+                    <p className="text-text-secondary">{t('patient_education_subtitle')}</p>
                 </div>
                 <div className="flex gap-1 p-1 bg-slate-100 rounded-lg border border-border-color">
                     {(['uz', 'ru', 'en'] as Language[]).map(lang => (
-                        <button key={lang} onClick={() => setLanguage(lang)} className={`px-3 py-1 text-sm font-semibold rounded-md ${language === lang ? 'bg-white shadow' : ''}`}>
+                        <button key={lang} type="button" onClick={() => setContentLang(lang)} className={`px-3 py-1 text-sm font-semibold rounded-md ${contentLang === lang ? 'bg-white shadow' : ''}`}>
                             {lang.toUpperCase()}
                         </button>
                     ))}

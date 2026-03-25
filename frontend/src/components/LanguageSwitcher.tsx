@@ -14,9 +14,16 @@ const languageOptions: { id: Language; label: string; short: string; }[] = [
 interface LanguageSwitcherProps {
     language: Language;
     onLanguageChange: (lang: Language) => void;
+    /** Landing light tema */
+    variant?: "dark" | "light";
 }
 
-const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ language, onLanguageChange }) => {
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
+    language,
+    onLanguageChange,
+    variant = "dark",
+}) => {
+    const isLight = variant === "light";
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -43,17 +50,25 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ language, onLanguag
         <div className="relative z-50" ref={wrapperRef}>
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600 transition-all shadow-md backdrop-blur-md"
+                className={
+                    isLight
+                        ? "flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 hover:bg-white text-slate-800 border border-slate-200/90 transition-all shadow-md shadow-slate-200/50 backdrop-blur-md"
+                        : "flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-white border border-slate-600 transition-all shadow-md backdrop-blur-md"
+                }
                 aria-haspopup="true"
                 aria-expanded={isOpen}
                 aria-label="Change language"
             >
                 <span className="text-sm font-bold tracking-wide">{currentLang.short}</span>
-                <ChevronDownIcon className={`w-4 h-4 text-slate-300 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon className={`w-4 h-4 ${isLight ? "text-slate-500" : "text-slate-300"} transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-slate-900 rounded-xl shadow-2xl border border-slate-700 overflow-hidden animate-fade-in-up origin-top-right">
+                <div className={`absolute top-full right-0 mt-2 w-56 rounded-xl shadow-2xl overflow-hidden animate-fade-in-up origin-top-right border ${
+                    isLight
+                        ? "bg-white border-slate-200"
+                        : "bg-slate-900 border-slate-700"
+                }`}>
                     <ul className="py-1">
                         {languageOptions.map(option => (
                             <li key={option.id}>
@@ -62,7 +77,9 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ language, onLanguag
                                     className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center justify-between
                                         ${language === option.id 
                                             ? 'bg-blue-600 text-white font-bold' 
-                                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                                            : isLight
+                                              ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                 >
                                     <span>{option.label}</span>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" role="img" aria-label="University partner">
+  <rect width="200" height="56" fill="#ffffff"/>
+  <rect x="10" y="8" width="40" height="40" rx="6" fill="#1e3a8a"/>
+  <path d="M30 18 L38 22 L38 38 L30 42 L22 38 L22 22 Z" fill="#ffffff" opacity="0.95"/>
+  <path d="M26 26 H34 M30 22 V34" stroke="#1e3a8a" stroke-width="2" stroke-linecap="round"/>
+  <text x="60" y="26" font-family="system-ui,Segoe UI,sans-serif" font-size="11" font-weight="600" fill="#334155">Hamkor ta¼lim muassasasi</text>
+  <text x="60" y="42" font-family="system-ui,Segoe UI,sans-serif" font-size="8.5" fill="#64748b">Farg»ona viloyati</text>
+</svg>

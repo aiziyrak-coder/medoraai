@@ -58,10 +58,10 @@ const ResearchView: React.FC = () => {
             case 'error':
                 setError(update.message);
                 setIsSearching(false);
-                setStatusMessage('Tadqiqot xatolik bilan yakunlandi.');
+                setStatusMessage(t('research_error_ended'));
                 break;
         }
-    }, []);
+    }, [t]);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,14 +79,14 @@ const ResearchView: React.FC = () => {
                     <div className="flex justify-between items-start mb-6 flex-shrink-0">
                         <div>
                             <h2 className="text-2xl font-bold text-text-primary mb-2">
-                                Tadqiqot Munozarasi: "{report?.diseaseName || diseaseName}"
+                                {t('research_debate_title')} &quot;{report?.diseaseName || diseaseName}&quot;
                             </h2>
-                            <p className="text-text-secondary">Innovatsion davolash usullari bo'yicha ekspertlar muhokamasi.</p>
+                            <p className="text-text-secondary">{t('research_view_subtitle')}</p>
                         </div>
                         {report && (
                              <button onClick={resetState} className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-text-primary bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors border border-border-color">
                                 <RestartIcon className="w-5 h-5" />
-                                <span>Yangi tadqiqot</span>
+                                <span>{t('research_new_research')}</span>
                             </button>
                         )}
                     </div>
@@ -101,7 +101,7 @@ const ResearchView: React.FC = () => {
 
                         {error && (
                             <div className="p-4 my-4 text-sm text-red-300 rounded-lg bg-red-500/20 border border-red-500/30" role="alert">
-                              <span className="font-bold">Xatolik!</span> {error}
+                              <span className="font-bold">{t('research_error_label')}</span> {error}
                             </div>
                         )}
                          {report && <ResearchReportCard report={report} />}
@@ -119,15 +119,15 @@ const ResearchView: React.FC = () => {
                 <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-accent-color-blue/20">
                     <LightBulbIcon className="h-7 w-7 text-accent-color-cyan" />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold text-text-primary">Tadqiqot Markazi</h3>
+                <h3 className="mt-5 text-lg font-semibold text-text-primary">{t('research_center_title')}</h3>
                 <p className="mt-2 text-sm text-text-secondary max-w-md mx-auto">
-                    Davolash usuli murakkab bo'lgan kasallik nomini kiriting. Kengashimiz ushbu kasallik uchun innovatsion va eksperimental davo choralarini muhokama qiladi.
+                    {t('research_placeholder')}
                 </p>
             </div>
             <form onSubmit={handleSearch} className="mt-8 max-w-lg mx-auto">
                 <div>
                     <label htmlFor="diseaseName" className="block text-sm font-medium text-text-secondary mb-2">
-                        Kasallik nomi
+                        {t('research_disease_label')}
                     </label>
                     <input
                         type="text"
@@ -135,7 +135,7 @@ const ResearchView: React.FC = () => {
                         value={diseaseName}
                         onChange={(e) => setDiseaseName(e.target.value)}
                         className="block w-full sm:text-sm common-input focus:border-accent-color-blue focus:ring focus:ring-blue-500/30 placeholder-zinc-500 transition shadow-sm px-4 py-3"
-                        placeholder="Masalan: Pankreatik saraton"
+                        placeholder={t('research_placeholder_disease')}
                     />
                 </div>
                 <div className="mt-6">
@@ -147,10 +147,10 @@ const ResearchView: React.FC = () => {
                         {isSearching ? (
                             <>
                                 <SpinnerIcon className="w-5 h-5" />
-                                Izlanilmoqda...
+                                {t('research_searching')}
                             </>
                         ) : (
-                            "Tadqiqotni Boshlash"
+                            t('research_start_btn')
                         )}
                     </button>
                 </div>

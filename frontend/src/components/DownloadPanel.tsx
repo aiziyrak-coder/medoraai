@@ -13,8 +13,8 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record }) => {
         return null;
     }
 
-    const handlePdfDownload = () => {
-        generatePdfReport(record.finalReport!, record.patientData!, record.debateHistory || []);
+    const handlePdfDownload = async () => {
+        await generatePdfReport(record.finalReport!, record.patientData!, record.debateHistory || []);
     };
     
     const handleDocxDownload = async () => {

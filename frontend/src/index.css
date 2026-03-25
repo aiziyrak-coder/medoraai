@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Landing: animatsiyali gradient fon */
+@keyframes landing-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.landing-animated-bg {
+  background: linear-gradient(
+    125deg,
+    #dbeafe 0%,
+    #fef9c3 16%,
+    #fce7f3 33%,
+    #e0e7ff 50%,
+    #a5f3fc 66%,
+    #bbf7d0 83%,
+    #bfdbfe 100%
+  );
+  background-size: 400% 400%;
+  animation: landing-gradient-flow 22s ease-in-out infinite;
+}

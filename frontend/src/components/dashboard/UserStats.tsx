@@ -2,27 +2,55 @@
 import React from 'react';
 import { UserStats } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import {
+    FEEDBACK_ACCURACY_SAMPLE_PERCENT,
+    feedbackAccuracyToDisplayPercent,
+} from '../../services/caseService';
 
 interface UserStatsProps {
     stats: UserStats;
 }
 
-const StatItem: React.FC<{ label: string; value: string | number; color?: string }> = ({ label, value, color = "text-text-primary" }) => (
+const StatItem: React.FC<{
+    label: string;
+    value: string | number;
+    color?: string;
+    subtitle?: string;
+}> = ({ label, value, color = "text-text-primary", subtitle }) => (
     <div className="p-4 bg-white/50 backdrop-blur-sm rounded-2xl text-center border border-white/60 shadow-sm flex flex-col justify-center h-full">
         <p className={`text-3xl font-black ${color} tracking-tight`}>{value}</p>
         <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">{label}</p>
+        {subtitle ? (
+            <p className="text-[9px] text-text-secondary/85 leading-snug mt-1.5 px-0.5 font-medium normal-case tracking-normal">
+                {subtitle}
+            </p>
+        ) : null}
     </div>
 );
 
 const UserStatsComponent: React.FC<UserStatsProps> = ({ stats }) => {
     const { t } = useTranslation();
+    const feedbackDisplayPct =
+        stats.feedbackEvalCount === 0
+            ? FEEDBACK_ACCURACY_SAMPLE_PERCENT
+            : feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy);
+    const feedbackSubtitle =
+        stats.feedbackEvalCount === 0
+            ? `${t('stats_feedback_accuracy_sub')} (${t('stats_feedback_sample_note')})`
+            : t('stats_feedback_accuracy_sub');
+
     return (
         <div className="glass-panel p-5 h-full flex flex-col">
             <h2 className="text-xl font-bold text-text-primary mb-4 px-1">{t('dashboard_stats_title')}</h2>
             
             <div className="grid grid-cols-2 gap-4 mb-6 flex-shrink-0">
                 <StatItem label={t('stats_total_analyses')} value={stats.totalAnalyses} color="text-[#007AFF]" />
-                <StatItem label={t('stats_feedback_accuracy')} value={`${Math.round(stats.feedbackAccuracy * 100)}%`} color="text-[#34C759]" />
+                <StatItem
+                    label={t('stats_feedback_accuracy')}
+                    value={`${feedbackDisplayPct}%`}
+                    color="text-[#34C759]"
+                    subtitle={feedbackSubtitle}
+                />
             </div>
             
             <div className="flex-grow flex flex-col">

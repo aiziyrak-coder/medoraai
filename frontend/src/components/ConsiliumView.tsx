@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { PatientData, FinalReport } from '../types';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
-import { useTranslation } from '../i18n/LanguageContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface Props {
   patientData: PatientData;
@@ -20,28 +20,6 @@ interface PhaseState {
   independent: PhaseStatus;
   debate:      PhaseStatus;
   consensus:   PhaseStatus;
-}
-
-const PHASE_LABELS: Record<string, Record<string, string>> = {
-  'uz-L': {
-    independent: '1-Faza: Mustaqil Tahlil',
-    debate:      '2-Faza: Bahslar (Cross-Examination)',
-    consensus:   '3-Faza: Konsensus Xulosasi',
-  },
-  ru: {
-    independent: 'Фаза 1: Независимый анализ',
-    debate:      'Фаза 2: Дебаты',
-    consensus:   'Фаза 3: Консенсус',
-  },
-  en: {
-    independent: 'Phase 1: Independent Analysis',
-    debate:      'Phase 2: Cross-Examination',
-    consensus:   'Phase 3: Consensus',
-  },
-};
-
-function getPhaseLabels(lang: string) {
-  return PHASE_LABELS[lang] || PHASE_LABELS['uz-L'];
 }
 
 const PROFESSOR_COLORS: Record<string, string> = {
@@ -84,6 +62,7 @@ function PhaseIndicator({
 }
 
 function DebateCard({ msg }: { msg: DebateMessage }) {
+  const { t } = useTranslation();
   const agentId = msg.id.split('-')[0];
   const colorClass = PROFESSOR_COLORS[agentId] || 'bg-slate-600';
   const icon       = PROFESSOR_ICONS[agentId]  || '🩺';
@@ -100,7 +79,7 @@ function DebateCard({ msg }: { msg: DebateMessage }) {
           <p className="text-xs text-slate-400">{msg.authorTitle}</p>
         </div>
         <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${isDebate ? 'bg-amber-600 text-white' : 'bg-slate-600 text-slate-200'}`}>
-          {isDebate ? '⚔ Bahslar' : '📋 Mustaqil'}
+          {isDebate ? t('consilium_badge_debate') : t('consilium_badge_independent')}
         </span>
       </div>
       <div className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
@@ -120,7 +99,11 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
   const [elapsed,   setElapsed]   = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debateRef = useRef<HTMLDivElement>(null);
-  const labels = getPhaseLabels(language);
+  const labels = {
+    independent: t('consilium_phase_independent'),
+    debate: t('consilium_phase_debate'),
+    consensus: t('consilium_phase_consensus'),
+  };
 
   const start = async () => {
     setLoading(true);
@@ -143,7 +126,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       clearTimeout(p2Timeout);
 
       if (!resp.success || !resp.data) {
-        throw new Error((resp as { error?: { message?: string } }).error?.message || 'Konsilium xatosi');
+        throw new Error((resp as { error?: { message?: string } }).error?.message || t('consilium_error'));
       }
 
       setPhases({ independent: 'done', debate: 'done', consensus: 'done' });
@@ -187,9 +170,9 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">🏛 Tibbiy Konsilium</h2>
+          <h2 className="text-xl font-bold text-white">🏛 {t('consilium_title')}</h2>
           <p className="text-sm text-slate-400 mt-0.5">
-            5 ta mustaqil AI professor — Bahslar — Konsensus
+            {t('consilium_subtitle')}
           </p>
         </div>
         {loading && (
@@ -211,7 +194,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
           className="w-full py-3 rounded-2xl bg-gradient-to-r from-sky-600 to-violet-600
                      text-white font-semibold text-base hover:opacity-90 active:scale-95 transition-all"
         >
-          🚀 Konsiliumni Boshlash
+          🚀 {t('consilium_start')}
         </button>
       )}
 
@@ -219,8 +202,8 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       {loading && (
         <div className="rounded-2xl border border-slate-600/40 bg-slate-800/40 p-6 text-center">
           <div className="animate-spin text-4xl mb-3">⟳</div>
-          <p className="text-slate-300">Professorlar mustaqil tahlil qilmoqda...</p>
-          <p className="text-slate-500 text-sm mt-1">Bu jarayon 30–90 soniya davom etishi mumkin</p>
+          <p className="text-slate-300">{t('consilium_loading_professors')}</p>
+          <p className="text-slate-500 text-sm mt-1">{t('consilium_loading_duration')}</p>
         </div>
       )}
 
@@ -238,7 +221,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                     ? 'bg-slate-700 text-white'
                     : 'text-slate-400 hover:text-white'}`}
               >
-                {tab === 'debate' ? '⚔ Bahslar' : '📋 Xulosa Hisobot'}
+                {tab === 'debate' ? t('consilium_tab_debate') : t('consilium_tab_report')}
               </button>
             ))}
           </div>
@@ -262,7 +245,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
 
               {result.final_report.dissentingOpinions?.length > 0 && (
                 <div className="rounded-xl p-3 bg-amber-950/30 border border-amber-500/30 text-sm text-amber-200">
-                  <p className="font-semibold mb-1">⚠ Farqli fikrlar:</p>
+                  <p className="font-semibold mb-1">{t('consilium_dissenting_title')}</p>
                   {result.final_report.dissentingOpinions.map((op, i) => (
                     <p key={i}>• {op}</p>
                   ))}
@@ -275,7 +258,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               {/* Consensus Diagnosis */}
               <div className="rounded-2xl bg-emerald-950/30 border border-emerald-500/30 p-4">
-                <h3 className="font-bold text-emerald-300 mb-2">✅ Konsensus Tashxis</h3>
+                <h3 className="font-bold text-emerald-300 mb-2">{t('consilium_consensus_diagnosis')}</h3>
                 {result.final_report.consensusDiagnosis.slice(0, 3).map((d, i) => (
                   <div key={i} className="mb-2">
                     <div className="flex items-center justify-between">
@@ -290,7 +273,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Critical Finding */}
               {result.final_report.criticalFinding && (
                 <div className="rounded-2xl bg-red-950/40 border border-red-500/50 p-4">
-                  <h3 className="font-bold text-red-300 mb-1">🚨 Kritik Topilma</h3>
+                  <h3 className="font-bold text-red-300 mb-1">{t('consilium_critical_finding')}</h3>
                   <p className="text-red-200 text-sm">{result.final_report.criticalFinding.finding}</p>
                   <p className="text-red-300 text-xs mt-1">{result.final_report.criticalFinding.implication}</p>
                 </div>
@@ -299,10 +282,10 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Medications */}
               {result.final_report.medicationRecommendations.length > 0 && (
                 <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-                  <h3 className="font-bold text-white mb-2">💊 Dori-darmonlar</h3>
+                  <h3 className="font-bold text-white mb-2">{t('consilium_medications')}</h3>
                   {result.final_report.pharmacologyWarnings?.length > 0 && (
                     <div className="mb-2 p-2 rounded-lg bg-amber-900/40 border border-amber-500/30">
-                      <p className="text-amber-300 text-xs font-semibold">⚠ Farmakolog ogohlantirishlari:</p>
+                      <p className="text-amber-300 text-xs font-semibold">{t('consilium_pharm_warnings')}</p>
                       {result.final_report.pharmacologyWarnings.map((w, i) => (
                         <p key={i} className="text-amber-200 text-xs">• {w}</p>
                       ))}
@@ -323,7 +306,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Follow-up */}
               {result.final_report.followUpPlan && (
                 <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-                  <h3 className="font-bold text-white mb-1">📅 Kuzatuv Rejasi</h3>
+                  <h3 className="font-bold text-white mb-1">{t('consilium_followup_plan')}</h3>
                   <p className="text-slate-300 text-sm">{result.final_report.followUpPlan}</p>
                 </div>
               )}
@@ -339,7 +322,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
             className="w-full py-2 rounded-xl border border-slate-600 text-slate-400 text-sm
                        hover:border-sky-500 hover:text-sky-400 transition-colors"
           >
-            🔄 Qayta O'tkazish
+            {t('consilium_rerun')}
           </button>
         </>
       )}

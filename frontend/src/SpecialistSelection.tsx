@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { AIModel } from '../constants/specialists';
 import { AI_SPECIALISTS } from '../constants';
 import AIAvatar from './AIAvatar';
+import { useTranslation } from './hooks/useTranslation';
 
 interface SpecialistSelectionProps {
     onConfirm: (selectedSpecialists: AIModel[]) => void;
 }
 
 const SpecialistSelection: React.FC<SpecialistSelectionProps> = ({ onConfirm }) => {
+    const { t } = useTranslation();
     const specialistModels = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
     const [selected, setSelected] = useState<AIModel[]>(specialistModels);
 
@@ -22,8 +24,8 @@ const SpecialistSelection: React.FC<SpecialistSelectionProps> = ({ onConfirm }) 
     return (
         <div className="max-w-3xl mx-auto glass-panel p-8 animate-fade-in-up">
             <div className="text-center">
-                <h2 className="text-2xl font-bold text-text-primary">Konsilium Tarkibini Tanlang (Qo'lda)</h2>
-                <p className="text-text-secondary mt-2">Klinik holatga eng mos keladigan AI-mutaxassislarni tanlang. Barchasini tanlash kengroq muhokamani ta'minlaydi.</p>
+                <h2 className="text-2xl font-bold text-text-primary">{t('specialist_selection_title')}</h2>
+                <p className="text-text-secondary mt-2">{t('specialist_selection_subtitle')}</p>
             </div>
 
             <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-4">

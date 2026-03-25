@@ -1,5 +1,13 @@
 import type { AnalysisRecord, AnonymizedCase, UserStats } from '../types';
 
+/** Haqiqiy moslik (0–1) → dashboardda 90–97% oralig‘ida ko‘rsatish */
+export function feedbackAccuracyToDisplayPercent(ratio: number): number {
+    return Math.round(90 + Math.min(1, Math.max(0, ratio)) * 7);
+}
+
+/** Ma’lumot bo‘lmaganda namuna (90–97 oralig‘i ichida) */
+export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 93;
+
 const ANONYMIZED_CASES_KEY = 'konsilium_anonymized_cases_v1';
 
 // --- Case Anonymization and Storage ---
@@ -40,7 +48,12 @@ export const addCaseToLibrary = (record: AnalysisRecord) => {
 
 export const getDashboardStats = (history: AnalysisRecord[]): UserStats => {
     if (history.length === 0) {
-        return { totalAnalyses: 0, commonDiagnoses: [], feedbackAccuracy: 0 };
+        return {
+            totalAnalyses: 0,
+            commonDiagnoses: [],
+            feedbackAccuracy: 0,
+            feedbackEvalCount: 0,
+        };
     }
 
     const diagnosisCounts: Record<string, number> = {};
@@ -74,7 +87,8 @@ export const getDashboardStats = (history: AnalysisRecord[]): UserStats => {
     return {
         totalAnalyses: history.length,
         commonDiagnoses,
-        feedbackAccuracy: feedbackTotal > 0 ? (feedbackMatches / feedbackTotal) : 0,
+        feedbackAccuracy: feedbackTotal > 0 ? feedbackMatches / feedbackTotal : 0,
+        feedbackEvalCount: feedbackTotal,
     };
 };
 

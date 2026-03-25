@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AnalysisRecord } from '../types';
+import { useTranslation } from '../hooks/useTranslation';
 import DocumentReportIcon from './icons/DocumentReportIcon';
 import VideoCameraIcon from './icons/VideoCameraIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
@@ -15,12 +16,13 @@ interface HistoryViewProps {
 }
 
 const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, onStartConsultation, onViewCaseLibrary }) => {
+    const { t } = useTranslation();
     if (analyses.length === 0) {
         return (
             <div className="text-center py-16 animate-fade-in-up">
                 <DocumentReportIcon className="mx-auto w-16 h-16 text-slate-300" />
-                <h3 className="mt-4 text-xl font-semibold text-text-primary">Tahlillar Tarixi Bo'sh</h3>
-                <p className="mt-2 text-text-secondary">Siz hali hech qanday klinik holatni tahlil qilmagansiz.</p>
+                <h3 className="mt-4 text-xl font-semibold text-text-primary">{t('history_empty_title')}</h3>
+                <p className="mt-2 text-text-secondary">{t('history_empty_desc')}</p>
             </div>
         );
     }
@@ -29,12 +31,12 @@ const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, o
         <div className="animate-fade-in-up space-y-6">
              <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-text-primary">Tahlillar Tarixi</h2>
-                    <p className="text-text-secondary">O'tkazilgan barcha tahlillaringiz ro'yxati.</p>
+                    <h2 className="text-2xl font-bold text-text-primary">{t('history_title')}</h2>
+                    <p className="text-text-secondary">{t('history_view_subtitle')}</p>
                 </div>
                 <button onClick={onViewCaseLibrary} className="flex items-center gap-2 text-sm font-semibold animated-gradient-button px-4 py-2">
                     <BookOpenIcon className="w-5 h-5"/>
-                    <span>Holatlar Kutubxonasi</span>
+                    <span>{t('history_case_library_btn')}</span>
                 </button>
             </div>
             
