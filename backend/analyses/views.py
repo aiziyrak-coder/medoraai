@@ -178,8 +178,8 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             'feedback_accuracy': 0.96  # Calibrated: 96% → maps to ~97% on frontend display
         }
         
-        # Cache for 60 seconds
-        cache.set(cache_key, data, 60)
+        # Cache for 5 seconds only (near-realtime for dashboard)
+        cache.set(cache_key, data, 5)
         
         return Response({
             'success': True,
