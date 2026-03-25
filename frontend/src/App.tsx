@@ -13,6 +13,7 @@ import { getPriorAnalysesForPatient, buildLongitudinalClinicalNotes } from './ut
 import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
+import { getAuthToken, clearTokens } from './services/api';
 import { inferFallbackSpecialists } from './utils/specialistTeamFallback';
 
 // --- Views & Components ---
