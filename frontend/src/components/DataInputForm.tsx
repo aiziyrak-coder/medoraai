@@ -16,7 +16,43 @@ import SearchIcon from './icons/SearchIcon';
 
 type SpecialtyKey = 'gastro' | 'cardio' | 'neuro' | 'therapist' | 'endo' | 'pulmo' | 'nephro' | 'derma' | 'ortho' | 'gynec' | 'uro' | 'ophth' | 'ent' | 'reuma';
 
-// Batafsil va keng shikoyat shablonlari — doktor tanlab to'liq matn oladi
+// Get complaint templates from i18n based on current language
+const getComplaintTemplates = (t: (key: string) => string): Record<SpecialtyKey, string[]> => ({
+    gastro: Array.from({ length: 27 }, (_, i) => t(`tmpl_gastro_comp_${i}`)),
+    cardio: Array.from({ length: 24 }, (_, i) => t(`tmpl_cardio_comp_${i}`)),
+    neuro: Array.from({ length: 23 }, (_, i) => t(`tmpl_neuro_comp_${i}`)),
+    therapist: Array.from({ length: 23 }, (_, i) => t(`tmpl_therapist_comp_${i}`)),
+    endo: Array.from({ length: 17 }, (_, i) => t(`tmpl_endo_comp_${i}`)),
+    pulmo: Array.from({ length: 19 }, (_, i) => t(`tmpl_pulmo_comp_${i}`)),
+    nephro: Array.from({ length: 15 }, (_, i) => t(`tmpl_nephro_comp_${i}`)),
+    derma: Array.from({ length: 15 }, (_, i) => t(`tmpl_derma_comp_${i}`)),
+    ortho: Array.from({ length: 13 }, (_, i) => t(`tmpl_ortho_comp_${i}`)),
+    gynec: Array.from({ length: 11 }, (_, i) => t(`tmpl_gynec_comp_${i}`)),
+    uro: Array.from({ length: 11 }, (_, i) => t(`tmpl_uro_comp_${i}`)),
+    ophth: Array.from({ length: 10 }, (_, i) => t(`tmpl_ophth_comp_${i}`)),
+    ent: Array.from({ length: 10 }, (_, i) => t(`tmpl_ent_comp_${i}`)),
+    reuma: Array.from({ length: 9 }, (_, i) => t(`tmpl_reuma_comp_${i}`)),
+});
+
+// Get history templates from i18n based on current language
+const getHistoryTemplates = (t: (key: string) => string): Record<SpecialtyKey, string[]> => ({
+    gastro: Array.from({ length: 21 }, (_, i) => t(`tmpl_gastro_hist_${i}`)),
+    cardio: Array.from({ length: 17 }, (_, i) => t(`tmpl_cardio_hist_${i}`)),
+    neuro: Array.from({ length: 15 }, (_, i) => t(`tmpl_neuro_hist_${i}`)),
+    therapist: Array.from({ length: 14 }, (_, i) => t(`tmpl_therapist_hist_${i}`)),
+    endo: Array.from({ length: 13 }, (_, i) => t(`tmpl_endo_hist_${i}`)),
+    pulmo: Array.from({ length: 8 }, (_, i) => t(`tmpl_pulmo_hist_${i}`)),
+    nephro: Array.from({ length: 7 }, (_, i) => t(`tmpl_nephro_hist_${i}`)),
+    derma: Array.from({ length: 5 }, (_, i) => t(`tmpl_derma_hist_${i}`)),
+    ortho: Array.from({ length: 5 }, (_, i) => t(`tmpl_ortho_hist_${i}`)),
+    gynec: Array.from({ length: 5 }, (_, i) => t(`tmpl_gynec_hist_${i}`)),
+    uro: Array.from({ length: 4 }, (_, i) => t(`tmpl_uro_hist_${i}`)),
+    ophth: Array.from({ length: 3 }, (_, i) => t(`tmpl_ophth_hist_${i}`)),
+    ent: Array.from({ length: 3 }, (_, i) => t(`tmpl_ent_hist_${i}`)),
+    reuma: Array.from({ length: 3 }, (_, i) => t(`tmpl_reuma_hist_${i}`)),
+});
+
+// Batafsil va keng shikoyat shablonlari — doktor tanlab to'liq matn oladi (fallback)
 const COMPLAINT_TEMPLATES: Record<SpecialtyKey, string[]> = {
     gastro: [
         "Qorin og'riqi, asosan epigastriyada, ovqatdan keyin kuchayadi va kechasi och qoringa og'riq.",
@@ -559,6 +595,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const [apiPatients, setApiPatients] = useState<Patient[]>([]);
     const [patientSearchLoading, setPatientSearchLoading] = useState(false);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Get templates based on current language
+    const complaintTemplates = getComplaintTemplates(t);
+    const historyTemplates = getHistoryTemplates(t);
 
     const applyPatientDataToForm = useCallback((pd: PatientData) => {
         setFormData({
@@ -1136,8 +1176,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 onChange={e => {
                                                     const idx = e.target.value === '' ? '' : Number(e.target.value);
                                                     setSelectedComplaintIdx(idx);
-                                                    if (selectedSpecialty && idx !== '' && COMPLAINT_TEMPLATES[selectedSpecialty][idx]) {
-                                                        appendToField('complaints', COMPLAINT_TEMPLATES[selectedSpecialty][idx]);
+                                                    if (selectedSpecialty && idx !== '' && complaintTemplates[selectedSpecialty][idx]) {
+                                                        appendToField('complaints', complaintTemplates[selectedSpecialty][idx]);
                                                     }
                                                 }}
                                                 disabled={!selectedSpecialty}
@@ -1145,7 +1185,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             >
                                                 <option value="">Qo‘shish uchun tanlang...</option>
                                                 {selectedSpecialty &&
-                                                    COMPLAINT_TEMPLATES[selectedSpecialty].map((item, idx) => (
+                                                    complaintTemplates[selectedSpecialty].map((item, idx) => (
                                                         <option key={idx} value={idx}>
                                                             {item.slice(0, 120)}{item.length > 120 ? '…' : ''}
                                                         </option>
@@ -1161,8 +1201,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 onChange={e => {
                                                     const idx = e.target.value === '' ? '' : Number(e.target.value);
                                                     setSelectedHistoryIdx(idx);
-                                                    if (selectedSpecialty && idx !== '' && HISTORY_TEMPLATES[selectedSpecialty][idx]) {
-                                                        appendToField('history', HISTORY_TEMPLATES[selectedSpecialty][idx]);
+                                                    if (selectedSpecialty && idx !== '' && historyTemplates[selectedSpecialty][idx]) {
+                                                        appendToField('history', historyTemplates[selectedSpecialty][idx]);
                                                     }
                                                 }}
                                                 disabled={!selectedSpecialty}
@@ -1170,7 +1210,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             >
                                                 <option value="">Qo‘shish uchun tanlang...</option>
                                                 {selectedSpecialty &&
-                                                    HISTORY_TEMPLATES[selectedSpecialty].map((item, idx) => (
+                                                    historyTemplates[selectedSpecialty].map((item, idx) => (
                                                         <option key={idx} value={idx}>
                                                             {item.slice(0, 120)}{item.length > 120 ? '…' : ''}
                                                         </option>
