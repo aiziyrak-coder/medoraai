@@ -1183,13 +1183,17 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 disabled={!selectedSpecialty}
                                                 className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded disabled:bg-slate-100 disabled:text-slate-400"
                                             >
-                                                <option value="">Qo‘shish uchun tanlang...</option>
+                                                <option value="">Shablon tanlang...</option>
                                                 {selectedSpecialty &&
-                                                    complaintTemplates[selectedSpecialty].map((item, idx) => (
-                                                        <option key={idx} value={idx}>
-                                                            {item.slice(0, 120)}{item.length > 120 ? '…' : ''}
-                                                        </option>
-                                                    ))}
+                                                    complaintTemplates[selectedSpecialty].map((item, idx) => {
+                                                        // Create a short label from first 60 chars + add index
+                                                        const shortLabel = item.slice(0, 60) + (item.length > 60 ? '...' : '');
+                                                        return (
+                                                            <option key={idx} value={idx} title={item}>
+                                                                {idx + 1}. {shortLabel}
+                                                            </option>
+                                                        );
+                                                    })}
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
@@ -1208,13 +1212,17 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 disabled={!selectedSpecialty}
                                                 className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded disabled:bg-slate-100 disabled:text-slate-400"
                                             >
-                                                <option value="">Qo‘shish uchun tanlang...</option>
+                                                <option value="">Shablon tanlang...</option>
                                                 {selectedSpecialty &&
-                                                    historyTemplates[selectedSpecialty].map((item, idx) => (
-                                                        <option key={idx} value={idx}>
-                                                            {item.slice(0, 120)}{item.length > 120 ? '…' : ''}
-                                                        </option>
-                                                    ))}
+                                                    historyTemplates[selectedSpecialty].map((item, idx) => {
+                                                        // Create a short label from first 60 chars + add index
+                                                        const shortLabel = item.slice(0, 60) + (item.length > 60 ? '...' : '');
+                                                        return (
+                                                            <option key={idx} value={idx} title={item}>
+                                                                {idx + 1}. {shortLabel}
+                                                            </option>
+                                                        );
+                                                    })}
                                             </select>
                                         </div>
                                     </div>
