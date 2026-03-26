@@ -25,7 +25,7 @@ const mockFinalReport: FinalReport = {
 
 
 const InsurancePreAuthTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [procedure, setProcedure] = useState('Laparoskopik xoletsistektomiya');
     const [draft, setDraft] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +62,7 @@ const InsurancePreAuthTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                 Muolaja uchun tibbiy zaruratni asoslovchi xat loyihasini yarating.
             </p>
              <div className="space-y-4 mb-4">
-                 <label htmlFor="procedure" className="block text-sm font-medium text-text-secondary">Muolaja Nomi</label>
+                 <label htmlFor="procedure" className="block text-sm font-medium text-text-secondary">{t('tool_insurance_procedure_label')}</label>
                  <input
                     type="text"
                     id="procedure"

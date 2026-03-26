@@ -5,7 +5,7 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const PediatricDoseCalculator: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [drugName, setDrugName] = useState('Amoxicillin');
     const [weight, setWeight] = useState('10');
     const [result, setResult] = useState<PediatricDose | null>(null);
@@ -41,7 +41,7 @@ const PediatricDoseCalculator: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="md:col-span-2">
-                    <label htmlFor="drugName" className="block text-sm font-medium text-text-secondary mb-1">Dori Nomi</label>
+                    <label htmlFor="drugName" className="block text-sm font-medium text-text-secondary mb-1">{t('tool_pediatric_drug_label')}</label>
                     <input type="text" id="drugName" value={drugName} onChange={e => setDrugName(e.target.value)} className="block w-full sm:text-sm common-input" />
                 </div>
                 <div>

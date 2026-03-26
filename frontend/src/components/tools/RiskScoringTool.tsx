@@ -15,7 +15,7 @@ const mockPatientData: PatientData = {
 
 
 const RiskScoringTool: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [scoreType, setScoreType] = useState('CHADS-VASc');
     const [result, setResult] = useState<RiskScore | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +45,7 @@ const RiskScoringTool: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 items-end">
                 <div className="flex-grow">
-                     <label htmlFor="scoreType" className="block text-sm font-medium text-text-secondary mb-1">Xavf Shkalasi</label>
+                     <label htmlFor="scoreType" className="block text-sm font-medium text-text-secondary mb-1">{t('tool_risk_score_label')}</label>
                     <select id="scoreType" value={scoreType} onChange={e => setScoreType(e.target.value)} className="w-full common-input custom-select">
                         <option value="CHADS-VASc">CHADS-VASc (Insult xavfi)</option>
                         <option value="ASCVD">ASCVD (Yurak-qon tomir xavfi)</option>

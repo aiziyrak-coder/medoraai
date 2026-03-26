@@ -21,6 +21,7 @@ export const kaa: TranslationSet = {
 
   // Navigation
   nav_dashboard: 'Bas bet',
+  back_to_home: 'Bas bet',
   nav_new_case: 'Jańa jaǵday',
   nav_archive: 'Arxiv',
   nav_tools: 'Ásbaplar',
@@ -95,6 +96,10 @@ export const kaa: TranslationSet = {
   auth_agree_terms_label: 'Men paydalanıw shartlarına razıman:',
   auth_agree_privacy_label: 'Men maxfiylik siyasatına razıman:',
   auth_agree_required: 'Dıqqatqa alıw ushın shartlar hám maxfiylik siyasatına rızılıq kórsetiwińiz kerek.',
+
+  // Template selections
+  template_free_text: 'Erkin tekst',
+  template_select: 'Shablon tańlań...',
 
   // Specialties
   specialty_cardiology: 'Kardiologiya',
@@ -212,6 +217,9 @@ export const kaa: TranslationSet = {
   data_input_subtitle: 'Analiz ushın maǵlıwmatlardı kiritiń yamasa shablonlardan paydalanıń',
   data_input_template_label: 'Qıstaǵısh jaǵday shablonı:',
   data_input_template_select: 'Shablon tańlań...',
+  data_input_specialty_templates: 'Mámleketlik (shablonlar)',
+  data_input_typical_complaint: 'Tipikalı shaǵımlar',
+  data_input_history_template: 'Anamnez (tariyx) shablonı',
   data_input_patient_name: 'Nawqas Atı',
   data_input_patient_lastname: 'Nawqas Familiyası',
   data_input_age: 'Jası',
@@ -685,6 +693,7 @@ export const kaa: TranslationSet = {
   history_empty_title: 'Tahliller tariyxı bos',
   history_empty_desc: 'Siz hám hesh qanday klinikalıq jaǵdaydı tahlil etpegen-siz.',
   history_title: 'Tahliller tariyxı',
+    history_subtitle: 'Ótkerilgen barlıq tahliller',
   history_case_library_btn: 'Jaǵdaylar kitapxanası',
 
   follow_up_section_title: 'Konsilium menen soraw-juwap',

@@ -95,7 +95,7 @@ const DrugIdentifier: React.FC = () => {
                             type="text"
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
-                            placeholder="Dori nomi (Panadol, Nimesil, Augmentin...)"
+                            placeholder={t('tool_drug_identifier_placeholder')}
                             className="w-full px-4 py-3 bg-white text-slate-900 rounded-xl border-2 border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-400"
                         />
                         <button

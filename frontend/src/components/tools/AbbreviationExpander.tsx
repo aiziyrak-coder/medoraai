@@ -4,7 +4,7 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const AbbreviationExpander: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [abbreviation, setAbbreviation] = useState('CABG');
     const [explanation, setExplanation] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +31,9 @@ const AbbreviationExpander: React.FC = () => {
 
     return (
         <div className="glass-panel p-6 md:p-8">
-            <h3 className="text-xl font-bold text-text-primary">Tibbiy Qisqartmalar Lug'ati</h3>
+            <h3 className="text-xl font-bold text-text-primary">{t('tool_abbreviation_title')}</h3>
             <p className="text-sm text-text-secondary mt-1 mb-6">
-                Tibbiy qisqartmani kiriting va uning to'liq shakli va qisqacha tavsifini oling.
+                {t('tool_abbreviation_desc')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -41,7 +41,7 @@ const AbbreviationExpander: React.FC = () => {
                     type="text"
                     value={abbreviation}
                     onChange={(e) => setAbbreviation(e.target.value)}
-                    placeholder="Qisqartmani kiriting..."
+                    placeholder={t('tool_abbreviation_placeholder')}
                     className="flex-grow block w-full rounded-lg sm:text-sm common-input focus:border-accent-color-blue focus:ring focus:ring-blue-500/30 placeholder-zinc-500 transition px-4 py-2.5"
                     disabled={isLoading}
                 />

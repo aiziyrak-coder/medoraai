@@ -4,7 +4,7 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const LabValueInterpreter: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [labValue, setLabValue] = useState('K+ 5.9 mEq/L');
     const [interpretation, setInterpretation] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +41,7 @@ const LabValueInterpreter: React.FC = () => {
                     type="text"
                     value={labValue}
                     onChange={(e) => setLabValue(e.target.value)}
-                    placeholder="Tahlil natijasini kiriting..."
+                    placeholder={t('tool_lab_interpreter_placeholder')}
                     className="flex-grow block w-full rounded-lg sm:text-sm common-input focus:border-accent-color-blue focus:ring focus:ring-blue-500/30 placeholder-zinc-500 transition px-4 py-2.5"
                     disabled={isLoading}
                 />

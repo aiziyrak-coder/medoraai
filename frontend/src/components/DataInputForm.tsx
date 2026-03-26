@@ -1007,7 +1007,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 className="w-full text-left px-2 py-1.5 hover:bg-sky-50"
                                                 onClick={() => selectFromApiPatient(p)}
                                             >
-                                                {p.first_name} {p.last_name} · {p.age} y. · ID {p.id}
+                                                {p.first_name} {p.last_name} · {p.age} {t('years_short')} · ID {p.id}
                                             </button>
                                         </li>
                                     ))}
@@ -1138,7 +1138,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
-                                                Mutaxassislik (shablonlar)
+                                                {t('data_input_specialty_templates')}
                                             </label>
                                             <select
                                                 value={selectedSpecialty}
@@ -1150,26 +1150,26 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 }}
                                                 className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded"
                                             >
-                                                <option value="">Erkin matn</option>
-                                                <option value="gastro">Gastroenterologiya</option>
-                                                <option value="cardio">Kardiologiya</option>
-                                                <option value="neuro">Nevrologiya</option>
-                                                <option value="therapist">Terapiya</option>
-                                                <option value="endo">Endokrinologiya</option>
-                                                <option value="pulmo">Pulmonologiya</option>
-                                                <option value="nephro">Nefrologiya</option>
-                                                <option value="derma">Dermatologiya</option>
-                                                <option value="ortho">Ortopediya / Travmatologiya</option>
-                                                <option value="gynec">Ginekologiya</option>
-                                                <option value="uro">Urologiya</option>
-                                                <option value="ophth">Oftalmologiya</option>
-                                                <option value="ent">LOR</option>
-                                                <option value="reuma">Revmatologiya</option>
+                                                <option value="">{t('template_free_text')}</option>
+                                                <option value="gastro">{t('specialty_gastro')}</option>
+                                                <option value="cardio">{t('specialty_cardio')}</option>
+                                                <option value="neuro">{t('specialty_neuro')}</option>
+                                                <option value="therapist">{t('specialty_therapist')}</option>
+                                                <option value="endo">{t('specialty_endo')}</option>
+                                                <option value="pulmo">{t('specialty_pulmo')}</option>
+                                                <option value="nephro">{t('specialty_nephro')}</option>
+                                                <option value="derma">{t('specialty_derma')}</option>
+                                                <option value="ortho">{t('specialty_ortho')}</option>
+                                                <option value="gynec">{t('specialty_gynec')}</option>
+                                                <option value="uro">{t('specialty_uro')}</option>
+                                                <option value="ophth">{t('specialty_ophth')}</option>
+                                                <option value="ent">{t('specialty_ent')}</option>
+                                                <option value="reuma">{t('specialty_reuma')}</option>
                                             </select>
                                         </div>
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
-                                                Tipik shikoyat
+                                                {t('data_input_typical_complaint')}
                                             </label>
                                             <select
                                                 value={selectedComplaintIdx}
@@ -1183,7 +1183,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 disabled={!selectedSpecialty}
                                                 className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded disabled:bg-slate-100 disabled:text-slate-400"
                                             >
-                                                <option value="">Shablon tanlang...</option>
+                                                <option value="">{t('template_select')}</option>
                                                 {selectedSpecialty &&
                                                     complaintTemplates[selectedSpecialty].map((item, idx) => {
                                                         // Create a short label from first 60 chars + add index
@@ -1198,7 +1198,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                         </div>
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
-                                                Anamnez (tarix) shabloni
+                                                {t('data_input_history_template')}
                                             </label>
                                             <select
                                                 value={selectedHistoryIdx}
@@ -1212,7 +1212,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 disabled={!selectedSpecialty}
                                                 className="block w-full text-[11px] common-input py-1 px-1.5 bg-white/60 focus:bg-white border-none rounded disabled:bg-slate-100 disabled:text-slate-400"
                                             >
-                                                <option value="">Shablon tanlang...</option>
+                                                <option value="">{t('template_select')}</option>
                                                 {selectedSpecialty &&
                                                     historyTemplates[selectedSpecialty].map((item, idx) => {
                                                         // Create a short label from first 60 chars + add index
@@ -1252,7 +1252,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                         {/* Structured Vitals */}
                         <div className="glass-panel p-2 flex-shrink-0">
                             <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                                <h3 className="text-[10px] font-bold text-slate-800">Ob'ektiv Ko'rik (Vital Ko'rsatkichlar)</h3>
+                                <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_vitals_section_title')}</h3>
                                 <button
                                     type="button"
                                     onClick={fillNormalVitals}

@@ -6,7 +6,7 @@ import UploadCloudIcon from '../icons/UploadCloudIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const EcgAnalyzer: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [report, setReport] = useState<EcgReport | null>(null);
@@ -117,15 +117,15 @@ const EcgAnalyzer: React.FC = () => {
                     {report ? (
                         <>
                             <dl className="space-y-2">
-                                <ReportItem label="Ritm" value={report.rhythm} />
-                                <ReportItem label="Yurak urish soni (HR)" value={report.heartRate} />
-                                <ReportItem label="PR Interval" value={report.prInterval} />
-                                <ReportItem label="QRS Davomiyligi" value={report.qrsDuration} />
-                                <ReportItem label="QT/QTc Interval" value={report.qtInterval} />
-                                <ReportItem label="Elektr O'qi" value={report.axis} />
+                                <ReportItem label={t('ecg_rhythm')} value={report.rhythm} />
+                                <ReportItem label={t('ecg_heart_rate')} value={report.heartRate} />
+                                <ReportItem label={t('ecg_pr_interval')} value={report.prInterval} />
+                                <ReportItem label={t('ecg_qrs_duration')} value={report.qrsDuration} />
+                                <ReportItem label={t('ecg_qt_interval')} value={report.qtInterval} />
+                                <ReportItem label={t('ecg_axis')} value={report.axis} />
                             </dl>
                             <div className="p-4 bg-slate-100 rounded-lg border border-border-color">
-                                <h4 className="font-semibold text-text-primary">Morfologiya:</h4>
+                                <h4 className="font-semibold text-text-primary">{t('ecg_morphology')}:</h4>
                                 <p className="text-sm text-text-secondary whitespace-pre-wrap">{report.morphology}</p>
                             </div>
                             <div className="p-4 bg-blue-100 rounded-lg border border-blue-200">

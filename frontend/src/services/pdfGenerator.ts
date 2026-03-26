@@ -26,8 +26,18 @@ export interface InstituteBranding {
 export const generatePdfReport = async (
     report: FinalReport,
     patientData: PatientData,
-    branding?: InstituteBranding
+    branding?: InstituteBranding,
+    t?: (key: string) => string
 ) => {
+    // Translation helper - returns key if translation not found
+    const tr = (key: string, fallback: string): string => {
+        if (t) {
+            const translated = t(key);
+            // If translation equals key (not found), use fallback
+            return translated === key ? fallback : translated;
+        }
+        return fallback;
+    };
     const doc = new jsPDF();
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
@@ -159,13 +169,13 @@ export const generatePdfReport = async (
     doc.setFontSize(16);
     doc.setFont(PDF_FONT, 'bold');
     doc.setTextColor(30, 41, 59);
-    doc.text("KONSILIUM: Yakuniy Klinik Xulosa", MARGIN, y);
+    doc.text(tr('pdf_title', "KONSILIUM: Yakuniy Klinik Xulosa"), MARGIN, y);
     y += 5;
 
     doc.setFontSize(8);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text("Rasmiy tibbiy maslahat hujjati - doktor tavsiyasi sifatida. Faqat ma'lumot uchun.", MARGIN, y);
+    doc.text(tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati - doktor tavsiyasi sifatida. Faqat ma'lumot uchun."), MARGIN, y);
     const reportDate = new Date();
     const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
     doc.text(`Sana: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
@@ -197,7 +207,7 @@ export const generatePdfReport = async (
     doc.setFontSize(9);
     doc.setFont(PDF_FONT, 'bold');
     doc.setTextColor(50, 60, 80);
-    doc.text("BEMOR MA'LUMOTLARI", MARGIN + 2, y + 4);
+    doc.text(tr('pdf_patient_info', "BEMOR MA'LUMOTLARI"), MARGIN + 2, y + 4);
     y += rowHeight;
 
     // Row 1: Name, Age, Gender
@@ -209,14 +219,14 @@ export const generatePdfReport = async (
     doc.setFontSize(9);
     doc.setFont(PDF_FONT, 'bold');
     doc.setTextColor(80, 80, 80);
-    doc.text("Bemor:", MARGIN + 2, y + 4);
+    doc.text(tr('pdf_patient', "Bemor:") + ' ', MARGIN + 2, y + 4);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(40, 40, 40);
     doc.text(fullName, MARGIN + 20, y + 4);
     
     doc.setFont(PDF_FONT, 'bold');
     doc.setTextColor(80, 80, 80);
-    doc.text("Yoshi:", MARGIN + col1Width + col2Width + 2, y + 4);
+    doc.text(tr('pdf_age', "Yoshi:") + ' ', MARGIN + col1Width + col2Width + 2, y + 4);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(40, 40, 40);
     doc.text(patientData.age, MARGIN + col1Width + col2Width + 18, y + 4);
@@ -228,7 +238,7 @@ export const generatePdfReport = async (
         doc.setFontSize(8);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(80, 80, 80);
-        doc.text("Ob'ektiv:", MARGIN + 2, y + 4);
+        doc.text(tr('pdf_objective', "Ob'ektiv:") + ' ', MARGIN + 2, y + 4);
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(40, 40, 40);
         const vitalText = patientData.objectiveData.substring(0, 100);
@@ -243,7 +253,7 @@ export const generatePdfReport = async (
         doc.setFontSize(8);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(80, 80, 80);
-        doc.text("Shikoyat:", MARGIN + 2, y + 4);
+        doc.text(tr('pdf_complaints', "Shikoyat:") + ' ', MARGIN + 2, y + 4);
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(40, 40, 40);
         const compSplit = doc.splitTextToSize(patientData.complaints, pageWidth - MARGIN * 2 - 28);
@@ -262,7 +272,7 @@ export const generatePdfReport = async (
         doc.setFontSize(8);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(80, 80, 80);
-        doc.text("Lab:", MARGIN + 2, y + 4);
+        doc.text(tr('pdf_lab', "Lab:") + ' ', MARGIN + 2, y + 4);
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(40, 40, 40);
         const labSplit = doc.splitTextToSize(patientData.labResults.substring(0, 200), pageWidth - MARGIN * 2 - 18);
@@ -289,7 +299,7 @@ export const generatePdfReport = async (
         doc.setFontSize(8);
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(180, 50, 50);
-        doc.text("Muhim topilma (Shoshilinch):", MARGIN + 3, y + 4);
+        doc.text(tr('pdf_critical_finding', "Muhim topilma (Shoshilinch):"), MARGIN + 3, y + 4);
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(80, 40, 40);
         const cfText = (report.criticalFinding.finding + ' - ' + report.criticalFinding.implication).substring(0, 120);
@@ -300,15 +310,15 @@ export const generatePdfReport = async (
         }
         doc.setFont(PDF_FONT, 'bold');
         doc.setTextColor(180, 50, 50);
-        doc.text(`Shoshilinchlik: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, y + 13, { align: 'right' });
+        doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, y + 13, { align: 'right' });
         y += 20;
     }
 
     // === CONSENSUS SECTION ===
-    addHeader("Konsilium Konsensusi");
+    addHeader(tr('pdf_consensus', "Konsilium Konsensusi"));
 
     // Diagnoses in compact table format
-    addSectionTitle("Tashxislar");
+    addSectionTitle(tr('pdf_diagnoses', "Tashxislar"));
     const diagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis).slice(0, 4);
     diagnoses.forEach((diag, idx) => {
         const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
@@ -333,7 +343,7 @@ export const generatePdfReport = async (
     // Treatment plan
     if (report.treatmentPlan && report.treatmentPlan.length > 0) {
         y += 2;
-        addSectionTitle("Davolash Rejasi");
+        addSectionTitle(tr('pdf_treatment_plan', "Davolash Rejasi"));
         const treatments = (Array.isArray(report.treatmentPlan) ? report.treatmentPlan.slice(0, 6) : []);
         treatments.forEach(step => {
             const s = typeof step === 'string' ? step : 
@@ -345,7 +355,7 @@ export const generatePdfReport = async (
     // Medications
     if (report.medicationRecommendations && report.medicationRecommendations.length > 0) {
         y += 2;
-        addSectionTitle("Dori Tavsiyalari");
+        addSectionTitle(tr('pdf_medications', "Dori Tavsiyalari"));
         const meds = report.medicationRecommendations.slice(0, 6);
         meds.forEach(med => {
             doc.setFontSize(9);
@@ -370,7 +380,7 @@ export const generatePdfReport = async (
     // Recommended tests
     if (report.recommendedTests && report.recommendedTests.length > 0) {
         y += 2;
-        addSectionTitle("Qo'shimcha Tekshiruvlar");
+        addSectionTitle(tr('pdf_tests', "Qo'shimcha Tekshiruvlar"));
         const tests = report.recommendedTests.slice(0, 5);
         const testStr = (t: unknown): string => {
             if (typeof t === 'string') return t;
@@ -388,7 +398,7 @@ export const generatePdfReport = async (
     // Adverse events (compact)
     if (report.adverseEventRisks && report.adverseEventRisks.length > 0) {
         y += 2;
-        addSectionTitle("Nojo'ya Ta'sir Xavfi");
+        addSectionTitle(tr('pdf_risks', "Nojo'ya Ta'sir Xavfi"));
         const risks = report.adverseEventRisks.slice(0, 3);
         risks.forEach(risk => {
             doc.setFontSize(8);
@@ -402,7 +412,7 @@ export const generatePdfReport = async (
     // Rejected hypotheses
     if (report.rejectedHypotheses && report.rejectedHypotheses.length > 0) {
         y += 2;
-        addSectionTitle("Rad Etilgan Gipotezalar");
+        addSectionTitle(tr('pdf_rejected', "Rad Etilgan Gipotezalar"));
         const hypotheses = report.rejectedHypotheses.slice(0, 3);
         hypotheses.forEach(hyp => {
             doc.setFontSize(8);
@@ -428,13 +438,13 @@ export const generatePdfReport = async (
 
     // === FOOTER WITH PLATFORM PROMO ===
     const footerText = report.uzbekistanLegislativeNote
-        ? `O'zbekiston Respublikasi SSV protokollariga muvofiq. Faqat ma'lumot uchun.`
-        : `Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.`;
+        ? tr('pdf_footer_legislative', "O'zbekiston Respublikasi SSV protokollariga muvofiq. Faqat ma'lumot uchun.")
+        : tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
     
     const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
     
     // Platform promo text for last page
-    const promoText = "AI Tibbiy Konsilium Platformasi - MedoraAI";
+    const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
     const promoLink = "medora.cdcgroup.uz";
     const promoPhone = "+998 99 575 11 11";
     const promoPhone2 = "+998 90 786 38 88";
@@ -448,7 +458,7 @@ export const generatePdfReport = async (
         doc.setFont(PDF_FONT, 'normal');
         doc.setTextColor(120, 120, 120);
         doc.text(footerText, MARGIN, pageHeight - 5);
-        doc.text(`Sahifa ${i}/${pageCount}`, pageWidth - MARGIN, pageHeight - 5, { align: 'right' });
+        doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, pageHeight - 5, { align: 'right' });
     }
     
     // === PLATFORM PROMO SECTION (on last page) ===
@@ -482,7 +492,7 @@ export const generatePdfReport = async (
     doc.text('www.fjsti.uz', MARGIN + 3, promoY + 10);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text("  — Farg'ona jamoat salomatligi tibbiyot instituti rasmiy sayti", MARGIN + 20, promoY + 10);
+    doc.text(`  — ${tr('pdf_institute_website', "Farg'ona jamoat salomatligi tibbiyot instituti rasmiy sayti")}`, MARGIN + 20, promoY + 10);
     
     // Institute logo (small)
     const logoSize = 10;
@@ -497,8 +507,8 @@ export const generatePdfReport = async (
     // Institute name small
     doc.setFontSize(5);
     doc.setTextColor(100, 100, 100);
-    doc.text("Farg'ona JSTI", logoX - 25, promoY + 4);
-    doc.text("(AiDoktor)", logoX - 25, promoY + 7);
+    doc.text(tr('pdf_institute_name', "Farg'ona JSTI"), logoX - 25, promoY + 4);
+    doc.text(tr('pdf_platform_name', "(AiDoktor)"), logoX - 25, promoY + 7);
 
     doc.save(`Konsilium_${patientData.lastName}_${patientData.firstName}.pdf`);
 };

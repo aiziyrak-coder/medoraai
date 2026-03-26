@@ -54,7 +54,7 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
         await generatePdfReport(report, record.patientData!, {
             instituteName: INSTITUTE_NAME_FULL,
             instituteLogoDataUrl: logoDataUrl,
-        });
+        }, t);
     };
 
     const handleDocxDownload = async () => {

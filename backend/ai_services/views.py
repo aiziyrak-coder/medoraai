@@ -27,6 +27,7 @@ from .autonomous_protocol_generator import autonomous_generator
 from .clinical_decision_engine      import clinical_decision_engine
 from .continuous_monitoring         import continuous_monitoring
 from .self_learning_system          import self_learning_system
+from .azure_utils import recommend_specialists as azure_recommend
 
 logger = logging.getLogger(__name__)
 

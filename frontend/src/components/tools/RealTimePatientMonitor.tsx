@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { VitalSigns } from '../../types';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import EkgWaveIcon from '../icons/EkgWaveIcon';
@@ -36,6 +37,7 @@ const VitalDisplay: React.FC<{
 const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
     vitals, isConnecting, isConnected, onDisconnect, onCapture, captureMessage, onBack
 }) => {
+    const { t } = useTranslation();
     if (isConnecting) {
         return (
             <div className="bg-slate-800 p-6 rounded-2xl text-center border-2 border-slate-700">
@@ -56,14 +58,14 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <VitalDisplay
                     icon={<HeartRateIcon />}
-                    label="Puls"
+                    label={t('vital_pulse')}
                     value={vitals?.heartRate ?? '--'}
                     unit="bpm"
                     colorClass="text-green-400"
                 />
                 <VitalDisplay
                     icon={<OxygenIcon />}
-                    label="SpO2"
+                    label={t('vital_spo2')}
                     value={vitals?.spO2 ?? '--'}
                     unit="%"
                     colorClass="text-cyan-400"
@@ -71,7 +73,7 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
                 <div className="col-span-2 md:col-span-1">
                      <VitalDisplay
                         icon={<div className="w-8 h-8 flex items-center justify-center font-bold text-sm text-yellow-400 border-2 border-yellow-400/50 rounded-full">AQB</div>}
-                        label="Qon Bosimi"
+                        label={t('vital_bp')}
                         value={`${vitals?.bpSystolic ?? '--'}/${vitals?.bpDiastolic ?? '--'}`}
                         unit="mm.sim.ust."
                         colorClass="text-yellow-400"
@@ -79,7 +81,7 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
                 </div>
                  <VitalDisplay
                     icon={<div className="w-8 h-8 flex items-center justify-center font-bold text-sm text-blue-400 border-2 border-blue-400/50 rounded-full">N/S</div>}
-                    label="Nafas Soni"
+                    label={t('vital_respiration')}
                     value={vitals?.respirationRate ?? '--'}
                     unit="/min"
                     colorClass="text-blue-400"

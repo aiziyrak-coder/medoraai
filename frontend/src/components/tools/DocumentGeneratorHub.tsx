@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import ToolCard from './ToolCard';
 import DischargeSummaryTool from './DischargeSummaryTool';
 import InsurancePreAuthTool from './InsurancePreAuthTool';
@@ -6,6 +7,7 @@ import DocumentReportIcon from '../icons/DocumentReportIcon';
 import ShieldCheckIcon from '../icons/ShieldCheckIcon';
 
 const DocumentGeneratorHub: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
+    const { t } = useTranslation();
     const [subTool, setSubTool] = useState<'select' | 'discharge' | 'insurance'>('select');
 
     if (subTool === 'discharge') {
@@ -23,7 +25,7 @@ const DocumentGeneratorHub: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                 </button>
             )}
             <div className="glass-panel p-6 md:p-8">
-                <h3 className="text-xl font-bold text-text-primary text-center">Hujjatlar Generatori</h3>
+                <h3 className="text-xl font-bold text-text-primary text-center">{t('tool_doc_generator_title')}</h3>
                 <p className="text-sm text-text-secondary mt-1 mb-10 text-center">
                     Kerakli hujjat turini tanlang.
                 </p>

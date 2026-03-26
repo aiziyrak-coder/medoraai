@@ -5,6 +5,7 @@
  * Ikki chiqish rejimi: Ovozli | Faqat matnli.
  */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import type { SpeechLanguage, JarvisChatResult } from '../../services/speechService';
 import {
   RealtimeSTT, speakText, stopSpeaking, isSpeaking,
@@ -32,6 +33,7 @@ interface Message {
 type OutputMode = 'voice' | 'text';
 
 export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onError }) => {
+  const { t } = useTranslation();
   const [messages,     setMessages]    = useState<Message[]>([]);
   const [inputMode,    setInputMode]   = useState<'mic' | 'keyboard'>('mic');
   const [outputMode,   setOutputMode]  = useState<OutputMode>('voice');
@@ -358,7 +360,7 @@ export const JarvisInteractive: React.FC<Props> = ({ sessionId, language, onErro
                 value={textInput}
                 onChange={e => setTextInput(e.target.value)}
                 onKeyDown={handleKeySubmit}
-                placeholder="Savol yozing... (Enter = yuborish)"
+                placeholder={t('jarvis_placeholder_input')}
                 disabled={isThinking}
                 className="flex-1 rounded-xl bg-slate-800/60 border border-slate-600/30
                            text-slate-200 placeholder-slate-500 px-3 py-2.5 text-sm

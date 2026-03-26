@@ -4,7 +4,7 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const PatientExplanationGenerator: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [clinicalText, setClinicalText] = useState(
         "Tashxis: Nostabil stenokardiya. Koronar angiografiya natijalariga ko'ra, chap oldingi tushuvchi arteriyaning proksimal qismida 75% gemodinamik ahamiyatga ega stenozi aniqlandi. EKGda V2-V4 tarmoqlarida ST segmenti depressiyasi kuzatiladi. Troponin I darajasi me'yorida. Ikki tomonlama antiagregant terapiya (Aspirin, Klopidogrel) va statinlar bilan davolash tavsiya etiladi."
     );
@@ -49,7 +49,7 @@ const PatientExplanationGenerator: React.FC = () => {
                         onChange={(e) => setClinicalText(e.target.value)}
                         rows={10}
                         className="block w-full sm:text-sm common-input focus:border-accent-color-blue focus:ring focus:ring-blue-500/30 placeholder-zinc-500 transition shadow-sm px-3 py-2"
-                        placeholder="Tibbiy xulosani shu yerga kiriting..."
+                        placeholder={t('tool_patient_explanation_placeholder')}
                     />
                 </div>
                 <div>

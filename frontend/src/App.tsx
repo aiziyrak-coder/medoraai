@@ -848,7 +848,7 @@ const AppContent: React.FC = () => {
         onBack: () => void;
         backLabel?: string;
         extra?: React.ReactNode;
-    }> = ({ title, subtitle, onBack, backLabel = 'Asosiy sahifa', extra }) => (
+    }> = ({ title, subtitle, onBack, backLabel = t('back_to_home'), extra }) => (
         <div
             className="flex items-center gap-3 px-4 py-2.5 mb-0 flex-shrink-0"
             style={{
@@ -895,7 +895,7 @@ const AppContent: React.FC = () => {
             case 'new_analysis':
                 return (
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
-                        <BackBar title={t('nav_new_case')} subtitle="Bemor ma'lumotlarini kiriting" onBack={() => handleNavigation('dashboard')} />
+                        <BackBar title={t('nav_new_case')} subtitle={t('new_case_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         {error && (
                             <div className="mx-4 mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2" role="alert">
                                 <span className="font-semibold shrink-0">{t('validation_data_mismatch_title')}</span>
@@ -918,7 +918,7 @@ const AppContent: React.FC = () => {
             case 'clarification':
                 return (
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
-                        <BackBar title="Aniqlashtiruvchi Savollar" subtitle="Konsilium tahlilini boyitish uchun" onBack={() => handleNavigation('new_analysis')} backLabel="Orqaga" />
+                        <BackBar title={t('clarification_title')} subtitle={t('clarification_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
                         <ScrollWrapper>
                             <div className="max-w-3xl mx-auto w-full min-w-0">
                                 <ClarificationView isGenerating={isProcessing} questions={clarificationQuestions} onSubmit={handleClarificationSubmit} statusMessage={statusMessage} error={error} />
@@ -930,7 +930,7 @@ const AppContent: React.FC = () => {
             case 'team_recommendation':
                 return (
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
-                        <BackBar title="Mutaxassislar Jamoasi" subtitle="AI konsilium uchun jamoa tanlang" onBack={() => handleNavigation('new_analysis')} backLabel="Orqaga" />
+                        <BackBar title={t('team_recommendation_title')} subtitle={t('team_recommendation_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
                         <ScrollWrapper>
                             <div className="max-w-3xl mx-auto w-full h-full flex flex-col min-w-0">
                                 <TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} />
@@ -950,7 +950,7 @@ const AppContent: React.FC = () => {
                             title={isArchive ? "Tahlil Ko'rinishi" : "Konsilium Jarayoni"}
                             subtitle={record.patientData ? `${record.patientData.firstName} ${record.patientData.lastName}` : ''}
                             onBack={() => isArchive ? setAppView('history') : handleNavigation('dashboard')}
-                            backLabel={isArchive ? 'Arxiv' : 'Asosiy sahifa'}
+                            backLabel={isArchive ? t('nav_archive') : t('back_to_home')}
                         />
                         <div className="flex-1 page-px py-3 overflow-hidden">
                             <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} />
@@ -962,9 +962,9 @@ const AppContent: React.FC = () => {
             case 'history':
                 return (
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
-                        <BackBar title="Tahlillar Arxivi" subtitle="O'tkazilgan barcha tahlillar" onBack={() => handleNavigation('dashboard')} />
+                        <BackBar title={t('history_title')} subtitle={t('history_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
-                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">Yuklanmoqda...</div>}>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
                                 <HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} />
                             </Suspense>
                         </ScrollWrapper>
@@ -974,9 +974,9 @@ const AppContent: React.FC = () => {
             case 'case_library':
                 return (
                     <div className="h-full flex flex-col overflow-hidden min-w-0">
-                        <BackBar title="Holatlar Kutubxonasi" onBack={() => setAppView('history')} backLabel="Arxiv" />
+                        <BackBar title={t('case_library_title')} onBack={() => setAppView('history')} backLabel={t('nav_archive')} />
                         <ScrollWrapper>
-                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">Yuklanmoqda...</div>}>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
                                 <CaseLibraryView onBack={() => setAppView('history')} analyses={userHistory} />
                             </Suspense>
                         </ScrollWrapper>

@@ -6,7 +6,7 @@ import GlobeIcon from '../icons/GlobeIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const GuidelineNavigator: React.FC = () => {
-    const { language } = useTranslation();
+    const { t, language } = useTranslation();
     const [query, setQuery] = useState('Type 2 Diabetes Mellitus treatment');
     const [result, setResult] = useState<GuidelineSearchResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +33,9 @@ const GuidelineNavigator: React.FC = () => {
 
     return (
         <div className="glass-panel p-6 md:p-8">
-            <h3 className="text-xl font-bold text-text-primary">Klinik Qo'llanmalar Navigatori</h3>
+            <h3 className="text-xl font-bold text-text-primary">{t('tool_guideline_title')}</h3>
             <p className="text-sm text-text-secondary mt-1 mb-6">
-                Kasallik nomini kiriting va so'nggi xalqaro klinik qo'llanmalar asosida AI tomonidan tayyorlangan xulosani oling.
+                {t('tool_guideline_desc')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -43,7 +43,7 @@ const GuidelineNavigator: React.FC = () => {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Kasallik yoki holatni kiriting..."
+                    placeholder={t('tool_guideline_placeholder')}
                     className="flex-grow block w-full rounded-lg sm:text-sm common-input focus:border-accent-color-blue focus:ring focus:ring-blue-500/30 placeholder-zinc-500 transition px-4 py-2.5"
                     disabled={isLoading}
                 />
