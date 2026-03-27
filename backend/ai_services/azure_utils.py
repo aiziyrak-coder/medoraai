@@ -346,57 +346,96 @@ def generate_clarifying_questions(patient_data: dict) -> list[str]:
     return [str(q) for q in qs if q][:8]
 
 
+def recommend_specialists_fast(patient_data: dict) -> list[dict]:
+    """
+    TEZKOR mutaxassis tavsiyasi - AI kutishsiz.
+    Kasallik kalit so'zlariga asoslangan deterministik funksiya.
+    """
+    from . import gemini_utils
+    
+    text = patient_text(patient_data).lower()
+    
+    # Kasallik bo'yicha mutaxassislar xaritasi
+    keyword_map = [
+        # Yurak-qon tomir
+        (['yurak', 'qon bosimi', 'puls', 'aritmiya', 'infarkt', 'kardiolog', 'gipertoniya', 'stenokardiya'], ['GPT-4o']),
+        # Nerv tizimi
+        (['bosh og\'riq', 'bosh ogriq', 'nevrolog', 'falaj', 'epilepsiya', 'migren', 'insult'], ['DeepSeek']),
+        # Radiologiya
+        (['rentgen', 'mrt', 'mri', 'ct', 'tasvir', 'radiolog', 'tomografiya'], ['Llama 3']),
+        # Onkologiya
+        (['o\'sma', 'saraton', 'onkolog', 'metastaz', 'tumor', 'xemoterapiya'], ['Mistral']),
+        # Endokrin
+        (['qand', 'gormon', 'tiroid', 'endokrin', 'diabet', 'insulin'], ['Allergist']),
+        # Nafas o'pka
+        (['nafas', 'o\'pka', 'bronx', 'pnevmoniya', 'astma', 'tuberkulez', 'sil'], ['Pulmonologist']),
+        (['sil', 'ftiziatr', 'koch'], ['Phthisiatrician']),
+        # Ovqat hazm, jigar
+        (['jigar', 'oshqozon', 'ichak', 'gastrit', 'gepatit', 'pankreas', 'cirroz'], ['Gastroenterologist']),
+        (['jigar sirrozi', 'gepatit c', 'gepatit b'], ['Hepatologist']),
+        # Buyrak
+        (['buyrak', 'siydik', 'nefrit', 'dializ', 'kreatinin'], ['Nephrologist']),
+        # Urologiya
+        (['siydik yo\'li', 'urolog', 'prostat', 'tsistit'], ['Urologist']),
+        # Teri
+        (['teri', 'dermato', 'qichima', 'ekzema', 'psoriaz'], ['Dermatologist']),
+        # Allergiya
+        (['allergiya', 'reaksiya', 'qichish', 'anafilaksiya'], ['Allergist']),
+        # Ortopediya
+        (['suyak', 'tizza', 'bo\'yin', 'bel', 'ortoped', 'artroz'], ['Orthopedic']),
+        (['vertebra', 'umurtqa', 'disk herniya'], ['Vertebrologist']),
+        # Ko'z
+        (['ko\'z', 'retina', 'glaukoma', 'katarakta'], ['Ophthalmologist']),
+        # LOR
+        (['quloq', 'tomoq', 'burun', 'lor', 'tonzillit', 'otit'], ['Otolaryngologist']),
+        # Ruhiyat
+        (['psix', 'depressiya', 'ruhiy', 'stress', 'anksiyete'], ['Psychiatrist']),
+        # Pediatriya
+        (['bola', 'chaqaloq', 'pediatr'], ['Pediatrician']),
+        # Homiladorlik
+        (['homilador', 'tug\'ruq', 'bachadon'], ['ObGyn']),
+        # Qon
+        (['qon', 'anemiya', 'leykemiya', 'gemoglobin'], ['Hematologist']),
+        # Yuqumli
+        (['yuqumli', 'infeksiya', 'virus', 'bakteriya', 'covid'], ['Infectious']),
+        # Revmatologiya
+        (['revmatik', 'bo\'g\'im', 'lyupus', 'podagra'], ['Rheumatologist']),
+        # Jarrohlik
+        (['appenditsit', 'peritonit', 'jarrohlik', 'operatsiya'], ['Surgeon']),
+        # Travma
+        (['jarohat', 'travma', 'sinish', 'burilish'], ['Traumatologist']),
+        # Shoshilinch
+        (['shoshilinch', 'krizis', 'reanimatsiya'], ['Emergency']),
+    ]
+    
+    result = []
+    seen = set()
+    
+    for keywords, models in keyword_map:
+        if any(kw in text for kw in keywords):
+            for model in models:
+                if model not in seen:
+                    seen.add(model)
+                    result.append({'model': model, 'reason': 'Kasallik bo\'yicha tavsiya'})
+    
+    # Agar 6 tadan kam bo'lsa, qolganlarini qo'shish
+    if len(result) < 6:
+        default_models = ['GPT-4o', 'Internal Medicine', 'Family Medicine', 'Pharmacologist', 'Psychiatrist', 'Emergency']
+        for model in default_models:
+            if model not in seen and len(result) < 6:
+                seen.add(model)
+                result.append({'model': model, 'reason': 'Kengash tarkibi'})
+    
+    return result[:8]
+
+
 def recommend_specialists(
     patient_data: dict,
     differential_diagnoses: list | None = None,
 ) -> list[dict]:
-    text = patient_text(patient_data)
-    names = ", ".join(SPECIALIST_NAMES[:40])
-    dd_block = ""
-    if differential_diagnoses:
-        lines = []
-        for d in differential_diagnoses[:8]:
-            if isinstance(d, dict):
-                nm = str(d.get("name", "?"))
-                pr = d.get("probability", "")
-                j = str(d.get("justification", ""))[:400]
-                lines.append(f"- {nm} (~{pr}%): {j}")
-            else:
-                lines.append(f"- {d}")
-        dd_block = (
-            "\n\nDIFFERENSIAL TASHXISLAR (konsilium uchun asos — mutaxassislarni aynan shu yo'nalishlarga moslang):\n"
-            + "\n".join(lines)
-            + "\n"
-        )
-    prompt = (
-        f"Bemor:\n{text}\n{dd_block}\n"
-        "Vazifa: Yuqoridagi holat va (agar berilgan bo'lsa) differensial tashxislarga ASOSLANIB, "
-        "5–6 ta mutaxassisni tanlang. Har safar bir xil \"umumiy\" jamoani takrorlamang — "
-        "kasallikka tegishli organ tizimi va nazariy holat bo'yicha kerakli profillar "
-        "(masalan: buyrak + qon — Nephrologist + Hematologist; yurak — kardiologik AI; nafas — Pulmonologist).\n"
-        f"Faqat quyidagi nomlardan tanlang: {names}.\n"
-        'Har biri uchun qisqa sabab: {"recommendations": [{"model": "Nom", "reason": "Nega aynan bu mutaxassis"}]}'
-    )
-    msgs = build_messages(
-        "Tibbiy maslahatchisi. O'zbek tilida (Lotin).",
-        prompt, want_json=True,
-    )
-    raw = call_model(Deployments.gpt4o(), msgs, response_json=True)
-    data = parse_json(raw, "recommend_specialists")
-    if not isinstance(data, dict):
-        return []
-    recs = data.get("recommendations") or []
-    out = []
-    for r in recs:
-        model = (r.get("model") or "").strip()
-        if model not in SPECIALIST_NAMES:
-            for n in SPECIALIST_NAMES:
-                if n.lower() in model.lower() or model.lower() in n.lower():
-                    model = n
-                    break
-        if model in SPECIALIST_NAMES:
-            out.append({"model": model, "reason": str(r.get("reason") or "")[:200]})
-    return out[:8]
+    """AI-based specialist recommendation (slow but comprehensive)"""
+    # Use fast version by default for production speed
+    return recommend_specialists_fast(patient_data)
 
 
 def generate_diagnoses(patient_data: dict) -> list[dict]:

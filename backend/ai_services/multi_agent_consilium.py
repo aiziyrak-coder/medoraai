@@ -112,8 +112,8 @@ DEPLOY_MAP = {
 # ---------------------------------------------------------------------------
 
 def _chat(deployment: str, system_msg: str, user_msg: str,
-          response_json: bool = False, max_tokens: int = 3000) -> str:
-    """Simple chat completion call."""
+          response_json: bool = False, max_tokens: int = 2000) -> str:
+    """Simple chat completion call with optimized timeout."""
     client = get_azure_client()
     messages = [
         {"role": "system", "content": system_msg},
@@ -122,8 +122,9 @@ def _chat(deployment: str, system_msg: str, user_msg: str,
     kwargs: dict[str, Any] = {
         "model": deployment,
         "messages": messages,
-        "temperature": 0.2,
+        "temperature": 0.1,  # Lower for faster convergence
         "max_tokens": max_tokens,
+        "timeout": 45,  # Reduced timeout for speed
     }
     if response_json:
         kwargs["response_format"] = {"type": "json_object"}
@@ -157,22 +158,21 @@ def _moderator_intro(patient_text: str, language_hint: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: str) -> dict:
-    """One professor's initial diagnosis  -  called in thread pool."""
+    """One professor's initial diagnosis  -  called in thread pool. Optimized for speed."""
     deployment = DEPLOY_MAP[prof["deployment"]]()
     system = (
         f"Siz {prof['name']}  -  {prof['title']}. {prof['persona']}\n"
         "Klinik holat tahlil qilib, mustaqil tashxis bildiring. "
         "O'zbekiston SSV klinik protokollariga rioya qiling. "
-        f"Javob tili: {language_hint}. FAQAT JSON."
+        f"Javob tili: {language_hint}. FAQAT JSON. TEZKOR javob bering."
     )
     user = (
         f"Bemor:\n{patient_text}\n\n"
-        "Quyidagi JSON strukturada javob bering:\n"
         '{"primary_diagnosis": "...", "probability": 80, "reasoning": "...", '
-        '"differential": ["...", "..."], "red_flags": ["..."], '
+        '"differential": ["..."], "red_flags": ["..."], '
         '"recommended_tests": ["..."], "initial_treatment": "..."}'
     )
-    raw = _chat(deployment, system, user, response_json=True, max_tokens=1500)
+    raw = _chat(deployment, system, user, response_json=True, max_tokens=1200)
     parsed = _parse_json_response(raw, f"prof_{prof['id']}_initial")
     if not isinstance(parsed, dict):
         parsed = {"primary_diagnosis": "Tashxis aniqlanmadi", "error": raw[:200]}
@@ -437,12 +437,21 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
             executor.submit(_professor_initial_diagnosis, prof, patient_text, language_hint): prof
             for prof in PROFESSORS
         }
-        for future in concurrent.futures.as_completed(futures):
+        for future in concurrent.futures.as_completed(futures, timeout=50):
             prof = futures[future]
             try:
-                opinion = future.result(timeout=60)
+                opinion = future.result(timeout=45)
                 initial_opinions.append(opinion)
                 logger.info("[Consilium] %s diagnosis done", prof["name"])
+            except concurrent.futures.TimeoutError:
+                logger.error("Professor %s initial diagnosis timed out", prof["name"])
+                initial_opinions.append({
+                    "professor_id": prof["id"],
+                    "professor_name": prof["name"],
+                    "professor_title": prof["title"],
+                    "primary_diagnosis": "Vaqt tugadi - tezkor rejim",
+                    "error": "Timeout - fast mode",
+                })
             except Exception as e:
                 logger.error("Professor %s initial diagnosis failed: %s", prof["name"], e)
                 initial_opinions.append({
@@ -482,12 +491,21 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
             ): prof
             for prof in PROFESSORS
         }
-        for future in concurrent.futures.as_completed(futures):
+        for future in concurrent.futures.as_completed(futures, timeout=50):
             prof = futures[future]
             try:
-                debate = future.result(timeout=60)
+                debate = future.result(timeout=45)
                 debate_responses.append(debate)
                 logger.info("[Consilium] %s debate done", prof["name"])
+            except concurrent.futures.TimeoutError:
+                logger.error("Professor %s debate timed out", prof["name"])
+                debate_responses.append({
+                    "professor_id": prof["id"],
+                    "professor_name": prof["name"],
+                    "critique": "",
+                    "defense": "Vaqt tugadi - tezkor rejim",
+                    "revised_diagnosis": "",
+                })
             except Exception as e:
                 logger.error("Professor %s debate failed: %s", prof["name"], e)
                 debate_responses.append({
