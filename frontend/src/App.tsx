@@ -567,29 +567,14 @@ const AppContent: React.FC = () => {
         }
     };
 
-    /** Tezkor: avval bemorning barcha ma'lumotlari bo'yicha 6–10 mutaxassisni darhol ko'rsatadi, keyin fonda API natijasini yangilaydi. */
+    /** Tezkor: FAFAQAT local funksiya - 0ms da darhol ko'rsatadi. Backend API kerak emas! */
     const handleRecommendTeamFromData = (data: PatientData) => {
         const instant = getSpecialistsFromComplaint(data);
         setRecommendedTeam(instant);
         setIsProcessing(false);
         setError(null);
-        (async () => {
-            try {
-                const { recommendSpecialists } = await import('./services/apiAiService');
-                const response = await Promise.race([
-                    recommendSpecialists(data),
-                    new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
-                ]);
-                if (response?.success && response.data?.recommendations?.length) {
-                    setRecommendedTeam(response.data.recommendations);
-                }
-            } catch {
-                try {
-                    const team = await aiService.recommendSpecialists(data, language);
-                    if (team.recommendations?.length) setRecommendedTeam(team.recommendations);
-                } catch { /* keep instant list */ }
-            }
-        })();
+        // ✅ Backend API chaqirilmaydi - faqat local funksiya ishlatiladi!
+        // Bu qo'shimcha savollar kabi DARHOL chiqadi (0ms)
     };
 
     const handleDataSubmit = async (data: PatientData) => {

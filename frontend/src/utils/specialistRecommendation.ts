@@ -1,6 +1,7 @@
 /**
- * Shikoyat/kasallik matniga asoslangan tezkor mutaxassis taklifi (AI kutishsiz).
- * Kasallikdan kelib chiqib 6–10 ta tegishli mutaxassis tanlanadi; har xil holatlar uchun har xil jamoa.
+ * Shikoyat/kasallik matniga asoslangan TEZKOR mutaxassis taklifi (AI kutishsiz - 0ms).
+ * Kasallikdan kelib chiqib 6-10 ta TEGISHLI mutaxassis tanlanadi; har xil holatlar uchun har xil jamoa.
+ * Xuddi qo'shimcha savollar kabi DARHOL chiqadi!
  */
 
 import { AIModel } from '../constants/specialists';
@@ -148,8 +149,8 @@ export function getSpecialistsFromComplaint(data: PatientData | string): { model
   const seen = new Set<AIModel>();
   const result: { model: AIModel; reason: string }[] = [];
 
+  // 1-QADAM: Kasallik bo'yicha aniq mutaxassislarni topish
   for (const { keywords, models } of KEYWORD_TO_SPECIALISTS) {
-    if (result.length >= 10) break;
     if (!keywords.test(text)) continue;
     for (const model of models) {
       if (seen.has(model)) continue;
@@ -158,14 +159,20 @@ export function getSpecialistsFromComplaint(data: PatientData | string): { model
     }
   }
 
+  // 2-QADAM: Agar 6 tadan kam bo'lsa, default mutaxassislar qo'shish (random emas!)
   if (result.length < 6) {
-    const remaining = ALL_SPECIALISTS.filter(m => !seen.has(m));
-    const hash = simpleHash(text);
-    const start = hash % Math.max(1, remaining.length);
-    const ordered = [...remaining.slice(start), ...remaining.slice(0, start)];
-    const need = 6 - result.length;
-    for (let i = 0; i < need && i < ordered.length; i++) {
-      const model = ordered[i];
+    // Default mutaxassislar ro'yxati - HAR DOIM bir xil
+    const defaultModels: AIModel[] = [
+      AIModel.GEMINI,        // Terapevt
+      AIModel.INTERNAL_MEDICINE,
+      AIModel.FAMILY_MEDICINE,
+      AIModel.PHARMACOLOGIST,
+      AIModel.EMERGENCY,
+    ];
+    
+    for (const model of defaultModels) {
+      if (result.length >= 6) break;
+      if (seen.has(model)) continue;
       seen.add(model);
       result.push({ model, reason: 'Kengash tarkibi' });
     }
