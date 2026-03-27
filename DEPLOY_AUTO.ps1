@@ -18,7 +18,10 @@ $PROJECT_DIR = "/root/AiDoktorai"
 Write-Host "Step 1: Pushing to GitHub..." -ForegroundColor Yellow
 git add .
 $commitMsg = "Auto-deploy: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-git commit -m $commitMsg 2>$null || Write-Host "No changes to commit" -ForegroundColor Gray
+git commit -m $commitMsg 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "No changes to commit" -ForegroundColor Gray
+}
 git push origin main
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ GitHub push failed!" -ForegroundColor Red
@@ -200,4 +203,3 @@ Write-Host ""
 Write-Host "📊 Monitor status:" -ForegroundColor Cyan
 Write-Host "   SSH: ssh root@167.71.53.238" -ForegroundColor Gray
 Write-Host "   Password: $SERVER_PASSWORD" -ForegroundColor Gray
-Write-Host ""
