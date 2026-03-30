@@ -10,7 +10,7 @@ export type UserRole = 'clinic';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'pending';
 
-/** Obuna rejasi: clinic (500$/oy, shartnoma) yoki doctor (10$/oy, chek) */
+/** Obuna rejasi: bazaviy narx USD bo'lsa, `price_monthly_uzs` — kurs bo'yicha yaxlitlangan so'm */
 export interface SubscriptionPlan {
   id: number;
   name: string;
@@ -18,6 +18,7 @@ export interface SubscriptionPlan {
   plan_type?: 'clinic' | 'doctor';
   description?: string;
   price_monthly: number;
+  price_monthly_uzs?: number;
   price_currency?: string;
   duration_days: number;
   features: string[];

@@ -5,17 +5,23 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from .models import User, SubscriptionPlan
+from .currency import plan_price_monthly_uzs
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
     """Obuna rejasi - faqat o'qish"""
+    price_monthly_uzs = serializers.SerializerMethodField()
+
     class Meta:
         model = SubscriptionPlan
         fields = [
             'id', 'name', 'slug', 'plan_type', 'description', 'price_monthly',
-            'price_currency', 'duration_days', 'features', 'is_trial', 'trial_days',
+            'price_monthly_uzs', 'price_currency', 'duration_days', 'features', 'is_trial', 'trial_days',
             'max_analyses_per_month', 'sort_order'
         ]
+
+    def get_price_monthly_uzs(self, obj):
+        return plan_price_monthly_uzs(obj)
 
 
 class UserSerializer(serializers.ModelSerializer):

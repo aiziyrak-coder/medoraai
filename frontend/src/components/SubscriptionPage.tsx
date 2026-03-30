@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { User } from '../types';
+import { formatUzs, usdToUzsCeil } from '../constants/currency';
 
 interface SubscriptionPageProps {
   user: User;
@@ -11,29 +12,38 @@ type PlanMode = 'clinic' | 'doctor';
 
 const CONTACT_PHONE = '+998907863888';
 
-const clinicTariffs = [
+const clinicTariffsUsd = [
   {
     title: 'Klinika Start',
     users: "10 nafargacha foydalanuvchi",
-    price: '10 USD / foydalanuvchi / oy',
+    usdPerUserMonth: 10,
     features: ['Asosiy AI konsilium', 'Bitta klinika kabineti', 'Standart texnik yordam'],
   },
   {
     title: 'Klinika Growth',
     users: "20 nafargacha foydalanuvchi",
-    price: '8 USD / foydalanuvchi / oy',
+    usdPerUserMonth: 8,
     features: ['Kengaytirilgan konsilium oqimi', 'Jamoaviy boshqaruv imkoniyati', 'Tezkor prioritet yordam'],
   },
   {
     title: 'Klinika Enterprise',
     users: "20+ foydalanuvchi",
-    price: '5 USD / foydalanuvchi / oy',
+    usdPerUserMonth: 5,
     features: ['Yuqori yuklama uchun optimizatsiya', "Rahbariyat uchun ko'rsatkichlar paneli", "Alohida joriy etish ko'magi"],
   },
 ];
 
 const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onLogout }) => {
   const [mode, setMode] = useState<PlanMode>('clinic');
+  const doctorMonthlyUzs = useMemo(() => usdToUzsCeil(10), []);
+  const clinicTariffs = useMemo(
+    () =>
+      clinicTariffsUsd.map((t) => ({
+        ...t,
+        priceLabel: `${formatUzs(usdToUzsCeil(t.usdPerUserMonth))} / foydalanuvchi / oy`,
+      })),
+    [],
+  );
   const heroTitle = useMemo(
     () => (mode === 'clinic' ? 'Klinikalar uchun korporativ obuna' : 'Yakka shifokor uchun obuna'),
     [mode],
@@ -67,14 +77,14 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onLogout }) =
           <h2 className="text-2xl font-bold">{heroTitle}</h2>
           <p className="text-blue-100 mt-2">
             {mode === 'doctor'
-              ? "Oylik obuna qiymati 10 USD. To'lov jarayoni va aktivatsiya bo'yicha operator bilan bog'laning."
+              ? `Oylik obuna qiymati ${formatUzs(doctorMonthlyUzs)} (10 USD bazaviy, kurs bo'yicha yaxlitlangan). To'lov jarayoni va aktivatsiya bo'yicha operator bilan bog'laning.`
               : "Klinika jamoasi uchun mos tarifni tanlang. Ro'yxatdan o'tishda jamoa soniga qarab eng qulay paket tavsiya qilinadi."}
           </p>
 
           {mode === 'doctor' ? (
             <div className="mt-5 rounded-2xl border border-white/20 bg-black/20 p-5">
               <p className="text-sm text-blue-100">
-                <strong>Yakka shifokor uchun:</strong> oylik obuna 10 USD.
+                <strong>Yakka shifokor uchun:</strong> oylik obuna {formatUzs(doctorMonthlyUzs)}.
               </p>
               <p className="text-sm text-blue-100 mt-2">
                 Faollashtirish uchun quyidagi raqamga bog'laning:
@@ -89,7 +99,7 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onLogout }) =
                 <div key={tariff.title} className="rounded-2xl border border-white/20 bg-black/20 p-4">
                   <p className="text-lg font-bold">{tariff.title}</p>
                   <p className="text-xs text-blue-200 mt-1">{tariff.users}</p>
-                  <p className="text-xl font-black mt-2">{tariff.price}</p>
+                  <p className="text-xl font-black mt-2">{tariff.priceLabel}</p>
                   <ul className="mt-3 space-y-1 text-xs text-blue-100">
                     {tariff.features.map((f) => (
                       <li key={f}>- {f}</li>

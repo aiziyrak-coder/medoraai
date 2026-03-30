@@ -4,6 +4,7 @@ Django settings for Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI) tibbi
 
 from pathlib import Path
 from datetime import timedelta
+from decimal import Decimal
 import os
 from decouple import config
 
@@ -458,6 +459,9 @@ LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=30 if DEBUG else 5
 LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=int)  # 15 min
 MAX_FILE_UPLOAD_SIZE = config('MAX_FILE_UPLOAD_SIZE_MB', default=5, cast=int) * 1024 * 1024
 ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf']
+
+# USD → UZS (Markaziy bank kursi; oylik narxlarni so'mda ko'rsatish va yaxlitlash)
+USD_TO_UZS_RATE = Decimal(str(config('USD_TO_UZS_RATE', default='12500')))
 
 # Security Settings (Production)
 if not DEBUG:

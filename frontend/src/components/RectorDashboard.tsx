@@ -73,7 +73,10 @@ const RectorDashboard: React.FC<RectorDashboardProps> = ({ onBackToMain }) => {
               <MetricCard title="Jami foydalanuvchilar" value={stats.users.total} note={`Oxirgi 30 kunda: +${stats.users.new_last_30_days}`} />
               <MetricCard title="Faol obunalar" value={stats.subscriptions.active} />
               <MetricCard title="Kutilayotgan to'lovlar" value={stats.payments.pending} />
-              <MetricCard title="Joriy oy tushumi (USD)" value={Number(stats.payments.revenue_this_month_usd || 0).toLocaleString()} />
+              <MetricCard
+                title="Joriy oy tushumi (so'm)"
+                value={Number(stats.payments.revenue_this_month_uzs || 0).toLocaleString('uz-UZ')}
+              />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -96,7 +99,7 @@ const RectorDashboard: React.FC<RectorDashboardProps> = ({ onBackToMain }) => {
                     <div key={`${p.plan__name || 'none'}-${idx}`} className="flex justify-between text-sm">
                       <span className="text-slate-300">{p.plan__name || 'Rejasiz'}</span>
                       <span className="text-white font-semibold">
-                        {p.count} ta / {Number(p.amount || 0).toLocaleString()} USD
+                        {p.count} ta / {Number(p.amount || 0).toLocaleString('uz-UZ')} so'm
                       </span>
                     </div>
                   ))}

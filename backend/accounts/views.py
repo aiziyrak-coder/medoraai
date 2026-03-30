@@ -640,7 +640,7 @@ def send_payment_receipt(request):
         f"<b>Foydalanuvchi:</b> {user_name}\n"
         f"<b>Telefon:</b> {user_phone}\n"
         f"<b>Rol:</b> {user_role}\n"
-        f"<b>Kutilgan summa:</b> {amount} $\n\n"
+        f"<b>Kutilgan summa:</b> {amount} so'm\n\n"
         "<i>Adminlar, chekni tekshiring va tasdiqlash tugmasini bosing.</i>"
     )
 
@@ -773,7 +773,7 @@ def telegram_webhook(request):
             f"<b>TASDIQLANDI</b>\n\n"
             f"{user.name} ({user.phone})\n"
             f"Obuna: 30 kun ({user.subscription_expiry.strftime('%d.%m.%Y')} gacha)\n"
-            f"{payment.amount} $"
+            f"{payment.amount} so'm"
         )
         _answer_callback(token, callback_id, "+ Tasdiqlandi! Obuna 30 kunga faollashtirildi.")
         logger.info("Payment %s approved for user %s", payment_id, user.phone)
@@ -789,7 +789,7 @@ def telegram_webhook(request):
         result_text = (
             f"<b>RAD ETILDI</b>\n\n"
             f"{user.name} ({user.phone})\n"
-            f"{payment.amount} $"
+            f"{payment.amount} so'm"
         )
         _answer_callback(token, callback_id, "- Rad etildi.")
         logger.info("Payment %s rejected for user %s", payment_id, user.phone)
@@ -904,8 +904,8 @@ def rector_dashboard_stats(request):
             'payments': {
                 'pending': pending_payments,
                 'rejected': rejected_payments,
-                'revenue_total_usd': total_revenue,
-                'revenue_this_month_usd': monthly_revenue,
+                'revenue_total_uzs': int(total_revenue or 0),
+                'revenue_this_month_uzs': int(monthly_revenue or 0),
                 'approved_by_plan': plan_breakdown,
             },
             'generated_at': now.isoformat(),

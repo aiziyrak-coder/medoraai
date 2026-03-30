@@ -13,8 +13,8 @@ export interface RectorStatsResponse {
   payments: {
     pending: number;
     rejected: number;
-    revenue_total_usd: number;
-    revenue_this_month_usd: number;
+    revenue_total_uzs: number;
+    revenue_this_month_uzs: number;
     approved_by_plan: Array<{ plan__name: string | null; count: number; amount: number }>;
   };
   generated_at: string;
