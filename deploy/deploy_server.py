@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
 """
 MedoraAI Server Deployment Script
-Connects to server via SSH and deploys latest changes
+Connects to server via SSH and deploys latest changes.
+
+Security: parol repoda saqlanmaydi. Muhit o'zgaruvchilari:
+  DEPLOY_SSH_HOST   — masalan medora.cdcgroup.uz yoki server IP
+  DEPLOY_SSH_USER   — odatda root
+  DEPLOY_SSH_PASSWORD yoki SSH parolni shell env orqali bering
 """
 
+import os
 import paramiko
 import sys
 import time
 
-# Server credentials
-SERVER_USER = "root"
-SERVER_HOST = "medora.cdcgroup.uz"
-SERVER_PASSWORD = "Ziyrak2025Ai"
-REMOTE_DIR = "/root/medoraai"
+SERVER_USER = os.environ.get("DEPLOY_SSH_USER", "root")
+SERVER_HOST = os.environ.get("DEPLOY_SSH_HOST", "medora.cdcgroup.uz")
+SERVER_PASSWORD = os.environ.get("DEPLOY_SSH_PASSWORD", "").strip()
+REMOTE_DIR = os.environ.get("DEPLOY_REMOTE_DIR", "/root/medoraai")
 
 def deploy():
     """Deploy to server via SSH"""
-    
+    if not SERVER_PASSWORD:
+        print("❌ DEPLOY_SSH_PASSWORD muhit o'zgaruvchisi o'rnatilmagan.")
+        print("   Misol (PowerShell): $env:DEPLOY_SSH_PASSWORD='...'; python deploy/deploy_server.py")
+        return False
+
     print("=" * 60)
     print(" MedoraAI Server Deployment")
     print("=" * 60)

@@ -41,6 +41,11 @@ dist/
 deploy/deploy_key
 deploy/deploy_key.pub
 
+# Lokal deploy parollari (hech qachon gitga qo'shmang)
+deploy/.env.deploy
+.env.deploy
+**/DEPLOY_SSH_PASSWORD*
+
 # IDE
 .vscode/
 .idea/

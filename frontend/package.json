@@ -4,29 +4,34 @@
   "version": "3.0.0",
   "type": "module",
   "scripts": {
-    "dev":     "vite",
-    "build":   "vite build",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview",
-    "build:prod": "vite build --mode production"
+    "build:prod": "vite build --mode production",
+    "verify": "npm run build"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "@google/genai": "^1.9.0",
-    "openai": "^4.77.0",
     "chart.js": "^4.5.1",
-    "react-chartjs-2": "^5.3.1",
     "docx": "^8.5.0",
-    "jspdf": "^2.5.1",
-    "qrcode": "^1.5.3"
+    "jspdf": "^4.2.1",
+    "openai": "^4.77.0",
+    "qrcode": "^1.5.3",
+    "react": "^19.1.0",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^19.1.0"
+  },
+  "overrides": {
+    "dompurify": "^3.2.4",
+    "brace-expansion": "^2.0.2"
   },
   "devDependencies": {
-    "@types/node":         "^22.14.0",
+    "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "autoprefixer":        "^10.4.20",
-    "postcss":             "^8.4.49",
-    "tailwindcss":         "^3.4.15",
-    "typescript":          "~5.8.2",
-    "vite":                "^6.2.0"
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
   }
 }
