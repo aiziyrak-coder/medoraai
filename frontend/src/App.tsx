@@ -35,6 +35,7 @@ const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
 import CriticalFindingAlert from './components/modals/CriticalFindingAlert';
 import RationaleModal from './components/modals/RationaleModal';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import DeviceSessionBanner from './components/DeviceSessionBanner';
 
 // --- Icons ---
 import HomeIcon from './components/icons/HomeIcon';
@@ -1037,6 +1038,9 @@ const AppContent: React.FC = () => {
                             {t('logout')}
                         </button>
                     </div>
+                </div>
+                <div className="page-px mt-2 max-w-full">
+                    <DeviceSessionBanner variant="header" />
                 </div>
             </header>
 

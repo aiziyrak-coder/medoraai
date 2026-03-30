@@ -174,6 +174,12 @@ export const en = {
   auth_staff_login_help: 'Log in to the queue management section.',
   auth_monitoring_login_help: 'Log in to the patient monitoring dashboard.',
 
+  device_session_banner_title: 'This device',
+  device_session_banner_body:
+    'One account — one active session. If you are logged in elsewhere, log out there first, then continue here.',
+  auth_login_device_notice:
+    'One account can only be active on one device at a time. If you opened this account on another phone or computer, log out there first, then sign in here.',
+
   auth_login_subtitle: 'Log in to your account or create a new one.',
   auth_register_subtitle: 'Fill in the details to create a new account.',
   auth_forgot_subtitle: 'Enter your phone number to reset your password.',

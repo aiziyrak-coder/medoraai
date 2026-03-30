@@ -173,7 +173,13 @@ export const uzL: TranslationSet = {
   auth_doctor_login_help: 'Shaxsiy shifokor kabinetiga kiring.',
   auth_staff_login_help: 'Navbatni boshqarish bo\'limiga kiring.',
   auth_monitoring_login_help: 'Bemor monitoring paneliga kiring.',
-  
+
+  device_session_banner_title: 'Joriy qurilma',
+  device_session_banner_body:
+    "Bitta hisob — bitta faol sessiya. Agar boshqa qurilmada kirgan bo'lsangiz, avval u yerda chiqib keling, keyin bu yerda davom eting.",
+  auth_login_device_notice:
+    "Bitta hisob bir vaqtda faqat bitta qurilmada faol bo'lishi mumkin. Boshqa telefon yoki kompyuterdan ochiq bo'lsa, avval u yerda «Chiqish» qiling, keyin bu yerda kiring.",
+
   auth_login_subtitle: 'Hisobingizga kiring yoki yangi hisob oching.',
   auth_register_subtitle: 'Yangi hisob yaratish uchun ma\'lumotlarni to\'ldiring.',
   auth_forgot_subtitle: 'Parolni tiklash uchun telefon raqamingizni kiriting.',

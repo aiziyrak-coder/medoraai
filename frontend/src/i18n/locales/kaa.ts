@@ -57,7 +57,14 @@ export const kaa: TranslationSet = {
   auth_clinic_login_help: 'Shólkem sıpatında tizimge kiriń.',
   auth_doctor_login_help: 'Jeke shıpaker kabinetine kiriń.',
   auth_staff_login_help: 'Nawbattı basqarıw bólimine kiriń.',
-  
+  auth_monitoring_login_help: 'Bemor monitoring paneline kiriń.',
+
+  device_session_banner_title: 'Házirgi qurılma',
+  device_session_banner_body:
+    'Bir esap — bir faol sessiya. Basqa qurılmada kirgen bolsańız, aldın ol jerden shıǵıń.',
+  auth_login_device_notice:
+    'Bir esap bir waqitta tek bir qurılmada faol bolıwı múmkin. Basqa telefon yamasa kompyuterden ashıq bolsa, aldın ol jerden shıǵıń, keyin munda kiriń.',
+
   auth_login_subtitle: 'Esabىڭızǵa kiriń yamasa jańa esap ashıń.',
   auth_register_subtitle: 'Jańa esap jaratıw ushın maǵlıwmatlardı toldırıń.',
   auth_forgot_subtitle: 'Paroldi tiklew ushın telefon nomerińizdi kiritiń.',

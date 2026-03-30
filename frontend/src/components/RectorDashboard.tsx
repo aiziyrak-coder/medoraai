@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as rectorService from '../services/apiRectorService';
 import * as authService from '../services/apiAuthService';
+import DeviceSessionBanner from './DeviceSessionBanner';
 
 interface RectorDashboardProps {
   onBackToMain: () => void;
@@ -46,6 +47,10 @@ const RectorDashboard: React.FC<RectorDashboardProps> = ({ onBackToMain }) => {
           <button onClick={onBackToMain} className="text-sm font-semibold text-slate-300 hover:text-white">
             Asosiy sahifaga qaytish
           </button>
+        </div>
+
+        <div className="mb-6">
+          <DeviceSessionBanner variant="header" tone="dark" />
         </div>
 
         {currentUser?.role !== 'clinic' && (

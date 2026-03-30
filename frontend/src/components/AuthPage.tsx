@@ -13,6 +13,7 @@ import { AI_SPECIALISTS } from '../constants';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
 import { PhoneInputWith998 } from './PhoneInputWith998';
+import DeviceSessionBanner from './DeviceSessionBanner';
 
 interface AuthPageProps {
     onLoginSuccess: (user: User) => void;
@@ -358,6 +359,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 {t('auth_clinic_login_help')}
                             </p>
                         </div>
+
+                        {(mode === 'login' || mode === 'register') && (
+                            <DeviceSessionBanner variant="auth" />
+                        )}
 
                         <form onSubmit={mode === 'forgot' ? handleResetRequest : handleAuthSubmit} className="space-y-3">
                             {mode === 'register' && (
