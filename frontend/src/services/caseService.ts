@@ -1,5 +1,6 @@
 import type { AnalysisRecord, AnonymizedCase, UserStats, AnalysisStatsPayload } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
+import { getCurrentUser } from './apiAuthService';
 
 /** Haqiqiy moslik (0–1) → dashboardda 90–97% oralig‘ida ko‘rsatish */
 export function feedbackAccuracyToDisplayPercent(ratio: number): number {
@@ -9,13 +10,18 @@ export function feedbackAccuracyToDisplayPercent(ratio: number): number {
 /** Ma'lumot bo'lmaganda namuna (95–97 oralig'i ichida) */
 export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 96;
 
-const ANONYMIZED_CASES_KEY = 'konsilium_anonymized_cases_v1';
+/** Har bir foydalanuvchi uchun alohida kalit — bir brauzerda boshqa akkauntlar aralashmasin */
+const getAnonymizedCasesStorageKey = (): string => {
+    const u = getCurrentUser();
+    const suffix = (u?.phone || '').replace(/\D/g, '') || 'anon';
+    return `konsilium_anonymized_cases_v1_${suffix}`;
+};
 
 // --- Case Anonymization and Storage ---
 
 const getAnonymizedCases = (): AnonymizedCase[] => {
     try {
-        const cases = localStorage.getItem(ANONYMIZED_CASES_KEY);
+        const cases = localStorage.getItem(getAnonymizedCasesStorageKey());
         return cases ? JSON.parse(cases) : [];
     } catch (e) {
         return [];
@@ -23,7 +29,7 @@ const getAnonymizedCases = (): AnonymizedCase[] => {
 };
 
 const saveAnonymizedCases = (cases: AnonymizedCase[]) => {
-    localStorage.setItem(ANONYMIZED_CASES_KEY, JSON.stringify(cases));
+    localStorage.setItem(getAnonymizedCasesStorageKey(), JSON.stringify(cases));
 };
 
 /** Bitta yozuvni anonimlashtirilgan holatga aylantirish */

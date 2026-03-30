@@ -125,6 +125,14 @@ const AppContent: React.FC = () => {
         });
     }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount to validate session
 
+    /** Sessiya yo'q bo'lsa (chiqish yoki token eskirishi) joriy foydalanuvchiga tegishli tarixni tozalaymiz */
+    useEffect(() => {
+        if (!currentUser) {
+            setUserHistory([]);
+            setDashboardStats(null);
+        }
+    }, [currentUser]);
+
     const [appView, setAppView] = useState<AppView>('dashboard');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const historyFromPopstateRef = useRef(false);
@@ -441,6 +449,8 @@ const AppContent: React.FC = () => {
     const handleLogout = () => {
         authService.logout();
         setCurrentUser(null);
+        setUserHistory([]);
+        setDashboardStats(null);
         setShowLanding(true); // Show landing on logout
         resetAnalysisState();
     };

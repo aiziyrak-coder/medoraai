@@ -11,7 +11,7 @@ interface CaseLibraryViewProps {
     analyses?: AnalysisRecord[];
 }
 
-const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatientComplaints }) => {
+const CaseLibraryView: React.FC<CaseLibraryViewProps> = ({ onBack, currentPatientComplaints, analyses }) => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const cases: AnonymizedCase[] = useMemo(() => {

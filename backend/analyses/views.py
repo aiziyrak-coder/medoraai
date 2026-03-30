@@ -37,10 +37,10 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         # Superuser / staff: barcha tahlillar (admin)
         if user.is_superuser or user.is_staff:
             return queryset
-        # Har bir klinika hisobi faqat o'zi yaratgan (yoki bemor egasi bo'lgan) tahlillarni ko'radi
+        # Faqat o'z bemorlari bo'yicha tahlillar (bemor — manba; created_by boshqa hisob bo'lsa ham aralashmasin)
         return queryset.filter(
-            Q(created_by=user)
-            | Q(created_by__isnull=True, patient__created_by=user)
+            Q(patient__created_by=user)
+            | Q(patient__created_by__isnull=True, created_by=user)
         )
 
     def _log_audit(self, analysis, action, extra=None):

@@ -60,6 +60,10 @@ class AnalysisRecordCreateSerializer(serializers.ModelSerializer):
         owner_id = patient.created_by_id
         if owner_id is not None and owner_id != user.id:
             raise serializers.ValidationError("Bemor boshqa hisobga tegishli.")
+        if owner_id is None:
+            raise serializers.ValidationError(
+                "Bemor yozuvi to'liq emas yoki boshqa hisobga tegishli. Iltimos, bemorlarni ro'yxatdan qayta tanlang."
+            )
         return patient
     
     def create(self, validated_data):
