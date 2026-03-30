@@ -8,12 +8,25 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
+    /* Smart doska / sensorli ekran: vertikal scroll zincirini uzmaymiz */
+    height: 100%;
   }
   body {
     width: 100%;
     min-width: 0;
     overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom;
   }
+}
+
+/* Ichki scroll konteynerlari (iOS / Chrome touch) */
+.touch-scroll-y {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 @layer utilities {

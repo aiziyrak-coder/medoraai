@@ -98,9 +98,9 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
     const showDownloadSection = (!!fr || !!error) && !isAnalyzing;
 
     return (
-        <div className="grid grid-cols-1 gap-6 h-full xl:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 min-h-0 xl:gap-6 xl:h-full xl:min-h-0 xl:grid-cols-12">
             {/* Left Panel: Patient Data — ultra compact (≈3x) */}
-            <div className="xl:col-span-2 glass-panel p-2 overflow-y-auto h-full flex flex-col">
+            <div className="xl:col-span-2 glass-panel p-2 overflow-y-auto touch-scroll-y min-h-0 xl:h-full flex flex-col">
                 <div className="mb-2">
                     <h3 className="text-[11px] font-semibold text-text-primary">Bemor Ma'lumotlari</h3>
                     <div className="h-0.5 w-8 bg-blue-500 rounded-full mt-0.5"></div>
@@ -139,12 +139,12 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
             </div>
 
             {/* Center Panel: Interactive Analysis */}
-            <div className={`${showRightPanel ? 'xl:col-span-6' : 'xl:col-span-10'} glass-panel overflow-hidden flex flex-col h-full relative`}>
+            <div className={`${showRightPanel ? 'xl:col-span-6' : 'xl:col-span-10'} glass-panel overflow-hidden flex flex-col min-h-0 xl:h-full relative`}>
                  <div className="p-5 border-b border-white/20 flex-shrink-0 bg-white/30 backdrop-blur-md z-10">
                     <h3 className="text-lg font-bold text-text-primary">Interaktiv Tahlil</h3>
                     <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mt-0.5">{statusMessage || "Konsilium jarayoni"}</p>
                 </div>
-                <div className="p-4 overflow-y-auto flex-grow flex flex-col gap-4">
+                <div className="p-4 overflow-y-auto touch-scroll-y flex-grow flex flex-col gap-4 min-h-0">
                     {isAnalyzing && dh.length === 0 && !error && (
                         <div className="flex justify-center items-center flex-1 flex-col">
                             <SpinnerIcon className="w-10 h-10 text-blue-500" />
@@ -196,7 +196,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
             
             {/* Right Panel: Yakuniy xulosa — munozara paytida ham ochiq; jarayon, raund xulosalari, keyin to'liq hisobot */}
             {showRightPanel && (
-                <div className="xl:col-span-4 glass-panel overflow-hidden flex flex-col h-full">
+                <div className="xl:col-span-4 glass-panel overflow-hidden flex flex-col min-h-0 xl:h-full">
                     <div className="p-5 border-b border-white/20 bg-white/30 backdrop-blur-md flex-shrink-0">
                         <h3 className="text-lg font-bold text-text-primary">Yakuniy Xulosa</h3>
                         {isAnalyzing && !fr && (
@@ -206,7 +206,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Tahlil xato bilan tugadi. Quyida hisobot bo'limlari va yuklab olish.</p>
                         )}
                     </div>
-                    <div className="p-5 overflow-y-auto flex-grow custom-scrollbar min-h-0">
+                    <div className="p-5 overflow-y-auto touch-scroll-y flex-grow custom-scrollbar min-h-0">
                         <div className="space-y-6">
                             {fr && <FinalReportCard report={fr} patientData={pd} onUpdateReport={onUpdateReport} />}
                             {!fr && error && <ErrorReportPlaceholder message={error} />}

@@ -85,7 +85,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                        style={{ color: '#0891b2' }}>
                         {getDateStr()}
                     </p>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none">
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-tight sm:leading-none">
                         <span className="text-slate-700">Salom Doktor </span>
                         <span style={{
                             background: 'linear-gradient(90deg, #0891b2 0%, #059669 100%)',

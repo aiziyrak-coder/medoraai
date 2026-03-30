@@ -64,8 +64,8 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onLogout }) =
   );
 
   return (
-    <div className="min-h-screen w-full medical-mesh-bg flex items-center justify-center p-4">
-      <div className="glass-panel max-w-4xl w-full p-6 md:p-10 animate-fade-in-up">
+    <div className="min-h-[100dvh] min-h-screen w-full medical-mesh-bg flex items-stretch sm:items-center justify-center py-6 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto touch-scroll-y">
+      <div className="glass-panel max-w-4xl w-full p-5 sm:p-6 md:p-10 animate-fade-in-up my-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl md:text-3xl font-black text-white">Obuna markazi</h1>
           <button onClick={onLogout} className="text-sm text-slate-400 hover:text-white">Chiqish</button>

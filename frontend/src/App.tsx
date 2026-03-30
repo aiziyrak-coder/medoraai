@@ -43,50 +43,14 @@ import PlusCircleIcon from './components/icons/PlusCircleIcon';
 import DocumentReportIcon from './components/icons/DocumentReportIcon';
 import LightBulbIcon from './components/icons/LightBulbIcon';
 import CopyrightIcon from './components/icons/CopyrightIcon';
-import MonitorIcon from './components/icons/MonitorIcon'; 
-
 import { AIModel } from './constants/specialists';
 import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT, PLATFORM_NAME, INSTITUTE_LOGO_SRC } from './constants/brand';
 
 const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="h-full overflow-y-auto overflow-x-hidden page-px py-6 custom-scrollbar min-w-0">
+    <div className="h-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden page-px py-6 pb-8 custom-scrollbar min-w-0 touch-scroll-y max-md:pb-24">
         {children}
     </div>
 );
-
-// --- MOBILE BLOCKER COMPONENT ---
-const MobileBlocker: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
-    const { t } = useTranslation();
-    return (
-        <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-8 text-center animate-fade-in-up">
-            <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-                <MonitorIcon className="w-12 h-12 text-blue-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-4">{t('mobile_block_title')}</h2>
-            <p className="text-slate-300 text-lg leading-relaxed max-w-md">
-                {t('mobile_block_intro_prefix')}
-                <strong>MEDORA AI</strong>
-                {t('mobile_block_intro_suffix')}
-                <span className="text-blue-400 font-bold"> {t('mobile_block_computer')}</span>
-                {t('mobile_block_or')}
-                <span className="text-blue-400 font-bold">{t('mobile_block_tablet')}</span>
-                {t('mobile_block_intro_end')}
-            </p>
-            <div className="mt-8 p-4 bg-slate-800/50 rounded-xl border border-white/10">
-                <p className="text-sm text-slate-400">
-                    {t('mobile_block_footer')}
-                </p>
-            </div>
-            <button
-                type="button"
-                onClick={onLogout}
-                className="mt-8 text-sm font-bold text-blue-400 hover:text-white transition-colors underline"
-            >
-                {t('mobile_block_back')}
-            </button>
-        </div>
-    );
-};
 
 const AppContent: React.FC = () => {
     // --- STATE MANAGEMENT ---
@@ -134,7 +98,6 @@ const AppContent: React.FC = () => {
     }, [currentUser]);
 
     const [appView, setAppView] = useState<AppView>('dashboard');
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const historyFromPopstateRef = useRef(false);
 
     // i18n — must be before any effect that uses language/t
@@ -187,16 +150,6 @@ const AppContent: React.FC = () => {
             document.removeEventListener('focusin', onFocusIn);
             if (timer) clearTimeout(timer);
         };
-    }, []);
-
-    // Screen Resize & URL Param Listener
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-        window.addEventListener('resize', handleResize);
-
-        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     // Sahifa yuklanganida: token bo'lsa barcha rollar uchun tahlillarni faqat API dan yuklash
@@ -860,7 +813,7 @@ const AppContent: React.FC = () => {
 
             case 'new_analysis':
                 return (
-                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar title={t('nav_new_case')} subtitle={t('new_case_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         {error && (
                             <div className="mx-4 mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2" role="alert">
@@ -869,7 +822,7 @@ const AppContent: React.FC = () => {
                                 <button type="button" onClick={() => setError(null)} className="shrink-0 underline" aria-label={t('close')}>{t('close')}</button>
                             </div>
                         )}
-                        <div className="flex-1 page-px py-4 overflow-hidden">
+                        <div className="flex-1 min-h-0 page-px py-4 overflow-y-auto touch-scroll-y">
                             <DataInputForm
                                 onSubmit={handleDataSubmit}
                                 isAnalyzing={isProcessing}
@@ -883,7 +836,7 @@ const AppContent: React.FC = () => {
 
             case 'clarification':
                 return (
-                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar title={t('clarification_title')} subtitle={t('clarification_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
                         <ScrollWrapper>
                             <div className="max-w-3xl mx-auto w-full min-w-0">
@@ -895,7 +848,7 @@ const AppContent: React.FC = () => {
 
             case 'team_recommendation':
                 return (
-                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar title={t('team_recommendation_title')} subtitle={t('team_recommendation_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
                         <ScrollWrapper>
                             <div className="max-w-3xl mx-auto w-full h-full flex flex-col min-w-0">
@@ -911,14 +864,14 @@ const AppContent: React.FC = () => {
                 if (!record || !record.patientData) return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
                 const isArchive = appView === 'view_history_item' && !isProcessing && debateHistory.length > 0;
                 return (
-                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar
                             title={isArchive ? "Tahlil Ko'rinishi" : "Konsilium Jarayoni"}
                             subtitle={record.patientData ? `${record.patientData.firstName} ${record.patientData.lastName}` : ''}
                             onBack={() => isArchive ? setAppView('history') : handleNavigation('dashboard')}
                             backLabel={isArchive ? t('nav_archive') : t('back_to_home')}
                         />
-                        <div className="flex-1 page-px py-3 overflow-hidden">
+                        <div className="flex-1 min-h-0 page-px py-3 overflow-y-auto touch-scroll-y">
                             <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} />
                         </div>
                     </div>
@@ -927,7 +880,7 @@ const AppContent: React.FC = () => {
 
             case 'history':
                 return (
-                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar title={t('history_title')} subtitle={t('history_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
@@ -939,7 +892,7 @@ const AppContent: React.FC = () => {
 
             case 'case_library':
                 return (
-                    <div className="h-full flex flex-col overflow-hidden min-w-0">
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar title={t('case_library_title')} onBack={() => setAppView('history')} backLabel={t('nav_archive')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
@@ -996,13 +949,8 @@ const AppContent: React.FC = () => {
         return <SubscriptionPage user={currentUser} onSubscriptionPending={handleSubscriptionPending} onLogout={handleLogout} />;
     }
 
-    // --- CLINIC MODE (With Mobile Restriction) ---
-    if (isMobile) {
-        return <MobileBlocker onLogout={handleLogout} />;
-    }
-
     return (
-        <div className="flex flex-col h-screen w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-hidden">
+        <div className="flex flex-col min-h-0 h-[100dvh] h-screen w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-x-hidden">
             {/* Oq/kulrang animatsion gradient (index.css .app-bg) */}
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
             {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
@@ -1024,7 +972,7 @@ const AppContent: React.FC = () => {
                 </div>
             )}
             <header className="flex-none pt-3 sm:pt-4 pb-2 z-30 w-full relative">
-                <div className="glass-panel page-px py-2.5 flex justify-between items-center shadow-lg shadow-blue-500/5 w-full min-w-0">
+                <div className="glass-panel page-px py-2.5 flex flex-wrap justify-between items-center gap-x-2 gap-y-2 shadow-lg shadow-blue-500/5 w-full min-w-0">
                     {/* Logo */}
                     <button
                         onClick={() => handleNavigation('dashboard')}
@@ -1052,11 +1000,11 @@ const AppContent: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-grow flex flex-col overflow-hidden w-full min-w-0 relative z-10 isolate">
+            <main className="flex-1 flex flex-col min-h-0 overflow-hidden w-full min-w-0 relative z-10 isolate">
                {renderMainContent()}
             </main>
             
-            <footer className="flex-none w-full z-20 relative">
+            <footer className="flex-none w-full z-20 relative max-md:pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))]">
                 {/* Top accent line */}
                 <div className="w-full h-px" style={{
                     background: 'linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.4) 30%, rgba(34,197,94,0.4) 60%, transparent 100%)',

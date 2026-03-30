@@ -19,7 +19,7 @@ const NavButton: React.FC<{
 }> = ({ isActive, onClick, icon, label }) => (
     <button
         onClick={onClick}
-        className={`relative flex flex-col items-center justify-center gap-1 w-full h-16 transition-colors duration-200 focus:outline-none ${
+        className={`relative flex flex-col items-center justify-center gap-0.5 w-full min-h-[3.5rem] py-2 active:opacity-80 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-xl ${
             isActive ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
         }`}
         aria-current={isActive ? 'page' : undefined}
@@ -37,16 +37,17 @@ const MobileNavBar: React.FC<MobileNavBarProps> = ({ activeView, onNavigate }) =
     const { t } = useTranslation();
     return (
         <nav
-            className="md:hidden fixed bottom-0 left-0 right-0 z-30 pb-safe"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom,0px)]"
             style={{
-                background: 'rgba(255,255,255,0.85)',
+                background: 'rgba(255,255,255,0.92)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
                 borderTop: '1px solid rgba(255,255,255,0.7)',
-                boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
             }}
+            aria-label="Asosiy navigatsiya"
         >
-            <div className="flex justify-around items-center h-16 px-4">
+            <div className="flex justify-around items-stretch min-h-[4rem] px-2 pt-1">
                 <NavButton
                     isActive={activeView === 'dashboard'}
                     onClick={() => onNavigate('dashboard')}

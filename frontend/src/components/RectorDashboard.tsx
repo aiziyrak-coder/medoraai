@@ -37,7 +37,7 @@ const RectorDashboard: React.FC<RectorDashboardProps> = ({ onBackToMain }) => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full medical-mesh-bg p-6 md:p-10">
+    <div className="min-h-[100dvh] min-h-screen w-full medical-mesh-bg p-4 sm:p-6 md:p-10 overflow-y-auto touch-scroll-y pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
