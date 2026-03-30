@@ -76,10 +76,10 @@ def deploy():
         print("✓ Frontend built")
         print()
 
-        # Step 3: Copy frontend/dist -> /root/medoraai/dist (nginx root)
-        print("[4/6] Copying frontend dist to /root/medoraai/dist/ ...")
+        # Step 3: Nginx serves /root/medoraai/frontend/dist (vite outDir); reload after build
+        print("[4/6] Reloading nginx (frontend served from frontend/dist) ...")
         stdin, stdout, stderr = client.exec_command(
-            f"cp -r {REMOTE_DIR}/frontend/dist/. {REMOTE_DIR}/dist/ && nginx -t && systemctl reload nginx",
+            "nginx -t && systemctl reload nginx",
             timeout=30
         )
         output = stdout.read().decode('utf-8')

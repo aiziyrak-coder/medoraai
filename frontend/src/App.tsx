@@ -93,7 +93,9 @@ const AppContent: React.FC = () => {
     // Auth & View
     // Initialize from localStorage; only refresh from API when we have a token to avoid 401s
     const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getCurrentUser());
-    const isRectorPath = typeof window !== 'undefined' && window.location.pathname === '/rektorga';
+    const rectorPathnames = ['/rektorga', '/rektor'];
+    const pathNorm = typeof window !== 'undefined' ? (window.location.pathname.replace(/\/$/, '') || '/') : '';
+    const isRectorPath = typeof window !== 'undefined' && rectorPathnames.includes(pathNorm);
     
     // New States for Landing Page Flow
     const [showLanding, setShowLanding] = useState(!currentUser); // Show landing if not logged in
