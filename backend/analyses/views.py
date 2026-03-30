@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import AnalysisRecord, DiagnosisFeedback, AnalysisAuditLog, AnalysisUsefulnessFeedback
 from .serializers import (
@@ -18,7 +19,7 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
     queryset = AnalysisRecord.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['patient', 'created_by']
+    filterset_fields = ['patient']
     search_fields = ['patient__first_name', 'patient__last_name', 'external_patient_id']
     ordering_fields = ['created_at', 'updated_at']
     ordering = ['-created_at']
@@ -33,9 +34,14 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = AnalysisRecord.objects.select_related('patient', 'created_by', 'patient__created_by')
-        if user.is_clinic or user.is_superuser:
-            return queryset.all()
-        return queryset.none()
+        # Superuser / staff: barcha tahlillar (admin)
+        if user.is_superuser or user.is_staff:
+            return queryset
+        # Har bir klinika hisobi faqat o'zi yaratgan (yoki bemor egasi bo'lgan) tahlillarni ko'radi
+        return queryset.filter(
+            Q(created_by=user)
+            | Q(created_by__isnull=True, patient__created_by=user)
+        )
 
     def _log_audit(self, analysis, action, extra=None):
         try:

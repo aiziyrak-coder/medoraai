@@ -18,7 +18,7 @@ class PatientViewSet(viewsets.ModelViewSet):
     queryset = Patient.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['gender', 'created_by']
+    filterset_fields = ['gender']
     search_fields = ['first_name', 'last_name', 'phone', 'complaints']
     ordering_fields = ['created_at', 'first_name', 'last_name']
     ordering = ['-created_at']
@@ -33,9 +33,9 @@ class PatientViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = Patient.objects.select_related('created_by')
-        if user.is_clinic or user.is_superuser:
-            return queryset.all()
-        return queryset.none()
+        if user.is_superuser or user.is_staff:
+            return queryset
+        return queryset.filter(created_by=user)
     
     @action(detail=True, methods=['post'], url_path='upload-attachment')
     def upload_attachment(self, request, pk=None):

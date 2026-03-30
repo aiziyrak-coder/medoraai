@@ -433,7 +433,7 @@ export interface CMETopic {
 
 // --- DASHBOARD & HISTORY ---
 
-/** GET /analyses/stats/ javobi (barcha tahlillar bo'yicha agregatsiya) */
+/** GET /analyses/stats/ javobi (joriy foydalanuvchi tahlillari bo'yicha agregatsiya) */
 export interface AnalysisStatsPayload {
   total_analyses: number;
   common_diagnoses: { name: string; count: number }[];

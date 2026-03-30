@@ -52,6 +52,15 @@ class AnalysisRecordCreateSerializer(serializers.ModelSerializer):
             'selected_specialists', 'detected_medications'
         ]
         read_only_fields = ['id']
+
+    def validate_patient(self, patient):
+        user = self.context['request'].user
+        if user.is_superuser or user.is_staff:
+            return patient
+        owner_id = patient.created_by_id
+        if owner_id is not None and owner_id != user.id:
+            raise serializers.ValidationError("Bemor boshqa hisobga tegishli.")
+        return patient
     
     def create(self, validated_data):
         user = self.context['request'].user
