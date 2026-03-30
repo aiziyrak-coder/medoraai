@@ -67,6 +67,26 @@ def _revoke_oldest_sessions(user, keep_count):
         session.delete()
 
 
+def _revoke_sessions_on_other_devices(user, current_device_id):
+    """
+    Revoke sessions from other devices so login can continue on current device.
+    Single-device policy is still enforced (only one active device at a time).
+    """
+    sessions = ActiveSession.objects.filter(user=user).exclude(device_id=current_device_id)
+    if not sessions.exists():
+        return
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+    except ImportError:
+        sessions.delete()
+        return
+    for session in sessions:
+        ot = OutstandingToken.objects.filter(jti=session.refresh_jti).first()
+        if ot:
+            BlacklistedToken.objects.get_or_create(token=ot)
+        session.delete()
+
+
 def _extract_device_context(request, fallback_data=None):
     """Extract normalized device info from request body/headers."""
     source = fallback_data if isinstance(fallback_data, dict) else {}
@@ -166,10 +186,14 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         user = serializer.validated_data['user']
         allowed, reason = _enforce_single_device_policy(user, device_id)
         if not allowed:
-            return Response({
-                'success': False,
-                'error': {'code': 409, 'message': reason}
-            }, status=409, content_type='application/json')
+            # Auto-handover: oldingi qurilmadagi sessiyani bekor qilib, joriy qurilmadan kirishga ruxsat beramiz.
+            _revoke_sessions_on_other_devices(user, device_id)
+            allowed, reason = _enforce_single_device_policy(user, device_id)
+            if not allowed:
+                return Response({
+                    'success': False,
+                    'error': {'code': 409, 'message': reason}
+                }, status=409, content_type='application/json')
 
         refresh = RefreshToken.for_user(user)
         jti = str(refresh.get('jti'))
