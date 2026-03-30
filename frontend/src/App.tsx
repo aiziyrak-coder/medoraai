@@ -248,6 +248,19 @@ const AppContent: React.FC = () => {
         });
     }, [currentUser]);
 
+    // Dashboard ochilganda statistika va tarixni har safar API dan yangilab olamiz.
+    useEffect(() => {
+        if (!currentUser?.phone) return;
+        if (appView !== 'dashboard') return;
+        if (!getAuthToken()) return;
+        caseService.loadDashboardStatsFromApi().then(result => {
+            if (result) {
+                setUserHistory(result.list);
+                setDashboardStats(result.stats);
+            }
+        }).catch(() => null);
+    }, [appView, currentUser]);
+
     // Core Analysis State
     const [patientData, setPatientData] = useState<PatientData | null>(null);
     const [selectedSpecialistsConfig, setSelectedSpecialistsConfig] = useState<{ role: AIModel, backEndModel: string }[]>([]);

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import * as authService from '../services/apiAuthService';
-import type { User, UserRole } from '../types';
+import type { User } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 import CheckCircleIcon from './icons/CheckCircleIcon';
@@ -75,11 +75,10 @@ const RotatingSpecialtyCard: React.FC<{ initialIndex: number, options: string[] 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     const { t, language, setLanguage } = useTranslation();
     const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
-    const [role, setRole] = useState<UserRole>('clinic');
+    const role = 'clinic';
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
     const [isAgreedTerms, setIsAgreedTerms] = useState(false);
     const [isAgreedPrivacy, setIsAgreedPrivacy] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -121,23 +120,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         specialtyPools.push(pool);
     }
 
-    // Auto-fill credentials on mount for the default role
+    // Auto-fill clinic credentials on mount
     useEffect(() => {
-        // If mobile, default to doctor
-        if (window.innerWidth < 768) {
-            handleRoleSelect('doctor');
-        } else {
-            handleRoleSelect('clinic');
-        }
+        setMode('login');
+        setError('');
+        setPassword('');
+        setPhone('+998901234567');
+        setPassword('clinic_demo');
     }, []);
-
-    const handleSpecialtyToggle = (spec: string) => {
-        setSelectedSpecialties(prev => 
-            prev.includes(spec) 
-                ? prev.filter(s => s !== spec) 
-                : prev.length < 5 ? [...prev, spec] : prev
-        );
-    };
 
     const handleResetRequest = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -204,7 +194,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     password_confirm: password,
                     name, 
                     role,
-                    specialties: role === 'doctor' ? selectedSpecialties : []
+                    specialties: []
                 });
                  if (result.success) {
                     const registeredUser = authService.getCurrentUser();
@@ -225,32 +215,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         }
     };
     
-    // Auto-fill credentials based on role selection
-    const handleRoleSelect = (selectedRole: UserRole) => {
-        // Mobile restriction check
-        if (selectedRole === 'clinic' && window.innerWidth < 768) {
-            alert(t('alert_phone_only_mode'));
-            return;
-        }
-
-        setRole(selectedRole);
-        setMode('login');
-        setError('');
-        setPassword('');
-        
-        if (selectedRole === 'clinic') {
-            setPhone('+998901234567');
-            setPassword('clinic_demo');
-        } else if (selectedRole === 'doctor') {
-            // Default to ACTIVE subscription user for better first impression
-            setPhone('+998901111111');
-            setPassword('demo');
-        } else if (selectedRole === 'staff') {
-            setPhone('+998901112233'); // Demo for staff
-            setPassword('staff_demo');
-        }
-    };
-
     // --- LEGAL TEXT CONTENT GENERATORS ---
     const showTerms = () => setLegalModalContent({
         title: t('legal_terms_title'),
@@ -360,8 +324,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                             </h4>
                             <ul className="text-slate-300 text-xs space-y-0.5">
                                 <li>· <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
-                                <li>· <strong>{t('auth_mode_doctor')}:</strong> {t('auth_mode_doctor_desc')}</li>
-                                <li>· <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
                             </ul>
                         </div>
 
@@ -388,36 +350,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 <div className="w-full lg:w-1/2 h-full bg-slate-900/50 backdrop-blur-xl border-l border-white/10 flex flex-col justify-center p-6 lg:p-12 overflow-y-auto overflow-x-hidden custom-scrollbar mobile-keyboard-pad shadow-2xl transition-all">
                     <div className="max-w-sm w-full mx-auto space-y-4 animate-fade-in-up min-h-0">
                         
-                        {/* Role Switcher */}
-                        <div className="bg-slate-800 p-1 rounded-xl flex flex-wrap gap-1 mb-4 border border-slate-700">
-                            <button
-                                onClick={() => handleRoleSelect('clinic')}
-                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'clinic' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                {t('auth_mode_clinic')}
-                            </button>
-                            <button
-                                onClick={() => handleRoleSelect('doctor')}
-                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'doctor' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                {t('auth_mode_doctor')}
-                            </button>
-                            <button
-                                onClick={() => handleRoleSelect('staff')}
-                                className={`flex-1 min-w-0 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg transition-all duration-300 ${role === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                {t('auth_mode_staff')}
-                            </button>
-                        </div>
-
                         <div className="text-center lg:text-left">
                             <h2 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">
                                 {mode === 'login' ? t('auth_login_title') : t('auth_register_title')}
                             </h2>
                             <p className="mt-1 text-slate-300 font-medium text-xs sm:text-sm">
-                                {role === 'clinic' && t('auth_clinic_login_help')}
-                                {role === 'doctor' && t('auth_doctor_login_help')}
-                                {role === 'staff' && t('auth_staff_login_help')}
+                                {t('auth_clinic_login_help')}
                             </p>
                         </div>
 
@@ -440,30 +378,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                             autoComplete="name"
                                         />
                                     </div>
-                                    {role === 'doctor' && (
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                                                {t('auth_specialties_label')}
-                                            </label>
-                                            <div className="flex flex-wrap gap-1 mb-1">
-                                                {selectedSpecialties.map(s => (
-                                                    <span key={s} className="px-1.5 py-0.5 bg-blue-600 rounded-md text-[10px] text-white flex items-center gap-1">
-                                                        {s} <button type="button" onClick={() => handleSpecialtyToggle(s)}>&times;</button>
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <select 
-                                                onChange={(e) => handleSpecialtyToggle(e.target.value)} 
-                                                className="block w-full px-4 py-2.5 bg-white/10 border border-white/10 rounded-xl text-white outline-none text-sm bg-slate-800"
-                                                value=""
-                                            >
-                                                <option value="" disabled className="text-slate-500">{t('auth_select_specialty')}</option>
-                                                {availableSpecialties.map(s => (
-                                                    <option key={s} value={s} className="text-white bg-slate-800">{s}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
                                 </>
                             )}
                             
@@ -564,17 +478,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         </form>
 
                         <div className="text-center pt-1">
-                            {role !== 'staff' && (
-                                <p className="text-xs text-slate-400 font-medium">
-                                    {mode === 'login' ? t('auth_no_account_prompt') : t('auth_have_account_prompt')}{' '}
-                                    <button 
-                                        onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setError(''); setMessage(''); setIsAgreedTerms(false); setIsAgreedPrivacy(false); }} 
-                                        className="text-white hover:text-blue-300 font-bold transition-colors ml-1 underline decoration-slate-600 hover:decoration-blue-400 underline-offset-4"
-                                    >
-                                        {mode === 'login' ? t('auth_register_link') : t('auth_login_link')}
-                                    </button>
-                                </p>
-                            )}
+                            <p className="text-xs text-slate-400 font-medium">
+                                {mode === 'login' ? t('auth_no_account_prompt') : t('auth_have_account_prompt')}{' '}
+                                <button 
+                                    onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setError(''); setMessage(''); setIsAgreedTerms(false); setIsAgreedPrivacy(false); }} 
+                                    className="text-white hover:text-blue-300 font-bold transition-colors ml-1 underline decoration-slate-600 hover:decoration-blue-400 underline-offset-4"
+                                >
+                                    {mode === 'login' ? t('auth_register_link') : t('auth_login_link')}
+                                </button>
+                            </p>
                             {mode === 'forgot' && (
                                  <button onClick={() => { setMode('login'); setError(''); setMessage(''); }} className="mt-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
                                     &larr; {t('auth_back_to_login')}
