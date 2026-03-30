@@ -485,12 +485,9 @@ class UserListAPIView(generics.ListAPIView):
     
     def get_queryset(self):
         user = self.request.user
-        queryset = User.objects.select_related('subscription_plan', 'linked_doctor').prefetch_related('assistants')
+        queryset = User.objects.select_related('subscription_plan')
         if user.is_clinic or user.is_superuser:
             return queryset.all()
-        elif user.is_doctor:
-            # Doctors can see their assistants
-            return queryset.filter(linked_doctor=user)
         return queryset.none()
 
 
@@ -516,8 +513,6 @@ def subscription_plans_list(request):
 def my_subscription(request):
     """Joriy foydalanuvchi obunasi"""
     user = request.user
-    if user.role == 'staff' and user.linked_doctor:
-        user = user.linked_doctor
     data = {
         'subscription_status': user.subscription_status,
         'subscription_expiry': user.subscription_expiry.isoformat() if user.subscription_expiry else None,

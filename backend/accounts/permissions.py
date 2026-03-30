@@ -8,7 +8,6 @@ from django.utils import timezone
 class HasActiveSubscription(permissions.BasePermission):
     """
     Permission to check if user has active subscription (trial or paid).
-    Staff inherits from linked doctor.
     """
     
     def has_permission(self, request, view):
@@ -16,10 +15,6 @@ class HasActiveSubscription(permissions.BasePermission):
             return False
         
         user = request.user
-        
-        # Staff inherits subscription from linked doctor
-        if user.role == 'staff' and user.linked_doctor:
-            user = user.linked_doctor
         
         # Check subscription status
         if user.subscription_status != 'active':

@@ -135,8 +135,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     ROLE_CHOICES = [
         ('clinic', 'Klinika'),
-        ('doctor', 'Shifokor'),
-        ('staff', 'Registrator'),
     ]
     
     SUBSCRIPTION_STATUS_CHOICES = [
@@ -208,23 +206,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.name} ({self.phone})"
     
     @property
-    def is_doctor(self):
-        return self.role == 'doctor'
-    
-    @property
     def is_clinic(self):
         return self.role == 'clinic'
     
     @property
-    def is_staff_member(self):
-        return self.role == 'staff'
-    
-    @property
     def has_active_subscription(self):
-        if self.role == 'staff':
-            if self.linked_doctor:
-                return self.linked_doctor.has_active_subscription
-            return False
         if self.subscription_status != 'active':
             return False
         # Trial: active until trial_ends_at

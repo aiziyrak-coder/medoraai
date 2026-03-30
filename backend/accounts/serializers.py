@@ -1,12 +1,10 @@
 """
 User Serializers
 """
-from datetime import timedelta
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from django.utils import timezone
-from .models import User, SubscriptionPlan, SubscriptionPayment, QueueItem
+from .models import User, SubscriptionPlan
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
@@ -28,7 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'phone', 'name', 'role', 'specialties',
-            'linked_doctor', 'subscription_plan', 'subscription_plan_detail',
+            'subscription_plan', 'subscription_plan_detail',
             'subscription_status', 'subscription_expiry', 'trial_ends_at',
             'is_active', 'date_joined', 'last_login'
         ]
@@ -42,10 +40,9 @@ def _validate_password_length(value):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Serializer for user registration (clinic, doctor, staff, monitoring)."""
+    """Serializer for clinic registration."""
     password = serializers.CharField(write_only=True, required=True, validators=[_validate_password_length])
     password_confirm = serializers.CharField(write_only=True, required=True)
-    linked_doctor = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     specialties = serializers.ListField(
         child=serializers.CharField(allow_blank=True),
         required=False,
@@ -57,7 +54,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'phone', 'name', 'password', 'password_confirm',
-            'role', 'specialties', 'linked_doctor'
+            'role', 'specialties'
         ]
 
     def validate(self, attrs):
@@ -68,10 +65,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def validate_role(self, value):
-        allowed = [c[0] for c in User.ROLE_CHOICES]
-        if value not in allowed:
-            raise serializers.ValidationError(f"Rol quyidagilardan biri bo'lishi kerak: {', '.join(allowed)}")
-        return value
+        if value != 'clinic':
+            raise serializers.ValidationError("Faqat 'clinic' roli ruxsat etiladi.")
+        return 'clinic'
 
     def validate_phone(self, value):
         if not value or len(value) < 9:
@@ -89,36 +85,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
-        # linked_doctor ni phone/ID dan User instance ga o'girish
-        linked_doctor_raw = validated_data.pop('linked_doctor', None)
-        linked_doctor_obj = None
-        if linked_doctor_raw:
-            # Try as ID first
-            if str(linked_doctor_raw).isdigit():
-                linked_doctor_obj = User.objects.filter(pk=int(linked_doctor_raw)).first()
-            # Try as phone - NORMALIZE qilish
-            if not linked_doctor_obj:
-                cleaned_phone = str(linked_doctor_raw).replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
-                if not cleaned_phone.startswith('+'):
-                    if cleaned_phone.startswith('998'):
-                        cleaned_phone = '+' + cleaned_phone
-                    else:
-                        cleaned_phone = '+998' + cleaned_phone
-                linked_doctor_obj = User.objects.filter(phone=cleaned_phone).first()
-        validated_data['linked_doctor'] = linked_doctor_obj
+        validated_data['role'] = 'clinic'
         user = User.objects.create_user(password=password, **validated_data)
-        # Shifokorlar uchun trial period
-        if user.role == 'doctor':
-            from django.conf import settings
-            trial_days = getattr(settings, 'DOCTOR_TRIAL_DAYS', 7)
-            user.subscription_status = 'active'
-            user.trial_ends_at = timezone.now() + timedelta(days=trial_days)
-            user.save(update_fields=['subscription_status', 'trial_ends_at'])
-        # Monitoring roli: darhol faol, ro'yxatdan o'tganidan keyin kirish mumkin
-        if user.role == 'monitoring':
-            user.subscription_status = 'active'
-            user.is_active = True
-            user.save(update_fields=['subscription_status', 'is_active'])
         return user
 
 
@@ -127,7 +95,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['name', 'specialties', 'linked_doctor']
+        fields = ['name', 'specialties']
     
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -184,19 +152,3 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             return attrs
         else:
             raise serializers.ValidationError('Telefon raqami va parol kiritilishi shart')
-
-
-class QueueItemSerializer(serializers.ModelSerializer):
-    """Navbat elementi - shifokor/registrator uchun."""
-    patient_name = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = QueueItem
-        fields = [
-            'id', 'first_name', 'last_name', 'patient_name', 'age', 'address', 'complaints',
-            'status', 'ticket_number', 'arrival_time', 'created_at'
-        ]
-        read_only_fields = ['id', 'ticket_number', 'created_at']
-
-    def get_patient_name(self, obj):
-        return f"{obj.last_name} {obj.first_name}"

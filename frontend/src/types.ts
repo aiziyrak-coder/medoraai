@@ -4,9 +4,9 @@ import { AIModel } from './constants/specialists';
 // Original types - some modified for new features
 export { AIModel };
 
-export type AppView = 'dashboard' | 'new_analysis' | 'clarification' | 'team_recommendation' | 'live_analysis' | 'history' | 'view_history_item' | 'case_library' | 'research' | 'live_consultation' | 'prescription' | 'tumor_board' | 'longitudinal_view' | 'staff_dashboard' | 'tv_display' | 'subscription';
+export type AppView = 'dashboard' | 'new_analysis' | 'clarification' | 'team_recommendation' | 'live_analysis' | 'history' | 'view_history_item' | 'case_library' | 'research' | 'live_consultation' | 'prescription' | 'tumor_board' | 'longitudinal_view' | 'subscription';
 
-export type UserRole = 'clinic' | 'doctor' | 'staff';
+export type UserRole = 'clinic';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'pending';
 
@@ -41,9 +41,7 @@ export interface User {
   name: string;
   password?: string;
   role: UserRole;
-  specialties?: string[]; // For doctors
-  linkedDoctorId?: string; // For staff, links to their doctor
-  assistantId?: string; // For doctors, links to their assistant
+  specialties?: string[];
   subscriptionStatus?: SubscriptionStatus;
   subscriptionExpiry?: string;
   subscriptionPlan?: SubscriptionPlan | null;

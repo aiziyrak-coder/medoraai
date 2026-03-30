@@ -35,10 +35,6 @@ class PatientViewSet(viewsets.ModelViewSet):
         queryset = Patient.objects.select_related('created_by')
         if user.is_clinic or user.is_superuser:
             return queryset.all()
-        elif user.is_doctor:
-            return queryset.filter(created_by=user)
-        elif user.is_staff_member and user.linked_doctor:
-            return queryset.filter(created_by=user.linked_doctor)
         return queryset.none()
     
     @action(detail=True, methods=['post'], url_path='upload-attachment')

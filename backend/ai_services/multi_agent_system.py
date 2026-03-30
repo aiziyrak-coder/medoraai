@@ -211,7 +211,7 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.15, max_tokens=2500)
+                            response_json=True, temperature=0.15, max_tokens=2000)  # Reduced from 2500
         result = parse_json(raw, f"p1_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -227,7 +227,7 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
 
 
 def run_phase1(patient_str: str) -> list[dict]:
-    """4 agent parallel  -  independent diagnosis."""
+    """4 agent parallel  -  independent diagnosis. Optimized for speed."""
     order = {a.id: i for i, a in enumerate(AGENTS)}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         futures = {pool.submit(_phase1_single, a, patient_str): a for a in AGENTS}
@@ -235,7 +235,7 @@ def run_phase1(patient_str: str) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=90))
+                results.append(fut.result(timeout=60))  # Reduced from 90
             except Exception as exc:
                 logger.error("Phase1 timeout[%s]: %s", agent.id, exc)
                 results.append({
@@ -326,7 +326,7 @@ def _phase2_single(agent: Agent, patient_str: str,
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.2, max_tokens=3000)
+                            response_json=True, temperature=0.2, max_tokens=2400)  # Reduced from 3000
         result = parse_json(raw, f"p2_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -341,7 +341,7 @@ def _phase2_single(agent: Agent, patient_str: str,
 
 
 def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
-    """4 agent parallel  -  cross-examination + refutation."""
+    """4 agent parallel  -  cross-examination + refutation. Optimized for speed."""
     order      = {a.id: i for i, a in enumerate(AGENTS)}
     id_to_p1   = {r.get("agent_id"): r for r in p1}
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
@@ -354,7 +354,7 @@ def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=90))
+                results.append(fut.result(timeout=60))  # Reduced from 90
             except Exception as exc:
                 logger.error("Phase2 timeout[%s]: %s", agent.id, exc)
                 results.append({"agent_id": agent.id, "error": str(exc)})

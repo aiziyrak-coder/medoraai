@@ -113,7 +113,7 @@ DEPLOY_MAP = {
 
 def _chat(deployment: str, system_msg: str, user_msg: str,
           response_json: bool = False, max_tokens: int = 2000) -> str:
-    """Simple chat completion call with optimized timeout."""
+    """Simple chat completion call with optimized timeout for speed."""
     client = get_azure_client()
     messages = [
         {"role": "system", "content": system_msg},
@@ -124,7 +124,7 @@ def _chat(deployment: str, system_msg: str, user_msg: str,
         "messages": messages,
         "temperature": 0.1,  # Lower for faster convergence
         "max_tokens": max_tokens,
-        "timeout": 45,  # Reduced timeout for speed
+        "timeout": 30,  # Optimized timeout for speed (was 45)
     }
     if response_json:
         kwargs["response_format"] = {"type": "json_object"}
@@ -158,13 +158,13 @@ def _moderator_intro(patient_text: str, language_hint: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: str) -> dict:
-    """One professor's initial diagnosis  -  called in thread pool. Optimized for speed."""
+    """One professor's initial diagnosis  -  called in thread pool. Optimized for maximum speed."""
     deployment = DEPLOY_MAP[prof["deployment"]]()
     system = (
         f"Siz {prof['name']}  -  {prof['title']}. {prof['persona']}\n"
         "Klinik holat tahlil qilib, mustaqil tashxis bildiring. "
         "O'zbekiston SSV klinik protokollariga rioya qiling. "
-        f"Javob tili: {language_hint}. FAQAT JSON. TEZKOR javob bering."
+        f"Javob tili: {language_hint}. FAQAT JSON. TEZKOR javob bering (30s ichida)."
     )
     user = (
         f"Bemor:\n{patient_text}\n\n"
@@ -172,7 +172,7 @@ def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: s
         '"differential": ["..."], "red_flags": ["..."], '
         '"recommended_tests": ["..."], "initial_treatment": "..."}'
     )
-    raw = _chat(deployment, system, user, response_json=True, max_tokens=1200)
+    raw = _chat(deployment, system, user, response_json=True, max_tokens=1000)  # Reduced from 1200
     parsed = _parse_json_response(raw, f"prof_{prof['id']}_initial")
     if not isinstance(parsed, dict):
         parsed = {"primary_diagnosis": "Tashxis aniqlanmadi", "error": raw[:200]}
@@ -221,14 +221,14 @@ def _professor_debate(
     synthesis: str,
     language_hint: str,
 ) -> dict:
-    """One professor's debate response  -  critiques others and defends own view."""
+    """One professor's debate response  -  critiques others and defends own view. Optimized for speed."""
     deployment = DEPLOY_MAP[prof["deployment"]]()
     other_opinions = [o for o in initial_opinions if o["professor_id"] != prof["id"]]
     system = (
         f"Siz {prof['name']}  -  {prof['title']}. {prof['persona']}\n"
         "Boshqa professorlarning fikrlarini tanqid qiling, xatolarini toping "
         "va o'z pozitsiyangizni ilmiy dalillar bilan himoya qiling. "
-        f"Javob tili: {language_hint}. FAQAT JSON."
+        f"Javob tili: {language_hint}. FAQAT JSON. TEZKOR javob (30s ichida)."
     )
     user = (
         f"Bemor:\n{patient_text}\n\n"
@@ -241,7 +241,7 @@ def _professor_debate(
         '"revised_probability": 80, '
         '"key_argument": "Asosiy ilmiy dalil..."}'
     )
-    raw = _chat(deployment, system, user, response_json=True, max_tokens=1500)
+    raw = _chat(deployment, system, user, response_json=True, max_tokens=1200)  # Reduced from 1500
     parsed = _parse_json_response(raw, f"prof_{prof['id']}_debate")
     if not isinstance(parsed, dict):
         parsed = {"critique": "", "defense": raw[:200], "revised_diagnosis": ""}
@@ -437,10 +437,10 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
             executor.submit(_professor_initial_diagnosis, prof, patient_text, language_hint): prof
             for prof in PROFESSORS
         }
-        for future in concurrent.futures.as_completed(futures, timeout=50):
+        for future in concurrent.futures.as_completed(futures, timeout=35):  # Reduced from 50
             prof = futures[future]
             try:
-                opinion = future.result(timeout=45)
+                opinion = future.result(timeout=30)  # Reduced from 45
                 initial_opinions.append(opinion)
                 logger.info("[Consilium] %s diagnosis done", prof["name"])
             except concurrent.futures.TimeoutError:
@@ -491,10 +491,10 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
             ): prof
             for prof in PROFESSORS
         }
-        for future in concurrent.futures.as_completed(futures, timeout=50):
+        for future in concurrent.futures.as_completed(futures, timeout=35):  # Reduced from 50
             prof = futures[future]
             try:
-                debate = future.result(timeout=45)
+                debate = future.result(timeout=30)  # Reduced from 45
                 debate_responses.append(debate)
                 logger.info("[Consilium] %s debate done", prof["name"])
             except concurrent.futures.TimeoutError:

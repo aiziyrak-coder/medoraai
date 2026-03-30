@@ -14,15 +14,10 @@ class IsClinicOrReadOnly(permissions.BasePermission):
 
 
 class IsDoctorOrStaff(permissions.BasePermission):
-    """Only doctors and staff can access"""
+    """Legacy name; clinic-only access now."""
     
     def has_permission(self, request, view):
-        return (
-            request.user.is_doctor or
-            request.user.is_staff_member or
-            request.user.is_clinic or
-            request.user.is_superuser
-        )
+        return request.user.is_clinic or request.user.is_superuser
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):

@@ -86,14 +86,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                         {getDateStr()}
                     </p>
                     <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none">
-                        <span className="text-slate-700">Salom, </span>
+                        <span className="text-slate-700">Salom Doktor </span>
                         <span style={{
                             background: 'linear-gradient(90deg, #0891b2 0%, #059669 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             filter: 'drop-shadow(0 0 8px rgba(8,145,178,0.25))',
                         }}>
-                            Doktor!
+                            {userName || 'Hamkasb!'}
                         </span>
                     </h1>
                 </div>

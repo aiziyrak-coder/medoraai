@@ -2,7 +2,7 @@
  * API-based Authentication Service
  * Replaces localStorage-based auth with backend API
  */
-import { apiPost, apiGet, apiPatch, saveTokens, clearTokens, saveUserData, getUserData, getRefreshToken } from './api';
+import { apiPost, apiGet, apiPatch, saveTokens, clearTokens, saveUserData, getUserData, getRefreshToken, getOrCreateDeviceId } from './api';
 import type { User } from '../types';
 
 /** Backend validatsiya xatolarini (details) bitta matnga yig'adi */
@@ -26,9 +26,8 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
   return {
     phone: String(apiUser.phone ?? ''),
     name: String(apiUser.name ?? ''),
-    role: (apiUser.role as User['role']) ?? 'doctor',
+    role: 'clinic',
     specialties: Array.isArray(apiUser.specialties) ? apiUser.specialties as string[] : undefined,
-    linkedDoctorId: apiUser.linked_doctor != null ? String(apiUser.linked_doctor) : undefined,
     subscriptionStatus: (apiUser.subscription_status as User['subscriptionStatus']) ?? apiUser.subscriptionStatus as User['subscriptionStatus'] ?? 'inactive',
     subscriptionExpiry: apiUser.subscription_expiry != null ? String(apiUser.subscription_expiry) : apiUser.subscriptionExpiry as string | undefined,
     subscriptionPlan: (apiUser.subscription_plan_detail ?? apiUser.subscriptionPlan) as User['subscriptionPlan'] ?? null,
@@ -38,7 +37,6 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
 
 /** Foydalanuvchining obunasi faolmi (trial yoki to'langan) */
 export function hasActiveSubscription(user: User): boolean {
-  if (user.role === 'staff') return true;
   if (user.subscriptionStatus !== 'active') return false;
   const now = new Date();
   if (user.trialEndsAt && new Date(user.trialEndsAt) > now) return true;
@@ -57,9 +55,8 @@ export interface RegisterData {
   name: string;
   password: string;
   password_confirm?: string;
-  role: 'clinic' | 'doctor' | 'staff';
+  role: 'clinic';
   specialties?: string[];
-  linked_doctor?: string;
 }
 
 export interface AuthResponse {
@@ -70,16 +67,14 @@ export interface AuthResponse {
   };
 }
 
-const DEVICE_ID_KEY = 'medora_device_id';
-
-function getOrCreateDeviceId(): string {
-  const existing = localStorage.getItem(DEVICE_ID_KEY);
-  if (existing && existing.trim()) return existing;
-  const generated = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  localStorage.setItem(DEVICE_ID_KEY, generated);
-  return generated;
+function getStoredDeviceIdOnly(): string {
+  try {
+    return (
+      (localStorage.getItem('medora_device_id') || sessionStorage.getItem('medora_device_id') || '').trim()
+    );
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -94,7 +89,6 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
       password_confirm: data.password_confirm ?? data.password,
       role: data.role,
       specialties: Array.isArray(data.specialties) ? data.specialties : [],
-      linked_doctor: data.linked_doctor ?? undefined,
       device_id: getOrCreateDeviceId(),
       device_info: navigator.userAgent || 'web',
     };
@@ -180,7 +174,7 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
  */
 export const logout = (): void => {
   const refresh = getRefreshToken();
-  const deviceId = localStorage.getItem(DEVICE_ID_KEY) || '';
+  const deviceId = getStoredDeviceIdOnly();
   if (refresh || deviceId) {
     apiPost('/auth/logout-session/', { refresh, device_id: deviceId }).catch(() => null);
   }

@@ -56,9 +56,6 @@ def increment_usage(user, limit_type='analyses'):
 
 def get_subscription_status(user):
     """Get detailed subscription status"""
-    if user.role == 'staff' and user.linked_doctor:
-        user = user.linked_doctor
-    
     now = timezone.now()
     is_active = user.subscription_status == 'active'
     

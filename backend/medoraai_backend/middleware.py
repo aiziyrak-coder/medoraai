@@ -80,14 +80,18 @@ class CORSFallbackMiddleware(MiddlewareMixin):
                     return response
                 response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers['Access-Control-Allow-Methods'] = 'DELETE, GET, OPTIONS, PATCH, POST, PUT'
-                response.headers['Access-Control-Allow-Headers'] = 'accept, authorization, content-type'
+                response.headers['Access-Control-Allow-Headers'] = (
+                    'accept, authorization, content-type, x-device-id, x-device-info'
+                )
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
             else:
                 if response.get('Access-Control-Allow-Origin'):
                     return response
                 response['Access-Control-Allow-Origin'] = origin
                 response['Access-Control-Allow-Methods'] = 'DELETE, GET, OPTIONS, PATCH, POST, PUT'
-                response['Access-Control-Allow-Headers'] = 'accept, authorization, content-type'
+                response['Access-Control-Allow-Headers'] = (
+                    'accept, authorization, content-type, x-device-id, x-device-info'
+                )
                 response['Access-Control-Allow-Credentials'] = 'true'
         except Exception as e:
             logger.warning("CORSFallbackMiddleware: %s", e)

@@ -5,7 +5,6 @@ import { normalizeConsensusDiagnosis } from './types';
 import * as aiService from './services/aiCouncilService';
 import * as authService from './services/apiAuthService';
 import * as caseService from './services/caseService';
-import * as tvLinkService from './services/tvLinkService'; // Import TV Service
 import { useTranslation } from './hooks/useTranslation';
 import { getSpecialistsFromComplaint } from './utils/specialistRecommendation';
 import { checkPatientComplaintConsistency } from './utils/smartValidation';
@@ -23,9 +22,6 @@ import UserGuide from './components/UserGuide';
 import AboutInstitutePage from './components/AboutInstitutePage';
 import SubscriptionPage from './components/SubscriptionPage';
 import RectorDashboard from './components/RectorDashboard';
-import DoctorDashboard from './components/DoctorDashboard';
-import StaffDashboard from './components/StaffDashboard';
-import TvDisplay from './components/TvDisplay';
 import DataInputForm from './components/DataInputForm';
 const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
@@ -128,7 +124,6 @@ const AppContent: React.FC = () => {
 
     const [appView, setAppView] = useState<AppView>('dashboard');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [tvModeDoctorId, setTvModeDoctorId] = useState<string | null>(null);
     const historyFromPopstateRef = useRef(false);
 
     // i18n — must be before any effect that uses language/t
@@ -189,38 +184,6 @@ const AppContent: React.FC = () => {
             setIsMobile(window.innerWidth < 768);
         };
         window.addEventListener('resize', handleResize);
-
-        // Check for TV mode URL params
-        const params = new URLSearchParams(window.location.search);
-        
-        // New Short Code Logic: ?tv=abcdefgh
-        let tvCode = params.get('tv');
-
-        // Fallback: Check hash for blob environments or hash routers
-        if (!tvCode && window.location.hash.includes('tv=')) {
-            // Extract from hash, handling potential other hash parts
-            // Simple extraction: assume #tv=code or #...&tv=code
-            const hashParts = window.location.hash.replace(/^#/, '').split('&');
-            const tvPart = hashParts.find(p => p.startsWith('tv='));
-            if (tvPart) {
-                tvCode = tvPart.split('=')[1];
-            }
-        }
-
-        if (tvCode) {
-            const doctorId = tvLinkService.getDoctorIdByCode(tvCode);
-            if (doctorId) {
-                setTvModeDoctorId(doctorId);
-            } else {
-                // Invalid TV code - silently handle, user will see normal view
-                // Could log in development mode if needed
-            }
-        }
-        
-        // Legacy/Direct logic (optional fallback): ?mode=tv&doctor=...
-        if (params.get('mode') === 'tv' && params.get('doctor')) {
-            setTvModeDoctorId(params.get('doctor')!);
-        }
 
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -978,11 +941,6 @@ const AppContent: React.FC = () => {
         }
     };
     
-    // --- TV DISPLAY MODE ---
-    if (tvModeDoctorId) {
-        return <TvDisplay doctorId={tvModeDoctorId} />;
-    }
-
     // --- DIRECTOR DASHBOARD ---
     if (isRectorPath) {
         if (!currentUser) {
@@ -1021,19 +979,8 @@ const AppContent: React.FC = () => {
     }
 
     // --- SUBSCRIPTION CHECK ---
-    // Staff inherits subscription from linked doctor. Doctor/Clinic must have active subscription (trial or paid).
-    if (currentUser.role !== 'staff' && !authService.hasActiveSubscription(currentUser)) {
+    if (!authService.hasActiveSubscription(currentUser)) {
         return <SubscriptionPage user={currentUser} onSubscriptionPending={handleSubscriptionPending} onLogout={handleLogout} />;
-    }
-
-    // --- DOCTOR MODE ---
-    if (currentUser.role === 'doctor') {
-        return <DoctorDashboard user={currentUser} onLogout={handleLogout} />;
-    }
-
-    // --- STAFF MODE ---
-    if (currentUser.role === 'staff') {
-        return <StaffDashboard user={currentUser} onLogout={handleLogout} />;
     }
 
     // --- CLINIC MODE (With Mobile Restriction) ---

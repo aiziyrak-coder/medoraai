@@ -78,7 +78,6 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
         ('Shaxsiy ma\'lumotlar', {'fields': ('name', 'role', 'specialties')}),
-        ('Bog\'lanishlar', {'fields': ('linked_doctor',)}),
         ('Obuna', {'fields': ('subscription_plan', 'subscription_status', 'subscription_expiry', 'trial_ends_at')}),
         ('Ruxsatlar', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Muhim sanalar', {'fields': ('last_login', 'date_joined')}),

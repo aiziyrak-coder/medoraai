@@ -6,6 +6,43 @@ import { API_CONFIG } from '../config/api';
 export const API_BASE_URL = API_CONFIG.BASE_URL;
 const HOST_BASE = API_CONFIG.HOST_BASE ?? (API_BASE_URL.replace(/\/api\/?$/, '') || 'http://localhost:8000');
 
+/** localStorage bloklansa ham login ishlaydi; backend X-Device-Id ni ham o‘qiydi */
+const DEVICE_ID_STORAGE_KEY = 'medora_device_id';
+
+/**
+ * Brauzer uchun barqaror qurilma ID (localStorage → sessionStorage → vaqtinchalik).
+ * Login/register va barcha API so‘rovlarida ishlatiladi.
+ */
+export function getOrCreateDeviceId(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  try {
+    let id = (localStorage.getItem(DEVICE_ID_STORAGE_KEY) || '').trim();
+    if (!id) {
+      id = (sessionStorage.getItem(DEVICE_ID_STORAGE_KEY) || '').trim();
+    }
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      try {
+        localStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+      } catch {
+        try {
+          sessionStorage.setItem(DEVICE_ID_STORAGE_KEY, id);
+        } catch {
+          /* faqat joriy sessiya uchun id allaqachon `id` o‘zgaruvchisida */
+        }
+      }
+    }
+    return id.slice(0, 128);
+  } catch {
+    return `dev-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`.slice(0, 128);
+  }
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -120,19 +157,27 @@ export const apiRequest = async <T = unknown>(
 ): Promise<ApiResponse<T>> => {
   const token = getAuthToken();
   
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers as Record<string, string> | undefined),
   };
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  if (typeof window !== 'undefined') {
+    const did = getOrCreateDeviceId();
+    if (did) {
+      headers['X-Device-Id'] = did;
+      headers['X-Device-Info'] = (navigator.userAgent || 'web').slice(0, 255);
+    }
+  }
+
   try {
     const response = await retryFetch(
       `${API_BASE_URL}${endpoint}`,
-      { ...options, headers },
+      { ...options, headers: headers as HeadersInit },
       API_CONFIG.RETRY_ATTEMPTS,
       API_CONFIG.RETRY_DELAY
     );
