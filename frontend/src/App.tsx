@@ -1028,19 +1028,17 @@ const AppContent: React.FC = () => {
                         <h1 className="text-base font-black tracking-tight text-slate-800 sm:hidden">{t('appName')}</h1>
                     </button>
 
-                    {/* Right: lang + logout */}
-                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    {/* Right: qurilma (ixcham) + til + chiqish */}
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
+                        <DeviceSessionBanner variant="compact" />
                         <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
                         <button
                             onClick={handleLogout}
-                            className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors px-3 sm:px-4 py-2 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100"
+                            className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors px-2 sm:px-4 py-2 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 shrink-0"
                         >
                             {t('logout')}
                         </button>
                     </div>
-                </div>
-                <div className="page-px mt-2 max-w-full">
-                    <DeviceSessionBanner variant="header" />
                 </div>
             </header>
 

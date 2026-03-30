@@ -3,7 +3,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { getDeviceDisplayName } from '../utils/deviceDisplayName';
 import MonitorIcon from './icons/MonitorIcon';
 
-type Props = { variant?: 'header' | 'auth'; tone?: 'light' | 'dark' };
+type Props = { variant?: 'header' | 'auth' | 'compact'; tone?: 'light' | 'dark' };
 
 /**
  * Bitta qurilma siyosati: qurilma nomi + ogohlantirish (header yoki kirish formasi).
@@ -11,6 +11,33 @@ type Props = { variant?: 'header' | 'auth'; tone?: 'light' | 'dark' };
 const DeviceSessionBanner: React.FC<Props> = ({ variant = 'header', tone = 'light' }) => {
   const { t } = useTranslation();
   const deviceName = useMemo(() => getDeviceDisplayName(), []);
+  const compactTooltip = useMemo(
+    () =>
+      `${t('device_session_banner_title')}: ${deviceName || '—'}\n\n${t('device_session_banner_body')}`,
+    [t, deviceName],
+  );
+
+  if (variant === 'compact') {
+    const isDark = tone === 'dark';
+    return (
+      <div
+        className={`inline-flex max-w-[min(46vw,11rem)] sm:max-w-[15rem] md:max-w-xs items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] sm:text-[10px] leading-tight shadow-sm min-w-0 ${
+          isDark
+            ? 'border-amber-400/35 bg-amber-950/50 text-amber-100'
+            : 'border-amber-200/90 bg-amber-50/95 text-amber-950'
+        }`}
+        title={compactTooltip}
+      >
+        <MonitorIcon className={`w-3 h-3 shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
+        <span className="min-w-0 truncate font-semibold">
+          <span className={isDark ? 'text-amber-100/90' : 'text-amber-950/90'}>
+            {t('device_session_banner_title')}:
+          </span>{' '}
+          <span className={isDark ? 'text-white' : 'text-slate-900'}>{deviceName || '—'}</span>
+        </span>
+      </div>
+    );
+  }
 
   if (variant === 'auth') {
     return (

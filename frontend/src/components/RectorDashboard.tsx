@@ -39,18 +39,17 @@ const RectorDashboard: React.FC<RectorDashboardProps> = ({ onBackToMain }) => {
   return (
     <div className="min-h-screen w-full medical-mesh-bg p-6 md:p-10">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-3xl md:text-4xl font-black text-white">Rektor paneli</h1>
             <p className="text-slate-300 mt-1">Foydalanuvchilar, obunalar va tushumlar monitoringi</p>
           </div>
-          <button onClick={onBackToMain} className="text-sm font-semibold text-slate-300 hover:text-white">
-            Asosiy sahifaga qaytish
-          </button>
-        </div>
-
-        <div className="mb-6">
-          <DeviceSessionBanner variant="header" tone="dark" />
+          <div className="flex flex-wrap items-center gap-2 justify-end shrink-0">
+            <DeviceSessionBanner variant="compact" tone="dark" />
+            <button onClick={onBackToMain} className="text-sm font-semibold text-slate-300 hover:text-white">
+              Asosiy sahifaga qaytish
+            </button>
+          </div>
         </div>
 
         {currentUser?.role !== 'clinic' && (
