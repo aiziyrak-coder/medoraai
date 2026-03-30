@@ -384,12 +384,21 @@ const refreshAccessToken = async (): Promise<boolean> => {
   }
 
   try {
+    const did = getOrCreateDeviceId();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (did) {
+      headers['X-Device-Id'] = did;
+      headers['X-Device-Info'] = (typeof navigator !== 'undefined' ? navigator.userAgent : 'web').slice(0, 255);
+    }
     const response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh: refreshToken }),
+      headers,
+      body: JSON.stringify({
+        refresh: refreshToken,
+        ...(did ? { device_id: did, device_info: headers['X-Device-Info'] } : {}),
+      }),
     });
 
     if (response.ok) {

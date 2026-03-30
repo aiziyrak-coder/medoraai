@@ -67,18 +67,18 @@ def _revoke_oldest_sessions(user, keep_count):
         session.delete()
 
 
-def _revoke_sessions_on_other_devices(user, current_device_id):
+def _revoke_all_sessions_for_user(user):
     """
-    Revoke sessions from other devices so login can continue on current device.
-    Single-device policy is still enforced (only one active device at a time).
+    Foydalanuvchining barcha refresh-sessiyalarini bekor qiladi (JWT blacklist + ActiveSession).
+    Yangi kirishda faqat joriy qurilma qolishi uchun chaqiriladi.
     """
-    sessions = ActiveSession.objects.filter(user=user).exclude(device_id=current_device_id)
-    if not sessions.exists():
+    sessions = list(ActiveSession.objects.filter(user=user))
+    if not sessions:
         return
     try:
         from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
     except ImportError:
-        sessions.delete()
+        ActiveSession.objects.filter(user=user).delete()
         return
     for session in sessions:
         ot = OutstandingToken.objects.filter(jti=session.refresh_jti).first()
@@ -100,23 +100,6 @@ def _extract_device_context(request, fallback_data=None):
         ua = request.headers.get('User-Agent') or ''
         device_info = ua[:255]
     return device_id, device_info[:255]
-
-
-def _enforce_single_device_policy(user, device_id):
-    """
-    One user can be active only on one device.
-    Allows multiple logins from the same device_id.
-    """
-    if not device_id:
-        return False, "Qurilma aniqlanmadi. Iltimos, ilovani yangilang va qayta urinib ko'ring."
-
-    other_device_session_exists = ActiveSession.objects.filter(user=user).exclude(device_id=device_id).exists()
-    if other_device_session_exists:
-        return False, (
-            "Hisob boshqa qurilmada faol. Xavfsizlik sababli bir vaqtning o'zida faqat bitta qurilmaga ruxsat beriladi. "
-            "Qurilmani almashtirish uchun administrator bilan bog'laning."
-        )
-    return True, None
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -184,16 +167,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             }, status=400, content_type='application/json')
 
         user = serializer.validated_data['user']
-        allowed, reason = _enforce_single_device_policy(user, device_id)
-        if not allowed:
-            # Auto-handover: oldingi qurilmadagi sessiyani bekor qilib, joriy qurilmadan kirishga ruxsat beramiz.
-            _revoke_sessions_on_other_devices(user, device_id)
-            allowed, reason = _enforce_single_device_policy(user, device_id)
-            if not allowed:
-                return Response({
-                    'success': False,
-                    'error': {'code': 409, 'message': reason}
-                }, status=409, content_type='application/json')
+        # Bitta login — bitta faol qurilma: avvalgi barcha sessiyalarni bekor qilish, keyin yangi token beriladi.
+        _revoke_all_sessions_for_user(user)
 
         refresh = RefreshToken.for_user(user)
         jti = str(refresh.get('jti'))
@@ -269,15 +244,61 @@ def _register_session_for_tokens(user, refresh, device_id='', device_info=''):
 
 
 class CustomTokenRefreshView(TokenRefreshView):
-    """Refresh dan keyin ActiveSession yangilash (eski sessiya o'chiriladi, yangisi qo'shiladi)."""
+    """Refresh: refresh token aylanishi bilan ActiveSession va device_id mos saqlanadi (bitta qurilma)."""
     def post(self, request, *args, **kwargs):
+        data = {}
+        try:
+            raw = getattr(request, 'data', None)
+            if raw and isinstance(raw, dict):
+                data = raw.copy()
+        except Exception:
+            pass
+
+        device_id, device_info = _extract_device_context(request, data)
+        old_refresh = (data.get('refresh') or '').strip()
+
+        old_jti = None
+        old_session = None
+        if old_refresh:
+            try:
+                from rest_framework_simplejwt.settings import api_settings as jwt_settings
+                old_payload = jwt_decode(
+                    old_refresh,
+                    jwt_settings.SIGNING_KEY,
+                    algorithms=[jwt_settings.ALGORITHM],
+                )
+                old_jti = str(old_payload.get('jti') or '')
+                if old_jti:
+                    old_session = ActiveSession.objects.filter(refresh_jti=old_jti).select_related('user').first()
+            except Exception:
+                pass
+
+        if old_session:
+            sd = (old_session.device_id or '').strip()
+            if sd and device_id and sd != device_id[:128]:
+                return Response({
+                    'success': False,
+                    'error': {'code': 401, 'message': "Sessiya boshqa qurilmada. Qayta kiring."}
+                }, status=401, content_type='application/json')
+            if not device_id:
+                device_id = (old_session.device_id or '')[:128]
+            if not device_info and old_session.device_info:
+                device_info = (old_session.device_info or '')[:255]
+
+        if not device_id:
+            return Response({
+                'success': False,
+                'error': {'code': 400, 'message': "Qurilma identifikatori topilmadi. Iltimos, ilovani yangilang."}
+            }, status=400, content_type='application/json')
+
         response = super().post(request, *args, **kwargs)
         if response.status_code != 200:
             return response
-        old_refresh = request.data.get('refresh') or ''
+
         new_refresh = response.data.get('refresh') or ''
         if not new_refresh:
             return response
+
         try:
             from rest_framework_simplejwt.settings import api_settings as jwt_settings
             payload = jwt_decode(
@@ -287,11 +308,18 @@ class CustomTokenRefreshView(TokenRefreshView):
             )
             new_jti = str(payload.get('jti'))
             user_id = payload.get('user_id')
-            if user_id:
-                ActiveSession.objects.filter(refresh_jti=new_jti).delete()
+            if user_id and new_jti:
                 user = User.objects.filter(pk=user_id).first()
                 if user:
-                    ActiveSession.objects.create(user=user, refresh_jti=new_jti)
+                    jtis = [j for j in (old_jti, new_jti) if j]
+                    if jtis:
+                        ActiveSession.objects.filter(user=user, refresh_jti__in=jtis).delete()
+                    ActiveSession.objects.create(
+                        user=user,
+                        refresh_jti=new_jti,
+                        device_id=device_id[:128],
+                        device_info=device_info[:255],
+                    )
                     exp = payload.get('exp')
                     expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
                     try:
@@ -307,13 +335,6 @@ class CustomTokenRefreshView(TokenRefreshView):
                         )
                     except Exception:
                         pass
-            if old_refresh:
-                try:
-                    old_payload = jwt_decode(old_refresh, jwt_settings.SIGNING_KEY, algorithms=[jwt_settings.ALGORITHM])
-                    old_jti = str(old_payload.get('jti'))
-                    ActiveSession.objects.filter(refresh_jti=old_jti).delete()
-                except Exception:
-                    pass
         except Exception as ex:
             logger.warning("CustomTokenRefreshView session update: %s", ex)
         return response
