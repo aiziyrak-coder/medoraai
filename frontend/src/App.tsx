@@ -22,6 +22,7 @@ import LandingPage from './components/LandingPage';
 import UserGuide from './components/UserGuide';
 import AboutInstitutePage from './components/AboutInstitutePage';
 import SubscriptionPage from './components/SubscriptionPage';
+import RectorDashboard from './components/RectorDashboard';
 import DoctorDashboard from './components/DoctorDashboard';
 import StaffDashboard from './components/StaffDashboard';
 import TvDisplay from './components/TvDisplay';
@@ -96,6 +97,7 @@ const AppContent: React.FC = () => {
     // Auth & View
     // Initialize from localStorage; only refresh from API when we have a token to avoid 401s
     const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getCurrentUser());
+    const isRectorPath = typeof window !== 'undefined' && window.location.pathname === '/rektorga';
     
     // New States for Landing Page Flow
     const [showLanding, setShowLanding] = useState(!currentUser); // Show landing if not logged in
@@ -611,18 +613,22 @@ const AppContent: React.FC = () => {
             enrichedPatientData.longitudinalClinicalNotes = undefined;
         }
         setPatientData(enrichedPatientData);
+        
+        // ✅ TEZKOR: Mutaxassislarni DARHOL ko'rsatish (0ms) - Backend API emas!
+        const instantTeam = getSpecialistsFromComplaint(enrichedPatientData);
+        setRecommendedTeam(instantTeam);
         setAppView('team_recommendation');
+        
+        // Orqa fonda diagnoses generatsiya qilish (agar kerak bo'lsa)
         setIsProcessing(true);
         setStatusMessage(t('ddx_generating'));
         let diagnoses: Diagnosis[] = [];
         try {
-            const { generateInitialDiagnoses, recommendSpecialists } = await import('./services/apiAiService');
+            const { generateInitialDiagnoses } = await import('./services/apiAiService');
             try {
                 const ddxResp = await generateInitialDiagnoses(enrichedPatientData);
                 if (ddxResp.success && ddxResp.data?.length) {
                     diagnoses = ddxResp.data;
-                } else {
-                    throw new Error('ddx api empty');
                 }
             } catch {
                 try {
@@ -632,23 +638,9 @@ const AppContent: React.FC = () => {
                 }
             }
             setDifferentialDiagnoses(diagnoses);
-
-            setStatusMessage(t('team_recommendation_creating'));
-            const response = await recommendSpecialists(enrichedPatientData, diagnoses.length ? diagnoses : undefined);
-            if (response.success && response.data?.recommendations?.length) {
-                setRecommendedTeam(response.data.recommendations);
-            } else {
-                throw new Error('API failed');
-            }
-        } catch (e) {
-            try {
-                const team = await aiService.recommendSpecialists(enrichedPatientData, language, diagnoses);
-                setRecommendedTeam(team.recommendations);
-            } catch (fallbackError) {
-                setError(t('team_recommendation_auto_error'));
-                setRecommendedTeam(inferFallbackSpecialists(enrichedPatientData, diagnoses));
-            }
-        } finally { setIsProcessing(false); }
+        } finally { 
+            setIsProcessing(false); 
+        }
     };
 
     const handleTeamConfirmation = async (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestrator: string) => {
@@ -978,6 +970,21 @@ const AppContent: React.FC = () => {
         return <TvDisplay doctorId={tvModeDoctorId} />;
     }
 
+    // --- DIRECTOR DASHBOARD ---
+    if (isRectorPath) {
+        if (!currentUser) {
+            return (
+                <div className="relative">
+                    <button onClick={() => { window.location.href = '/'; }} className="absolute top-4 left-4 z-50 text-white/60 hover:text-white transition-colors">
+                        &larr; Bosh sahifa
+                    </button>
+                    <AuthPage onLoginSuccess={handleLoginSuccess} />
+                </div>
+            );
+        }
+        return <RectorDashboard onBackToMain={() => { window.location.href = '/'; }} />;
+    }
+
     // --- LANDING PAGE FLOW ---
     if (!currentUser) {
         if (showAbout) {
@@ -1129,41 +1136,19 @@ const AppContent: React.FC = () => {
                             </span>
                         </div>
 
-                        {/* Right - partners */}
-                        <div className="flex items-center gap-4 sm:gap-5 text-[10px] flex-wrap justify-center">
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 font-medium">{t('footer_creator')}:</span>
-                                <a
-                                    href="https://fargana.uz"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-black hover:scale-105 transition-transform"
-                                    style={{
-                                        background: 'linear-gradient(90deg, #0369a1, #0891b2)',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent',
-                                    }}
-                                >
-                                    CDCGroup
-                                </a>
-                            </div>
-                            <div className="w-px h-3 bg-slate-200 hidden sm:block" />
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 font-medium">{t('footer_support')}:</span>
-                                <a
-                                    href="https://fargana.uz"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-black hover:scale-105 transition-transform"
-                                    style={{
-                                        background: 'linear-gradient(90deg, #7c3aed, #6366f1)',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent',
-                                    }}
-                                >
-                                    CraDev Company
-                                </a>
-                            </div>
+                        {/* Right - ownership */}
+                        <div className="flex items-center gap-2 text-[10px] flex-wrap justify-center">
+                            <span className="text-slate-400 font-medium">Mutlaq egalik:</span>
+                            <span
+                                className="font-black"
+                                style={{
+                                    background: 'linear-gradient(90deg, #0369a1, #0891b2)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
+                                {INSTITUTE_NAME_FULL}
+                            </span>
                         </div>
                     </div>
                 </div>

@@ -207,8 +207,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     specialties: role === 'doctor' ? selectedSpecialties : []
                 });
                  if (result.success) {
-                    setMessage(result.message + " Endi tizimga kirishingiz mumkin.");
-                    setMode('login');
+                    const registeredUser = authService.getCurrentUser();
+                    if (registeredUser) {
+                        onLoginSuccess(registeredUser);
+                    } else {
+                        setMessage(result.message);
+                        setMode('login');
+                    }
                 } else {
                     setError(result.message);
                 }

@@ -4,6 +4,7 @@ Authentication and User Management Views
 import json
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 from django.db import IntegrityError
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +12,8 @@ from django.views.decorators.http import require_http_methods
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Count, Sum, DecimalField
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import status, generics, permissions, serializers as drf_serializers
 from rest_framework.decorators import api_view, permission_classes
@@ -64,6 +67,38 @@ def _revoke_oldest_sessions(user, keep_count):
         session.delete()
 
 
+def _extract_device_context(request, fallback_data=None):
+    """Extract normalized device info from request body/headers."""
+    source = fallback_data if isinstance(fallback_data, dict) else {}
+    device_id = str(source.get('device_id') or '').strip()
+    if not device_id:
+        device_id = str(request.headers.get('X-Device-Id') or '').strip()
+    device_id = device_id[:128]
+
+    device_info = str(source.get('device_info') or '').strip()
+    if not device_info:
+        ua = request.headers.get('User-Agent') or ''
+        device_info = ua[:255]
+    return device_id, device_info[:255]
+
+
+def _enforce_single_device_policy(user, device_id):
+    """
+    One user can be active only on one device.
+    Allows multiple logins from the same device_id.
+    """
+    if not device_id:
+        return False, "Qurilma aniqlanmadi. Iltimos, ilovani yangilang va qayta urinib ko'ring."
+
+    other_device_session_exists = ActiveSession.objects.filter(user=user).exclude(device_id=device_id).exists()
+    if other_device_session_exists:
+        return False, (
+            "Hisob boshqa qurilmada faol. Xavfsizlik sababli bir vaqtning o'zida faqat bitta qurilmaga ruxsat beriladi. "
+            "Qurilmani almashtirish uchun administrator bilan bog'laning."
+        )
+    return True, None
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Custom JWT token view: sessiya limiti va login rate limit."""
     serializer_class = CustomTokenObtainPairSerializer
@@ -89,6 +124,12 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 'success': False,
                 'error': {'code': 400, 'message': 'Telefon raqami kiritilishi shart'}
             }, status=400, content_type='application/json')
+        device_id, device_info = _extract_device_context(request, data)
+        if not device_id:
+            return Response({
+                'success': False,
+                'error': {'code': 400, 'message': 'Qurilma identifikatori topilmadi. Iltimos, ilovani yangilang.'}
+            }, status=400, content_type='application/json')
 
         # Login rate limit: bir xil telefon uchun juda ko'p urinish
         cache_key = LOGIN_RATE_LIMIT_KEY.format(phone=phone)
@@ -102,7 +143,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 }
             }, status=429, content_type='application/json')
 
-        serializer = self.get_serializer(data=data)
+        auth_data = {'phone': phone, 'password': data.get('password')}
+        serializer = self.get_serializer(data=auth_data)
         try:
             serializer.is_valid(raise_exception=True)
         except drf_serializers.ValidationError as e:
@@ -122,6 +164,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             }, status=400, content_type='application/json')
 
         user = serializer.validated_data['user']
+        allowed, reason = _enforce_single_device_policy(user, device_id)
+        if not allowed:
+            return Response({
+                'success': False,
+                'error': {'code': 409, 'message': reason}
+            }, status=409, content_type='application/json')
+
         refresh = RefreshToken.for_user(user)
         jti = str(refresh.get('jti'))
         exp = refresh.get('exp')
@@ -141,7 +190,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except Exception as ex:
             logger.warning("OutstandingToken create: %s", ex)
 
-        ActiveSession.objects.create(user=user, refresh_jti=jti)
+        ActiveSession.objects.filter(user=user, device_id=device_id).exclude(refresh_jti=jti).delete()
+        ActiveSession.objects.create(user=user, refresh_jti=jti, device_id=device_id, device_info=device_info)
         max_sessions = user.max_concurrent_sessions()
         _revoke_oldest_sessions(user, max_sessions)
 
@@ -162,7 +212,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         }, content_type='application/json')
 
 
-def _register_session_for_tokens(user, refresh):
+def _register_session_for_tokens(user, refresh, device_id='', device_info=''):
     """OutstandingToken va ActiveSession yozadi, limitdan ortiq sessiyalarni bekor qiladi."""
     try:
         jti = str(refresh.get('jti'))
@@ -181,7 +231,14 @@ def _register_session_for_tokens(user, refresh):
             )
         except Exception as ex:
             logger.warning("OutstandingToken create: %s", ex)
-        ActiveSession.objects.create(user=user, refresh_jti=jti)
+        if device_id:
+            ActiveSession.objects.filter(user=user, device_id=device_id).exclude(refresh_jti=jti).delete()
+        ActiveSession.objects.create(
+            user=user,
+            refresh_jti=jti,
+            device_id=(device_id or '')[:128],
+            device_info=(device_info or '')[:255],
+        )
         _revoke_oldest_sessions(user, user.max_concurrent_sessions())
     except Exception as ex:
         logger.warning("Session registration failed (user created): %s", ex)
@@ -286,6 +343,14 @@ def register(request):
                 'error': {'code': 400, 'message': "So'rov tanasi bo'sh yoki noto'g'ri. JSON (phone, name, password, role) yuborilishi kerak.", 'details': {}}
             }, 400)
         logger.info("Register attempt: role=%s, phone=%s, keys=%s", data.get('role'), data.get('phone'), list(data.keys()))
+        device_id, device_info = _extract_device_context(request, data)
+        if not device_id:
+            return _json_http_response({
+                'success': False,
+                'error': {'code': 400, 'message': "Qurilma identifikatori topilmadi. Iltimos, ilovani yangilang.", 'details': {}}
+            }, 400)
+        data.pop('device_id', None)
+        data.pop('device_info', None)
         serializer = UserCreateSerializer(data=data)
         if serializer.is_valid():
             try:
@@ -298,7 +363,7 @@ def register(request):
                     }, 400)
                 raise
             refresh = RefreshToken.for_user(user)
-            _register_session_for_tokens(user, refresh)
+            _register_session_for_tokens(user, refresh, device_id=device_id, device_info=device_info)
             user_data = UserSerializer(user).data
             return _json_http_response({
                 'success': True,
@@ -718,3 +783,91 @@ def _answer_callback(token: str, callback_id: str, text: str):
         }, timeout=10)
     except Exception as e:
         logger.error("Failed to answer callback query: %s", e)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def logout_session(request):
+    """
+    Logout current device session by refresh token or current device_id.
+    This releases single-device lock intentionally.
+    """
+    refresh_token_raw = (request.data.get('refresh') or '').strip()
+    device_id = (request.data.get('device_id') or request.headers.get('X-Device-Id') or '').strip()
+    removed = 0
+    if refresh_token_raw:
+        try:
+            from rest_framework_simplejwt.settings import api_settings as jwt_settings
+            payload = jwt_decode(refresh_token_raw, jwt_settings.SIGNING_KEY, algorithms=[jwt_settings.ALGORITHM])
+            jti = str(payload.get('jti') or '')
+            if jti:
+                removed += ActiveSession.objects.filter(user=request.user, refresh_jti=jti).delete()[0]
+        except Exception:
+            pass
+    if removed == 0 and device_id:
+        removed += ActiveSession.objects.filter(user=request.user, device_id=device_id).delete()[0]
+    return Response({'success': True, 'data': {'removed_sessions': removed}})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def rector_dashboard_stats(request):
+    """High-level business metrics page for rector dashboard."""
+    if not (request.user.is_superuser or request.user.is_staff):
+        return Response({
+            'success': False,
+            'error': {'code': status.HTTP_403_FORBIDDEN, 'message': 'Ushbu bo\'lim faqat administratorlar uchun.'}
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    now = timezone.now()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    total_users = User.objects.count()
+    active_subscriptions = User.objects.filter(subscription_status='active').count()
+    pending_subscriptions = User.objects.filter(subscription_status='pending').count()
+    new_users_30d = User.objects.filter(date_joined__gte=now - timedelta(days=30)).count()
+    role_breakdown = list(
+        User.objects.values('role').annotate(count=Count('id')).order_by('role')
+    )
+
+    payments_qs = SubscriptionPayment.objects.all()
+    approved_qs = payments_qs.filter(status='approved')
+    pending_payments = payments_qs.filter(status='pending').count()
+    rejected_payments = payments_qs.filter(status='rejected').count()
+
+    total_revenue = approved_qs.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'), output_field=DecimalField(max_digits=12, decimal_places=0))
+    )['total']
+    monthly_revenue = approved_qs.filter(reviewed_at__gte=month_start).aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'), output_field=DecimalField(max_digits=12, decimal_places=0))
+    )['total']
+
+    plan_breakdown = list(
+        SubscriptionPayment.objects.filter(status='approved')
+        .values('plan__name')
+        .annotate(count=Count('id'), amount=Coalesce(Sum('amount'), Decimal('0')))
+        .order_by('-count')
+    )
+
+    return Response({
+        'success': True,
+        'data': {
+            'users': {
+                'total': total_users,
+                'new_last_30_days': new_users_30d,
+                'roles': role_breakdown,
+            },
+            'subscriptions': {
+                'active': active_subscriptions,
+                'pending': pending_subscriptions,
+            },
+            'payments': {
+                'pending': pending_payments,
+                'rejected': rejected_payments,
+                'revenue_total_usd': total_revenue,
+                'revenue_this_month_usd': monthly_revenue,
+                'approved_by_plan': plan_breakdown,
+            },
+            'generated_at': now.isoformat(),
+        }
+    })

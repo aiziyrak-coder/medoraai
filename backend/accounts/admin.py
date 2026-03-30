@@ -24,11 +24,11 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
 
 @admin.register(ActiveSession)
 class ActiveSessionAdmin(admin.ModelAdmin):
-    list_display = ['user', 'refresh_jti', 'device_info', 'created_at']
+    list_display = ['user', 'device_id', 'refresh_jti', 'device_info', 'last_seen', 'created_at']
     list_filter = ['created_at']
-    search_fields = ['user__phone', 'refresh_jti']
+    search_fields = ['user__phone', 'refresh_jti', 'device_id']
     raw_id_fields = ['user']
-    readonly_fields = ['created_at']
+    readonly_fields = ['created_at', 'last_seen']
 
 
 @admin.register(SubscriptionPayment)

@@ -14,6 +14,8 @@ from .views import (
     my_subscription,
     send_payment_receipt,
     telegram_webhook,
+    logout_session,
+    rector_dashboard_stats,
     UserListAPIView,
     UserDetailAPIView,
 )
@@ -35,6 +37,8 @@ urlpatterns = [
     path('subscription/', my_subscription, name='my_subscription'),
     path('send-payment-receipt/', send_payment_receipt, name='send_payment_receipt'),
     path('telegram-webhook/', telegram_webhook, name='telegram_webhook'),
+    path('logout-session/', logout_session, name='logout_session'),
+    path('rektorga/stats/', rector_dashboard_stats, name='rector_dashboard_stats'),
     
     # User management
     path('users/', UserListAPIView.as_view(), name='user_list'),

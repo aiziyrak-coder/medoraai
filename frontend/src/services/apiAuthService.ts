@@ -2,7 +2,7 @@
  * API-based Authentication Service
  * Replaces localStorage-based auth with backend API
  */
-import { apiPost, apiGet, apiPatch, saveTokens, clearTokens, saveUserData, getUserData, type ApiResponse } from './api';
+import { apiPost, apiGet, apiPatch, saveTokens, clearTokens, saveUserData, getUserData, getRefreshToken } from './api';
 import type { User } from '../types';
 
 /** Backend validatsiya xatolarini (details) bitta matnga yig'adi */
@@ -70,6 +70,18 @@ export interface AuthResponse {
   };
 }
 
+const DEVICE_ID_KEY = 'medora_device_id';
+
+function getOrCreateDeviceId(): string {
+  const existing = localStorage.getItem(DEVICE_ID_KEY);
+  if (existing && existing.trim()) return existing;
+  const generated = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  localStorage.setItem(DEVICE_ID_KEY, generated);
+  return generated;
+}
+
 /**
  * Register new user
  */
@@ -83,6 +95,8 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
       role: data.role,
       specialties: Array.isArray(data.specialties) ? data.specialties : [],
       linked_doctor: data.linked_doctor ?? undefined,
+      device_id: getOrCreateDeviceId(),
+      device_info: navigator.userAgent || 'web',
     };
     const response = await apiPost<AuthResponse>('/auth/register/', registerData);
     
@@ -127,7 +141,12 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
     return { success: false, message: "Parol kiritilishi shart." };
   }
   try {
-    const response = await apiPost<AuthResponse>('/auth/login/', { phone, password });
+    const response = await apiPost<AuthResponse>('/auth/login/', {
+      phone,
+      password,
+      device_id: getOrCreateDeviceId(),
+      device_info: navigator.userAgent || 'web',
+    });
     
     if (response.success && response.data) {
       saveTokens(response.data.tokens.access, response.data.tokens.refresh);
@@ -160,6 +179,11 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
  * Logout user
  */
 export const logout = (): void => {
+  const refresh = getRefreshToken();
+  const deviceId = localStorage.getItem(DEVICE_ID_KEY) || '';
+  if (refresh || deviceId) {
+    apiPost('/auth/logout-session/', { refresh, device_id: deviceId }).catch(() => null);
+  }
   clearTokens();
 };
 

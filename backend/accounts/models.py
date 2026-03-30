@@ -238,12 +238,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         return False
 
     def max_concurrent_sessions(self):
-        """Bitta obunani bir nechta odam ishlatishini oldini olish: shifokor 1, klinika 2, staff 1."""
-        if self.role == 'doctor':
-            return 1
-        if self.role == 'clinic':
-            return 2
-        return 1  # staff
+        """Barcha rollar uchun qat'iy bitta faol sessiya."""
+        return 1
 
 
 class ActiveSession(models.Model):
@@ -258,14 +254,19 @@ class ActiveSession(models.Model):
         verbose_name='Foydalanuvchi'
     )
     refresh_jti = models.CharField(max_length=255, unique=True, db_index=True, verbose_name='Refresh token JTI')
+    device_id = models.CharField(max_length=128, blank=True, db_index=True, verbose_name='Qurilma ID')
     device_info = models.CharField(max_length=255, blank=True, verbose_name='Qurilma (ixtiyoriy)')
+    last_seen = models.DateTimeField(auto_now=True, verbose_name='Oxirgi faollik')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Faol sessiya'
         verbose_name_plural = 'Faol sessiyalar'
         ordering = ['created_at']
-        indexes = [models.Index(fields=['user', 'created_at'])]
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user', 'device_id']),
+        ]
 
     def __str__(self):
         return f"{self.user.phone} @ {self.created_at}"

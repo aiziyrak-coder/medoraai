@@ -37,7 +37,7 @@ export const INSTITUTE_EMAIL_2 = "fmioz@mail.ru";
 export const INSTITUTE_ADDRESS = "Fargʻona sh, Yangi Turon, 2-a uy";
 
 /** Footer copyright line */
-export const FOOTER_COPYRIGHT = "©CDCGroup 2026 FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITUTI";
+export const FOOTER_COPYRIGHT = "© 2026 FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITUTI. Barcha huquqlar himoyalangan.";
 
 /** Institute official website */
 export const INSTITUTE_WEBSITE = "https://fjsti.uz/";
