@@ -12,7 +12,16 @@ type PlanMode = 'clinic' | 'doctor';
 
 const CONTACT_PHONE = '+998907863888';
 
-const clinicTariffsUsd = [
+type ClinicTariffDef = {
+  title: string;
+  users: string;
+  /** Bazaviy USD (kurs bo'yicha so'm); `uzsPerUserMonthOverride` bo'lsa u ustun. */
+  usdPerUserMonth: number;
+  uzsPerUserMonthOverride?: number;
+  features: string[];
+};
+
+const clinicTariffsUsd: ClinicTariffDef[] = [
   {
     title: 'Klinika Start',
     users: "10 nafargacha foydalanuvchi",
@@ -29,6 +38,7 @@ const clinicTariffsUsd = [
     title: 'Klinika Enterprise',
     users: "20+ foydalanuvchi",
     usdPerUserMonth: 5,
+    uzsPerUserMonthOverride: 75_000,
     features: ['Yuqori yuklama uchun optimizatsiya', "Rahbariyat uchun ko'rsatkichlar paneli", "Alohida joriy etish ko'magi"],
   },
 ];
@@ -38,10 +48,14 @@ const SubscriptionPage: React.FC<SubscriptionPageProps> = ({ user, onLogout }) =
   const doctorMonthlyUzs = useMemo(() => usdToUzsCeil(10), []);
   const clinicTariffs = useMemo(
     () =>
-      clinicTariffsUsd.map((t) => ({
-        ...t,
-        priceLabel: `${formatUzs(usdToUzsCeil(t.usdPerUserMonth))} / foydalanuvchi / oy`,
-      })),
+      clinicTariffsUsd.map((t) => {
+        const uzs =
+          t.uzsPerUserMonthOverride ?? usdToUzsCeil(t.usdPerUserMonth);
+        return {
+          ...t,
+          priceLabel: `${formatUzs(uzs)} / foydalanuvchi / oy`,
+        };
+      }),
     [],
   );
   const heroTitle = useMemo(
