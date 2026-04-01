@@ -14,6 +14,17 @@ import paramiko
 import sys
 import time
 
+# Windows cp1251 konsolida Unicode chiqarish xato bermasligi uchun
+def _configure_stdio_utf8() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
+_configure_stdio_utf8()
+
 SERVER_USER = os.environ.get("DEPLOY_SSH_USER", "root")
 SERVER_HOST = os.environ.get("DEPLOY_SSH_HOST", "medora.cdcgroup.uz")
 SERVER_PASSWORD = os.environ.get("DEPLOY_SSH_PASSWORD", "").strip()
@@ -22,7 +33,7 @@ REMOTE_DIR = os.environ.get("DEPLOY_REMOTE_DIR", "/root/medoraai")
 def deploy():
     """Deploy to server via SSH"""
     if not SERVER_PASSWORD:
-        print("❌ DEPLOY_SSH_PASSWORD muhit o'zgaruvchisi o'rnatilmagan.")
+        print("[X] DEPLOY_SSH_PASSWORD muhit o'zgaruvchisi o'rnatilmagan.")
         print("   Misol (PowerShell): $env:DEPLOY_SSH_PASSWORD='...'; python deploy/deploy_server.py")
         return False
 
@@ -38,7 +49,7 @@ def deploy():
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
     try:
-        print("[1/4] Connecting to server...")
+        print("[1/6] Connecting to server...")
         client.connect(
             hostname=SERVER_HOST,
             username=SERVER_USER,
@@ -47,7 +58,7 @@ def deploy():
             allow_agent=False,
             look_for_keys=False
         )
-        print("✓ Connected successfully")
+        print("[OK] Connected successfully")
         print()
         
         # Step 1: Pull from GitHub (with stash to handle local changes)
@@ -64,7 +75,7 @@ def deploy():
         if error and "error:" not in error.lower():
             print(f"WARNING: {error}")
         
-        print("✓ Pull completed")
+        print("[OK] Pull completed")
         print()
         
         # Small delay
@@ -82,7 +93,7 @@ def deploy():
             print(output[-2000:])  # last 2000 chars
         if error and 'warn' not in error.lower()[:20]:
             print(f"BUILD WARNING: {error[-1000:]}")
-        print("✓ Frontend built")
+        print("[OK] Frontend built")
         print()
 
         # Step 3: Nginx serves /root/medoraai/frontend/dist (vite outDir); reload after build
@@ -98,7 +109,7 @@ def deploy():
         if error:
             # nginx -t outputs to stderr even on success
             print(f"Nginx: {error.strip()}")
-        print("✓ Frontend deployed and nginx reloaded")
+        print("[OK] Frontend deployed and nginx reloaded")
         print()
 
         time.sleep(1)
@@ -109,14 +120,18 @@ def deploy():
             "sudo systemctl restart medoraai-backend-8001.service",
             timeout=30
         )
+        exit_restart = stdout.channel.recv_exit_status()
         output = stdout.read().decode('utf-8')
         error = stderr.read().decode('utf-8')
-        
-        if error:
-            print(f"ERROR: {error}")
+        if output:
+            print(output)
+        if exit_restart != 0:
+            print(f"ERROR (restart exit {exit_restart}): {error}")
             return False
-        
-        print("✓ Service restarted")
+        if error.strip():
+            print(f"restart stderr: {error.strip()}")
+
+        print("[OK] Service restarted")
         print()
         
         # Small delay
@@ -135,7 +150,7 @@ def deploy():
         if "active (running)" in status_output:
             print()
             print("=" * 60)
-            print(" ✅ DEPLOYMENT SUCCESSFUL!")
+            print(" [OK] DEPLOYMENT SUCCESSFUL!")
             print("=" * 60)
             print()
             print("Backend service is running.")
@@ -145,18 +160,18 @@ def deploy():
             return True
         else:
             print()
-            print("⚠️  Service may not be running properly. Check logs:")
+            print("[!] Service may not be running properly. Check logs:")
             print("   sudo journalctl -u medoraai-backend-8001.service -f --no-pager")
             return False
             
     except paramiko.AuthenticationException:
-        print("❌ Authentication failed! Check username/password.")
+        print("[X] Authentication failed! Check username/password.")
         return False
     except paramiko.SSHException as e:
-        print(f"❌ SSH connection error: {e}")
+        print(f"[X] SSH connection error: {e}")
         return False
     except Exception as e:
-        print(f"❌ Deployment failed: {e}")
+        print(f"[X] Deployment failed: {e}")
         return False
     finally:
         client.close()
