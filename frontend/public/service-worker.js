@@ -1,4 +1,4 @@
-const CACHE_NAME = 'konsilium-cache-v8';
+const CACHE_NAME = 'konsilium-cache-v9';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -32,9 +32,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event;
 
-  // Always bypass for non-GET requests
+  // Non-GET: service worker aralashmasin — brauzer to'g'ridan-to'g'ri tarmoq so'rovini yuboradi (login va h.k.)
   if (request.method !== 'GET') {
-    event.respondWith(fetch(request));
     return;
   }
   
@@ -46,9 +45,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Same-origin: never cache health or API paths
+  // Same-origin: never cache health or API paths — always network, no fake 503 on transient errors
   if (url.pathname.startsWith('/health') || url.pathname.includes('/api/')) {
-    event.respondWith(fetch(request).catch(() => new Response('', { status: 503, statusText: 'Service Unavailable' })));
+    event.respondWith(fetch(request));
     return;
   }
 
