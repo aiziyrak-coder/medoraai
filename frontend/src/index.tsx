@@ -28,30 +28,31 @@ root.render(
   </React.StrictMode>
 );
 
-// Service Worker: productionda o'chiq (suntiy 503, login fetch, eski kesh). PWA kerak bo'lsa:
-// .env da VITE_ENABLE_SW=true
-const enableServiceWorker =
-  import.meta.env.DEV
-    ? import.meta.env.VITE_ENABLE_SW !== 'false'
-    : import.meta.env.VITE_ENABLE_SW === 'true';
-
-if (enableServiceWorker && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
-      .then((registration) => {
-        registration.update();
-        logger.log('ServiceWorker registered:', registration.scope);
-      })
-      .catch((error) => {
-        logger.warn('ServiceWorker registration failed:', error);
-      });
-  });
-} else if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  const dropSw = () =>
-    navigator.serviceWorker.getRegistrations().then((regs) => {
-      regs.forEach((r) => void r.unregister());
+/**
+ * Service Worker: faqat "sweep" — eski SW ni yangilab, keshni tozalaydi va o'zini o'chiradi.
+ * fetch handler yo'q. Haqiqiy PWA kesh kerak bo'lsa: alohida loyiha yoki VITE_ENABLE_SW (keyinroq).
+ */
+if ('serviceWorker' in navigator) {
+  const runSweep = () => {
+    void navigator.serviceWorker.getRegistrations().then(async (regs) => {
+      await Promise.all(regs.map((r) => r.unregister()));
+      try {
+        const reg = await navigator.serviceWorker.register('/service-worker.js', {
+          scope: '/',
+          updateViaCache: 'none',
+        });
+        await reg.update();
+        if (import.meta.env.DEV) {
+          logger.log('SW sweep registered (dev)');
+        }
+      } catch {
+        /* tarmoq yo'q — ilova baribir ishlaydi */
+      }
     });
-  dropSw();
-  window.addEventListener('load', () => void dropSw());
+  };
+  if (document.readyState === 'complete') {
+    runSweep();
+  } else {
+    window.addEventListener('load', runSweep, { once: true });
+  }
 }

@@ -511,12 +511,26 @@ export interface HealthCheckResult {
 
 /**
  * Check backend health (for connectivity banner / offline detection).
- * Uses same origin as the page so CORS/redirect do not cause false "offline".
+ * Agar VITE_API_BASE_URL shu sayt bilan bir origin bo'lsa — /health/ shu origin orqali (nginx 200).
+ * Aks holda API domenidagi /health/ (masalan medoraapi...).
  * On timeout/network error we report ok: true so the banner does not block the user.
  */
+function resolveHealthCheckUrl(): string {
+  const path = '/health/';
+  try {
+    const base = API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL : `${API_CONFIG.BASE_URL}/`;
+    const apiOrigin = new URL(base).origin;
+    if (typeof window !== 'undefined' && apiOrigin === window.location.origin) {
+      return `${window.location.origin}${path}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return `${HOST_BASE.replace(/\/$/, '')}${path}`;
+}
+
 export const checkApiHealth = async (): Promise<HealthCheckResult> => {
-  // Backend /health/ — SW va frontend domenidan mustaqil (HOST_BASE = API server)
-  const healthUrl = `${HOST_BASE.replace(/\/$/, '')}/health/`;
+  const healthUrl = resolveHealthCheckUrl();
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
