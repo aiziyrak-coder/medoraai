@@ -510,41 +510,64 @@ export interface HealthCheckResult {
 }
 
 /**
- * Check backend health (for connectivity banner / offline detection).
- * Agar VITE_API_BASE_URL shu sayt bilan bir origin bo'lsa — /health/ shu origin orqali (nginx 200).
- * Aks holda API domenidagi /health/ (masalan medoraapi...).
- * On timeout/network error we report ok: true so the banner does not block the user.
+ * Health URL(lar): ixtiyoriy VITE_HEALTH_CHECK_URL; aks holda API host + /health/.
+ * Frontend va API turli domen bo'lsa, avvalo sahifa originidagi /health/ (nginx stub),
+ * keyin API host — biri 503 bo'lsa ikkinchisi ishlashi mumkin.
+ * Tarmoq xatosi: ok: true (banner bloklamaydi).
  */
-function resolveHealthCheckUrl(): string {
+function getHealthCheckUrls(): string[] {
   const path = '/health/';
-  try {
-    const base = API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL : `${API_CONFIG.BASE_URL}/`;
-    const apiOrigin = new URL(base).origin;
-    if (typeof window !== 'undefined' && apiOrigin === window.location.origin) {
-      return `${window.location.origin}${path}`;
-    }
-  } catch {
-    /* ignore */
+  const fromEnv = (import.meta.env.VITE_HEALTH_CHECK_URL as string | undefined)?.trim();
+  if (fromEnv) {
+    return [fromEnv];
   }
-  return `${HOST_BASE.replace(/\/$/, '')}${path}`;
+  const apiBase = `${HOST_BASE.replace(/\/$/, '')}${path}`;
+  const urls: string[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const base = API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL : `${API_CONFIG.BASE_URL}/`;
+      const apiOrigin = new URL(base).origin;
+      if (apiOrigin && apiOrigin !== window.location.origin) {
+        urls.push(`${window.location.origin}${path}`);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  urls.push(apiBase);
+  return [...new Set(urls)];
 }
 
 export const checkApiHealth = async (): Promise<HealthCheckResult> => {
-  const healthUrl = resolveHealthCheckUrl();
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(healthUrl, {
-      signal: controller.signal,
-      cache: 'no-store',
-      credentials: 'omit',
-    });
-    clearTimeout(timeoutId);
-    // 2xx: healthy. 400: DNS/redirect. 5xx: server error.
-    const isServerUp = res.status < 500 && res.status !== 400;
-    return { ok: isServerUp, status: res.status };
-  } catch {
-    // Vaqtinchalik tarmoq xatosi — banner ko'rsatmaymiz, saqlash o'zida xato chiqaradi
-    return { ok: true, status: undefined };
+  const urls = getHealthCheckUrls();
+  let lastStatus: number | undefined;
+
+  for (const healthUrl of urls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(healthUrl, {
+        signal: controller.signal,
+        cache: 'no-store',
+        credentials: 'omit',
+      });
+      clearTimeout(timeoutId);
+      lastStatus = res.status;
+      const isServerUp = res.status < 500 && res.status !== 400;
+      if (isServerUp) {
+        return { ok: true, status: res.status };
+      }
+      if (res.status === 503 || res.status === 502 || res.status === 504) {
+        continue;
+      }
+      return { ok: false, status: res.status };
+    } catch {
+      continue;
+    }
   }
+
+  if (lastStatus !== undefined) {
+    return { ok: false, status: lastStatus };
+  }
+  return { ok: true, status: undefined };
 };

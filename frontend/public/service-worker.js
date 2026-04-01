@@ -1,8 +1,6 @@
 /**
- * Medora: eski PWA SW ni almashtiruvchi "sweep" skript.
- * - Barcha Cache API keshlarini o'chiradi
- * - O'zini unregister qiladi
- * - fetch handler YO'Q — hech qanday so'rov ushlanmaydi (503/login muammosi yo'q)
+ * Medora SW sweep — v4 (2026-04-01)
+ * Eski PWA keshini tozalaydi va o'zini o'chiradi. fetch handler yo'q.
  */
 self.addEventListener('install', () => {
   self.skipWaiting();

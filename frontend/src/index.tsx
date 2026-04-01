@@ -29,18 +29,34 @@ root.render(
 );
 
 /**
- * Service Worker: faqat "sweep" — eski SW ni yangilab, keshni tozalaydi va o'zini o'chiradi.
- * fetch handler yo'q. Haqiqiy PWA kesh kerak bo'lsa: alohida loyiha yoki VITE_ENABLE_SW (keyinroq).
+ * Service Worker: "sweep" — eski SW/keshni majburan yangilash.
+ * Query string yangilanganda brauzer/CDN yangi skriptni oladi (eski 50+ qatorli SW yo'qoladi).
  */
+const SW_SWEEP_QUERY = 'v=medora-sweep-4';
+
 if ('serviceWorker' in navigator) {
+  const clearWebCaches = async () => {
+    if (!('caches' in window)) return;
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    } catch {
+      /* ignore */
+    }
+  };
+
   const runSweep = () => {
     void navigator.serviceWorker.getRegistrations().then(async (regs) => {
       await Promise.all(regs.map((r) => r.unregister()));
+      await clearWebCaches();
       try {
-        const reg = await navigator.serviceWorker.register('/service-worker.js', {
-          scope: '/',
-          updateViaCache: 'none',
-        });
+        const reg = await navigator.serviceWorker.register(
+          `/service-worker.js?${SW_SWEEP_QUERY}`,
+          {
+            scope: '/',
+            updateViaCache: 'none',
+          }
+        );
         await reg.update();
         if (import.meta.env.DEV) {
           logger.log('SW sweep registered (dev)');
