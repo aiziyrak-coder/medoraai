@@ -36,6 +36,7 @@ import CriticalFindingAlert from './components/modals/CriticalFindingAlert';
 import RationaleModal from './components/modals/RationaleModal';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import DeviceSessionBanner from './components/DeviceSessionBanner';
+import { PLATFORM_WEBSITE } from './constants/brand';
 
 // --- Icons ---
 import HomeIcon from './components/icons/HomeIcon';
@@ -959,7 +960,7 @@ const AppContent: React.FC = () => {
                     {healthStatus === 400 ? (
                         <span className="break-words">
                             Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring:{' '}
-                            <code className="bg-black/20 px-1 rounded">nslookup medora.cdcgroup.uz</code>
+                            <code className="bg-black/20 px-1 rounded">nslookup {PLATFORM_WEBSITE}</code>
                             {' -> '}
                             <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.
                         </span>

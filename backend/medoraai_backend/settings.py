@@ -8,10 +8,10 @@ from decimal import Decimal
 import os
 from decouple import config
 
-# DisallowedHost bartaraf: get_host() ni settings yuklanishida patch (medora.cdcgroup.uz qabul qilish)
+# DisallowedHost bartaraf: get_host() ni settings yuklanishida patch
 import django.http.request as _django_request_mod
 _django_request_mod.HttpRequest.get_host = lambda self: (
-    (self.META.get('HTTP_HOST') or 'medora.cdcgroup.uz').split('#')[0].strip()
+    (self.META.get('HTTP_HOST') or 'fjstiapi.ziyrak.org').split('#')[0].strip()
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -31,7 +31,16 @@ if not DEBUG and SECRET_KEY == _default_secret:
     )
 
 # ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish  -  faqat *
-ALLOWED_HOSTS = ['*', 'medora.cdcgroup.uz', 'medoraapi.cdcgroup.uz', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    '*',
+    'fjsti.ziyrak.org',
+    'fjstiapi.ziyrak.org',
+    'medora.cdcgroup.uz',
+    'medoraapi.cdcgroup.uz',
+    'medoraai.cdcgroup.uz',
+    'localhost',
+    '127.0.0.1',
+]
 
 # Application definition — drf_yasg optional (requires pkg_resources, may fail on Python 3.14)
 try:
@@ -223,6 +232,8 @@ CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
     default=(
         'http://localhost:3000,http://127.0.0.1:3000,'
+        'https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,'
+        'https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,'
         'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
         'https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
         'http://localhost:5173,http://127.0.0.1:5173,'
@@ -235,6 +246,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF (Django 4+): ishonchli originlar — production va dev (Vite)
 _csrf_default = (
+    'https://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,'
     'https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
     'http://localhost:3000,http://127.0.0.1:3000,'
     'http://localhost:5173,http://127.0.0.1:5173'

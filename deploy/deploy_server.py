@@ -4,7 +4,7 @@ MedoraAI Server Deployment Script
 Connects to server via SSH and deploys latest changes.
 
 Security: parol repoda saqlanmaydi. Muhit o'zgaruvchilari:
-  DEPLOY_SSH_HOST   — masalan medora.cdcgroup.uz yoki server IP
+  DEPLOY_SSH_HOST   — masalan 167.71.53.238 yoki fjsti.ziyrak.org
   DEPLOY_SSH_USER   — odatda root
   DEPLOY_SSH_PASSWORD yoki SSH parolni shell env orqali bering
 """
@@ -26,7 +26,7 @@ def _configure_stdio_utf8() -> None:
 _configure_stdio_utf8()
 
 SERVER_USER = os.environ.get("DEPLOY_SSH_USER", "root")
-SERVER_HOST = os.environ.get("DEPLOY_SSH_HOST", "medora.cdcgroup.uz")
+SERVER_HOST = os.environ.get("DEPLOY_SSH_HOST", "167.71.53.238")
 SERVER_PASSWORD = os.environ.get("DEPLOY_SSH_PASSWORD", "").strip()
 REMOTE_DIR = os.environ.get("DEPLOY_REMOTE_DIR", "/root/medoraai")
 
@@ -154,8 +154,9 @@ def deploy():
             print("=" * 60)
             print()
             print("Backend service is running.")
-            print("Frontend: https://medora.cdcgroup.uz")
-            print("Test URL: https://medora.cdcgroup.uz/api/ai/clarifying-questions/")
+            print("Frontend: https://fjsti.ziyrak.org")
+            print("API:      https://fjstiapi.ziyrak.org/api/")
+            print("Test URL: https://fjstiapi.ziyrak.org/api/ai/clarifying-questions/")
             print()
             return True
         else:

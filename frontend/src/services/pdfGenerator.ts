@@ -16,7 +16,7 @@ const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
 const FOOTER_RESERVE = 12;
 const MARGIN = 10;
-const PLATFORM_URL = 'https://medora.cdcgroup.uz';
+const PLATFORM_URL = 'https://fjsti.ziyrak.org';
 
 export interface InstituteBranding {
     instituteName?: string;
@@ -185,7 +185,7 @@ export const generatePdfReport = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text('Skannerlang →', qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
-        doc.text('medora.cdcgroup.uz', qrX + qrSize/2, qrY + qrSize + 5, { align: 'center' });
+        doc.text('fjsti.ziyrak.org', qrX + qrSize/2, qrY + qrSize + 5, { align: 'center' });
     }
     
     // Move past QR code area
@@ -566,7 +566,7 @@ export const generatePdfReport = async (
     
     // Platform promo text for last page
     const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
-    const promoLink = "medora.cdcgroup.uz";
+    const promoLink = "fjsti.ziyrak.org";
     const promoPhone = "+998 99 575 11 11";
     const promoPhone2 = "+998 90 786 38 88";
     

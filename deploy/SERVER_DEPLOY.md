@@ -8,8 +8,10 @@
 | SSH foydalanuvchi | `root` |
 | Loyiha katalogi | `/root/medoraai` |
 | Backend servis | `medoraai-backend-8001.service` |
-| Sayt | https://medora.cdcgroup.uz |
-| API (subdomen) | https://medoraapi.cdcgroup.uz |
+| Frontend | https://fjsti.ziyrak.org |
+| API | https://fjstiapi.ziyrak.org |
+| DNS | `fjsti.ziyrak.org` va `fjstiapi.ziyrak.org` uchun **A** yozuv → server IP |
+| Nginx namuna | `deploy/nginx-fjsti-ziyrak.conf` |
 
 Boshqa katalogda turgan bo‘lsa, muhitda `DEPLOY_REMOTE_DIR` qo‘ying (masalan `/root/AiDoktorai`).
 
@@ -26,6 +28,8 @@ $env:DEPLOY_SSH_USER = "root"
 $env:DEPLOY_SSH_PASSWORD = "PAROLINGIZ_BU_YERDA"
 python deploy\deploy_server.py
 ```
+
+Serverdagi `backend/.env` da `CORS_ALLOWED_ORIGINS` ni qo‘lda override qilgan bo‘lsangiz, ichiga **`https://fjsti.ziyrak.org`** (va kerak bo‘lsa `http://...`) qo‘shing — aks holda login CORS xato beradi.
 
 ## Skript nima qiladi
 
@@ -51,4 +55,5 @@ python deploy\deploy_server.py
 
 - Yangi `index.html` ochilganda brauzer **bitta marta** barcha SW larni `unregister` qiladi, keshni tozalaydi va **sahifani qayta yuklaydi** (`sessionStorage` bilan tsikl yo‘q).  
 - Yangi cleanup skript: **`/medora-sw-cleanup.js`** (eski `/service-worker.js` o‘rniga). Nginx da ikkalasiga ham `Cache-Control: no-store` qo‘ying — `deploy/nginx-cdcgroup.conf` namunasida bor.  
-- **`medora.cdcgroup.uz/health/` 503:** prod nginx ni `deploy/nginx-cdcgroup.conf` dagi kabi qiling — `/health/` ni `return 200` (stub) yoki tirik backendga `proxy_pass` qiling.
+- **`/health/` 503:** `deploy/nginx-fjsti-ziyrak.conf` dagi kabi `/health/` uchun `return 200` stub qo‘ying yoki backend `proxy_pass`.
+- **SSL:** `certbot certonly --webroot -w /root/medoraai/frontend/dist -d fjsti.ziyrak.org -d fjstiapi.ziyrak.org`

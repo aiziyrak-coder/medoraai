@@ -5,7 +5,7 @@ WSGI: DisallowedHost bartaraf  -  BIRINCHI get_host() patch, keyin Django.
 # 0) Eng birinchi: get_host() ni patch (Django import/setup dan OLDIN)
 import django.http.request as _req_mod
 _req_mod.HttpRequest.get_host = lambda self: (
-    (self.META.get('HTTP_HOST') or 'medora.cdcgroup.uz').split('#')[0].strip()
+    (self.META.get('HTTP_HOST') or 'fjstiapi.ziyrak.org').split('#')[0].strip()
 )
 
 import os

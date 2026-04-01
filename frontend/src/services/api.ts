@@ -509,13 +509,30 @@ export interface HealthCheckResult {
   status?: number;
 }
 
-/** medora.cdcgroup.uz da asosiy /health/ 503 bo'lsa, API subdomen odatda 200 */
-const MEDORA_API_PUBLIC_HEALTH = 'https://medoraapi.cdcgroup.uz/health/';
+/**
+ * Bir xil origin (front /api proxy) bo'lganda health uchun alohida API domen.
+ * VITE_API_PUBLIC_HEALTH_URL > hostname jadvali.
+ */
+const SPLIT_HEALTH_BY_HOST: Record<string, string> = {
+  'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/health/',
+  'medora.cdcgroup.uz': 'https://medoraapi.cdcgroup.uz/health/',
+};
+
+function resolveSplitPublicHealthUrl(): string | undefined {
+  const fromEnv = (import.meta.env.VITE_API_PUBLIC_HEALTH_URL as string | undefined)?.trim();
+  if (fromEnv) {
+    const u = fromEnv.replace(/\/+$/, '');
+    if (u.endsWith('/health')) return `${u}/`;
+    return `${u}/health/`;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return SPLIT_HEALTH_BY_HOST[window.location.hostname];
+  }
+  return undefined;
+}
 
 /**
- * Health URL(lar): VITE_HEALTH_CHECK_URL; yoki API host + /health/ va kerak bo'lsa zaxira URL lar.
- * medora.cdcgroup.uz + bir xil origin /api: avval medoraapi /health/ (konsolda 503 kamayadi).
- * Turli origin: avval haqiqiy API /health/, keyin sahifa origin (nginx stub).
+ * Health URL(lar): VITE_HEALTH_CHECK_URL; yoki API host + /health/; split domen uchun zaxira.
  */
 function getHealthCheckUrls(): string[] {
   const path = '/health/';
@@ -539,10 +556,10 @@ function getHealthCheckUrls(): string[] {
 
   const pageOrigin = window.location.origin;
   const sameOrigin = apiOrigin === pageOrigin;
-  const isMedoraSite = window.location.hostname === 'medora.cdcgroup.uz';
+  const splitHealth = resolveSplitPublicHealthUrl();
 
-  if (sameOrigin && isMedoraSite) {
-    return [...new Set([MEDORA_API_PUBLIC_HEALTH, apiHealth])];
+  if (sameOrigin && splitHealth) {
+    return [...new Set([splitHealth, apiHealth])];
   }
 
   if (!sameOrigin) {

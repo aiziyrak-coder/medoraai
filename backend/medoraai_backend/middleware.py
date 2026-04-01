@@ -21,7 +21,7 @@ class EarlyHealthMiddleware(MiddlewareMixin):
     """
     def process_request(self, request):
         _meta = request.META
-        _fallback = 'medora.cdcgroup.uz'
+        _fallback = 'fjstiapi.ziyrak.org'
         # 1) get_host() ni instance da override (CommonMiddleware DisallowedHost tashlamaydi)
         def _safe_get_host():
             h = (_meta.get('HTTP_HOST') or _fallback).strip().split('#')[0].strip()
@@ -32,7 +32,7 @@ class EarlyHealthMiddleware(MiddlewareMixin):
         # 3) fargana.uz hostni normalize qilish
         host_raw = (_meta.get('HTTP_HOST') or '').strip().split(':')[0].lower()
         if host_raw and 'fargana.uz' in host_raw:
-            _meta['HTTP_HOST'] = _fallback
+            _meta['HTTP_HOST'] = 'medora.cdcgroup.uz'
         # 4) /health/ uchun darhol 200
         if request.method in ('GET', 'OPTIONS') and request.path.rstrip('/') == '/health':
             r = HttpResponse(HEALTH_BODY, content_type='application/json', status=200)
@@ -72,7 +72,7 @@ class CORSFallbackMiddleware(MiddlewareMixin):
                 try:
                     origin = request.build_absolute_uri('/').rstrip('/')
                 except Exception:
-                    origin = 'https://medora.cdcgroup.uz'
+                    origin = 'https://fjsti.ziyrak.org'
             if origin is None:
                 return response
             if getattr(response, 'headers', None):
