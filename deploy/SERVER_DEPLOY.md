@@ -45,6 +45,15 @@ Serverdagi `backend/.env` da `CORS_ALLOWED_ORIGINS` ni qo‘lda override qilgan 
 - Mahalliy mashinada Python 3 va `paramiko` (`pip install paramiko`)  
 - Serverda `git`, `node`/`npm`, `nginx`, systemd servisi o‘rnatilgan bo‘lishi kerak  
 
+## `fjsti.ziyrak.org` boshqa saytni ochsa (noto‘g‘ri dastur)
+
+DNS **A** yozuvi server IP ga ketgan bo‘lsa ham, nginx bir nechta saytni bir IP da ushlaydi: **`server_name`** qaysi blokka tushishini hal qiladi.
+
+1. Serverda: `sudo nginx -T 2>/dev/null | grep -E 'server_name|root '"` — `fjsti.ziyrak.org` qayerda ekanini toping.  
+2. **Noto‘g‘ri** `root` (boshqa loyiha papkasi) yoki boshqa faylda shu `server_name` bo‘lsa — o‘chirib yoki `deploy/nginx-fjsti-ziyrak.conf` dagi kabi **to‘g‘ri** blokni ulang (`root` = `/root/medoraai/frontend/dist`).  
+3. `default_server` boshqa blokda bo‘lsa va sizning domeningiz mos kelmasa — noto‘g‘ri sayt ochiladi; `fjsti.ziyrak.org` uchun alohida `server { ... server_name fjsti.ziyrak.org; ... }` qo‘ying.  
+4. Yangi `dist` ni deploy qiling: `git pull` + `npm run build` (frontend).
+
 ## Muammolar
 
 - **Unicode xato (Windows konsol):** skript `stdout` ni UTF-8 ga sozlaydi; yangi `deploy_server.py` ishlating.  
