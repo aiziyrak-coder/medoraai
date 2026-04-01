@@ -48,7 +48,7 @@ echo "✅ Nginx reload qilindi"
 # 7. Health check
 echo "🏥 Health check..."
 sleep 2
-response=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/api/health/detailed/)
+response=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/)
 if [ "$response" == "200" ]; then
     echo "✅ Health check: MUVAFFAQIYATLI ($response)"
 else
