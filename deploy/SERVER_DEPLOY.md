@@ -26,8 +26,19 @@ Set-Location E:\medoraai
 $env:DEPLOY_SSH_HOST = "167.71.53.238"
 $env:DEPLOY_SSH_USER = "root"
 $env:DEPLOY_SSH_PASSWORD = "PAROLINGIZ_BU_YERDA"
+# default: fjsti uchun nginx ni avtomatik to'g'rilaydi va build da API = fjstiapi
 python deploy\deploy_server.py
 ```
+
+**Muhit o'zgaruvchilari (ixtiyoriy):**
+
+| O'zgaruvchi | Default | Ma'nosi |
+|-------------|---------|---------|
+| `DEPLOY_FIX_FJSTI_NGINX` | `1` | `sites-enabled` da `fjsti*.ziyrak.org` bor boshqa fayllarni `/root/nginx-fjsti-conflicts-*` ga ko'chirib, `deploy/nginx-fjsti-medora-http.conf` ni qo'llaydi |
+| `DEPLOY_FIX_FJSTI_NGINX` | `0` | Faqat `git pull` + `npm run build` + oddiy `nginx reload` |
+| `DEPLOY_VITE_API_BASE_URL` | `https://fjstiapi.ziyrak.org/api` | Serverda frontend build vaqtidagi API manzili |
+
+Agar boshqa loyiha `conf.d` ichida bo'lsa, qo'lda tekshiring: `grep -r fjsti /etc/nginx/`
 
 Serverdagi `backend/.env` da `CORS_ALLOWED_ORIGINS` ni qo‘lda override qilgan bo‘lsangiz, ichiga **`https://fjsti.ziyrak.org`** (va kerak bo‘lsa `http://...`) qo‘shing — aks holda login CORS xato beradi.
 
