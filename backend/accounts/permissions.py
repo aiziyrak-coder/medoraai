@@ -2,7 +2,6 @@
 Custom permissions for subscription and usage limits
 """
 from rest_framework import permissions
-from django.utils import timezone
 
 
 class HasActiveSubscription(permissions.BasePermission):
@@ -13,24 +12,7 @@ class HasActiveSubscription(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        
-        user = request.user
-        
-        # Check subscription status
-        if user.subscription_status != 'active':
-            return False
-        
-        # Check trial expiry
-        if user.trial_ends_at and timezone.now() >= user.trial_ends_at:
-            if not user.subscription_expiry or timezone.now() >= user.subscription_expiry:
-                return False
-        
-        # Check paid subscription expiry
-        if user.subscription_expiry and timezone.now() >= user.subscription_expiry:
-            if not user.trial_ends_at or timezone.now() >= user.trial_ends_at:
-                return False
-        
-        return True
+        return bool(request.user.has_active_subscription)
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):

@@ -121,7 +121,8 @@ class RateLimitMiddleware(MiddlewareMixin):
     def process_request(self, request):
         try:
             if (request.path.startswith('/admin/') or request.path.startswith('/static/')
-                    or request.path.startswith('/health/')):
+                    or request.path.startswith('/health/')
+                    or request.path.startswith('/api/auth/')):
                 return None
             ip = self.get_client_ip(request)
             cache_key = f'rate_limit:{ip}'

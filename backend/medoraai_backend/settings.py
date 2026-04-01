@@ -224,8 +224,9 @@ CORS_ALLOWED_ORIGINS = config(
     default=(
         'http://localhost:3000,http://127.0.0.1:3000,'
         'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
-        'https://medora.cdcgroup.uz,http://localhost:3000,'
-        'http://127.0.0.1:3000,http://20.82.115.71'
+        'https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
+        'http://localhost:5173,http://127.0.0.1:5173,'
+        'http://20.82.115.71'
     ),
     cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
 )
@@ -234,7 +235,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF (Django 4+): ishonchli originlar — production va dev (Vite)
 _csrf_default = (
-    'https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz,'
+    'https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
     'http://localhost:3000,http://127.0.0.1:3000,'
     'http://localhost:5173,http://127.0.0.1:5173'
 )
@@ -318,9 +319,9 @@ def _load_gemini_key():
     return ''
 GEMINI_API_KEY = _load_gemini_key()
 # Gemini model IDs (.env da override; 3 Pro: gemini-3.1-pro-preview)
-GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-2.0-flash-exp')
+GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-2.0-flash')
 GEMINI_MODEL_PRO = config('GEMINI_MODEL_PRO', default='gemini-2.5-pro')
-GEMINI_MODEL_THINKING = config('GEMINI_MODEL_THINKING', default='gemini-2.0-flash-thinking-exp')
+GEMINI_MODEL_THINKING = config('GEMINI_MODEL_THINKING', default='gemini-2.0-flash')
 AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-2.5-pro')
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ

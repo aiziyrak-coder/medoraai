@@ -23,6 +23,12 @@ function formatErrorDetails(details: unknown): string {
 
 /** API dan kelgan user (snake_case) ni frontend User (camelCase) ga o'giradi */
 function normalizeUser(apiUser: Record<string, unknown>): User {
+  const hasSub =
+    typeof apiUser.has_active_subscription === 'boolean'
+      ? apiUser.has_active_subscription
+      : typeof apiUser.hasActiveSubscription === 'boolean'
+        ? apiUser.hasActiveSubscription
+        : undefined;
   return {
     phone: String(apiUser.phone ?? ''),
     name: String(apiUser.name ?? ''),
@@ -32,11 +38,17 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
     subscriptionExpiry: apiUser.subscription_expiry != null ? String(apiUser.subscription_expiry) : apiUser.subscriptionExpiry as string | undefined,
     subscriptionPlan: (apiUser.subscription_plan_detail ?? apiUser.subscriptionPlan) as User['subscriptionPlan'] ?? null,
     trialEndsAt: apiUser.trial_ends_at != null ? String(apiUser.trial_ends_at) : apiUser.trialEndsAt as string | null ?? null,
+    hasActiveSubscription: hasSub,
+    isStaff: Boolean(apiUser.is_staff ?? apiUser.isStaff),
+    isSuperuser: Boolean(apiUser.is_superuser ?? apiUser.isSuperuser),
   };
 }
 
-/** Foydalanuvchining obunasi faolmi (trial yoki to'langan) */
+/** Foydalanuvchining obunasi faolmi (backend bilan mos: pending, trial, staff) */
 export function hasActiveSubscription(user: User): boolean {
+  if (user.isStaff || user.isSuperuser) return true;
+  if (typeof user.hasActiveSubscription === 'boolean') return user.hasActiveSubscription;
+  if (user.subscriptionStatus === 'pending') return true;
   if (user.subscriptionStatus !== 'active') return false;
   const now = new Date();
   if (user.trialEndsAt && new Date(user.trialEndsAt) > now) return true;

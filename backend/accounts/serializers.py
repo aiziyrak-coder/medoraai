@@ -4,6 +4,7 @@ User Serializers
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from .models import User, SubscriptionPlan
 from .currency import plan_price_monthly_uzs
 
@@ -27,16 +28,21 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """User serializer for read operations"""
     subscription_plan_detail = SubscriptionPlanSerializer(source='subscription_plan', read_only=True)
-    
+    has_active_subscription = serializers.SerializerMethodField()
+
+    def get_has_active_subscription(self, obj):
+        return bool(obj.has_active_subscription)
+
     class Meta:
         model = User
         fields = [
             'id', 'phone', 'name', 'role', 'specialties',
             'subscription_plan', 'subscription_plan_detail',
             'subscription_status', 'subscription_expiry', 'trial_ends_at',
+            'has_active_subscription', 'is_staff', 'is_superuser',
             'is_active', 'date_joined', 'last_login'
         ]
-        read_only_fields = ['id', 'date_joined', 'last_login']
+        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff', 'is_superuser']
 
 
 def _validate_password_length(value):
@@ -93,6 +99,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         validated_data['role'] = 'clinic'
         user = User.objects.create_user(password=password, **validated_data)
+        # Yangi foydalanuvchi darhol tizimga kira olsin (trial); obuna keyin yangilanadi
+        from datetime import timedelta
+        user.subscription_status = 'active'
+        user.trial_ends_at = timezone.now() + timedelta(days=30)
+        user.save(update_fields=['subscription_status', 'trial_ends_at'])
         return user
 
 

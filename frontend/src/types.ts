@@ -47,6 +47,10 @@ export interface User {
   subscriptionExpiry?: string;
   subscriptionPlan?: SubscriptionPlan | null;
   trialEndsAt?: string | null;
+  /** Backend UserSerializer: has_active_subscription */
+  hasActiveSubscription?: boolean;
+  isStaff?: boolean;
+  isSuperuser?: boolean;
 }
 
 export interface PatientQueueItem {

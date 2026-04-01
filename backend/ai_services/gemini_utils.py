@@ -28,7 +28,7 @@ def _get_client():
         return None
 
 # Pro/Flash modellar (settings/.env: GEMINI_MODEL_PRO, GEMINI_MODEL_FLASH)
-GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.0-flash-exp")
+GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.0-flash")
 GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-2.5-pro")
 
 SPECIALIST_NAMES = [

@@ -211,13 +211,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     @property
     def has_active_subscription(self):
+        if not self.is_active:
+            return False
+        # To'lov kutilmoqda — platformadan foydalanishga ruxsat (keyin admin rad qilishi mumkin)
+        if self.subscription_status == 'pending':
+            return True
         if self.subscription_status != 'active':
             return False
+        now = timezone.now()
         # Trial: active until trial_ends_at
-        if self.trial_ends_at and timezone.now() < self.trial_ends_at:
+        if self.trial_ends_at and now < self.trial_ends_at:
             return True
         # Paid: active until subscription_expiry
-        if self.subscription_expiry and timezone.now() < self.subscription_expiry:
+        if self.subscription_expiry and now < self.subscription_expiry:
             return True
         if not self.subscription_expiry and not self.trial_ends_at:
             return True  # legacy: no expiry set
