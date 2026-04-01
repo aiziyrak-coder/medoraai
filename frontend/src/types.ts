@@ -200,6 +200,29 @@ export interface RelatedResearch {
     summary: string;
 }
 
+/** Xalq tabobati: dorivor o'simliklar (konservativ davolash/reabilitatsiyaga qo'shimcha ma'lumot). */
+export interface FolkMedicineItem {
+  plantName: string;
+  plantPart?: string;
+  preparationOrUsage?: string;
+  traditionalContext?: string;
+  precautions?: string;
+}
+
+export interface FolkMedicineSection {
+  intro?: string;
+  disclaimer?: string;
+  items: FolkMedicineItem[];
+}
+
+/** Kasalliklarni oldini olish: to'g'ri ovqatlanish va profilaktika (alohida bo'lim). */
+export interface NutritionPreventionSection {
+  intro?: string;
+  dietaryGuidelines: string[];
+  preventionMeasures: string[];
+  disclaimer?: string;
+}
+
 
 export interface FinalReport {
   criticalFinding?: CriticalFinding;
@@ -237,6 +260,10 @@ export interface FinalReport {
   simplifiedFamilyExplanation?: string;
   relatedResearch?: RelatedResearch[];
   uzbekistanLegislativeNote?: string; // Specific legal context
+  /** Alohida: xalq tabobati va dorivor o'simliklar (rasmiy dori-darmonlar o'rnini bosmasin). */
+  folkMedicine?: FolkMedicineSection;
+  /** Alohida: to'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika). */
+  nutritionPrevention?: NutritionPreventionSection;
 }
 
 /** Returns reasoningChain as a string array (handles API returning string or non-array). */
@@ -245,6 +272,57 @@ export function getReasoningChainArray(d: { reasoningChain?: unknown }): string[
   if (Array.isArray(rc)) return rc.filter((s): s is string => typeof s === 'string');
   if (typeof rc === 'string' && rc.trim()) return [rc.trim()];
   return [];
+}
+
+/** API snake_case / Gemini nomlarini birlashtiradi. */
+export function normalizeFolkMedicine(raw: unknown): FolkMedicineSection | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  const itemsRaw = o.items;
+  const items: FolkMedicineItem[] = [];
+  if (Array.isArray(itemsRaw)) {
+    for (const it of itemsRaw) {
+      if (!it || typeof it !== 'object') continue;
+      const r = it as Record<string, unknown>;
+      const plantName = String(r.plantName ?? r.plant_name ?? '').trim();
+      if (!plantName) continue;
+      items.push({
+        plantName,
+        plantPart: String(r.plantPart ?? r.plant_part ?? '').trim() || undefined,
+        preparationOrUsage: String(r.preparationOrUsage ?? r.preparation_or_usage ?? '').trim() || undefined,
+        traditionalContext: String(r.traditionalContext ?? r.traditional_context ?? '').trim() || undefined,
+        precautions: String(r.precautions ?? '').trim() || undefined,
+      });
+    }
+  }
+  const intro = String(o.intro ?? '').trim() || undefined;
+  const disclaimer = String(o.disclaimer ?? '').trim() || undefined;
+  if (items.length === 0 && !intro && !disclaimer) return undefined;
+  return { intro, disclaimer, items };
+}
+
+function _stringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((x) => String(x ?? '').trim()).filter(Boolean);
+}
+
+/** nutrition_prevention / nutritionPrevention — ovqatlanish va profilaktika. */
+export function normalizeNutritionPrevention(raw: unknown): NutritionPreventionSection | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  const dietaryGuidelines = _stringList(o.dietaryGuidelines ?? o.dietary_guidelines);
+  const preventionMeasures = _stringList(o.preventionMeasures ?? o.prevention_measures);
+  const intro = String(o.intro ?? '').trim() || undefined;
+  const disclaimer = String(o.disclaimer ?? '').trim() || undefined;
+  if (dietaryGuidelines.length === 0 && preventionMeasures.length === 0 && !intro && !disclaimer) {
+    return undefined;
+  }
+  return {
+    intro,
+    dietaryGuidelines,
+    preventionMeasures,
+    disclaimer,
+  };
 }
 
 /** Ensures consensusDiagnosis is always an array of Diagnosis; normalizes API/Gemini shape.

@@ -15,7 +15,7 @@ Arxitektura:
 import json
 import logging
 import concurrent.futures
-from typing import Any
+from typing import Any, Optional
 
 from django.utils import timezone
 
@@ -310,8 +310,31 @@ def _final_consensus(
         '  "uzbekistan_note": "O\'zbekiston Respublikasi SSV protokollariga muvofiq...",\n'
         '  "professor_agreement_summary": "Professorlar umumiy kelishuvni qanday ta\'rifladi...",\n'
         '  "dissenting_opinions": ["Farqli fikrlar (agar bo\'lsa)"],\n'
-        '  "follow_up_plan": "Kuzatuv rejasi..."\n'
+        '  "follow_up_plan": "Kuzatuv rejasi...",\n'
+        '  "folk_medicine": {\n'
+        '    "intro": "Qisqa kirish: xalq tabobati qanday qo\'shimcha sifatida...",\n'
+        '    "disclaimer": "Rasmiy tibbiyot va shifokor ko\'rsatmasini almashtirmaydi; dori o\'zaro ta\'sir va allergiya e\'tiborga olinadi.",\n'
+        '    "items": [\n'
+        '      {\n'
+        '        "plant_name": "O\'simlik nomi (lotin yoki mahalliy)",\n'
+        '        "plant_part": "barg, ildiz, gul ...",\n'
+        '        "preparation_or_usage": "choy, qaynatma, tashqi ...",\n'
+        '        "traditional_context": "qisqa an\'anaviy qo\'llanish",\n'
+        '        "precautions": "homiladorlik, bolalar, allergiya, dori bilan ta\'sir"\n'
+        '      }\n'
+        '    ]\n'
+        '  },\n'
+        '  "nutrition_prevention": {\n'
+        '    "intro": "Kasalliklarni oldini olish va ovqatlanish bo\'yicha qisqa kirish...",\n'
+        '    "dietary_guidelines": ["tuz va shakar...", "suv...", "tolali..."],\n'
+        '    "prevention_measures": ["jismoniy faollik...", "skrining...", "gigiyena..."],\n'
+        '    "disclaimer": "Individual parhez uchun shifokor/dietolog bilan maslahat"\n'
+        '  }\n'
         '}\n\n'
+        "folk_medicine: MAJBURIY, lekin konservativ davolash va reabilitatsiyaga mos, O'zbekiston xalq tabobatida ishlatiladigan dorivor o'simliklar (2-5 ta). "
+        "Rasmiy dori-darmonlar o'rnini BOSMAYDI. Agar holat uchun ma'qul bo'lmasa, items da bir qator bilan sabab yozing.\n"
+        "nutrition_prevention: MAJBURIY. Tashxis va holatga mos: dietary_guidelines 4-8 ta (to'g'ri ovqatlanish), "
+        "prevention_measures 4-8 ta (kasalliklarni oldini olish, profilaktika). O'zbekiston oziq-ovqat realiati va umumiy gigiyena.\n"
         "Barcha matn qiymatlari (critical_finding finding, implication va boshqalar) faqat o'zbek tilida bo'lsin; yulduzcha (*) va inglizcha iboralar ishlatmang."
     )
     raw = _chat(DEPLOY_GPT4O(), system, user, response_json=True, max_tokens=4000)
@@ -558,6 +581,77 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
     return result
 
 
+def _folk_medicine_from_consensus(consensus: dict) -> Optional[dict]:
+    """Map folk_medicine / folkMedicine from AI to frontend camelCase shape."""
+    fm = consensus.get("folk_medicine") or consensus.get("folkMedicine")
+    if not isinstance(fm, dict):
+        return None
+    items_raw = fm.get("items") or []
+    items = []
+    for it in items_raw:
+        if not isinstance(it, dict):
+            continue
+        pn = str(it.get("plant_name") or it.get("plantName") or "").strip()
+        if not pn:
+            continue
+        entry: dict[str, Any] = {"plantName": pn}
+        pp = str(it.get("plant_part") or it.get("plantPart") or "").strip()
+        if pp:
+            entry["plantPart"] = pp
+        pu = str(it.get("preparation_or_usage") or it.get("preparationOrUsage") or "").strip()
+        if pu:
+            entry["preparationOrUsage"] = pu
+        tc = str(it.get("traditional_context") or it.get("traditionalContext") or "").strip()
+        if tc:
+            entry["traditionalContext"] = tc
+        pr = str(it.get("precautions") or "").strip()
+        if pr:
+            entry["precautions"] = pr
+        items.append(entry)
+    intro = str(fm.get("intro") or "").strip()
+    disclaimer = str(fm.get("disclaimer") or "").strip()
+    if not items and not intro and not disclaimer:
+        return None
+    out: dict[str, Any] = {"items": items}
+    if intro:
+        out["intro"] = intro
+    if disclaimer:
+        out["disclaimer"] = disclaimer
+    return out
+
+
+def _nutrition_prevention_from_consensus(consensus: dict) -> Optional[dict]:
+    np = consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
+    if not isinstance(np, dict):
+        return None
+
+    def _str_list(val: Any) -> list[str]:
+        if not isinstance(val, list):
+            return []
+        out: list[str] = []
+        for x in val:
+            s = str(x).strip() if x is not None else ""
+            if s:
+                out.append(s)
+        return out
+
+    dietary = _str_list(np.get("dietary_guidelines") or np.get("dietaryGuidelines"))
+    prevention = _str_list(np.get("prevention_measures") or np.get("preventionMeasures"))
+    intro = str(np.get("intro") or "").strip()
+    disclaimer = str(np.get("disclaimer") or "").strip()
+    if not dietary and not prevention and not intro and not disclaimer:
+        return None
+    out: dict[str, Any] = {
+        "dietaryGuidelines": dietary,
+        "preventionMeasures": prevention,
+    }
+    if intro:
+        out["intro"] = intro
+    if disclaimer:
+        out["disclaimer"] = disclaimer
+    return out
+
+
 def _build_final_report(
     consensus: dict,
     initial_opinions: list[dict],
@@ -619,6 +713,9 @@ def _build_final_report(
     if isinstance(critical, dict) and not critical.get("finding"):
         critical = None
 
+    folk_medicine = _folk_medicine_from_consensus(consensus)
+    nutrition_prevention = _nutrition_prevention_from_consensus(consensus)
+
     return {
         "consensusDiagnosis": [
             {
@@ -674,4 +771,6 @@ def _build_final_report(
         "dissentingOpinions": consensus.get("dissenting_opinions") or [],
         "followUpPlan": consensus.get("follow_up_plan") or "",
         "generatedBy": "Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI)  -  Multi-Agent Konsilium",
+        **({"folkMedicine": folk_medicine} if folk_medicine else {}),
+        **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }

@@ -37,7 +37,7 @@ import concurrent.futures
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from django.utils import timezone
 
@@ -473,6 +473,25 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   "agreement_summary": "Professorlar kelishuvi haqida qisqa tavsif ...",
   "dissenting_opinions": ["Farqli fikrlar (agar bo'lsa)"],
   "follow_up_plan": "Kuzatuv rejasi ...",
+  "folk_medicine": {{
+    "intro": "Xalq tabobati qo'shimcha sifatida (qisqa)",
+    "disclaimer": "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi",
+    "items": [
+      {{
+        "plant_name": "Matricaria chamomilla",
+        "plant_part": "gul",
+        "preparation_or_usage": "choy",
+        "traditional_context": "yumshoq spazm va uyqu uchun an'anaviy qo'llanish",
+        "precautions": "allergiya, dori bilan ta'sir"
+      }}
+    ]
+  }},
+  "nutrition_prevention": {{
+    "intro": "Kasalliklarni oldini olish va ovqatlanish (qisqa)",
+    "dietary_guidelines": ["Tuz va qandni nazorat", "Kuniga yetarli suv"],
+    "prevention_measures": ["Muntazam yengil harakat", "Rejalashtirilgan tekshiruvlar"],
+    "disclaimer": "Individual parhez uchun mutaxassis bilan maslahat"
+  }},
   "agent_weights_used": {{}}
 }}"""
 
@@ -508,6 +527,76 @@ def run_phase3(patient_str: str, p1: list[dict],
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Final report builder
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+
+def _folk_medicine_from_consensus(consensus: dict) -> Optional[dict]:
+    fm = consensus.get("folk_medicine") or consensus.get("folkMedicine")
+    if not isinstance(fm, dict):
+        return None
+    items_raw = fm.get("items") or []
+    items = []
+    for it in items_raw:
+        if not isinstance(it, dict):
+            continue
+        pn = str(it.get("plant_name") or it.get("plantName") or "").strip()
+        if not pn:
+            continue
+        entry: dict[str, Any] = {"plantName": pn}
+        pp = str(it.get("plant_part") or it.get("plantPart") or "").strip()
+        if pp:
+            entry["plantPart"] = pp
+        pu = str(it.get("preparation_or_usage") or it.get("preparationOrUsage") or "").strip()
+        if pu:
+            entry["preparationOrUsage"] = pu
+        tc = str(it.get("traditional_context") or it.get("traditionalContext") or "").strip()
+        if tc:
+            entry["traditionalContext"] = tc
+        pr = str(it.get("precautions") or "").strip()
+        if pr:
+            entry["precautions"] = pr
+        items.append(entry)
+    intro = str(fm.get("intro") or "").strip()
+    disclaimer = str(fm.get("disclaimer") or "").strip()
+    if not items and not intro and not disclaimer:
+        return None
+    out: dict[str, Any] = {"items": items}
+    if intro:
+        out["intro"] = intro
+    if disclaimer:
+        out["disclaimer"] = disclaimer
+    return out
+
+
+def _nutrition_prevention_from_consensus(consensus: dict) -> Optional[dict]:
+    np = consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
+    if not isinstance(np, dict):
+        return None
+
+    def _str_list(val: Any) -> list[str]:
+        if not isinstance(val, list):
+            return []
+        out: list[str] = []
+        for x in val:
+            s = str(x).strip() if x is not None else ""
+            if s:
+                out.append(s)
+        return out
+
+    dietary = _str_list(np.get("dietary_guidelines") or np.get("dietaryGuidelines"))
+    prevention = _str_list(np.get("prevention_measures") or np.get("preventionMeasures"))
+    intro = str(np.get("intro") or "").strip()
+    disclaimer = str(np.get("disclaimer") or "").strip()
+    if not dietary and not prevention and not intro and not disclaimer:
+        return None
+    out: dict[str, Any] = {
+        "dietaryGuidelines": dietary,
+        "preventionMeasures": prevention,
+    }
+    if intro:
+        out["intro"] = intro
+    if disclaimer:
+        out["disclaimer"] = disclaimer
+    return out
+
 
 def _build_final_report(consensus: dict, p1: list[dict],
                         p2: list[dict], weights: dict[str, float]) -> dict:
@@ -581,6 +670,9 @@ def _build_final_report(consensus: dict, p1: list[dict],
     cf = consensus.get("critical_finding") or {}
     critical = cf if (isinstance(cf, dict) and cf.get("present")) else None
 
+    folk_medicine = _folk_medicine_from_consensus(consensus)
+    nutrition_prevention = _nutrition_prevention_from_consensus(consensus)
+
     return {
         "consensusDiagnosis": [
             {
@@ -637,6 +729,8 @@ def _build_final_report(consensus: dict, p1: list[dict],
             for a in AGENTS
         ],
         "generatedBy": "Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI)  -  Multi-Agent Konsilium",
+        **({"folkMedicine": folk_medicine} if folk_medicine else {}),
+        **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
 
 

@@ -4,6 +4,7 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import type { PatientData, FinalReport } from '../types';
+import { normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
 import { generatePdfReport } from '../services/pdfGenerator';
@@ -171,6 +172,14 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       // Convert to FinalReport format for parent (normalize in case API returns different shape)
       const fr = resp.data.final_report;
       const consensusDiagnosis = normalizeConsensusDiagnosis(fr?.consensusDiagnosis);
+      const frAny = fr as unknown as {
+        folkMedicine?: unknown;
+        folk_medicine?: unknown;
+        nutritionPrevention?: unknown;
+        nutrition_prevention?: unknown;
+      };
+      const fm = normalizeFolkMedicine(frAny.folkMedicine ?? frAny.folk_medicine);
+      const nprev = normalizeNutritionPrevention(frAny.nutritionPrevention ?? frAny.nutrition_prevention);
       onReport({
         consensusDiagnosis,
         rejectedHypotheses:        Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
@@ -180,6 +189,8 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
         unexpectedFindings:        typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : '',
         uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
         criticalFinding:           fr.criticalFinding,
+        ...(fm ? { folkMedicine: fm } : {}),
+        ...(nprev ? { nutritionPrevention: nprev } : {}),
       } as FinalReport);
     } catch (err) {
       setPhases(p => ({

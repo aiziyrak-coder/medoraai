@@ -377,6 +377,127 @@ export const generatePdfReport = async (
         });
     }
 
+    // Folk medicine (adjunct, traditional herbs)
+    const fm = report.folkMedicine;
+    if (fm && (fm.items?.length || fm.intro?.trim() || fm.disclaimer?.trim())) {
+        y += 2;
+        addSectionTitle(tr('pdf_folk_medicine', "Xalq tabobati (qo'shimcha)"));
+        doc.setFontSize(8);
+        doc.setFont(PDF_FONT, 'italic');
+        doc.setTextColor(100, 120, 100);
+        const warn = tr('pdf_folk_medicine_note', "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi.");
+        doc.text(warn, MARGIN, y);
+        y += COMPACT_LINE + 1;
+        doc.setFont(PDF_FONT, 'normal');
+        doc.setTextColor(40, 40, 40);
+        if (fm.intro?.trim()) {
+            const introLines = doc.splitTextToSize(fm.intro, pageWidth - MARGIN * 2);
+            introLines.forEach((line: string) => {
+                doc.text(line, MARGIN, y);
+                y += COMPACT_LINE;
+            });
+            y += 1;
+        }
+        if (fm.disclaimer?.trim()) {
+            doc.setFontSize(7);
+            doc.setTextColor(90, 90, 90);
+            const dLines = doc.splitTextToSize(fm.disclaimer, pageWidth - MARGIN * 2);
+            dLines.forEach((line: string) => {
+                doc.text(line, MARGIN, y);
+                y += COMPACT_LINE;
+            });
+            y += 1;
+            doc.setFontSize(9);
+            doc.setTextColor(40, 40, 40);
+        }
+        (fm.items || []).slice(0, 8).forEach(it => {
+            doc.setFontSize(9);
+            doc.setFont(PDF_FONT, 'bold');
+            doc.setTextColor(30, 90, 50);
+            doc.text('\u2022 ' + (it.plantName || ''), MARGIN + 2, y);
+            y += COMPACT_LINE;
+            doc.setFont(PDF_FONT, 'normal');
+            doc.setTextColor(60, 60, 60);
+            const parts = [it.plantPart, it.preparationOrUsage, it.traditionalContext, it.precautions]
+                .filter(Boolean)
+                .map(String);
+            if (parts.length) {
+                const block = doc.splitTextToSize(parts.join(' — '), pageWidth - MARGIN * 2 - 4);
+                block.forEach((line: string) => {
+                    doc.text(line, MARGIN + 6, y);
+                    y += COMPACT_LINE;
+                });
+            }
+        });
+    }
+
+    // Nutrition & prevention
+    const np = report.nutritionPrevention;
+    if (
+        np &&
+        ((np.dietaryGuidelines?.length ?? 0) > 0 ||
+            (np.preventionMeasures?.length ?? 0) > 0 ||
+            np.intro?.trim() ||
+            np.disclaimer?.trim())
+    ) {
+        y += 2;
+        addSectionTitle(
+            tr('pdf_nutrition_prevention', "To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)"),
+        );
+        doc.setFontSize(8);
+        doc.setFont(PDF_FONT, 'italic');
+        doc.setTextColor(80, 100, 130);
+        doc.text(tr('pdf_nutrition_note', "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat."), MARGIN, y);
+        y += COMPACT_LINE + 1;
+        doc.setFont(PDF_FONT, 'normal');
+        doc.setTextColor(40, 40, 40);
+        if (np.intro?.trim()) {
+            const introLines = doc.splitTextToSize(np.intro, pageWidth - MARGIN * 2);
+            introLines.forEach((line: string) => {
+                doc.text(line, MARGIN, y);
+                y += COMPACT_LINE;
+            });
+            y += 1;
+        }
+        if ((np.dietaryGuidelines?.length ?? 0) > 0) {
+            doc.setFontSize(9);
+            doc.setFont(PDF_FONT, 'bold');
+            doc.setTextColor(30, 80, 120);
+            doc.text(tr('pdf_dietary_guidelines', "To'g'ri ovqatlanish bo'yicha:"), MARGIN, y);
+            y += COMPACT_LINE;
+            doc.setFont(PDF_FONT, 'normal');
+            doc.setTextColor(50, 50, 50);
+            np.dietaryGuidelines.slice(0, 12).forEach((line) => {
+                addBullet(line);
+            });
+        }
+        if ((np.preventionMeasures?.length ?? 0) > 0) {
+            y += 1;
+            doc.setFontSize(9);
+            doc.setFont(PDF_FONT, 'bold');
+            doc.setTextColor(30, 80, 120);
+            doc.text(tr('pdf_prevention_measures', 'Profilaktika va oldini olish:'), MARGIN, y);
+            y += COMPACT_LINE;
+            doc.setFont(PDF_FONT, 'normal');
+            doc.setTextColor(50, 50, 50);
+            np.preventionMeasures.slice(0, 12).forEach((line) => {
+                addBullet(line);
+            });
+        }
+        if (np.disclaimer?.trim()) {
+            y += 1;
+            doc.setFontSize(7);
+            doc.setTextColor(90, 90, 90);
+            const dLines = doc.splitTextToSize(np.disclaimer, pageWidth - MARGIN * 2);
+            dLines.forEach((line: string) => {
+                doc.text(line, MARGIN, y);
+                y += COMPACT_LINE;
+            });
+            doc.setFontSize(9);
+            doc.setTextColor(40, 40, 40);
+        }
+    }
+
     // Recommended tests
     if (report.recommendedTests && report.recommendedTests.length > 0) {
         y += 2;

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import type { FinalReport, PatientData } from '../types';
+import type { FinalReport, FolkMedicineSection, NutritionPreventionSection, PatientData } from '../types';
 import { normalizeConsensusDiagnosis, getReasoningChainArray } from '../types';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
@@ -107,6 +107,75 @@ const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> 
     );
 };
 
+const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section }) => {
+    const { intro, disclaimer, items } = section;
+    if (!items?.length && !intro?.trim() && !disclaimer?.trim()) return null;
+    return (
+        <Section title="Xalq tabobati va dorivor o'simliklar (qo'shimcha)" icon={<FlaskIcon className="h-6 w-6 text-emerald-600"/>}>
+            <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/60 text-sm text-slate-800 space-y-2">
+                <p className="text-xs font-semibold text-emerald-900">
+                    Bu bo'lim rasmiy dori-darmonlar va shifokor ko'rsatmasining o'rnini bosmaydi; faqat ma'lumot va qo'shimcha yo'nalish sifatida.
+                </p>
+                {intro?.trim() && <p className="whitespace-pre-wrap">{intro}</p>}
+                {disclaimer?.trim() && (
+                    <p className="text-xs text-emerald-900/90 border-t border-emerald-200 pt-2 whitespace-pre-wrap">{disclaimer}</p>
+                )}
+            </div>
+            {items.length > 0 && (
+                <div className="space-y-3">
+                    {items.map((it, i) => (
+                        <div key={i} className="p-4 rounded-xl border border-emerald-100 bg-white shadow-sm">
+                            <p className="font-bold text-slate-900">{it.plantName}</p>
+                            {it.plantPart && <p className="text-xs text-slate-600 mt-1"><span className="font-semibold">Qismi:</span> {it.plantPart}</p>}
+                            {it.preparationOrUsage && <p className="text-sm mt-2"><span className="font-semibold text-slate-700">Tayyorlash / qo'llash:</span> {it.preparationOrUsage}</p>}
+                            {it.traditionalContext && <p className="text-sm text-slate-600 mt-1"><span className="font-semibold">An'anaviy kontekst:</span> {it.traditionalContext}</p>}
+                            {it.precautions && (
+                                <p className="text-sm mt-2 p-2 bg-amber-50 border border-amber-100 rounded-md text-amber-900">
+                                    <span className="font-semibold">Ehtiyotkorlik:</span> {it.precautions}
+                                </p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </Section>
+    );
+};
+
+const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }> = ({ section }) => {
+    const { intro, disclaimer, dietaryGuidelines, preventionMeasures } = section;
+    const hasDiet = dietaryGuidelines.length > 0;
+    const hasPrev = preventionMeasures.length > 0;
+    if (!hasDiet && !hasPrev && !intro?.trim() && !disclaimer?.trim()) return null;
+    return (
+        <Section title="To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)" icon={<ChartBarIcon className="h-6 w-6 text-sky-600"/>}>
+            {intro?.trim() && <p className="text-sm text-slate-800 whitespace-pre-wrap mb-3">{intro}</p>}
+            {hasDiet && (
+                <div className="mb-4">
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">To'g'ri ovqatlanish bo'yicha</h4>
+                    <ul className="list-disc list-inside space-y-1.5 text-sm text-text-primary">
+                        {dietaryGuidelines.map((line, i) => (
+                            <li key={i}>{line}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {hasPrev && (
+                <div>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">Profilaktika va oldini olish</h4>
+                    <ul className="list-disc list-inside space-y-1.5 text-sm text-text-primary">
+                        {preventionMeasures.map((line, i) => (
+                            <li key={i}>{line}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+            {disclaimer?.trim() && (
+                <p className="text-xs text-slate-600 mt-4 p-3 rounded-lg bg-sky-50 border border-sky-100 whitespace-pre-wrap">{disclaimer}</p>
+            )}
+        </Section>
+    );
+};
 
 /** Normalize treatmentPlan item: Gemini sometimes returns objects {step,details,urgency} */
 const planItemToString = (item: unknown): string => {
@@ -238,6 +307,40 @@ const FinalReportCard: React.FC<{
                             </div>
                         ))}
                     </div>
+                    {report.folkMedicine && (report.folkMedicine.intro?.trim() || (report.folkMedicine.items?.length ?? 0) > 0) && (
+                        <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70">
+                            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2">Xalq tabobati (qo'shimcha)</h3>
+                            {report.folkMedicine.intro?.trim() ? (
+                                <p className="text-sm text-slate-800 whitespace-pre-wrap">{report.folkMedicine.intro}</p>
+                            ) : (
+                                <p className="text-sm text-slate-800">
+                                    Dorivor o'simliklar va an'anaviy qo'llanmalar — quyidagi alohida bo'limda keltirilgan.
+                                </p>
+                            )}
+                            <p className="text-xs text-emerald-900 mt-2 font-medium">
+                                To'liq ro'yxat va ehtiyot choralar — «Xalq tabobati va dorivor o'simliklar (qo'shimcha)» bo'limida.
+                            </p>
+                        </div>
+                    )}
+                    {report.nutritionPrevention && (
+                        (report.nutritionPrevention.intro?.trim() ||
+                            (report.nutritionPrevention.dietaryGuidelines?.length ?? 0) > 0 ||
+                            (report.nutritionPrevention.preventionMeasures?.length ?? 0) > 0 ||
+                            report.nutritionPrevention.disclaimer?.trim()) && (
+                        <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/70">
+                            <h3 className="text-sm font-bold text-sky-900 uppercase tracking-wider mb-2">Ovqatlanish va profilaktika</h3>
+                            {report.nutritionPrevention.intro?.trim() ? (
+                                <p className="text-sm text-slate-800 whitespace-pre-wrap">{report.nutritionPrevention.intro}</p>
+                            ) : (
+                                <p className="text-sm text-slate-800">
+                                    Kasalliklarni oldini olish, to'g'ri ovqatlanish va profilaktika bo'yicha tavsiyalar quyidagi alohida bo'limda keltirilgan.
+                                </p>
+                            )}
+                            <p className="text-xs text-sky-900 mt-2 font-medium">
+                                Batafsil — «To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)» bo'limida.
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </div>
 
@@ -351,6 +454,10 @@ const FinalReportCard: React.FC<{
                     )}
                     </div>
                 </Section>
+
+                {report.folkMedicine && <FolkMedicineCard section={report.folkMedicine} />}
+
+                {report.nutritionPrevention && <NutritionPreventionCard section={report.nutritionPrevention} />}
 
                 <AdverseEventRiskCard risks={report.adverseEventRisks} />
 

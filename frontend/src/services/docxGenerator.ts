@@ -119,6 +119,52 @@ export const generateDocxReport = async (
             new Paragraph({ text: "" }),
         ]),
 
+        ...(report.folkMedicine && (report.folkMedicine.items?.length || report.folkMedicine.intro || report.folkMedicine.disclaimer) ? [
+            createHeading2("Xalq tabobati va dorivor o'simliklar (qo'shimcha)"),
+            new Paragraph({ children: [new TextRun({ text: "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi.", italics: true })], spacing: { after: 120 } }),
+            ...(report.folkMedicine.intro ? [createKeyValue("Kirish", report.folkMedicine.intro)] : []),
+            ...(report.folkMedicine.disclaimer ? [createKeyValue("Ogohlantirish", report.folkMedicine.disclaimer)] : []),
+            ...(report.folkMedicine.items ?? []).flatMap(it => [
+                createKeyValue("O'simlik", it.plantName),
+                ...(it.plantPart ? [createKeyValue("Qismi", it.plantPart)] : []),
+                ...(it.preparationOrUsage ? [createKeyValue("Tayyorlash / qo'llash", it.preparationOrUsage)] : []),
+                ...(it.traditionalContext ? [createKeyValue("An'anaviy kontekst", it.traditionalContext)] : []),
+                ...(it.precautions ? [createKeyValue("Ehtiyotkorlik", it.precautions)] : []),
+                new Paragraph({ text: "" }),
+            ]),
+        ] : []),
+
+        ...(report.nutritionPrevention &&
+            ((report.nutritionPrevention.dietaryGuidelines?.length ?? 0) > 0 ||
+                (report.nutritionPrevention.preventionMeasures?.length ?? 0) > 0 ||
+                report.nutritionPrevention.intro ||
+                report.nutritionPrevention.disclaimer)
+            ? [
+                createHeading2("To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)"),
+                new Paragraph({
+                    children: [new TextRun({ text: "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat.", italics: true })],
+                    spacing: { after: 120 },
+                }),
+                ...(report.nutritionPrevention.intro
+                    ? [createKeyValue("Kirish", report.nutritionPrevention.intro)]
+                    : []),
+                new Paragraph({
+                    children: [new TextRun({ text: "To'g'ri ovqatlanish bo'yicha:", bold: true })],
+                    spacing: { before: 120, after: 80 },
+                }),
+                ...report.nutritionPrevention.dietaryGuidelines.map((line) => createListItem(line)),
+                new Paragraph({
+                    children: [new TextRun({ text: 'Profilaktika va oldini olish:', bold: true })],
+                    spacing: { before: 200, after: 80 },
+                }),
+                ...report.nutritionPrevention.preventionMeasures.map((line) => createListItem(line)),
+                ...(report.nutritionPrevention.disclaimer
+                    ? [createKeyValue("Eslatma", report.nutritionPrevention.disclaimer)]
+                    : []),
+                new Paragraph({ text: '' }),
+            ]
+            : []),
+
         createHeading2("Tavsiya Etiladigan Qo'shimcha Tekshiruvlar"),
         ...(Array.isArray(report.recommendedTests) ? report.recommendedTests : []).map((test: unknown) => {
             const str = typeof test === 'string' ? test : (test && typeof test === 'object'

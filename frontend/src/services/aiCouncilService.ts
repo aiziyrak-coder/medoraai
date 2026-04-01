@@ -20,7 +20,7 @@ import type {
     PrognosisReport,
     RelatedResearch,
 } from '../types';
-import { normalizeConsensusDiagnosis } from '../types';
+import { normalizeConsensusDiagnosis, normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
 import { AIModel } from "../constants/specialists";
 import { AI_SPECIALISTS } from "../constants";
 import { Language } from "../i18n/LanguageContext";
@@ -1390,7 +1390,37 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
                     findings: { type: 'string' },
                     correlation: { type: 'string' }
                 }
-            }
+            },
+            folkMedicine: {
+                type: 'object',
+                properties: {
+                    intro: { type: 'string' },
+                    disclaimer: { type: 'string' },
+                    items: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                plantName: { type: 'string' },
+                                plantPart: { type: 'string' },
+                                preparationOrUsage: { type: 'string' },
+                                traditionalContext: { type: 'string' },
+                                precautions: { type: 'string' },
+                            },
+                            required: ['plantName'],
+                        },
+                    },
+                },
+            },
+            nutritionPrevention: {
+                type: 'object',
+                properties: {
+                    intro: { type: 'string' },
+                    disclaimer: { type: 'string' },
+                    dietaryGuidelines: { type: 'array', items: { type: 'string' } },
+                    preventionMeasures: { type: 'array', items: { type: 'string' } },
+                },
+            },
         },
         required: ['consensusDiagnosis', 'rejectedHypotheses', 'recommendedTests', 'treatmentPlan', 'medicationRecommendations', 'unexpectedFindings']
     };
@@ -1407,6 +1437,8 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
         6. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV klinik protokollariga muvofiq" yoki agar takliflar protokoldan chetga chiqsa "Dalil asosida innovatsion/alternativ yondashuv sifatida taklif qilindi" kabi qisqacha eslatma.
         7. rejectedHypotheses: MAJBURIY. Munozarada ko'rib chiqilgan lekin rad etilgan tashxislar (differensial tashxislar). Har biri uchun name (tashxis nomi) va reason (nimaga rad etildi, qisqa sabab). Kamida 1-3 ta yozing agar bahsda boshqa variantlar tilga olingan bo'lsa; agar hech qanday rad etilgan tashxis bo'lmasa, bo'sh massiv [] qaytaring.
+        8. folkMedicine (ALOHIDA BO'LIM, MAJBURIY): Konservativ davolash va reabilitatsiyaga MOS, O'zbekiston va Markaziy Osiyo xalq tabobatida ishlatiladigan dorivor o'simliklar haqida qisqa ma'lumot. Bu rasmiy dori-darmonlar o'rnini BOSMAYDI; shifokor bilan maslahat va qabul qilinayotgan dorilar bilan o'zaro ta'sirlar haqida ogohlantirish bo'lsin. Har bir o'simlik uchun: plantName (lotin yoki o'zbekcha nom), ixtiyoriy plantPart (gul, barg, ildiz), preparationOrUsage (qaynatma, choy, tashqiy ishlatish — qisqa va xavfsiz), traditionalContext (1 jumla qayerda qanday qo'llaniladi), precautions (homiladorlik, bolalar, allergiya, dori bilan ta'sir). Kamida 2 ta, odatda 2-5 ta o'simlik. intro: 1-2 jumla (masalan, qo'shimcha qo'llanma sifatida). disclaimer: "Rasmiy tibbiyot va shifokor ko'rsatmasini almashtirmaydi; individual sezuvchanlik va zaharli o'simliklardan xavfsizlik" mazmunida. Agar holat uchun xalq tabobati qo'llanishi ma'qul emas bo'lsa (masalan, o'tkir jiddiy holat), folkMedicine.items da kamida 1 ta qisqa qator bilan "hozirgi bosqichda xalq tabobati tavsiya etilmaydi" yoki shunga o'xshash sabab yozing.
+        9. nutritionPrevention (ALOHIDA BO'LIM, MAJBURIY): Konsensus tashxis va bemor holatiga MOS ravishda kasalliklarni oldini olish, to'g'ri ovqatlanish va profilaktika bo'yicha aniq tavsiyalar. dietaryGuidelines: 4-8 ta qisqa band (masalan, tuz/shakar, suv, tolali mahsulotlar, ovqatlanish tartibi, mahalliy mahsulotlar — O'zbekiston oziq-ovqat realiati). preventionMeasures: 4-8 ta band (profilaktika: jismoniy faollik, uyqu, stress, gigiyena, skrining, vaksinatsiya agar mavzuga tegishli bo'lsa, qayta kasallanishning oldini olish). intro: 1-2 jumla (masalan, bu bo'limning maqsadi). disclaimer: ixtiyoriy qisqa — individual parhez va cheklovlar uchun shifokor/dietolog bilan kelishish kerakligi. Bu bo'lim davolash rejasi o'rnini bosmasin.
         ANIQLIK: consensusDiagnosis da har bir element uchun probability — 0-100 oralig'ida, faqat klinik dalil va justification ga mos RAQAM (taxminiy 60/25/20 yoki 75/15 kabi takrorlanuvchi shablonlar YO'Q). Bir nechta tashxis bo'lsa, probability lar yig'indisi 100% bo'lishi kerak (bir-birini istisno qiluvchi differensial ro'yxat). reasoningChain har qadamda "nima uchun" javob bersin (HAR BIR ELEMENT 1-2 JUMLADAN OSHMASIN, qisqa holda yozing - to'liq JSON kesilmasin); uzbekProtocolMatch — aniq protokol nomi/yo'nalishi yoki protokoldan chetga chiqish sababi. Taxminiy tashxisni yakuniy deb yozmang.
         KRITIK TOPILMA: Suhbat (debate history) yoki bemor ma'lumotlarida shoshilinch, hayotga xavf, kritik holat tilga olingan bo'lsa — criticalFinding ni albatta to'ldiring (finding, implication, urgency). Bo'sh qoldirmang.
         Debate history: ${JSON.stringify(debateHistory)}
@@ -1548,6 +1580,11 @@ FAQAT JSON massiv: ["...","..."].`;
         lastLivePrognosis = prognosisReport;
         onProgress({ type: 'prognosis_update', data: prognosisReport });
 
+        const folkMedicine = normalizeFolkMedicine((rawReport as unknown as { folkMedicine?: unknown }).folkMedicine);
+        const nutritionPrevention = normalizeNutritionPrevention(
+            (rawReport as unknown as { nutritionPrevention?: unknown }).nutritionPrevention,
+        );
+
         const reportWithPrognosis: FinalReport = {
             ...rawReport,
             prognosisReport,
@@ -1555,6 +1592,8 @@ FAQAT JSON massiv: ["...","..."].`;
             medicationRecommendations,
             treatmentPlan: treatmentPlan.length > 0 ? treatmentPlan : rawPlan.map((x: unknown) => (typeof x === 'string' ? x : JSON.stringify(x))).filter(Boolean),
             unexpectedFindings: typeof rawReport.unexpectedFindings === 'string' ? rawReport.unexpectedFindings : String(rawReport.unexpectedFindings ?? ''),
+            ...(folkMedicine ? { folkMedicine } : {}),
+            ...(nutritionPrevention ? { nutritionPrevention } : {}),
         };
         onProgress({ type: 'report', data: reportWithPrognosis, detectedMedications: [] });
     } catch (e) {
