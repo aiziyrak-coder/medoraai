@@ -509,11 +509,13 @@ export interface HealthCheckResult {
   status?: number;
 }
 
+/** medora.cdcgroup.uz da asosiy /health/ 503 bo'lsa, API subdomen odatda 200 */
+const MEDORA_API_PUBLIC_HEALTH = 'https://medoraapi.cdcgroup.uz/health/';
+
 /**
- * Health URL(lar): ixtiyoriy VITE_HEALTH_CHECK_URL; aks holda API host + /health/.
- * Frontend va API turli domen bo'lsa, avvalo sahifa originidagi /health/ (nginx stub),
- * keyin API host — biri 503 bo'lsa ikkinchisi ishlashi mumkin.
- * Tarmoq xatosi: ok: true (banner bloklamaydi).
+ * Health URL(lar): VITE_HEALTH_CHECK_URL; yoki API host + /health/ va kerak bo'lsa zaxira URL lar.
+ * medora.cdcgroup.uz + bir xil origin /api: avval medoraapi /health/ (konsolda 503 kamayadi).
+ * Turli origin: avval haqiqiy API /health/, keyin sahifa origin (nginx stub).
  */
 function getHealthCheckUrls(): string[] {
   const path = '/health/';
@@ -521,21 +523,33 @@ function getHealthCheckUrls(): string[] {
   if (fromEnv) {
     return [fromEnv];
   }
-  const apiBase = `${HOST_BASE.replace(/\/$/, '')}${path}`;
-  const urls: string[] = [];
-  if (typeof window !== 'undefined') {
-    try {
-      const base = API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL : `${API_CONFIG.BASE_URL}/`;
-      const apiOrigin = new URL(base).origin;
-      if (apiOrigin && apiOrigin !== window.location.origin) {
-        urls.push(`${window.location.origin}${path}`);
-      }
-    } catch {
-      /* ignore */
-    }
+  const apiHealth = `${HOST_BASE.replace(/\/$/, '')}${path}`;
+
+  if (typeof window === 'undefined' || !window.location.origin) {
+    return [apiHealth];
   }
-  urls.push(apiBase);
-  return [...new Set(urls)];
+
+  let apiOrigin = '';
+  try {
+    const base = API_CONFIG.BASE_URL.endsWith('/') ? API_CONFIG.BASE_URL : `${API_CONFIG.BASE_URL}/`;
+    apiOrigin = new URL(base).origin;
+  } catch {
+    return [apiHealth];
+  }
+
+  const pageOrigin = window.location.origin;
+  const sameOrigin = apiOrigin === pageOrigin;
+  const isMedoraSite = window.location.hostname === 'medora.cdcgroup.uz';
+
+  if (sameOrigin && isMedoraSite) {
+    return [...new Set([MEDORA_API_PUBLIC_HEALTH, apiHealth])];
+  }
+
+  if (!sameOrigin) {
+    return [...new Set([apiHealth, `${pageOrigin}${path}`])];
+  }
+
+  return [apiHealth];
 }
 
 export const checkApiHealth = async (): Promise<HealthCheckResult> => {

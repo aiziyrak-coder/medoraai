@@ -1,5 +1,5 @@
 /**
- * Medora SW sweep — v4 (2026-04-01)
+ * Medora SW sweep — v5 (2026-04-01)
  * Eski PWA keshini tozalaydi va o'zini o'chiradi. fetch handler yo'q.
  */
 self.addEventListener('install', () => {

@@ -32,7 +32,7 @@ root.render(
  * Service Worker: "sweep" — eski SW/keshni majburan yangilash.
  * Query string yangilanganda brauzer/CDN yangi skriptni oladi (eski 50+ qatorli SW yo'qoladi).
  */
-const SW_SWEEP_QUERY = 'v=medora-sweep-4';
+const SW_SWEEP_QUERY = 'v=medora-sweep-5';
 
 if ('serviceWorker' in navigator) {
   const clearWebCaches = async () => {
