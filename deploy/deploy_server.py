@@ -317,6 +317,11 @@ def deploy():
             print("API:      https://fjstiapi.ziyrak.org/api/")
             print("Test URL: https://fjstiapi.ziyrak.org/api/ai/clarifying-questions/")
             print()
+            print("CORS preflight (login xatosi bo'lsa, serverda nginx yangilanganini tekshiring):")
+            print('  curl -sI -X OPTIONS "https://fjstiapi.ziyrak.org/api/auth/login/" \\')
+            print('    -H "Origin: https://fjsti.ziyrak.org" -H "Access-Control-Request-Method: POST"')
+            print("  Kutilyapti: access-control-allow-origin: https://fjsti.ziyrak.org")
+            print()
             return True
         else:
             print()

@@ -227,34 +227,54 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# CORS Settings
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default=(
-        'http://localhost:3000,http://127.0.0.1:3000,'
-        'https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,'
-        'https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,'
-        'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
-        'https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
-        'http://localhost:5173,http://127.0.0.1:5173,'
-        'http://20.82.115.71'
-    ),
-    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
+# CORS Settings — .env dagi CORS_ALLOWED_ORIGINS defaultni almashtiradi; FJSTI domenlari har doim qo'shiladi
+# (aks holda production .env da faqat eski domen qolsa, fjsti.ziyrak.org dan login CORS xatosi beradi).
+_CORS_DEFAULT_STR = (
+    'http://localhost:3000,http://127.0.0.1:3000,'
+    'https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,'
+    'https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,'
+    'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
+    'https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
+    'http://localhost:5173,http://127.0.0.1:5173,'
+    'http://20.82.115.71'
+)
+_CORS_ALWAYS_APPEND = (
+    'https://fjsti.ziyrak.org',
+    'http://fjsti.ziyrak.org',
+    'https://fjstiapi.ziyrak.org',
+    'http://fjstiapi.ziyrak.org',
+)
+_cors_raw = config('CORS_ALLOWED_ORIGINS', default='')
+if _cors_raw and str(_cors_raw).strip():
+    _cors_base = [s.strip() for s in str(_cors_raw).split(',') if s.strip()]
+else:
+    _cors_base = [s.strip() for s in _CORS_DEFAULT_STR.split(',') if s.strip()]
+CORS_ALLOWED_ORIGINS = list(
+    dict.fromkeys(_cors_base + [o for o in _CORS_ALWAYS_APPEND if o not in _cors_base])
 )
 
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF (Django 4+): ishonchli originlar — production va dev (Vite)
+# CSRF (Django 4+): ishonchli originlar — FJSTI har doim qo'shiladi (.env cheklangan bo'lsa ham)
 _csrf_default = (
     'https://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,'
     'https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
     'http://localhost:3000,http://127.0.0.1:3000,'
     'http://localhost:5173,http://127.0.0.1:5173'
 )
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default=_csrf_default,
-    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()],
+_CSRF_ALWAYS_APPEND = (
+    'https://fjsti.ziyrak.org',
+    'https://fjstiapi.ziyrak.org',
+    'http://fjsti.ziyrak.org',
+    'http://fjstiapi.ziyrak.org',
+)
+_csrf_raw = config('CSRF_TRUSTED_ORIGINS', default='')
+if _csrf_raw and str(_csrf_raw).strip():
+    _csrf_base = [s.strip() for s in str(_csrf_raw).split(',') if s.strip()]
+else:
+    _csrf_base = [s.strip() for s in _csrf_default.split(',') if s.strip()]
+CSRF_TRUSTED_ORIGINS = list(
+    dict.fromkeys(_csrf_base + [o for o in _CSRF_ALWAYS_APPEND if o not in _csrf_base])
 )
 
 CORS_ALLOW_METHODS = [
@@ -477,6 +497,12 @@ if _USE_FILE_LOGS:
 DOCTOR_TRIAL_DAYS = config('DOCTOR_TRIAL_DAYS', default=7, cast=int)
 LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=30 if DEBUG else 5, cast=int)
 LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=int)  # 15 min
+
+# Login: boshqa qurilmada yaroqli sessiya bo'lsa yangi qurilmadan kirishni rad etish
+ENFORCE_SINGLE_DEVICE_LOGIN = config('ENFORCE_SINGLE_DEVICE_LOGIN', default=True, cast=bool)
+SINGLE_DEVICE_LOGIN_EXEMPT_SUPERUSER = config(
+    'SINGLE_DEVICE_LOGIN_EXEMPT_SUPERUSER', default=True, cast=bool
+)
 MAX_FILE_UPLOAD_SIZE = config('MAX_FILE_UPLOAD_SIZE_MB', default=5, cast=int) * 1024 * 1024
 ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf']
 
