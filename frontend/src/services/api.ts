@@ -515,14 +515,16 @@ export interface HealthCheckResult {
  * On timeout/network error we report ok: true so the banner does not block the user.
  */
 export const checkApiHealth = async (): Promise<HealthCheckResult> => {
-  const healthUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/health/`
-      : `${HOST_BASE}/health/`;
+  // Backend /health/ — SW va frontend domenidan mustaqil (HOST_BASE = API server)
+  const healthUrl = `${HOST_BASE.replace(/\/$/, '')}/health/`;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(healthUrl, { signal: controller.signal });
+    const res = await fetch(healthUrl, {
+      signal: controller.signal,
+      cache: 'no-store',
+      credentials: 'omit',
+    });
     clearTimeout(timeoutId);
     // 2xx: healthy. 400: DNS/redirect. 5xx: server error.
     const isServerUp = res.status < 500 && res.status !== 400;

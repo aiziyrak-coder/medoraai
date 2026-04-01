@@ -1,4 +1,4 @@
-const CACHE_NAME = 'konsilium-cache-v9';
+const CACHE_NAME = 'konsilium-cache-v10';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -31,23 +31,17 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const { request } = event;
+  const url = new URL(request.url);
 
-  // Non-GET: service worker aralashmasin — brauzer to'g'ridan-to'g'ri tarmoq so'rovini yuboradi (login va h.k.)
+  // SW umuman tegmasin: POST/PUT/..., boshqa domen, /health, /api — brauzer o'zi yuboradi
+  // (event.respondWith ishlatmaslik = default network; sun'iy 503/504 yo'q)
   if (request.method !== 'GET') {
     return;
   }
-  
-  const url = new URL(request.url);
-  const sameOrigin = url.origin === self.location.origin;
-
-  // Cross-origin (e.g. API): do not intercept - let browser handle (CORS works normally)
-  if (!sameOrigin) {
+  if (url.origin !== self.location.origin) {
     return;
   }
-
-  // Same-origin: never cache health or API paths — always network, no fake 503 on transient errors
-  if (url.pathname.startsWith('/health') || url.pathname.includes('/api/')) {
-    event.respondWith(fetch(request));
+  if (url.pathname.startsWith('/health') || url.pathname.startsWith('/api')) {
     return;
   }
 

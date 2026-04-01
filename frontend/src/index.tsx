@@ -28,17 +28,30 @@ root.render(
   </React.StrictMode>
 );
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
+// Service Worker: productionda o'chiq (suntiy 503, login fetch, eski kesh). PWA kerak bo'lsa:
+// .env da VITE_ENABLE_SW=true
+const enableServiceWorker =
+  import.meta.env.DEV
+    ? import.meta.env.VITE_ENABLE_SW !== 'false'
+    : import.meta.env.VITE_ENABLE_SW === 'true';
+
+if (enableServiceWorker && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-      .then(registration => {
-        // Service worker registered successfully
-        logger.log('ServiceWorker registration successful with scope: ', registration.scope);
+    navigator.serviceWorker
+      .register('/service-worker.js', { scope: '/', updateViaCache: 'none' })
+      .then((registration) => {
+        registration.update();
+        logger.log('ServiceWorker registered:', registration.scope);
       })
-      .catch(error => {
-        // Service worker registration failed - non-critical, app will still work
-        logger.warn('ServiceWorker registration failed: ', error);
+      .catch((error) => {
+        logger.warn('ServiceWorker registration failed:', error);
       });
   });
+} else if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  const dropSw = () =>
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      regs.forEach((r) => void r.unregister());
+    });
+  dropSw();
+  window.addEventListener('load', () => void dropSw());
 }
