@@ -37,8 +37,19 @@ python deploy\deploy_server.py
 | `DEPLOY_FIX_FJSTI_NGINX` | `1` | `sites-enabled` da `fjsti*.ziyrak.org` bor boshqa fayllarni `/root/nginx-fjsti-conflicts-*` ga ko'chirib, `deploy/nginx-fjsti-medora-http.conf` ni qo'llaydi |
 | `DEPLOY_FIX_FJSTI_NGINX` | `0` | Faqat `git pull` + `npm run build` + oddiy `nginx reload` |
 | `DEPLOY_VITE_API_BASE_URL` | `https://fjstiapi.ziyrak.org/api` | Serverda frontend build vaqtidagi API manzili |
+| `DEPLOY_CERTBOT_EMAIL` | — | **HTTPS:** birinchi marta Let's Encrypt uchun email (masalan `admin@tashkilot.uz`). Berilsa, avval HTTP+ACME qo‘yiladi, `certbot certonly --webroot`, keyin **HTTPS** nginx. |
 
-Agar boshqa loyiha `conf.d` ichida bo'lsa, qo'lda tekshiring: `grep -r fjsti /etc/nginx/`
+**HTTPS birinchi marta:**
+
+```powershell
+$env:DEPLOY_CERTBOT_EMAIL = "sizning@email.uz"
+$env:DEPLOY_SSH_PASSWORD = "..."
+python deploy\deploy_server.py
+```
+
+Sert yo‘q va email bo‘lmasa — faqat HTTP qoladi. Keyingi safar sert allaqachon bo‘lsa, avtomatik HTTPS konfig qo‘llanadi.
+
+**Yangilash:** serverda `certbot renew` (odatda systemd timer bor) — `nginx -s reload` hook bilan.
 
 Serverdagi `backend/.env` da `CORS_ALLOWED_ORIGINS` ni qo‘lda override qilgan bo‘lsangiz, ichiga **`https://fjsti.ziyrak.org`** (va kerak bo‘lsa `http://...`) qo‘shing — aks holda login CORS xato beradi.
 

@@ -7,6 +7,10 @@ Security: parol repoda saqlanmaydi. Muhit o'zgaruvchilari:
   DEPLOY_SSH_HOST   — masalan 167.71.53.238 yoki fjsti.ziyrak.org
   DEPLOY_SSH_USER   — odatda root
   DEPLOY_SSH_PASSWORD yoki SSH parolni shell env orqali bering
+
+  HTTPS (fjsti):
+  DEPLOY_CERTBOT_EMAIL — Let's Encrypt uchun email (birinchi marta sert olish).
+  Bo'lmasa sert yo'qida faqat HTTP nginx qo'llanadi.
 """
 
 import os
@@ -38,33 +42,84 @@ FIX_FJSTI_NGINX = os.environ.get("DEPLOY_FIX_FJSTI_NGINX", "1").strip().lower() 
     "yes",
 )
 
+CERTBOT_EMAIL = os.environ.get("DEPLOY_CERTBOT_EMAIL", "").strip()
+CERT_PATH = "/etc/letsencrypt/live/fjsti.ziyrak.org/fullchain.pem"
 
-def _apply_fjsti_nginx_http(client: "paramiko.SSHClient", local_repo_deploy_dir: str) -> bool:
-    """sites-enabled da fjsti domenlari bo'lgan boshqa konfiglarni vaqtincha oladi, Medora HTTP konfigni qo'yadi."""
 
-    conf_local = pathlib.Path(local_repo_deploy_dir) / "nginx-fjsti-medora-http.conf"
+def _fjsti_ssl_cert_exists(client: "paramiko.SSHClient") -> bool:
+    stdin, stdout, _ = client.exec_command(f"test -f {CERT_PATH} && echo yes || echo no")
+    return stdout.read().decode().strip() == "yes"
+
+
+def _install_certbot_and_obtain_cert(
+    client: "paramiko.SSHClient", remote_dir: str, email: str
+) -> bool:
+    webroot = shlex.quote(f"{remote_dir}/frontend/dist")
+    em = shlex.quote(email)
+    shell = f"""set -e
+if ! command -v certbot >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y certbot
+fi
+certbot certonly --webroot -w {webroot} \\
+  --non-interactive --agree-tos --email {em} \\
+  -d fjsti.ziyrak.org -d fjstiapi.ziyrak.org \\
+  --preferred-challenges http --expand
+test -f {CERT_PATH}
+echo CERTBOT_OK
+"""
+    print(f"    certbot (webroot {remote_dir}/frontend/dist)...")
+    stdin, stdout, stderr = client.exec_command(shell, timeout=300)
+    out = stdout.read().decode("utf-8", errors="replace")
+    err = stderr.read().decode("utf-8", errors="replace")
+    code = stdout.channel.recv_exit_status()
+    if out:
+        print(out[-4000:])
+    if err.strip():
+        print(f"    certbot stderr: {err.strip()[-2000:]}")
+    if code != 0 or "CERTBOT_OK" not in out:
+        print("[X] certbot muvaffaqiyatsiz (DNS, 80-port yoki rate limit tekshiring).")
+        return False
+    print("[OK] Let's Encrypt sertifikati olindi")
+    return True
+
+
+def _apply_fjsti_nginx_config(
+    client: "paramiko.SSHClient", local_repo_deploy_dir: str, use_ssl: bool
+) -> bool:
+    """Boshqa fjsti konfiglarni zaxiralab Medora nginx ni qo'llaydi (HTTP yoki HTTPS)."""
+    fname = (
+        "nginx-fjsti-medora-ssl.conf"
+        if use_ssl
+        else "nginx-fjsti-medora-http.conf"
+    )
+    conf_local = pathlib.Path(local_repo_deploy_dir) / fname
     if not conf_local.is_file():
-        print(f"[X] Local nginx config topilmadi: {conf_local}")
+        print(f"[X] Local nginx topilmadi: {conf_local}")
         return False
     body = conf_local.read_bytes()
     try:
         sftp = client.open_sftp()
-        remote_tmp = "/tmp/medora-fjsti-http.conf"
+        remote_tmp = "/tmp/medora-fjsti-nginx.conf"
         with sftp.file(remote_tmp, "wb") as rf:
             rf.write(body)
         sftp.close()
     except Exception as e:
-        print(f"[X] SFTP yuklash xatosi: {e}")
+        print(f"[X] SFTP: {e}")
         return False
 
-    shell = r'''set -e
+    mode = "HTTPS" if use_ssl else "HTTP"
+    shell = r"""set -e
 BACKUP=/root/nginx-fjsti-conflicts-$(date +%s)
 mkdir -p "$BACKUP"
 for f in /etc/nginx/sites-enabled/*; do
   [ -e "$f" ] || continue
   bn=$(basename "$f")
   case "$bn" in
+    00-medora-fjsti-ziyrak.conf) continue ;;
     00-medora-fjsti-ziyrak-http.conf) continue ;;
+    00-medora-fjsti-ziyrak-ssl.conf) continue ;;
   esac
   if grep -qE 'fjsti\.ziyrak\.org|fjstiapi\.ziyrak\.org' "$f" 2>/dev/null; then
     echo "BACKUP: $f -> $BACKUP/"
@@ -72,16 +127,18 @@ for f in /etc/nginx/sites-enabled/*; do
   fi
 done
 if [ -d /etc/nginx/conf.d ] && grep -rqE 'fjsti\.ziyrak\.org|fjstiapi\.ziyrak\.org' /etc/nginx/conf.d/ 2>/dev/null; then
-  echo "WARN: conf.d da ham fjsti bor (bir faylda bir nechta server bo'lishi mumkin). Qo'lda tekshiring:"
+  echo "WARN: conf.d da fjsti — qo'lda: grep -r fjsti /etc/nginx/conf.d/"
   grep -rlE 'fjsti\.ziyrak\.org|fjstiapi\.ziyrak\.org' /etc/nginx/conf.d/ 2>/dev/null || true
 fi
-cp /tmp/medora-fjsti-http.conf /etc/nginx/sites-available/medora-fjsti-ziyrak-http.conf
-ln -sf /etc/nginx/sites-available/medora-fjsti-ziyrak-http.conf /etc/nginx/sites-enabled/00-medora-fjsti-ziyrak-http.conf
+rm -f /etc/nginx/sites-enabled/00-medora-fjsti-ziyrak-http.conf
+rm -f /etc/nginx/sites-enabled/00-medora-fjsti-ziyrak-ssl.conf
+cp /tmp/medora-fjsti-nginx.conf /etc/nginx/sites-available/medora-fjsti-ziyrak.conf
+ln -sf /etc/nginx/sites-available/medora-fjsti-ziyrak.conf /etc/nginx/sites-enabled/00-medora-fjsti-ziyrak.conf
 nginx -t
 systemctl reload nginx
 echo OK_FJSTI_NGINX
-'''
-    stdin, stdout, stderr = client.exec_command(shell, timeout=60)
+"""
+    stdin, stdout, stderr = client.exec_command(shell, timeout=90)
     out = stdout.read().decode("utf-8", errors="replace")
     err = stderr.read().decode("utf-8", errors="replace")
     exit_code = stdout.channel.recv_exit_status()
@@ -90,10 +147,38 @@ echo OK_FJSTI_NGINX
     if err.strip():
         print(f"stderr: {err.strip()}")
     if exit_code != 0 or "OK_FJSTI_NGINX" not in out:
-        print("[X] nginx-fjsti qo'llash muvaffaqiyatsiz (nginx -t yoki boshqa xato).")
+        print(f"[X] nginx qo'llash muvaffaqiyatsiz ({mode}).")
         return False
-    print("[OK] fjsti / fjstiapi uchun Medora nginx (HTTP) qo'llandi")
+    print(f"[OK] fjsti nginx ({mode}) qo'llandi")
     return True
+
+
+def _apply_fjsti_nginx_full(
+    client: "paramiko.SSHClient", deploy_dir: str, remote_dir: str
+) -> bool:
+    """Sert bor bo'lsa HTTPS; yo'q bo'lsa email bilan certbot, aks holda HTTP."""
+    print("[4/7] fjsti nginx (HTTPS / certbot)...")
+
+    if _fjsti_ssl_cert_exists(client):
+        print("    SSL sertifikat mavjud — HTTPS konfig qo'llanmoqda.")
+        return _apply_fjsti_nginx_config(client, deploy_dir, use_ssl=True)
+
+    if CERTBOT_EMAIL:
+        print("    Sert yo'q — avval HTTP (ACME), keyin certbot.")
+        if not _apply_fjsti_nginx_config(client, deploy_dir, use_ssl=False):
+            return False
+        if not _install_certbot_and_obtain_cert(client, remote_dir, CERTBOT_EMAIL):
+            return False
+        if not _fjsti_ssl_cert_exists(client):
+            print("[X] certbot dan keyin ham sert fayli topilmadi.")
+            return False
+        return _apply_fjsti_nginx_config(client, deploy_dir, use_ssl=True)
+
+    print(
+        "[!] DEPLOY_CERTBOT_EMAIL berilmagan — faqat HTTP. HTTPS uchun qayta deploy:\n"
+        "    $env:DEPLOY_CERTBOT_EMAIL='siz@email.com'"
+    )
+    return _apply_fjsti_nginx_config(client, deploy_dir, use_ssl=False)
 
 
 def deploy():
@@ -168,10 +253,7 @@ def deploy():
 
         deploy_dir = str(pathlib.Path(__file__).resolve().parent)
         if FIX_FJSTI_NGINX:
-            print(
-                "[4/7] fjsti nginx: boshqa loyihalar bilan to'qnashuvni olib, Medora HTTP konfigni qo'yish..."
-            )
-            if not _apply_fjsti_nginx_http(client, deploy_dir):
+            if not _apply_fjsti_nginx_full(client, deploy_dir, REMOTE_DIR):
                 return False
             print()
         else:
