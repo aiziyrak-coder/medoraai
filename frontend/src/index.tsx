@@ -30,9 +30,9 @@ root.render(
 
 /**
  * Service Worker: "sweep" — eski SW/keshni majburan yangilash.
- * Query string yangilanganda brauzer/CDN yangi skriptni oladi (eski 50+ qatorli SW yo'qoladi).
+ * Yangi fayl nomi: eski /service-worker.js (50+ qator, fetch) kesh bilan aralashmaydi.
  */
-const SW_SWEEP_QUERY = 'v=medora-sweep-5';
+const SW_CLEANUP_URL = '/medora-sw-cleanup.js?v=medora-sweep-6';
 
 if ('serviceWorker' in navigator) {
   const clearWebCaches = async () => {
@@ -50,16 +50,13 @@ if ('serviceWorker' in navigator) {
       await Promise.all(regs.map((r) => r.unregister()));
       await clearWebCaches();
       try {
-        const reg = await navigator.serviceWorker.register(
-          `/service-worker.js?${SW_SWEEP_QUERY}`,
-          {
-            scope: '/',
-            updateViaCache: 'none',
-          }
-        );
+        const reg = await navigator.serviceWorker.register(SW_CLEANUP_URL, {
+          scope: '/',
+          updateViaCache: 'none',
+        });
         await reg.update();
         if (import.meta.env.DEV) {
-          logger.log('SW sweep registered (dev)');
+          logger.log('SW cleanup registered (dev)');
         }
       } catch {
         /* tarmoq yo'q — ilova baribir ishlaydi */

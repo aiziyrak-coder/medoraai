@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%233b82f6' width='32' height='32' rx='6'/><text x='16' y='22' font-size='16' fill='white' text-anchor='middle' font-family='system-ui'>A</text></svg>" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Farg'ona JSTI - Farg'ona jamoat salomatligi tibbiyot instituti</title>
     <meta name="description" content="Farg'ona jamoat salomatligi tibbiyot instituti (Farg'ona JSTI) - tibbiy ekspertiza va AI qo'llab-quvvatlash platformasi. Klinik qarorlarni qo'llab-quvvatlash tizimi." />
@@ -170,6 +172,48 @@
 </script>
 </head>
 <body>
+<script>
+(function () {
+  try {
+    if (sessionStorage.getItem('medora_sw_pass') === '1') return;
+    if (!('serviceWorker' in navigator)) {
+      sessionStorage.setItem('medora_sw_pass', '1');
+      return;
+    }
+    if (sessionStorage.getItem('medora_sw_reload_pending') === '1') {
+      sessionStorage.removeItem('medora_sw_reload_pending');
+      sessionStorage.setItem('medora_sw_pass', '1');
+      return;
+    }
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      var has = regs.length > 0 || !!navigator.serviceWorker.controller;
+      if (!has) {
+        sessionStorage.setItem('medora_sw_pass', '1');
+        return;
+      }
+      return Promise.all(regs.map(function (r) { return r.unregister(); }))
+        .then(function () {
+          if ('caches' in window) {
+            return caches.keys().then(function (keys) {
+              return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+            });
+          }
+        })
+        .then(function () {
+          sessionStorage.setItem('medora_sw_reload_pending', '1');
+          location.reload();
+        })
+        .catch(function () {
+          sessionStorage.setItem('medora_sw_pass', '1');
+        });
+    }).catch(function () {
+      sessionStorage.setItem('medora_sw_pass', '1');
+    });
+  } catch (e) {
+    try { sessionStorage.setItem('medora_sw_pass', '1'); } catch (_) {}
+  }
+})();
+</script>
 <div id="root"></div>
 <script type="module" src="/src/index.tsx"></script>
 </body>

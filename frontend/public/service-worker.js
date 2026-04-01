@@ -1,6 +1,6 @@
 /**
- * Medora SW sweep — v5 (2026-04-01)
- * Eski PWA keshini tozalaydi va o'zini o'chiradi. fetch handler yo'q.
+ * DEPRECATED: brauzer keshida qolgan eski URL.
+ * fetch handler YO'Q — faqat kesh tozalab o'chadi. Yangi: /medora-sw-cleanup.js
  */
 self.addEventListener('install', () => {
   self.skipWaiting();

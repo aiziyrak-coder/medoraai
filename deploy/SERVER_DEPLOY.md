@@ -46,3 +46,9 @@ python deploy\deploy_server.py
 - **Unicode xato (Windows konsol):** skript `stdout` ni UTF-8 ga sozlaydi; yangi `deploy_server.py` ishlating.  
 - **DNS:** agar domen ochilmasa, `DEPLOY_SSH_HOST=167.71.53.238` ishlating.  
 - **Pull xatosi:** serverda `git remote` va `main` branch tekshiring.
+
+## Eski service worker / `index-....js` kesh
+
+- Yangi `index.html` ochilganda brauzer **bitta marta** barcha SW larni `unregister` qiladi, keshni tozalaydi va **sahifani qayta yuklaydi** (`sessionStorage` bilan tsikl yo‘q).  
+- Yangi cleanup skript: **`/medora-sw-cleanup.js`** (eski `/service-worker.js` o‘rniga). Nginx da ikkalasiga ham `Cache-Control: no-store` qo‘ying — `deploy/nginx-cdcgroup.conf` namunasida bor.  
+- **`medora.cdcgroup.uz/health/` 503:** prod nginx ni `deploy/nginx-cdcgroup.conf` dagi kabi qiling — `/health/` ni `return 200` (stub) yoki tirik backendga `proxy_pass` qiling.
