@@ -482,7 +482,8 @@ const callGemini = async (
 
     const executeWithModelFallback = async (): Promise<unknown> => {
         let lastErr: unknown;
-        for (const m of modelsToTry) {
+        for (let idx = 0; idx < modelsToTry.length; idx++) {
+            const m = modelsToTry[idx];
             try {
                 return await executeCall(m);
             } catch (e) {
@@ -490,9 +491,15 @@ const callGemini = async (
                 const msg = String((e as Error & { message?: string })?.message ?? e).toLowerCase();
                 const is404 = /404|not found|NOT_FOUND/i.test(msg);
                 const is503 = /503|unavailable|overloaded|service.?unavailable/i.test(msg);
-                if (is404 || is503) {
-                    logger.warning('Gemini model %s not available (%s), trying next', m, is503 ? '503' : '404');
-                    if (is503) await sleep(1500);
+                const isRate = /429|resource_exhausted|rate_limit_exceeded|quota/i.test(msg);
+                if (is404 || is503 || isRate) {
+                    logger.warning(
+                        'Gemini model %s not available (%s), trying next',
+                        m,
+                        isRate ? '429' : (is503 ? '503' : '404')
+                    );
+                    // 429/503 da keyingi modelni darhol boshlab yubormaslik uchun biroz kutamiz
+                    if (is503 || isRate) await sleep(1500);
                     continue;
                 }
                 throw e;
