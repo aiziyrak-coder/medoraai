@@ -45,6 +45,46 @@ FIX_FJSTI_NGINX = os.environ.get("DEPLOY_FIX_FJSTI_NGINX", "1").strip().lower() 
 CERTBOT_EMAIL = os.environ.get("DEPLOY_CERTBOT_EMAIL", "").strip()
 CERT_PATH = "/etc/letsencrypt/live/fjsti.ziyrak.org/fullchain.pem"
 
+# Optional: rotate Gemini key on server + bake to frontend build env (Vite).
+# SECURITY: key repo'ga yozilmaydi, faqat deploy vaqtida env orqali beriladi.
+DEPLOY_BACKEND_GEMINI_API_KEY = (os.environ.get("DEPLOY_BACKEND_GEMINI_API_KEY") or "").strip()
+DEPLOY_VITE_GEMINI_API_KEY = (
+    (os.environ.get("DEPLOY_VITE_GEMINI_API_KEY") or "").strip()
+    or DEPLOY_BACKEND_GEMINI_API_KEY
+)
+
+
+def _set_backend_env_key_if_needed(client: "paramiko.SSHClient", remote_dir: str, key: str) -> bool:
+    """backend/.env ga GEMINI_API_KEY ni xavfsiz yozadi (bo'lmasa qo'shadi)."""
+    if not key:
+        return True
+    env_path = shlex.quote(f"{remote_dir}/backend/.env")
+    key_q = shlex.quote(key)
+    shell = f"""set -e
+ENV_FILE={env_path}
+KEY={key_q}
+mkdir -p "$(dirname "$ENV_FILE")"
+touch "$ENV_FILE"
+if grep -qE '^GEMINI_API_KEY=' "$ENV_FILE" 2>/dev/null; then
+  # replace existing line
+  sed -i "s/^GEMINI_API_KEY=.*/GEMINI_API_KEY=$KEY/" "$ENV_FILE"
+else
+  echo "GEMINI_API_KEY=$KEY" >> "$ENV_FILE"
+fi
+echo OK_GEMINI_ENV
+"""
+    stdin, stdout, stderr = client.exec_command(shell, timeout=30)
+    out = stdout.read().decode("utf-8", errors="replace")
+    err = stderr.read().decode("utf-8", errors="replace")
+    code = stdout.channel.recv_exit_status()
+    if err.strip():
+        print(f"    backend/.env update stderr: {err.strip()[-1000:]}")
+    if code != 0 or "OK_GEMINI_ENV" not in out:
+        print("[X] backend/.env ga GEMINI_API_KEY yozib bo'lmadi.")
+        return False
+    print("[OK] backend/.env GEMINI_API_KEY yangilandi")
+    return True
+
 
 def _fjsti_ssl_cert_exists(client: "paramiko.SSHClient") -> bool:
     stdin, stdout, _ = client.exec_command(f"test -f {CERT_PATH} && echo yes || echo no")
@@ -232,15 +272,25 @@ def deploy():
         # Small delay
         time.sleep(1)
 
+        # Step 2.5: Update backend Gemini key (optional)
+        if DEPLOY_BACKEND_GEMINI_API_KEY:
+            print("[2.5/7] Updating backend GEMINI_API_KEY...")
+            if not _set_backend_env_key_if_needed(client, REMOTE_DIR, DEPLOY_BACKEND_GEMINI_API_KEY):
+                return False
+            print()
+
         # Step 2: Build frontend (serverda to'g'ri API domeni bilan)
         vite_api = os.environ.get(
             "DEPLOY_VITE_API_BASE_URL", "https://fjstiapi.ziyrak.org/api"
         )
         build_cmd = (
             f"cd {REMOTE_DIR}/frontend && "
-            f"export VITE_API_BASE_URL={shlex.quote(vite_api)} && npm run build"
+            f"export VITE_API_BASE_URL={shlex.quote(vite_api)}"
+            + (f" VITE_GEMINI_API_KEY={shlex.quote(DEPLOY_VITE_GEMINI_API_KEY)}" if DEPLOY_VITE_GEMINI_API_KEY else "")
+            + " && npm run build"
         )
-        print(f"[3/7] Building frontend (VITE_API_BASE_URL={vite_api})...")
+        extra = " + VITE_GEMINI_API_KEY" if DEPLOY_VITE_GEMINI_API_KEY else ""
+        print(f"[3/7] Building frontend (VITE_API_BASE_URL={vite_api}{extra})...")
         stdin, stdout, stderr = client.exec_command(build_cmd, timeout=180)
         output = stdout.read().decode('utf-8')
         error = stderr.read().decode('utf-8')
