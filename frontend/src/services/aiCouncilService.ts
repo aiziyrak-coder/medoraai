@@ -512,7 +512,10 @@ const callGemini = async (
                 retryableErrors: [
                     'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
                     'service unavailable', 'parse_json', "noto'g'ri", 'javob', 'invalid json',
-                    'failed to parse', 'rate_limit_exceeded', '429', 'resource_exhausted',
+                    // 429 / quota exhausted bo'lsa retry qilish odatda behuda (tez-tez yana 429 beradi)
+                    // — fallback orqali boshqa model ham sinab ko'rilgan (executeWithModelFallback),
+                    // shu yetarli. Retry faqat network/server bezovtaligi uchun bo'lsin.
+                    'failed to parse', 'rate_limit_exceeded',
                 ],
             });
         } catch (error) {

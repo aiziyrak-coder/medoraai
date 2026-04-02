@@ -49,6 +49,12 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "AI javobi to'liq kelmadi. Iltimos, qayta urinib ko'ring.";
     }
 
+    // Rate limit / quota exhausted
+    // (429 xatolik ko'pincha "ApiError ... RESOURCE_EXHAUSTED" ko'rinishida keladi)
+    if (message.includes('rate limit') || message.includes('quota') || message.includes('429') || message.includes('resource_exhausted')) {
+      return "So'rovlar soni cheklangan (kvota tugagan). Iltimos, biroz kuting yoki kvotani oshiring.";
+    }
+
     // API errors
     if (message.includes('api') || message.includes('gemini')) {
       return "AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";
@@ -59,11 +65,6 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "So'rov vaqti tugadi. Iltimos, qayta urinib ko'ring.";
     }
     
-    // Rate limit errors
-    if (message.includes('rate limit') || message.includes('quota') || message.includes('429')) {
-      return "So'rovlar soni cheklangan. Iltimos, biroz kuting va qayta urinib ko'ring.";
-    }
-
     // Forbidden / access denied
     if (message.includes('403') || message.includes('forbidden') || message.includes('huquq')) {
       return "Ushbu amal uchun ruxsat yo'q. Iltimos, hisobingizni tekshiring.";
