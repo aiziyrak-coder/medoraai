@@ -18,6 +18,7 @@ import {
     generateInitialDiagnoses as apiBackendInitialDiagnoses,
 } from './services/apiAiService';
 import { inferFallbackSpecialists } from './utils/specialistTeamFallback';
+import { getAnalysis } from './services/apiAnalysisService';
 
 // --- Views & Components ---
 import AuthPage from './components/AuthPage';
@@ -750,17 +751,26 @@ const AppContent: React.FC = () => {
         });
     }, [currentAnalysisRecord, currentUser, userHistory, finalReport]);
 
-    const viewHistoryItem = (record: AnalysisRecord) => {
-        setCurrentAnalysisRecord(record);
-        setPatientData(record.patientData);
-        setDebateHistory(record.debateHistory);
-        setFinalReport(record.finalReport);
-        const specs = record.selectedSpecialists?.map(role => ({ role, backEndModel: "Gemini 3.0 Pro" })) || [];
+    const viewHistoryItem = async (record: AnalysisRecord) => {
+        const idNum = parseInt(record.id, 10);
+        let full = record;
+        if (!Number.isNaN(idNum) && idNum > 0) {
+            setStatusMessage('Yuklanmoqda…');
+            const res = await getAnalysis(idNum);
+            if (res.success && res.data) {
+                full = res.data;
+            }
+        }
+        setCurrentAnalysisRecord(full);
+        setPatientData(full.patientData);
+        setDebateHistory(full.debateHistory);
+        setFinalReport(full.finalReport);
+        const specs = full.selectedSpecialists?.map(role => ({ role, backEndModel: 'Gemini 3.0 Pro' })) || [];
         setSelectedSpecialistsConfig(specs);
-        setDifferentialDiagnoses(normalizeConsensusDiagnosis(record.finalReport?.consensusDiagnosis));
+        setDifferentialDiagnoses(normalizeConsensusDiagnosis(full.finalReport?.consensusDiagnosis));
         setAppView('live_analysis');
-        setIsProcessing(false); 
-        setStatusMessage("Arxivdan yuklandi. Munozarani davom ettirishingiz mumkin.");
+        setIsProcessing(false);
+        setStatusMessage('Arxivdan yuklandi. Munozarani davom ettirishingiz mumkin.');
     };
 
     /** Sahifa ichidagi qaytish paneli - faqat dashboard da ko'rinmaydi */

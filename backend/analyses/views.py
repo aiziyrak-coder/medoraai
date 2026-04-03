@@ -9,8 +9,11 @@ from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import AnalysisRecord, DiagnosisFeedback, AnalysisAuditLog, AnalysisUsefulnessFeedback
 from .serializers import (
-    AnalysisRecordSerializer, AnalysisRecordCreateSerializer,
-    AnalysisRecordUpdateSerializer, DiagnosisFeedbackSerializer
+    AnalysisRecordSerializer,
+    AnalysisRecordListSerializer,
+    AnalysisRecordCreateSerializer,
+    AnalysisRecordUpdateSerializer,
+    DiagnosisFeedbackSerializer,
 )
 
 
@@ -25,9 +28,11 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def get_serializer_class(self):
+        if self.action == 'list':
+            return AnalysisRecordListSerializer
         if self.action == 'create':
             return AnalysisRecordCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        if self.action in ('update', 'partial_update'):
             return AnalysisRecordUpdateSerializer
         return AnalysisRecordSerializer
 
@@ -35,13 +40,15 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = AnalysisRecord.objects.select_related('patient', 'created_by', 'patient__created_by')
         # Superuser / staff: barcha tahlillar (admin)
-        if user.is_superuser or user.is_staff:
-            return queryset
-        # Faqat o'z bemorlari bo'yicha tahlillar (bemor — manba; created_by boshqa hisob bo'lsa ham aralashmasin)
-        return queryset.filter(
-            Q(patient__created_by=user)
-            | Q(patient__created_by__isnull=True, created_by=user)
-        )
+        if not (user.is_superuser or user.is_staff):
+            queryset = queryset.filter(
+                Q(patient__created_by=user)
+                | Q(patient__created_by__isnull=True, created_by=user)
+            )
+        # List: skip loading huge JSON columns (serializer does not expose them)
+        if getattr(self, 'action', None) == 'list':
+            queryset = queryset.defer('debate_history', 'follow_up_history')
+        return queryset
 
     def _log_audit(self, analysis, action, extra=None):
         try:
@@ -155,9 +162,9 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         count_last_7d = queryset.filter(created_at__gte=seven_days_ago).count()
         count_last_30d = queryset.filter(created_at__gte=thirty_days_ago).count()
         
-        # Get common diagnoses (limit batch for performance; top 8 for dashboard)
+        # Get common diagnoses (only final_report from DB; top 8 for dashboard)
         common_diagnoses = {}
-        for analysis in queryset[:300]:
+        for analysis in queryset.order_by('-created_at')[:300].only('final_report'):
             final_report = analysis.final_report or {}
             diagnoses = final_report.get('consensusDiagnosis', [])
             for diag in diagnoses[:1]:  # Top diagnosis

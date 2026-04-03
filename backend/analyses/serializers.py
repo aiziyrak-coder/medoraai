@@ -1,10 +1,28 @@
 """
 Analysis Serializers
 """
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import AnalysisRecord, DiagnosisFeedback
+from patients.models import Patient
 from patients.serializers import PatientSerializer
 from accounts.serializers import UserSerializer
+
+User = get_user_model()
+
+
+class PatientSummarySerializer(serializers.ModelSerializer):
+    """Light patient payload for analysis list (avoids nested heavy fields)."""
+
+    class Meta:
+        model = Patient
+        fields = ['id', 'first_name', 'last_name', 'age', 'gender']
+
+
+class UserNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'name']
 
 
 class DiagnosisFeedbackSerializer(serializers.ModelSerializer):
@@ -15,6 +33,63 @@ class DiagnosisFeedbackSerializer(serializers.ModelSerializer):
         model = DiagnosisFeedback
         fields = ['id', 'diagnosis_name', 'feedback', 'created_by', 'created_at']
         read_only_fields = ['id', 'created_by', 'created_at']
+
+
+class AnalysisRecordListSerializer(serializers.ModelSerializer):
+    """
+    Minimal fields for list endpoint — keeps responses small (HTTP/2 + nginx safe).
+    Full debate/follow-up and nested feedbacks: use retrieve.
+    """
+
+    patient = PatientSummarySerializer(read_only=True)
+    patient_id = serializers.SerializerMethodField(read_only=True)
+    created_by = UserNameSerializer(read_only=True)
+    debate_history = serializers.SerializerMethodField()
+    follow_up_history = serializers.SerializerMethodField()
+    final_report = serializers.SerializerMethodField()
+    diagnosis_feedbacks = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_patient_id(obj):
+        pid = getattr(obj, 'patient_id', None) or (getattr(obj.patient, 'id', None) if getattr(obj, 'patient', None) else None)
+        return str(pid) if pid is not None else ''
+
+    @staticmethod
+    def get_debate_history(_obj):
+        return []
+
+    @staticmethod
+    def get_follow_up_history(_obj):
+        return []
+
+    @staticmethod
+    def get_diagnosis_feedbacks(_obj):
+        return []
+
+    def get_final_report(self, obj):
+        fr = obj.final_report if isinstance(obj.final_report, dict) else {}
+        slim = {}
+        for key in (
+            'consensusDiagnosis',
+            'chiefComplaint',
+            'summary',
+            'overview',
+            'recommendations',
+            'criticalFindings',
+        ):
+            if key in fr:
+                slim[key] = fr[key]
+        return slim
+
+    class Meta:
+        model = AnalysisRecord
+        fields = [
+            'id', 'patient', 'patient_id', 'external_patient_id', 'patient_data',
+            'debate_history', 'final_report', 'follow_up_history',
+            'selected_specialists', 'detected_medications',
+            'diagnosis_feedbacks', 'created_by', 'created_at', 'updated_at'
+        ]
+        read_only_fields = fields
 
 
 class AnalysisRecordSerializer(serializers.ModelSerializer):
