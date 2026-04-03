@@ -8,12 +8,6 @@ from decimal import Decimal
 import os
 from decouple import config
 
-# DisallowedHost bartaraf: get_host() ni settings yuklanishida patch
-import django.http.request as _django_request_mod
-_django_request_mod.HttpRequest.get_host = lambda self: (
-    (self.META.get('HTTP_HOST') or 'fjstiapi.ziyrak.org').split('#')[0].strip()
-)
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,17 +24,19 @@ if not DEBUG and SECRET_KEY == _default_secret:
         'Generate one with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
     )
 
-# ALLOWED_HOSTS: serverni .env/systemd override qilishini bekor qilish  -  faqat *
-ALLOWED_HOSTS = [
-    '*',
-    'fjsti.ziyrak.org',
-    'fjstiapi.ziyrak.org',
-    'medora.cdcgroup.uz',
-    'medoraapi.cdcgroup.uz',
-    'medoraai.cdcgroup.uz',
-    'localhost',
-    '127.0.0.1',
-]
+# ALLOWED_HOSTS: .env da vergul bilan; * ISHLATMASLIK (Host header spoofing / cache zaharlash).
+_DEFAULT_ALLOWED_HOSTS = (
+    'localhost,127.0.0.1,'
+    'fjsti.ziyrak.org,fjstiapi.ziyrak.org,'
+    'medora.cdcgroup.uz,medoraapi.cdcgroup.uz,medoraai.cdcgroup.uz'
+)
+_allowed_env = config('ALLOWED_HOSTS', default='')
+if _allowed_env and str(_allowed_env).strip():
+    ALLOWED_HOSTS = [h.strip() for h in str(_allowed_env).split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = [h.strip() for h in _DEFAULT_ALLOWED_HOSTS.split(',') if h.strip()]
+if DEBUG:
+    ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, 'testserver']))
 
 # Application definition — drf_yasg optional (requires pkg_resources, may fail on Python 3.14)
 try:
@@ -179,6 +175,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
+# REST: production da faqat JSON (Browsable API HTML — debug / ma'lumot sizib chiqishi)
+_REST_RENDERERS = ('rest_framework.renderers.JSONRenderer',)
+if DEBUG:
+    _REST_RENDERERS = _REST_RENDERERS + ('rest_framework.renderers.BrowsableAPIRenderer',)
+
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -195,10 +196,7 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ),
+    'DEFAULT_RENDERER_CLASSES': _REST_RENDERERS,
     'EXCEPTION_HANDLER': 'medoraai_backend.exceptions.custom_exception_handler',
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
@@ -235,8 +233,7 @@ _CORS_DEFAULT_STR = (
     'https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,'
     'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
     'https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
-    'http://localhost:5173,http://127.0.0.1:5173,'
-    'http://20.82.115.71'
+    'http://localhost:5173,http://127.0.0.1:5173'
 )
 _CORS_ALWAYS_APPEND = (
     'https://fjsti.ziyrak.org',
@@ -508,18 +505,3 @@ ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'a
 
 # USD → UZS (Markaziy bank kursi; oylik narxlarni so'mda ko'rsatish va yaxlitlash)
 USD_TO_UZS_RATE = Decimal(str(config('USD_TO_UZS_RATE', default='12500')))
-
-# Security Settings (Production)
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Nginx orqada SSL
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-
-# get_host() patch settings boshida qo'yilgan (DisallowedHost bartaraf)

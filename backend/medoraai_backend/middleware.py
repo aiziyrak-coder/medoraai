@@ -16,24 +16,14 @@ HEALTH_BODY = b'{"status":"healthy","service":"Farg\'ona JSTI backend"}'
 
 class EarlyHealthMiddleware(MiddlewareMixin):
     """
-    Eng birinchi: DisallowedHost bartaraf + GET /health/ darhol 200.
-    Har so'rovda get_host() va ALLOWED_HOSTS o'rnatiladi  -  400 umuman chiqmasin.
+    Birinchi qatlam: GET /health tez javob (Gunicorn/Django yukisiz tekshiruv).
+    Eski fargana.uz domenini medora.cdcgroup.uz ga normalize qiladi (ALLOWED_HOSTS bilan mos).
     """
     def process_request(self, request):
         _meta = request.META
-        _fallback = 'fjstiapi.ziyrak.org'
-        # 1) get_host() ni instance da override (CommonMiddleware DisallowedHost tashlamaydi)
-        def _safe_get_host():
-            h = (_meta.get('HTTP_HOST') or _fallback).strip().split('#')[0].strip()
-            return h.split(':')[0] if ':' in h else h
-        request.get_host = _safe_get_host
-        # 2) ALLOWED_HOSTS majburan *
-        settings.ALLOWED_HOSTS = ['*']
-        # 3) fargana.uz hostni normalize qilish
         host_raw = (_meta.get('HTTP_HOST') or '').strip().split(':')[0].lower()
         if host_raw and 'fargana.uz' in host_raw:
             _meta['HTTP_HOST'] = 'medora.cdcgroup.uz'
-        # 4) /health/ uchun darhol 200
         if request.method in ('GET', 'OPTIONS') and request.path.rstrip('/') == '/health':
             r = HttpResponse(HEALTH_BODY, content_type='application/json', status=200)
             r['Access-Control-Allow-Origin'] = '*'

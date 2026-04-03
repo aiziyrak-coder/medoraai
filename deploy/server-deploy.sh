@@ -37,11 +37,17 @@ systemctl restart medoraai-backend-8001.service 2>/dev/null || true
 echo "=== 3. Frontend build ==="
 cd "$APP_DIR/frontend"
 npm install --silent 2>/dev/null || npm install
-export VITE_API_BASE_URL=https://medora.cdcgroup.uz/api
+# API URL: backend .env da VITE_API_BASE_URL bo'lsa shu (FJSTI: https://fjstiapi.ziyrak.org/api)
+VITE_API_BASE_URL="https://medora.cdcgroup.uz/api"
 if [ -f "$APP_DIR/backend/.env" ]; then
+  _v=$(grep -E '^VITE_API_BASE_URL=' "$APP_DIR/backend/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  _v=$(echo "$_v" | sed "s/^[\"']//;s/[\"']$//")
+  [ -n "$_v" ] && VITE_API_BASE_URL="$_v"
   GEMINI_API_KEY=$(grep -E '^GEMINI_API_KEY=' "$APP_DIR/backend/.env" 2>/dev/null | cut -d= -f2-)
   [ -n "$GEMINI_API_KEY" ] && export VITE_GEMINI_API_KEY="$GEMINI_API_KEY"
 fi
+export VITE_API_BASE_URL
+echo "  VITE_API_BASE_URL=$VITE_API_BASE_URL"
 npm run build
 
 chmod 755 /root 2>/dev/null || true
@@ -61,9 +67,10 @@ ln -sfn "$APP_DIR/frontend/dist" "$APP_DIR/dist"
 chmod -R o+rX "$APP_DIR/dist" 2>/dev/null || true
 
 if [ -f "$APP_DIR/backend/.env" ]; then
-  sed -i.bak '/^ALLOWED_HOSTS=/d' "$APP_DIR/backend/.env" 2>/dev/null || true
+  if ! grep -qE '^ALLOWED_HOSTS=' "$APP_DIR/backend/.env" 2>/dev/null; then
+    echo "  ESLATMA: backend/.env da ALLOWED_HOSTS yo'q — settings.py dagi default domenlar ishlatiladi."
+  fi
 fi
-grep -q "HttpRequest.get_host = _safe_get_host\|_req_mod.HttpRequest.get_host" "$APP_DIR/backend/medoraai_backend/wsgi.py" 2>/dev/null && echo "  wsgi.py: get_host patch mavjud." || echo "  DIQQAT: wsgi.py da get_host patch yo'q!"
 
 pkill -f "gunicorn.*medoraai_backend.wsgi" 2>/dev/null || true
 sleep 1
