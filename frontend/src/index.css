@@ -44,6 +44,45 @@
   }
 }
 
+@layer components {
+  /* Kartochkalar — layout oqimi (glass-panel ilgari Tailwind da yo‘q edi) */
+  .glass-panel {
+    @apply relative rounded-2xl border border-slate-200/80 bg-white/85 shadow-sm;
+    isolation: isolate;
+  }
+
+  /*
+   * Yangi holat formasi (mobil): index.html dagi .common-input katta padding/font
+   * iOS/Android da select va maydonlarni katta qilib, keyingi bloklarga “chiqib” ketadi.
+   */
+  @media (max-width: 1023px) {
+    .data-input-compact select,
+    .data-input-compact input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']),
+    .data-input-compact textarea {
+      padding: 0.375rem 0.5rem !important;
+      font-size: 0.8125rem !important;
+      line-height: 1.35 !important;
+      min-height: 2.25rem;
+      box-sizing: border-box;
+    }
+
+    .data-input-compact textarea {
+      min-height: 5.5rem;
+    }
+
+    /* Flex min-h-0 tufayli siqilganda kontent ustma-ust chiqmasin */
+    .data-form-mobile-flow > * {
+      flex-shrink: 0;
+    }
+
+    .data-input-compact.data-form-root {
+      animation: none !important;
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
 /* =====================================================
    SAHIFA FONI - ANIMATSION GRADIENT
    ===================================================== */
