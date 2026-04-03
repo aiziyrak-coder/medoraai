@@ -6,7 +6,7 @@ import * as aiService from './services/aiCouncilService';
 import * as authService from './services/apiAuthService';
 import * as caseService from './services/caseService';
 import { useTranslation } from './hooks/useTranslation';
-import { getSpecialistsFromComplaint } from './utils/specialistRecommendation';
+import { getSpecialistsFromComplaint, mergeSpecialistRecommendations } from './utils/specialistRecommendation';
 import { checkPatientComplaintConsistency } from './utils/smartValidation';
 import { getPriorAnalysesForPatient, buildLongitudinalClinicalNotes } from './utils/longitudinalContext';
 import { useApiHealth } from './hooks/useApiHealth';
@@ -16,8 +16,8 @@ import { getAuthToken, clearTokens } from './services/api';
 import {
     generateClarifyingQuestions as apiBackendClarifyingQuestions,
     generateInitialDiagnoses as apiBackendInitialDiagnoses,
+    recommendSpecialists as apiRecommendSpecialists,
 } from './services/apiAiService';
-import { inferFallbackSpecialists } from './utils/specialistTeamFallback';
 import { getAnalysis } from './services/apiAnalysisService';
 
 // --- Views & Components ---
@@ -565,28 +565,40 @@ const AppContent: React.FC = () => {
         const instantTeam = getSpecialistsFromComplaint(enrichedPatientData);
         setRecommendedTeam(instantTeam);
         setAppView('team_recommendation');
-        
-        // Orqa fonda diagnoses generatsiya qilish (agar kerak bo'lsa)
-        setIsProcessing(true);
-        setStatusMessage(t('ddx_generating'));
-        let diagnoses: Diagnosis[] = [];
-        try {
+
+        // DDX va mutaxassis API — fonda; global isProcessing yo'q (jamoa sahifasi darhol, spinner bloklamaydi)
+        void (async () => {
+            let diagnoses: Diagnosis[] = [];
             try {
-                const ddxResp = await apiBackendInitialDiagnoses(enrichedPatientData);
-                if (ddxResp.success && ddxResp.data?.length) {
-                    diagnoses = ddxResp.data;
+                try {
+                    const ddxResp = await apiBackendInitialDiagnoses(enrichedPatientData);
+                    if (ddxResp.success && ddxResp.data?.length) {
+                        diagnoses = ddxResp.data;
+                    }
+                } catch {
+                    try {
+                        diagnoses = await aiService.generateInitialDiagnoses(enrichedPatientData, language);
+                    } catch {
+                        diagnoses = [];
+                    }
+                }
+                setDifferentialDiagnoses(diagnoses);
+                if (diagnoses.length > 0) {
+                    try {
+                        const recResp = await apiRecommendSpecialists(enrichedPatientData, diagnoses);
+                        if (recResp.success && recResp.data?.recommendations?.length) {
+                            setRecommendedTeam((prev) =>
+                                mergeSpecialistRecommendations(prev ?? [], recResp.data!.recommendations),
+                            );
+                        }
+                    } catch {
+                        /* tavsiya ixtiyoriy */
+                    }
                 }
             } catch {
-                try {
-                    diagnoses = await aiService.generateInitialDiagnoses(enrichedPatientData, language);
-                } catch {
-                    diagnoses = [];
-                }
+                /* ignore */
             }
-            setDifferentialDiagnoses(diagnoses);
-        } finally { 
-            setIsProcessing(false); 
-        }
+        })();
     };
 
     const handleTeamConfirmation = async (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestrator: string) => {

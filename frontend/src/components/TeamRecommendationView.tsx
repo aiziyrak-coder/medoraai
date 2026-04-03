@@ -94,7 +94,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
         });
     }, [recommendations, selectedSpecialists, searchTerm, t]);
 
-    if (isProcessing || !recommendations) {
+    // Faqat boshlang'ich jamoa hali yo'q va kutilyapti — to'liq ekran spinner (DDX/AI fonda bo'lsa ham ko'rinmaydi)
+    const waitingInitialTeam =
+        isProcessing && (!recommendations || recommendations.length === 0);
+
+    if (waitingInitialTeam) {
         return (
             <div className="glass-panel animate-fade-in-up p-12 text-center flex flex-col items-center justify-center h-full">
                 <div className="relative">
@@ -103,6 +107,14 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 </div>
                 <h3 className="mt-6 text-xl font-bold text-text-primary">Ekspertlar tahlil qilinmoqda...</h3>
                 <p className="text-text-secondary mt-2">Bemor ma'lumotlariga asoslangan eng kuchli jamoa shakllantirilmoqda.</p>
+            </div>
+        );
+    }
+
+    if (!recommendations || recommendations.length === 0) {
+        return (
+            <div className="glass-panel animate-fade-in-up p-8 text-center text-text-secondary text-sm">
+                Shikoyat va klinik ma&apos;lumotlarga mos mutaxassis topilmadi. Iltimos, shikoyatni batafsilroq yozing yoki qayta urinib ko&apos;ring.
             </div>
         );
     }

@@ -159,24 +159,49 @@ export function getSpecialistsFromComplaint(data: PatientData | string): { model
     }
   }
 
-  // 2-QADAM: Agar 6 tadan kam bo'lsa, default mutaxassislar qo'shish (random emas!)
-  if (result.length < 6) {
-    // Default mutaxassislar ro'yxati - HAR DOIM bir xil
+  // 2-QADAM: Faqat hech qanday kalit so'z topilmasa — umumiy konsilium asoslari (kasallikka oid bo'lmagan "to'ldiruvchi" kam)
+  if (result.length === 0) {
     const defaultModels: AIModel[] = [
-      AIModel.GEMINI,        // Terapevt
       AIModel.INTERNAL_MEDICINE,
       AIModel.FAMILY_MEDICINE,
+      AIModel.GEMINI,
       AIModel.PHARMACOLOGIST,
       AIModel.EMERGENCY,
     ];
-    
     for (const model of defaultModels) {
       if (result.length >= 6) break;
       if (seen.has(model)) continue;
       seen.add(model);
-      result.push({ model, reason: 'Kengash tarkibi' });
+      result.push({ model, reason: 'Umumiy klinik konsilium' });
+    }
+  } else if (result.length < 4) {
+    // Kamida 4 ta tanlash uchun: faqat mavjud yo'nalishni qo'llab-quvvatlovchi profillar
+    const support: AIModel[] = [AIModel.INTERNAL_MEDICINE, AIModel.FAMILY_MEDICINE, AIModel.PHARMACOLOGIST];
+    for (const model of support) {
+      if (result.length >= 4) break;
+      if (seen.has(model)) continue;
+      seen.add(model);
+      result.push({ model, reason: 'Asosiy holat bilan bog\'liq qo\'llab-quvvatlash' });
     }
   }
 
   return result.slice(0, 10);
+}
+
+/** API/DDx dan kelgan tavsiyalarni birinchi o'ringa qo'shib, takrorlarni olib tashlaydi */
+export function mergeSpecialistRecommendations(
+  primary: { model: AIModel; reason: string }[],
+  refinement: { model: AIModel; reason: string }[],
+  max = 12,
+): { model: AIModel; reason: string }[] {
+  const seen = new Set<AIModel>();
+  const out: { model: AIModel; reason: string }[] = [];
+  for (const list of [refinement, primary]) {
+    for (const r of list) {
+      if (!r?.model || seen.has(r.model)) continue;
+      seen.add(r.model);
+      out.push({ model: r.model, reason: (r.reason || '').trim() || 'Tavsiya' });
+    }
+  }
+  return out.slice(0, max);
 }
