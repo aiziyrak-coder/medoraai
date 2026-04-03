@@ -13,6 +13,10 @@ import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
 import { getAuthToken, clearTokens } from './services/api';
+import {
+    generateClarifyingQuestions as apiBackendClarifyingQuestions,
+    generateInitialDiagnoses as apiBackendInitialDiagnoses,
+} from './services/apiAiService';
 import { inferFallbackSpecialists } from './utils/specialistTeamFallback';
 
 // --- Views & Components ---
@@ -478,9 +482,8 @@ const AppContent: React.FC = () => {
         }
 
         try {
-            const { generateClarifyingQuestions } = await import('./services/apiAiService');
             const response = await Promise.race([
-                generateClarifyingQuestions(data),
+                apiBackendClarifyingQuestions(data),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('timeout')), CLARIFY_TIMEOUT_MS)),
             ]);
@@ -567,9 +570,8 @@ const AppContent: React.FC = () => {
         setStatusMessage(t('ddx_generating'));
         let diagnoses: Diagnosis[] = [];
         try {
-            const { generateInitialDiagnoses } = await import('./services/apiAiService');
             try {
-                const ddxResp = await generateInitialDiagnoses(enrichedPatientData);
+                const ddxResp = await apiBackendInitialDiagnoses(enrichedPatientData);
                 if (ddxResp.success && ddxResp.data?.length) {
                     diagnoses = ddxResp.data;
                 }

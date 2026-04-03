@@ -25,6 +25,17 @@ export const logger = {
   warn: (...args: unknown[]) => {
     if (isDevelopment) {
       console.warn(LOG_PREFIX + " WARN", ...args);
+    } else {
+      console.warn("[WARN]", ...args);
+    }
+  },
+
+  /** Python logging.warning / ba’zi servislar bilan mos nom */
+  warning: (...args: unknown[]) => {
+    if (isDevelopment) {
+      console.warn(LOG_PREFIX + " WARN", ...args);
+    } else {
+      console.warn("[WARN]", ...args);
     }
   },
 
