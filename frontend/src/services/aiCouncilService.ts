@@ -45,26 +45,30 @@ function getGemini(): GoogleGenAI {
   return _geminiClient;
 }
 
-/* Gemini 3 — tez/kuchli; 404/429 da 2.5 zaxira (1.5 seriyasi eskirgan) */
+/*
+ * Asosiy: 2.5 flash (barqaror/tez). 3-preview ba'zan 503 — zaxira zanjirida keyinroq.
+ * Override: VITE_GEMINI_MODEL_FAST / VITE_GEMINI_MODEL_PRO
+ */
 const MODEL_FAST =
-    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-3-flash-preview';
+    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-2.5-flash';
 const MODEL_PRO =
-    (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-3-pro-preview';
+    (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-2.5-pro';
 /** Aliases used across council/debate */
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
 
-/** Zaxira: avvalo 2.5/2.0 (barqaror), oxirida Pro */
+/** Zaxira: 3-preview, keyin 2.0, keyin Pro variantlari */
 const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
-    MODEL_FAST,
+    'gemini-3-flash-preview',
     'gemini-2.5-flash',
     'gemini-2.0-flash',
+    'gemini-3-pro-preview',
     'gemini-2.5-pro',
 ];
 const GEMINI_FALLBACK_AFTER_FLASH: readonly string[] = [
-    'gemini-2.5-flash',
+    'gemini-3-flash-preview',
     'gemini-2.0-flash',
-    MODEL_PRO,
+    'gemini-3-pro-preview',
     'gemini-2.5-pro',
 ];
 

@@ -28,8 +28,8 @@ def _get_client():
         return None
 
 # Pro/Flash modellar (settings/.env: GEMINI_MODEL_PRO, GEMINI_MODEL_FLASH)
-GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-3-flash-preview")
-GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-3-pro-preview")
+GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.5-flash")
+GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-2.5-pro")
 
 SPECIALIST_NAMES = [
     "Gemini", "Claude", "GPT-4o", "Llama 3", "Grok",
@@ -253,53 +253,79 @@ ANIQLIK: probability ni dalil kuchiga mos qo'ying; ma'lumot yetishmasa pastroq b
 Javobni faqat JSON massiv qilib qaytaring, masalan:
 [ {{ "name": "...", "probability": 70, "justification": "...", "evidenceLevel": "High", "reasoningChain": ["...", "..."], "uzbekProtocolMatch": "..." }} ]
 O'zbek tilida (Lotin)."""
-    # Try Flash first with JSON only to stay under proxy/gunicorn timeout (~30s)
-    for use_json in (True, False):
-        try:
-            raw = _call_gemini(
-                prompt, GEMINI_FLASH,
-                response_mime_type="application/json" if use_json else None,
-            )
-            # Clean up markdown code blocks and extra whitespace
-            raw = (raw or "").replace("```json", "").replace("```", "").replace("```text", "").strip()
+    import re
+
+    model_order = []
+    for m in (
+        GEMINI_FLASH,
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-3-flash-preview",
+        GEMINI_PRO,
+        "gemini-2.5-pro",
+        "gemini-3-pro-preview",
+    ):
+        if m and m not in model_order:
+            model_order.append(m)
+
+    for model_name in model_order:
+        for use_json in (True, False):
             try:
-                data = json.loads(raw)
-            except json.JSONDecodeError as e:
-                logger.warning("Gemini generate_diagnoses: invalid JSON (error=%s), raw=%s", e, raw[:500])
-                # Try to extract array from text using regex
-                import re
-                match = re.search(r'\[[\s\S]*\]', raw)
-                if match:
-                    try:
-                        data = json.loads(match.group(0))
-                        logger.info("Successfully extracted JSON array from malformed response")
-                    except json.JSONDecodeError:
+                raw = _call_gemini(
+                    prompt,
+                    model_name,
+                    response_mime_type="application/json" if use_json else None,
+                    max_output_tokens=4096,
+                )
+                raw = (raw or "").replace("```json", "").replace("```", "").replace("```text", "").strip()
+                try:
+                    data = json.loads(raw)
+                except json.JSONDecodeError as e:
+                    logger.warning(
+                        "Gemini generate_diagnoses: invalid JSON (model=%s, error=%s), raw=%s",
+                        model_name,
+                        e,
+                        raw[:500],
+                    )
+                    match = re.search(r'\[[\s\S]*\]', raw)
+                    if match:
+                        try:
+                            data = json.loads(match.group(0))
+                        except json.JSONDecodeError:
+                            continue
+                    else:
                         continue
-                else:
-                    continue
-            
-            if not isinstance(data, list):
-                data = [data] if isinstance(data, dict) else []
-            out = []
-            for d in data[:8]:
-                name = (d.get("name") or "Tashxis").strip()
-                prob = max(0, min(100, int(d.get("probability", 50))))
-                rc = d.get("reasoningChain")
-                if isinstance(rc, list):
-                    reasoning_chain = [str(x).strip() for x in rc if str(x).strip()]
-                elif isinstance(rc, str) and rc.strip():
-                    reasoning_chain = [rc.strip()]
-                else:
-                    reasoning_chain = []
-                out.append({
-                    "name": name,
-                    "probability": prob,
-                    "justification": (d.get("justification") or "")[:500],
-                    "evidenceLevel": (d.get("evidenceLevel") or "Moderate")[:50],
-                    "reasoningChain": reasoning_chain,
-                    "uzbekProtocolMatch": (d.get("uzbekProtocolMatch") or "")[:300],
-                })
-            return out
-        except Exception as e:
-            logger.warning("Gemini generate_diagnoses (flash, json=%s) failed: %s", use_json, e)
+
+                if not isinstance(data, list):
+                    data = [data] if isinstance(data, dict) else []
+                out = []
+                for d in data[:8]:
+                    if not isinstance(d, dict):
+                        continue
+                    name = (d.get("name") or "Tashxis").strip()
+                    prob = max(0, min(100, int(d.get("probability", 50))))
+                    rc = d.get("reasoningChain")
+                    if isinstance(rc, list):
+                        reasoning_chain = [str(x).strip() for x in rc if str(x).strip()]
+                    elif isinstance(rc, str) and rc.strip():
+                        reasoning_chain = [rc.strip()]
+                    else:
+                        reasoning_chain = []
+                    out.append({
+                        "name": name,
+                        "probability": prob,
+                        "justification": (d.get("justification") or "")[:500],
+                        "evidenceLevel": (d.get("evidenceLevel") or "Moderate")[:50],
+                        "reasoningChain": reasoning_chain,
+                        "uzbekProtocolMatch": (d.get("uzbekProtocolMatch") or "")[:300],
+                    })
+                if out:
+                    return out
+            except Exception as e:
+                logger.warning(
+                    "Gemini generate_diagnoses (model=%s, json=%s) failed: %s",
+                    model_name,
+                    use_json,
+                    e,
+                )
     return []

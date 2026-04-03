@@ -7,6 +7,7 @@
  *   3. Doctor Stream    ->  /api/ai/doctor-stream/  (SSE)
  */
 import { apiPost, API_BASE_URL, type ApiResponse } from './api';
+import { API_CONFIG } from '../config/api';
 import type { PatientData, Diagnosis, AIModel } from '../types';
 
 // ---
@@ -123,10 +124,14 @@ export const runConsilium = async (
   patientData: PatientData,
   language: string = 'uz-L',
 ): Promise<ApiResponse<ConsiliumResult>> => {
-  return apiPost<ConsiliumResult>('/ai/consilium/', {
-    patient_data: patientData,
-    language,
-  });
+  return apiPost<ConsiliumResult>(
+    '/ai/consilium/',
+    {
+      patient_data: patientData,
+      language,
+    },
+    API_CONFIG.AI_TIMEOUT_MS,
+  );
 };
 
 /** Doctor Support Mode - synchronous (GPT-4o) */
@@ -138,12 +143,16 @@ export const runDoctorSupport = async (
     language?:  string;
   } = {},
 ): Promise<ApiResponse<DoctorSupportResult>> => {
-  return apiPost<DoctorSupportResult>('/ai/doctor-support/', {
-    patient_data: patientData,
-    query:        options.query     || '',
-    task_type:    options.taskType  || TASK_QUICK_CONSULT,
-    language:     options.language  || 'uz-L',
-  });
+  return apiPost<DoctorSupportResult>(
+    '/ai/doctor-support/',
+    {
+      patient_data: patientData,
+      query:        options.query     || '',
+      task_type:    options.taskType  || TASK_QUICK_CONSULT,
+      language:     options.language  || 'uz-L',
+    },
+    API_CONFIG.AI_TIMEOUT_MS,
+  );
 };
 
 /**
@@ -225,7 +234,7 @@ export const runDoctorSupportStream = (
 export const generateClarifyingQuestions = async (
   patientData: PatientData,
 ): Promise<ApiResponse<string[]>> => {
-  return apiPost<string[]>('/ai/clarifying-questions/', { patient_data: patientData });
+  return apiPost<string[]>('/ai/clarifying-questions/', { patient_data: patientData }, API_CONFIG.AI_TIMEOUT_MS);
 };
 
 export const recommendSpecialists = async (
@@ -238,6 +247,7 @@ export const recommendSpecialists = async (
       patient_data: patientData,
       differential_diagnoses: differentialDiagnoses ?? [],
     },
+    API_CONFIG.AI_TIMEOUT_MS,
   );
   if (response.success && response.data) {
     const recs = Array.isArray(response.data.recommendations) ? response.data.recommendations : [];
@@ -257,12 +267,19 @@ export const recommendSpecialists = async (
 export const generateInitialDiagnoses = async (
   patientData: PatientData,
 ): Promise<ApiResponse<Diagnosis[]>> => {
-  const response = await apiPost<Diagnosis[]>('/ai/generate-diagnoses/', { patient_data: patientData });
-  if (!response.success && response.error?.code === 503) {
+  const response = await apiPost<Diagnosis[]>(
+    '/ai/generate-diagnoses/',
+    { patient_data: patientData },
+    API_CONFIG.AI_TIMEOUT_MS,
+  );
+  if (!response.success && (response.error?.code === 503 || response.error?.code === 0)) {
     return {
       success: true,
       data: [],
-      warning: "AI xizmati vaqtincha band. Bo'sh ro'yxat bilan davom eting yoki keyinroq qayta urinib ko'ring.",
+      warning:
+        response.error?.code === 0
+          ? "AI so'rovi uzoq tushdi yoki tarmoq uzildi. Qayta urinib ko'ring."
+          : "AI xizmati vaqtincha band. Bo'sh ro'yxat bilan davom eting yoki keyinroq qayta urinib ko'ring.",
     };
   }
   return response;
@@ -275,5 +292,5 @@ export const runCouncilDebate = async (
   _specialists: Array<{ role: AIModel; backEndModel: string }>,
   _orchestrator: string,
 ): Promise<ApiResponse<{ status: string; message: string }>> => {
-  return apiPost('/ai/council-debate/', { patient_data: patientData });
+  return apiPost('/ai/council-debate/', { patient_data: patientData }, API_CONFIG.AI_TIMEOUT_MS);
 };

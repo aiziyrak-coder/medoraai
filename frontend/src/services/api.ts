@@ -122,22 +122,23 @@ export const getUserData = (): unknown | null => {
  */
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const retryFetch = async <T>(
+const retryFetch = async (
   url: string,
   options: RequestInit,
   retries = 2,
-  delay = 300
+  delay = 300,
+  timeoutMs: number = API_CONFIG.TIMEOUT,
 ): Promise<Response> => {
   for (let i = 0; i < retries; i++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-      
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
       return response;
     } catch (error) {
@@ -153,13 +154,15 @@ const retryFetch = async <T>(
  */
 export const apiRequest = async <T = unknown>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { timeoutMs?: number } = {},
 ): Promise<ApiResponse<T>> => {
+  const { timeoutMs, ...fetchOptions } = options;
+  const effectiveTimeout = timeoutMs ?? API_CONFIG.TIMEOUT;
   const token = getAuthToken();
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> | undefined),
+    ...(fetchOptions.headers as Record<string, string> | undefined),
   };
 
   if (token) {
@@ -174,12 +177,15 @@ export const apiRequest = async <T = unknown>(
     }
   }
 
+  const merged: RequestInit = { ...fetchOptions, headers: headers as HeadersInit };
+
   try {
     const response = await retryFetch(
       `${API_BASE_URL}${endpoint}`,
-      { ...options, headers: headers as HeadersInit },
+      merged,
       API_CONFIG.RETRY_ATTEMPTS,
-      API_CONFIG.RETRY_DELAY
+      API_CONFIG.RETRY_DELAY,
+      effectiveTimeout,
     );
 
     // Handle 403 Forbidden - use backend detail if present
@@ -203,9 +209,10 @@ export const apiRequest = async <T = unknown>(
       await new Promise(r => setTimeout(r, delayMs));
       const retryResponse = await retryFetch(
         `${API_BASE_URL}${endpoint}`,
-        { ...options, headers },
+        { ...fetchOptions, headers },
         1,
-        delayMs / 1000
+        delayMs / 1000,
+        effectiveTimeout,
       );
       const retryResult = await handleResponse<T>(retryResponse);
       if (!retryResult.success && retryResponse.status === 429) {
@@ -230,9 +237,10 @@ export const apiRequest = async <T = unknown>(
           headers['Authorization'] = `Bearer ${newToken}`;
           const retryResponse = await retryFetch(
             `${API_BASE_URL}${endpoint}`,
-            { ...options, headers },
+            { ...fetchOptions, headers },
             1, // Single retry for token refresh
-            API_CONFIG.RETRY_DELAY
+            API_CONFIG.RETRY_DELAY,
+            effectiveTimeout,
           );
           return handleResponse<T>(retryResponse);
         }
@@ -427,10 +435,15 @@ export const apiGet = <T = unknown>(endpoint: string, params?: Record<string, st
 /**
  * POST request
  */
-export const apiPost = <T = unknown>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> => {
+export const apiPost = <T = unknown>(
+  endpoint: string,
+  data?: unknown,
+  timeoutMs?: number,
+): Promise<ApiResponse<T>> => {
   return apiRequest<T>(endpoint, {
     method: 'POST',
     body: data ? JSON.stringify(data) : undefined,
+    ...(timeoutMs != null ? { timeoutMs } : {}),
   });
 };
 

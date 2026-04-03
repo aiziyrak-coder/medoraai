@@ -348,8 +348,9 @@ def _load_gemini_key():
     return ''
 GEMINI_API_KEY = _load_gemini_key()
 # Gemini model IDs (.env da override; 3 Pro: gemini-3.1-pro-preview)
-GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-3-flash-preview')
-GEMINI_MODEL_PRO = config('GEMINI_MODEL_PRO', default='gemini-3-pro-preview')
+# Default: 2.5 barqaror/tez; 3-preview ba'zan 503. .env da GEMINI_MODEL_FLASH=gemini-3-flash-preview qo'shing.
+GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-2.5-flash')
+GEMINI_MODEL_PRO = config('GEMINI_MODEL_PRO', default='gemini-2.5-pro')
 GEMINI_MODEL_THINKING = config('GEMINI_MODEL_THINKING', default='gemini-2.0-flash')
 AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-2.5-pro')
 

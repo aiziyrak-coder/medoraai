@@ -60,7 +60,10 @@ const resolvedBase = resolveApiBaseUrl();
 export const API_CONFIG = {
   BASE_URL: resolvedBase,
   HOST_BASE: stripApiSuffix(resolvedBase) || stripApiSuffix(rawFromEnv) || 'http://localhost:8000',
-  TIMEOUT: 20000,
+  /** Oddiy API (CRUD); Gemini kutadigan so‘rovlar alohida timeout */
+  TIMEOUT: 30000,
+  /** /api/ai/* — backend Gemini uzoq javob berishi mumkin */
+  AI_TIMEOUT_MS: 180000,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 350,
 };
