@@ -45,25 +45,27 @@ function getGemini(): GoogleGenAI {
   return _geminiClient;
 }
 
-/* v1beta generateContent: faqat barqaror IDlar; gemini-1.5-flash-8b ko‘pincha 404 */
-const MODEL_FAST = 'gemini-2.5-flash';
-const MODEL_PRO = 'gemini-2.5-pro';
+/* Gemini 3 — tez/kuchli; 404/429 da 2.5 zaxira (1.5 seriyasi eskirgan) */
+const MODEL_FAST =
+    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-3-flash-preview';
+const MODEL_PRO =
+    (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-3-pro-preview';
 /** Aliases used across council/debate */
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
 
-/** Zaxira modellar (429/503/404 dan keyin); tartib: tezroqdan sekinroqqa */
+/** Zaxira: avvalo 2.5/2.0 (barqaror), oxirida Pro */
 const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
     MODEL_FAST,
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
+    'gemini-2.5-pro',
 ];
 const GEMINI_FALLBACK_AFTER_FLASH: readonly string[] = [
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
     MODEL_PRO,
+    'gemini-2.5-pro',
 ];
 
 /** Map model label to Gemini model name */

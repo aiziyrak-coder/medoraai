@@ -28,8 +28,8 @@ def _get_client():
         return None
 
 # Pro/Flash modellar (settings/.env: GEMINI_MODEL_PRO, GEMINI_MODEL_FLASH)
-GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-2.0-flash")
-GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-2.5-pro")
+GEMINI_FLASH = getattr(settings, "GEMINI_MODEL_FLASH", "gemini-3-flash-preview")
+GEMINI_PRO = getattr(settings, "GEMINI_MODEL_PRO", "gemini-3-pro-preview")
 
 SPECIALIST_NAMES = [
     "Gemini", "Claude", "GPT-4o", "Llama 3", "Grok",
