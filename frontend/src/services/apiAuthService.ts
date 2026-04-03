@@ -204,18 +204,25 @@ export const getCurrentUser = (): User | null => {
  * Get user profile from API
  */
 export const getProfile = async (): Promise<User | null> => {
+  const cached = getCurrentUser();
   try {
     const response = await apiGet<Record<string, unknown>>('/auth/profile/');
-    
+
     if (response.success && response.data) {
       const user = normalizeUser(response.data);
       saveUserData(user);
       return user;
     }
-    
-    return null;
+
+    const code = response.error?.code;
+    // Faqat aniq autentifikatsiya rad etilganda sessiyani yopamiz
+    if (code === 401 || code === 403) {
+      return null;
+    }
+    // 0 = tarmoq, 5xx va hokazo — foydalanuvchini saqlab qolamiz (bo'sh sahifa / chiqish emas)
+    return cached;
   } catch {
-    return null;
+    return cached;
   }
 };
 

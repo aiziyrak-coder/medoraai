@@ -600,5 +600,6 @@ export const checkApiHealth = async (): Promise<HealthCheckResult> => {
   if (lastStatus !== undefined) {
     return { ok: false, status: lastStatus };
   }
-  return { ok: true, status: undefined };
+  // Barcha URL lar tarmoq xatosi (DNS, offline) — server yo'q deb hisoblash
+  return { ok: false, status: undefined };
 };
