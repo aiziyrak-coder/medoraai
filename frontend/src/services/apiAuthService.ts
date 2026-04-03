@@ -44,14 +44,13 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
   };
 }
 
-/** Foydalanuvchining obunasi faolmi (backend bilan mos: pending, trial, staff) */
+/** Foydalanuvchining obunasi faolmi (backend has_active_subscription bilan mos; trial yo'q) */
 export function hasActiveSubscription(user: User): boolean {
   if (user.isStaff || user.isSuperuser) return true;
   if (typeof user.hasActiveSubscription === 'boolean') return user.hasActiveSubscription;
-  if (user.subscriptionStatus === 'pending') return true;
+  if (user.subscriptionStatus === 'pending') return false;
   if (user.subscriptionStatus !== 'active') return false;
   const now = new Date();
-  if (user.trialEndsAt && new Date(user.trialEndsAt) > now) return true;
   if (user.subscriptionExpiry && new Date(user.subscriptionExpiry) > now) return true;
   if (!user.trialEndsAt && !user.subscriptionExpiry) return true;
   return false;

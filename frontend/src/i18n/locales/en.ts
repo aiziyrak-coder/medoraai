@@ -23,7 +23,7 @@ export const en = {
   landing_hero_badge: 'Clinical Reasoning Revolution v1.0',
   landing_hero_title_1: 'A New',
   landing_hero_title_2: 'Intellectual Era of Medicine',
-  landing_hero_desc: 'A unified system combining thousands of clinical protocols, global medical research, and an international expertise base. Improve diagnostic accuracy and optimize treatment.',
+  landing_hero_desc: 'A unified system combining tens of thousands of clinical protocols, global medical research, and an international expertise base. Improve diagnostic accuracy and optimize treatment.',
   landing_cta_start: 'Start',
   landing_cta_guide: 'How it Works?',
   landing_stats_protocols: 'Clinical Protocols',

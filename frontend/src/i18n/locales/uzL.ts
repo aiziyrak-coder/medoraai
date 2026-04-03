@@ -23,7 +23,7 @@ export const uzL: TranslationSet = {
   landing_hero_badge: 'Klinik Tafakkur Inqilobi v1.0',
   landing_hero_title_1: 'Tibbiyotning',
   landing_hero_title_2: 'Yangi Intellektual Davri',
-  landing_hero_desc: 'Minglar klinik protokollar va global ekspertiza bazasini o\'zida jamlagan yagona tizim. Tashxis qo\'yish aniqligini oshiring va davolashni optimallashtiring.',
+  landing_hero_desc: 'Minglab klinik protokollar va global ekspertiza bazasini o\'zida jamlagan yagona tizim. Tashxis qo\'yish aniqligini oshiring va davolashni optimallashtiring.',
   landing_cta_start: 'Boshlash',
   landing_cta_guide: 'Qanday ishlaydi?',
   landing_stats_protocols: 'Klinik Protokollar',

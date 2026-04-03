@@ -55,20 +55,16 @@ def increment_usage(user, limit_type='analyses'):
 
 
 def get_subscription_status(user):
-    """Get detailed subscription status"""
+    """Get detailed subscription status (trial ishlatilmaydi)."""
     now = timezone.now()
-    is_active = user.subscription_status == 'active'
-    
     days_remaining = None
-    if user.trial_ends_at and user.trial_ends_at > now:
-        days_remaining = (user.trial_ends_at - now).days
-    elif user.subscription_expiry and user.subscription_expiry > now:
+    if user.subscription_expiry and user.subscription_expiry > now:
         days_remaining = (user.subscription_expiry - now).days
-    
+
     return {
-        'is_active': is_active and (days_remaining is None or days_remaining > 0),
+        'is_active': bool(user.has_active_subscription),
         'status': user.subscription_status,
         'days_remaining': days_remaining,
         'plan': user.subscription_plan.name if user.subscription_plan else None,
-        'is_trial': user.trial_ends_at and user.trial_ends_at > now,
+        'is_trial': False,
     }

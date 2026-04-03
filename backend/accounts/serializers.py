@@ -4,7 +4,6 @@ User Serializers
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from django.utils import timezone
 from .models import User, SubscriptionPlan
 from .currency import plan_price_monthly_uzs
 
@@ -99,10 +98,9 @@ class UserCreateSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         validated_data['role'] = 'clinic'
         user = User.objects.create_user(password=password, **validated_data)
-        # Yangi foydalanuvchi darhol tizimga kira olsin (trial); obuna keyin yangilanadi
-        from datetime import timedelta
-        user.subscription_status = 'active'
-        user.trial_ends_at = timezone.now() + timedelta(days=30)
+        # Bepul sinov oyi yo'q — obuna admin to'lovdan keyin faollashadi
+        user.subscription_status = 'inactive'
+        user.trial_ends_at = None
         user.save(update_fields=['subscription_status', 'trial_ends_at'])
         return user
 

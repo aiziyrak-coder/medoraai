@@ -213,20 +213,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     def has_active_subscription(self):
         if not self.is_active:
             return False
-        # To'lov kutilmoqda — platformadan foydalanishga ruxsat (keyin admin rad qilishi mumkin)
-        if self.subscription_status == 'pending':
+        if self.is_superuser or self.is_staff:
             return True
+        # Chek yuborilgan, admin tasdiqlamaguncha to'liq platforma yo'q
+        if self.subscription_status == 'pending':
+            return False
         if self.subscription_status != 'active':
             return False
         now = timezone.now()
-        # Trial: active until trial_ends_at
-        if self.trial_ends_at and now < self.trial_ends_at:
-            return True
-        # Paid: active until subscription_expiry
         if self.subscription_expiry and now < self.subscription_expiry:
             return True
+        # Admin qo'lda "active" qilgan, muddat kiritilmagan (trial emas)
         if not self.subscription_expiry and not self.trial_ends_at:
-            return True  # legacy: no expiry set
+            return True
         return False
 
     def max_concurrent_sessions(self):

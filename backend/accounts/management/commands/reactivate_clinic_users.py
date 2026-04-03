@@ -1,10 +1,7 @@
 """
-Klinika foydalanuvchilariga qayta kirish: obunasi bo‘lmagan / tugaganlar uchun
-active + trial (yoki faqat statusni tiklash).
-Bir marta serverda: python manage.py reactivate_clinic_users
+Klinika akkauntlarida subscription_expiry hali yaroqli bo'lsa statusni active qilish.
+Bepul trial berilmaydi — qolganlar qo'lda admin orqali.
 """
-from datetime import timedelta
-
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -12,7 +9,7 @@ from accounts.models import User
 
 
 class Command(BaseCommand):
-    help = "Faol klinika akkauntlarida has_active_subscription False bo‘lsa — tiklaydi"
+    help = "Yaroqli subscription_expiry bo‘lgan klinika akkauntlarida statusni active qiladi"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -39,12 +36,10 @@ class Command(BaseCommand):
 
         updated = 0
         for u in to_fix:
-            u.subscription_status = 'active'
             paid_ok = u.subscription_expiry and u.subscription_expiry > now
-            if paid_ok:
-                u.save(update_fields=['subscription_status'])
-            else:
-                u.trial_ends_at = now + timedelta(days=365)
-                u.save(update_fields=['subscription_status', 'trial_ends_at'])
+            if not paid_ok:
+                continue
+            u.subscription_status = 'active'
+            u.save(update_fields=['subscription_status'])
             updated += 1
         self.stdout.write(self.style.SUCCESS(f"Yangilandi: {updated} ta"))

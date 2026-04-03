@@ -6,7 +6,7 @@ from rest_framework import permissions
 
 class HasActiveSubscription(permissions.BasePermission):
     """
-    Permission to check if user has active subscription (trial or paid).
+    Permission to check if user has active paid subscription (trial yo'q).
     """
     
     def has_permission(self, request, view):

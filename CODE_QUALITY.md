@@ -11,7 +11,6 @@
 - N+1 query optimallashtirish (`select_related`, `prefetch_related`)
 
 ✅ **Sozlamalar:**
-- `DOCTOR_TRIAL_DAYS` - shifokorlar trial muddati
 - `LOGIN_RATE_LIMIT_MAX` - login urinishlar limiti
 - `LOGIN_RATE_LIMIT_WINDOW` - limit vaqt oralig'i
 - `MAX_FILE_UPLOAD_SIZE` - fayl hajmi limiti

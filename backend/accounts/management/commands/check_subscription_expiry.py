@@ -2,6 +2,8 @@
 Obuna muddatini tekshirish va tugagan obunalarni inactive qilish.
 Cron job yoki celery periodic task sifatida ishlatish mumkin.
 """
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from accounts.models import User
@@ -27,26 +29,17 @@ class Command(BaseCommand):
         )
         
         for user in expired_users:
-            # Trial ham tugagan bo'lsa
-            if user.trial_ends_at and user.trial_ends_at < now:
-                user.subscription_status = 'inactive'
-                user.subscription_expiry = None
-                user.trial_ends_at = None
-                user.save(update_fields=['subscription_status', 'subscription_expiry', 'trial_ends_at'])
-                expired_count += 1
-                logger.info(f"User {user.phone} obunasi tugadi (trial va paid)")
-            # Faqat paid obuna tugagan
-            elif not user.trial_ends_at or user.trial_ends_at < now:
-                user.subscription_status = 'inactive'
-                user.subscription_expiry = None
-                user.save(update_fields=['subscription_status', 'subscription_expiry'])
-                expired_count += 1
-                logger.info(f"User {user.phone} obunasi tugadi")
+            user.subscription_status = 'inactive'
+            user.subscription_expiry = None
+            user.trial_ends_at = None
+            user.save(update_fields=['subscription_status', 'subscription_expiry', 'trial_ends_at'])
+            expired_count += 1
+            logger.info("User %s obunasi tugadi", user.phone)
         
         self.stdout.write(self.style.SUCCESS(f"{expired_count} ta foydalanuvchi obunasi tugadi va inactive qilindi."))
         
         # Tugashga 3 kun qolgan obunalarni ogohlantirish (ixtiyoriy)
-        warning_date = now + timezone.timedelta(days=3)
+        warning_date = now + timedelta(days=3)
         warning_users = User.objects.filter(
             subscription_status='active',
             subscription_expiry__lte=warning_date,
