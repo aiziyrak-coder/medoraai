@@ -1,0 +1,2 @@
+# Shell va deploy skriptlari har doim LF (Linux serverda CRLF xatolari bo'lmasin)
+*.sh text eol=lf
