@@ -45,12 +45,26 @@ function getGemini(): GoogleGenAI {
   return _geminiClient;
 }
 
-/* v1beta: 1.5-flash and 2.0-flash-exp 404; use stable IDs per Google docs */
+/* v1beta generateContent: faqat barqaror IDlar; gemini-1.5-flash-8b ko‘pincha 404 */
 const MODEL_FAST = 'gemini-2.5-flash';
 const MODEL_PRO = 'gemini-2.5-pro';
 /** Aliases used across council/debate */
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
+
+/** Zaxira modellar (429/503/404 dan keyin); tartib: tezroqdan sekinroqqa */
+const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
+    MODEL_FAST,
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+];
+const GEMINI_FALLBACK_AFTER_FLASH: readonly string[] = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    MODEL_PRO,
+];
 
 /** Map model label to Gemini model name */
 function mapModel(modelLabel: string): string {
@@ -432,12 +446,15 @@ const callGemini = async (
         return parts;
     };
 
-    const modelsToTry: string[] = [geminiModel];
-    if (geminiModel === MODEL_PRO || geminiModel === DEPLOY_PRO) {
-        modelsToTry.push(MODEL_FAST, 'gemini-2.0-flash');
-    } else {
-        modelsToTry.push('gemini-2.0-flash', 'gemini-1.5-flash-8b');
-    }
+    const modelsToTry: string[] = [];
+    const pushModel = (id: string) => {
+        if (id && !modelsToTry.includes(id)) modelsToTry.push(id);
+    };
+    pushModel(geminiModel);
+    const extras = geminiModel === MODEL_PRO || geminiModel === DEPLOY_PRO
+        ? GEMINI_FALLBACK_AFTER_PRO
+        : GEMINI_FALLBACK_AFTER_FLASH;
+    for (const id of extras) pushModel(id);
 
     const executeCall = async (modelId?: string): Promise<unknown> => {
         const useModel = modelId ?? geminiModel;
@@ -498,8 +515,13 @@ const callGemini = async (
                         m,
                         isRate ? '429' : (is503 ? '503' : '404')
                     );
-                    // 429/503 da keyingi modelni darhol boshlab yubormaslik uchun biroz kutamiz
-                    if (is503 || isRate) await sleep(1500);
+                    // 429: limit tushishi uchun kutish; keyingi model boshqa kvota bo‘lishi mumkin
+                    if (isRate) {
+                        const base = 2500 * (idx + 1);
+                        await sleep(Math.min(15000, base + Math.floor(Math.random() * 1200)));
+                    } else if (is503) {
+                        await sleep(2000 + idx * 800);
+                    }
                     continue;
                 }
                 throw e;
@@ -512,17 +534,14 @@ const callGemini = async (
         const mobile = isMobile();
         try {
             return await retry(executeWithModelFallback, {
-                maxRetries: mobile ? 3 : 2,
-                initialDelay: 1000,
-                maxDelay: 12000,
+                maxRetries: mobile ? 4 : 3,
+                initialDelay: 2000,
+                maxDelay: 28000,
                 backoffMultiplier: 2,
                 retryableErrors: [
                     'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
                     'service unavailable', 'parse_json', "noto'g'ri", 'javob', 'invalid json',
-                    // 429 / quota exhausted bo'lsa retry qilish odatda behuda (tez-tez yana 429 beradi)
-                    // — fallback orqali boshqa model ham sinab ko'rilgan (executeWithModelFallback),
-                    // shu yetarli. Retry faqat network/server bezovtaligi uchun bo'lsin.
-                    'failed to parse', 'rate_limit_exceeded',
+                    'failed to parse', 'rate_limit_exceeded', '429', 'resource_exhausted', 'quota',
                 ],
             });
         } catch (error) {
