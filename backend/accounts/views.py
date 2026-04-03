@@ -5,7 +5,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -165,7 +165,8 @@ def _other_device_blocks_login(user, current_device_id: str) -> tuple[bool, str]
 
     for sess in ActiveSession.objects.filter(user=user).order_by('-created_at'):
         sd = (sess.device_id or '').strip()[:128]
-        if not sd or sd == cur:
+        # Bo'sh device_id (eski yozuvlar) — baribir "boshqa sessiya" deb bloklash kerak
+        if sd and sd == cur:
             continue
         if _refresh_session_still_valid(sess):
             return True, (
@@ -242,48 +243,57 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         user = serializer.validated_data['user']
 
-        blocked, block_msg = _other_device_blocks_login(user, device_id)
-        if blocked:
-            logger.info(
-                "Login rad: boshqa qurilmada sessiya (user=%s, device=%s...)",
-                _redact_phone(getattr(user, 'phone', '')),
-                (device_id or '')[:12],
-            )
-            return Response(
-                {
-                    'success': False,
-                    'error': {'code': 403, 'message': block_msg},
-                },
-                status=403,
-                content_type='application/json',
+        # Bir vaqtda ikki login (turli workerlar) sessiyani o'tkazib yubormasin — DB qulfi
+        with transaction.atomic():
+            User.objects.select_for_update().filter(pk=user.pk).first()
+            list(
+                ActiveSession.objects.select_for_update()
+                .filter(user_id=user.pk)
+                .order_by('id')
             )
 
-        # Shu qurilmadan kirish: avvalgi tokenlarni bekor qilish, keyin yangi juftlik.
-        _revoke_all_sessions_for_user(user)
+            blocked, block_msg = _other_device_blocks_login(user, device_id)
+            if blocked:
+                logger.info(
+                    "Login rad: boshqa qurilmada sessiya (user=%s, device=%s...)",
+                    _redact_phone(getattr(user, 'phone', '')),
+                    (device_id or '')[:12],
+                )
+                return Response(
+                    {
+                        'success': False,
+                        'error': {'code': 403, 'message': block_msg},
+                    },
+                    status=403,
+                    content_type='application/json',
+                )
 
-        refresh = RefreshToken.for_user(user)
-        jti = str(refresh.get('jti'))
-        exp = refresh.get('exp')
-        expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
+            # Shu qurilmadan kirish: avvalgi tokenlarni bekor qilish, keyin yangi juftlik.
+            _revoke_all_sessions_for_user(user)
 
-        try:
-            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
-            OutstandingToken.objects.get_or_create(
-                jti=jti,
-                defaults={
-                    'user': user,
-                    'token': str(refresh),
-                    'created_at': timezone.now(),
-                    'expires_at': expires_at,
-                }
-            )
-        except Exception as ex:
-            logger.warning("OutstandingToken create: %s", ex)
+            refresh = RefreshToken.for_user(user)
+            jti = str(refresh.get('jti'))
+            exp = refresh.get('exp')
+            expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
 
-        ActiveSession.objects.filter(user=user, device_id=device_id).exclude(refresh_jti=jti).delete()
-        ActiveSession.objects.create(user=user, refresh_jti=jti, device_id=device_id, device_info=device_info)
-        max_sessions = user.max_concurrent_sessions()
-        _revoke_oldest_sessions(user, max_sessions)
+            try:
+                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+                OutstandingToken.objects.get_or_create(
+                    jti=jti,
+                    defaults={
+                        'user': user,
+                        'token': str(refresh),
+                        'created_at': timezone.now(),
+                        'expires_at': expires_at,
+                    }
+                )
+            except Exception as ex:
+                logger.warning("OutstandingToken create: %s", ex)
+
+            ActiveSession.objects.filter(user=user, device_id=device_id).exclude(refresh_jti=jti).delete()
+            ActiveSession.objects.create(user=user, refresh_jti=jti, device_id=device_id, device_info=device_info)
+            max_sessions = user.max_concurrent_sessions()
+            _revoke_oldest_sessions(user, max_sessions)
 
         # Muvaffaqiyatli login - rate limit hisobini tozalash
         cache.delete(cache_key)

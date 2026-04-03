@@ -500,8 +500,9 @@ LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=in
 
 # Login: boshqa qurilmada yaroqli sessiya bo'lsa yangi qurilmadan kirishni rad etish
 ENFORCE_SINGLE_DEVICE_LOGIN = config('ENFORCE_SINGLE_DEVICE_LOGIN', default=True, cast=bool)
+# True bo'lsa superuser barcha qurilmalardan kira oladi; qat'iy bitta qurilma uchun False qiling
 SINGLE_DEVICE_LOGIN_EXEMPT_SUPERUSER = config(
-    'SINGLE_DEVICE_LOGIN_EXEMPT_SUPERUSER', default=True, cast=bool
+    'SINGLE_DEVICE_LOGIN_EXEMPT_SUPERUSER', default=False, cast=bool
 )
 MAX_FILE_UPLOAD_SIZE = config('MAX_FILE_UPLOAD_SIZE_MB', default=5, cast=int) * 1024 * 1024
 ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf']
