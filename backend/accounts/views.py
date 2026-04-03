@@ -102,6 +102,80 @@ def _extract_device_context(request, fallback_data=None):
     return device_id, device_info[:255]
 
 
+def _jwt_refresh_lifetime() -> timedelta:
+    td = getattr(settings, 'SIMPLE_JWT', {}).get('REFRESH_TOKEN_LIFETIME')
+    return td if isinstance(td, timedelta) else timedelta(days=7)
+
+
+def _refresh_session_still_valid(sess) -> bool:
+    """
+    ActiveSession hali "tizimga kirgan" holatda deb hisoblansinmi.
+    OutstandingToken bo'lmasa ham (DB/migratsiya yoki get_or_create xatosi) login bloklanishi
+    buzilib ketmasin — refresh token umumiy muddaticha ActiveSession ishonchli qoladi.
+    """
+    jti = (sess.refresh_jti or '').strip()
+    if not jti:
+        return False
+
+    now = timezone.now()
+    refresh_max = _jwt_refresh_lifetime()
+    # Sessiya juda eski bo'lsa (refresh muddatidan oshgan) — faol emas
+    if now - sess.created_at > refresh_max + timedelta(minutes=5):
+        return False
+
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+    except ImportError:
+        return True
+
+    ot = OutstandingToken.objects.filter(jti=jti).first()
+    if ot:
+        if BlacklistedToken.objects.filter(token=ot).exists():
+            return False
+        exp = getattr(ot, 'expires_at', None)
+        if exp is not None and now >= exp:
+            return False
+        return True
+
+    # OutstandingToken yo'q — lekin ActiveSession yangi: foydalanuvchi hali chiqmagan, ikkinchi qurilmani bloklash kerak
+    return True
+
+
+def _cleanup_invalid_active_sessions(user):
+    """Muddati o'tgan yoki bekor qilingan sessiyalar uchun ActiveSession qatorlarini olib tashlaydi."""
+    for sess in list(ActiveSession.objects.filter(user=user)):
+        if not _refresh_session_still_valid(sess):
+            sess.delete()
+
+
+def _other_device_blocks_login(user, current_device_id: str) -> tuple[bool, str]:
+    """
+    Boshqa qurilmada yaroqli sessiya bo'lsa (logout qilinmaguncha) yangi qurilmadan login rad etiladi.
+    Bir xil device_id bilan qayta kirish ruxsat etiladi (token yangilanadi).
+    """
+    if not getattr(settings, 'ENFORCE_SINGLE_DEVICE_LOGIN', True):
+        return False, ''
+    if getattr(user, 'is_superuser', False) and getattr(
+        settings, 'SINGLE_DEVICE_LOGIN_EXEMPT_SUPERUSER', True
+    ):
+        return False, ''
+
+    cur = (current_device_id or '').strip()[:128]
+    _cleanup_invalid_active_sessions(user)
+
+    for sess in ActiveSession.objects.filter(user=user).order_by('-created_at'):
+        sd = (sess.device_id or '').strip()[:128]
+        if not sd or sd == cur:
+            continue
+        if _refresh_session_still_valid(sess):
+            return True, (
+                "Bu hisob boshqa qurilmada ochiq. Avval u yerda tizimdan chiqing, "
+                "keyin bu qurilmada qayta kiring."
+            )
+        sess.delete()
+    return False, ''
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Custom JWT token view: sessiya limiti va login rate limit."""
     serializer_class = CustomTokenObtainPairSerializer
@@ -167,7 +241,24 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             }, status=400, content_type='application/json')
 
         user = serializer.validated_data['user']
-        # Bitta login — bitta faol qurilma: avvalgi barcha sessiyalarni bekor qilish, keyin yangi token beriladi.
+
+        blocked, block_msg = _other_device_blocks_login(user, device_id)
+        if blocked:
+            logger.info(
+                "Login rad: boshqa qurilmada sessiya (user=%s, device=%s...)",
+                _redact_phone(getattr(user, 'phone', '')),
+                (device_id or '')[:12],
+            )
+            return Response(
+                {
+                    'success': False,
+                    'error': {'code': 403, 'message': block_msg},
+                },
+                status=403,
+                content_type='application/json',
+            )
+
+        # Shu qurilmadan kirish: avvalgi tokenlarni bekor qilish, keyin yangi juftlik.
         _revoke_all_sessions_for_user(user)
 
         refresh = RefreshToken.for_user(user)
