@@ -1,46 +1,28 @@
-# Backend va Django  -  to'liq audit (xatoliksiz ishlash)
+# Backend — xavfsizlik va ishlash (yangilangan)
 
-## 1. Settings (`AiDoktorai_backend/settings.py`)
+## Settings (`medoraai_backend/settings.py`)
 
-- **ALLOWED_HOSTS:** `['*']`  -  barcha hostlar (AiDoktor.fargana.uz, AiDoktorapi.fargana.uz va boshqalar).
-- **DisallowedHost:** `HttpRequest.get_host` fayl oxirida patch  -  host tekshiruvi o'chirilgan, aslo DisallowedHost chiqmaydi.
-- **CORS:** `AiDoktorai.fargana.uz`, `AiDoktorapi.fargana.uz` default CORS_ALLOWED_ORIGINS ga qo'shildi.
-- **CSRF_TRUSTED_ORIGINS:** Django 4+ uchun barcha ishlatiladigan originlar qo'shildi (AiDoktor*, localhost).
-- **LOGGING:** Mavjud sozlama saqlanadi.
+- **ALLOWED_HOSTS:** `*` ishlatilmaydi. `.env` dagi `ALLOWED_HOSTS` (vergul bilan) yoki kod ichidagi default ro‘yxat (fjsti/medora domenlari, localhost).
+- **Host tekshiruvi:** `get_host` patch yo‘q — noto‘g‘ri `Host` uchun Django `DisallowedHost` qaytarishi mumkin (to‘g‘ri nginx + ALLOWED_HOSTS bilan bo‘lmaydi).
+- **DEBUG=False:** `SECRET_KEY` majburiy (default kalit bilan ishlamaydi). DRF faqat **JSON** renderer (Browsable API o‘chiq).
+- **CORS / CSRF:** `.env` yoki default originlar; IP asosidagi default CORS olib tashlangan — kerak bo‘lsa `.env` orqali qo‘shing.
 
-## 2. WSGI (`wsgi.py`)
+## WSGI (`wsgi.py`)
 
-- **get_host patch:** `django.setup()` dan keyin `HttpRequest.get_host` patch  -  barcha so'rovlarda host tekshiruvi ishlamaydi.
-- Application `get_wsgi_application()` orqali yuklanadi.
+- Standart `get_wsgi_application()` — maxsus `DisallowedHost` yashirish yo‘q.
 
-## 3. Middleware (`middleware.py`)
+## Middleware (`middleware.py`)
 
-- **EarlyHealthMiddleware:** `/health/` uchun darhol 200, `get_host` override, `ALLOWED_HOSTS = ['*']`, host normalizatsiya.
-- **NormalizeHostMiddleware:** fargana.uz hostlari uchun Host в†’ AiDoktor.fargana.uz.
-- **CORSFallbackMiddleware:** `process_response` try/except, `response is None` tekshiruvi.
-- **SecurityHeadersMiddleware:** try/except  -  xatolik chiqsa ham response qaytariladi.
-- **RateLimitMiddleware:** try/except, `get_client_ip` xatosiz (0.0.0.0 fallback), 429 javobi `content_type` bilan.
-- **RequestLoggingMiddleware:** try/except, `response is not None` tekshiruvi.
+- **EarlyHealthMiddleware:** `GET/OPTIONS /health` tez javob; `fargana.uz` → `medora.cdcgroup.uz` normalizatsiya. `ALLOWED_HOSTS` mutatsiyasi yo‘q.
+- Boshqa middlewarelar: CORS fallback, security headers, rate limit, logging.
 
-## 4. Exception handler (`exceptions.py`)
+## Tekshiruv
 
-- Barcha 4xx/5xx javoblari `Content-Type: application/json; charset=utf-8` bilan.
-- 500 uchun `response['Content-Type']` o'rnatiladi.
+- `python manage.py check`
+- `DEBUG=False` + kuchli `SECRET_KEY`: `python manage.py check --deploy`
+- CI: `.github/workflows/ci.yml`
 
-## 5. URL va error handlers (`urls.py`)
+## Serverda muhim
 
-- **handler404:** Mavjud emas edi  -  qo'shildi. 404 har doim JSON: `{ success: false, error: { code: 404, message: "Sahifa topilmadi." } }`.
-- **handler500:** Mavjud emas edi  -  qo'shildi. 500 har doim JSON: `{ success: false, error: { code: 500, message: "Server xatoligi..." } }`.
-- HTML xato sahifalari chiqmaydi, barcha xatolar JSON.
-
-## 6. Tekshiruv
-
-- `python manage.py check`  -  0 issues.
-
-## Xulosa
-
-- DisallowedHost: settings + WSGI + middleware (uch qatlam).
-- 404/500: JSON handlerlar.
-- CORS/CSRF: barcha domenlar qo'shilgan.
-- Middleware: try/except bilan xatolik chiqmasligi ta'minlangan.
-- Barcha API javoblari `application/json` va bir xil `{ success, error: { code, message, details } }` formatida.
+- `backend/.env`: `ALLOWED_HOSTS` ga barcha haqiqiy API domenlari (va kerak bo‘lsa IP) kiriting.
+- FJSTI build uchun: `VITE_API_BASE_URL=https://fjstiapi.ziyrak.org/api` (`server-deploy.sh` `.env` dan o‘qiydi).
