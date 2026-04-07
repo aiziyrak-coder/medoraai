@@ -538,6 +538,15 @@ export const uzL: TranslationSet = {
   final_report_rejected_hypotheses_title: 'Inkor Etilgan Gipotezalar',
   final_report_rejected_reason: 'Sabab',
   final_report_edit_plan_placeholder: 'Davolash bosqichini kiriting...',
+  final_report_folk_title: "Xalq tabobati va dorivor o'simliklar (qo'shimcha)",
+  final_report_folk_disclaimer: "Bu bo'lim rasmiy dori-darmonlar va shifokor ko'rsatmasining o'rnini bosmaydi; faqat qo'shimcha ma'lumot sifatida beriladi.",
+  final_report_folk_part: 'Qismi:',
+  final_report_folk_usage: "Tayyorlash / qo'llash:",
+  final_report_folk_context: "An'anaviy kontekst:",
+  final_report_folk_precautions: 'Ehtiyotkorlik:',
+  final_report_nutrition_title: "To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)",
+  final_report_nutrition_diet_title: "To'g'ri ovqatlanish bo'yicha",
+  final_report_nutrition_prevention_title: 'Profilaktika va oldini olish',
 
   // Specialist Names and Specialties — barcha mutaxassislar o'zbekcha
   specialist_name_gemini: 'Kardiolog AI (Gemini)',

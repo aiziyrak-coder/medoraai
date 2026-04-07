@@ -531,6 +531,15 @@ export const en = {
   final_report_rejected_hypotheses_title: 'Rejected Hypotheses',
   final_report_rejected_reason: 'Reason',
   final_report_edit_plan_placeholder: 'Enter treatment step...',
+  final_report_folk_title: 'Traditional medicine and medicinal plants (supplementary)',
+  final_report_folk_disclaimer: 'This section does not replace official medications or physician guidance; it is supplementary information only.',
+  final_report_folk_part: 'Part:',
+  final_report_folk_usage: 'Preparation / usage:',
+  final_report_folk_context: 'Traditional context:',
+  final_report_folk_precautions: 'Precautions:',
+  final_report_nutrition_title: 'Healthy nutrition and disease prevention (prophylaxis)',
+  final_report_nutrition_diet_title: 'Nutrition guidance',
+  final_report_nutrition_prevention_title: 'Prevention and risk reduction',
 
   // Specialist Names and Specialties
   specialist_name_gemini: 'Cardiologist AI (Gemini)',

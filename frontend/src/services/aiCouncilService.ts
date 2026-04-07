@@ -1460,9 +1460,16 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         required: ['consensusDiagnosis', 'rejectedHypotheses', 'recommendedTests', 'treatmentPlan', 'medicationRecommendations', 'unexpectedFindings']
     };
 
+    const finalReportLanguageRule: Record<Language, string> = {
+        'uz-L': "TIL: Barcha maydonlar o'zbek tilida (lotin) bo'lsin. Inglizcha texnik so'zlarni keraksiz aralashtirmang.",
+        'uz-C': "ТИЛ: Барча майдонлар ўзбек тилида (кирилл) бўлсин. Кераксиз инглизча техник сўзларни аралаштирманг.",
+        'ru': 'ЯЗЫК: Все поля отчёта должны быть строго на русском языке.',
+        'en': 'LANGUAGE: All report fields must be strictly in English.',
+    };
+
     const finalReportTextPrompt = `
         Role: Council Chair. Create the Final Report. Be AQLLI and XAVFSIZ. O'ZBEKISTON KONTEKSTI MAJBURIY.
-        TIL: Barcha maydonlar faqat o'zbek tilida (Lotin). Inglizcha so'zlar (finding, implication, urgency va h.k.) va yulduzcha (*) ishlatmang.
+        ${finalReportLanguageRule[language]}
         LANGUAGE: ${langMap[language]}.
         REQUIREMENTS:
         1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: qaysi SSV protokoliga mos yoki "protokoldan chetga chiqish: [sabab]" (agar yangi/samarali yondashuv taklif qilsangiz).

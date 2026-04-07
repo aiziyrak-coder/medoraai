@@ -533,6 +533,15 @@ export const ru: TranslationSet = {
   final_report_rejected_hypotheses_title: 'Отклонённые гипотезы',
   final_report_rejected_reason: 'Причина',
   final_report_edit_plan_placeholder: 'Введите этап лечения...',
+  final_report_folk_title: 'Народная медицина и лекарственные растения (дополнительно)',
+  final_report_folk_disclaimer: 'Этот раздел не заменяет официальные препараты и назначения врача; он носит справочно-дополнительный характер.',
+  final_report_folk_part: 'Часть:',
+  final_report_folk_usage: 'Приготовление / применение:',
+  final_report_folk_context: 'Традиционный контекст:',
+  final_report_folk_precautions: 'Меры предосторожности:',
+  final_report_nutrition_title: 'Правильное питание и профилактика заболеваний',
+  final_report_nutrition_diet_title: 'Рекомендации по питанию',
+  final_report_nutrition_prevention_title: 'Профилактика и предотвращение',
 
   // Specialist Names and Specialties
   specialist_name_gemini: 'Кардиолог ИИ (Gemini)',

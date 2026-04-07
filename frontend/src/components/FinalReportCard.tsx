@@ -21,6 +21,7 @@ import TrashIcon from './icons/TrashIcon';
 import CheckIcon from './icons/CheckIcon';
 import XIcon from './icons/XIcon';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
+import { useTranslation } from '../hooks/useTranslation';
 
 /** Hujjat bo'limi — aniq chegaralangan, asosiy matn bilan aralashmasin */
 const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
@@ -38,16 +39,17 @@ const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.
 );
 
 const LifestylePlanCard: React.FC<{plan: FinalReport['lifestylePlan']}> = ({plan}) => {
+    const { t } = useTranslation();
     if (!plan) return null;
     const diet = Array.isArray(plan.diet) ? plan.diet : [];
     const exercise = Array.isArray(plan.exercise) ? plan.exercise : [];
     if (diet.length === 0 && exercise.length === 0) return null;
     return (
-        <Section title="Hayot Tarzi va Ovqatlanish Rejasi" icon={<LightBulbIcon className="text-yellow-500 h-6 w-6"/>}>
+        <Section title={t('final_report_lifestyle_title')} icon={<LightBulbIcon className="text-yellow-500 h-6 w-6"/>}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {diet.length > 0 && (
                     <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                        <h4 className="font-semibold">Ovqatlanish Tavsiyalari:</h4>
+                        <h4 className="font-semibold">{t('final_report_diet_rec')}</h4>
                         <ul className="list-disc list-inside mt-1">
                             {diet.map((item, i) => <li key={i}>{item}</li>)}
                         </ul>
@@ -55,7 +57,7 @@ const LifestylePlanCard: React.FC<{plan: FinalReport['lifestylePlan']}> = ({plan
                 )}
                 {exercise.length > 0 && (
                     <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                        <h4 className="font-semibold">Jismoniy Mashqlar:</h4>
+                        <h4 className="font-semibold">{t('final_report_exercise_rec')}</h4>
                         <ul className="list-disc list-inside mt-1">
                             {exercise.map((item, i) => <li key={i}>{item}</li>)}
                         </ul>
@@ -67,9 +69,10 @@ const LifestylePlanCard: React.FC<{plan: FinalReport['lifestylePlan']}> = ({plan
 };
 
 const ClinicalTrialsCard: React.FC<{trials: FinalReport['matchedClinicalTrials']}> = ({trials}) => {
+    const { t } = useTranslation();
     if (!trials || trials.length === 0) return null;
     return (
-        <Section title="Mos Keluvchi Klinik Sinovlar" icon={<FlaskIcon className="h-6 w-6"/>}>
+        <Section title={t('final_report_clinical_trials_title')} icon={<FlaskIcon className="h-6 w-6"/>}>
             {trials.map((trial, i) => (
                 <div key={i} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                     <a href={trial.url} target="_blank" rel="noopener noreferrer" className="font-bold text-accent-color-blue hover:underline">{trial.title}</a>
@@ -81,9 +84,10 @@ const ClinicalTrialsCard: React.FC<{trials: FinalReport['matchedClinicalTrials']
 };
 
 const AdverseEventRiskCard: React.FC<{risks: FinalReport['adverseEventRisks']}> = ({risks}) => {
+    const { t } = useTranslation();
     if (!risks || risks.length === 0) return null;
     return (
-         <Section title="Dori vositalarining nojo'ya ta'sir xavfi" icon={<ShieldWarningIcon className="w-6 h-6"/>}>
+         <Section title={t('final_report_adverse_risks_title')} icon={<ShieldWarningIcon className="w-6 h-6"/>}>
             {risks.map((risk, i) => (
                 <div key={i} className="p-3 bg-yellow-50 border-l-4 border-yellow-400">
                     <p className="font-semibold text-yellow-800">{risk.drug}: {risk.risk} (ehtimollik ~{Math.round(risk.probability * 100)}%)</p>
@@ -94,9 +98,10 @@ const AdverseEventRiskCard: React.FC<{risks: FinalReport['adverseEventRisks']}> 
 }
 
 const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> = ({research}) => {
+    const { t } = useTranslation();
     if (!research || research.length === 0) return null;
     return (
-        <Section title="Tegishli Ilmiy Maqolalar" icon={<GlobeIcon className="w-6 h-6"/>}>
+        <Section title={t('final_report_related_research_title')} icon={<GlobeIcon className="w-6 h-6"/>}>
             {research.map((item, i) => (
                 <div key={i} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                     <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-bold text-accent-color-blue hover:underline">{item.title}</a>
@@ -108,13 +113,14 @@ const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> 
 };
 
 const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section }) => {
+    const { t } = useTranslation();
     const { intro, disclaimer, items } = section;
     if (!items?.length && !intro?.trim() && !disclaimer?.trim()) return null;
     return (
-        <Section title="Xalq tabobati va dorivor o'simliklar (qo'shimcha)" icon={<FlaskIcon className="h-6 w-6 text-emerald-600"/>}>
+        <Section title={t('final_report_folk_title')} icon={<FlaskIcon className="h-6 w-6 text-emerald-600"/>}>
             <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/60 text-sm text-slate-800 space-y-2">
                 <p className="text-xs font-semibold text-emerald-900">
-                    Bu bo'lim rasmiy dori-darmonlar va shifokor ko'rsatmasining o'rnini bosmaydi; faqat ma'lumot va qo'shimcha yo'nalish sifatida.
+                    {t('final_report_folk_disclaimer')}
                 </p>
                 {intro?.trim() && <p className="whitespace-pre-wrap">{intro}</p>}
                 {disclaimer?.trim() && (
@@ -126,12 +132,12 @@ const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section 
                     {items.map((it, i) => (
                         <div key={i} className="p-4 rounded-xl border border-emerald-100 bg-white shadow-sm">
                             <p className="font-bold text-slate-900">{it.plantName}</p>
-                            {it.plantPart && <p className="text-xs text-slate-600 mt-1"><span className="font-semibold">Qismi:</span> {it.plantPart}</p>}
-                            {it.preparationOrUsage && <p className="text-sm mt-2"><span className="font-semibold text-slate-700">Tayyorlash / qo'llash:</span> {it.preparationOrUsage}</p>}
-                            {it.traditionalContext && <p className="text-sm text-slate-600 mt-1"><span className="font-semibold">An'anaviy kontekst:</span> {it.traditionalContext}</p>}
+                            {it.plantPart && <p className="text-xs text-slate-600 mt-1"><span className="font-semibold">{t('final_report_folk_part')}</span> {it.plantPart}</p>}
+                            {it.preparationOrUsage && <p className="text-sm mt-2"><span className="font-semibold text-slate-700">{t('final_report_folk_usage')}</span> {it.preparationOrUsage}</p>}
+                            {it.traditionalContext && <p className="text-sm text-slate-600 mt-1"><span className="font-semibold">{t('final_report_folk_context')}</span> {it.traditionalContext}</p>}
                             {it.precautions && (
                                 <p className="text-sm mt-2 p-2 bg-amber-50 border border-amber-100 rounded-md text-amber-900">
-                                    <span className="font-semibold">Ehtiyotkorlik:</span> {it.precautions}
+                                    <span className="font-semibold">{t('final_report_folk_precautions')}</span> {it.precautions}
                                 </p>
                             )}
                         </div>
@@ -143,16 +149,17 @@ const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section 
 };
 
 const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }> = ({ section }) => {
+    const { t } = useTranslation();
     const { intro, disclaimer, dietaryGuidelines, preventionMeasures } = section;
     const hasDiet = dietaryGuidelines.length > 0;
     const hasPrev = preventionMeasures.length > 0;
     if (!hasDiet && !hasPrev && !intro?.trim() && !disclaimer?.trim()) return null;
     return (
-        <Section title="To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)" icon={<ChartBarIcon className="h-6 w-6 text-sky-600"/>}>
+        <Section title={t('final_report_nutrition_title')} icon={<ChartBarIcon className="h-6 w-6 text-sky-600"/>}>
             {intro?.trim() && <p className="text-sm text-slate-800 whitespace-pre-wrap mb-3">{intro}</p>}
             {hasDiet && (
                 <div className="mb-4">
-                    <h4 className="text-sm font-bold text-slate-700 mb-2">To'g'ri ovqatlanish bo'yicha</h4>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">{t('final_report_nutrition_diet_title')}</h4>
                     <ul className="list-disc list-inside space-y-1.5 text-sm text-text-primary">
                         {dietaryGuidelines.map((line, i) => (
                             <li key={i}>{line}</li>
@@ -162,7 +169,7 @@ const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }>
             )}
             {hasPrev && (
                 <div>
-                    <h4 className="text-sm font-bold text-slate-700 mb-2">Profilaktika va oldini olish</h4>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">{t('final_report_nutrition_prevention_title')}</h4>
                     <ul className="list-disc list-inside space-y-1.5 text-sm text-text-primary">
                         {preventionMeasures.map((line, i) => (
                             <li key={i}>{line}</li>
@@ -209,6 +216,7 @@ const FinalReportCard: React.FC<{
   isScenario?: boolean;
   onUpdateReport?: (updatedReport: Partial<FinalReport>) => void;
 }> = ({ report, patientData, isScenario = false, onUpdateReport }) => {
+    const { t } = useTranslation();
     const safePlan = (Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString);
 
     const [isEditingPlan, setIsEditingPlan] = useState(false);
@@ -250,16 +258,16 @@ const FinalReportCard: React.FC<{
             {/* Asosiy sarlavha — hujjat uslubi */}
             <div className="mb-8">
                 <h1 className={`text-2xl font-bold tracking-tight ${isScenario ? 'text-purple-700' : 'text-slate-800'}`}>
-                    {isScenario ? "Alternativ Senariy Natijasi" : "YAKUNIY KLINIK XULOSA"}
+                    {isScenario ? t('final_report_scenario_result') : t('final_report_document_title')}
                 </h1>
-                <p className="text-sm text-slate-500 mt-1">Konsilium konsensusi asosida - tibbiy hujjat</p>
+                <p className="text-sm text-slate-500 mt-1">{t('final_report_document_subtitle')}</p>
             </div>
 
             {/* ASOSIY XULOSA — bitta aniq blok, boshqa matn bilan aralashmasin */}
             <div className="rounded-2xl border-2 border-slate-200 bg-white shadow-md overflow-hidden mb-10">
                 <div className="px-6 py-4 bg-slate-800 text-white">
-                    <h2 className="text-lg font-bold uppercase tracking-wide">Asosiy xulosa</h2>
-                    <p className="text-slate-200 text-sm mt-0.5">Konsensus tashxis va kritik topilmalar</p>
+                    <h2 className="text-lg font-bold uppercase tracking-wide">{t('final_report_main_conclusion')}</h2>
+                    <p className="text-slate-200 text-sm mt-0.5">{t('final_report_main_conclusion_subtitle')}</p>
                 </div>
                 <div className="p-6 space-y-6">
                     {report.criticalFinding && (
@@ -267,7 +275,7 @@ const FinalReportCard: React.FC<{
                             <div className="flex items-center gap-3">
                                 <AlertTriangleIcon className="w-8 h-8 text-red-600 flex-shrink-0"/>
                                 <div>
-                                    <h3 className="text-base font-bold text-red-800">DIQQAT! KRITIK TOPILMA!</h3>
+                                    <h3 className="text-base font-bold text-red-800">{t('final_report_attention_critical')}</h3>
                                     <p className="font-semibold text-red-700 text-sm mt-1">{report.criticalFinding.finding}</p>
                                 </div>
                             </div>
@@ -275,7 +283,7 @@ const FinalReportCard: React.FC<{
                         </div>
                     )}
                     <div>
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Konsensus tashxis(lar)</h3>
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">{t('final_report_consensus_diagnoses')}</h3>
                         {normalizeConsensusDiagnosis(report.consensusDiagnosis).map((diag, index) => (
                             <div key={index} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 mb-4 last:mb-0">
                                 <div className="flex justify-between items-start gap-2">
@@ -290,12 +298,12 @@ const FinalReportCard: React.FC<{
                                         {diag.uzbekProtocolMatch}
                                     </div>
                                 )}
-                                <p className="text-sm text-slate-700 mt-2 font-medium">Asoslash: {diag.justification}</p>
+                                <p className="text-sm text-slate-700 mt-2 font-medium">{t('final_report_justification')} {diag.justification}</p>
                                 {(() => {
                                     const chain = getReasoningChainArray(diag);
                                     return chain.length > 0 && (
                                         <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
-                                            <p className="text-xs font-bold text-slate-500 uppercase mb-2">Mantiqiy zanjir</p>
+                                            <p className="text-xs font-bold text-slate-500 uppercase mb-2">{t('final_report_reasoning_chain')}</p>
                                             <ol className="list-decimal list-inside text-sm text-slate-600 space-y-1">
                                                 {chain.map((step, i) => (
                                                     <li key={i}>{step}</li>
