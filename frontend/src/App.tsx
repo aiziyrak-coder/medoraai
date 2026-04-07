@@ -891,7 +891,7 @@ const AppContent: React.FC = () => {
                 return (
                     <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
                         <BackBar
-                            title={isArchive ? "Tahlil Ko'rinishi" : "Konsilium Jarayoni"}
+                            title={isArchive ? t('analysis_view_title') : t('consilium_process_title')}
                             subtitle={record.patientData ? `${record.patientData.firstName} ${record.patientData.lastName}` : ''}
                             onBack={() => isArchive ? setAppView('history') : handleNavigation('dashboard')}
                             backLabel={isArchive ? t('nav_archive') : t('back_to_home')}
