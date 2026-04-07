@@ -526,6 +526,10 @@ export const uzC: TranslationSet = {
   final_report_nutrition_title: "Тўғри овқатланиш ва касалликларни олдини олиш (профилактика)",
   final_report_nutrition_diet_title: "Тўғри овқатланиш бўйича",
   final_report_nutrition_prevention_title: 'Профилактика ва олдини олиш',
+  final_report_folk_summary_intro: "Доривор ўсимликлар ва анъанавий қўлланмалар қуйидаги алоҳида бўлимда келтирилган.",
+  final_report_folk_summary_footer: "Тўлиқ рўйхат ва эҳтиёт чоралар — халқ табобати бўлимида.",
+  final_report_nutrition_summary_intro: "Овқатланиш ва профилактика бўйича тавсиялар қуйидаги алоҳида бўлимда келтирилган.",
+  final_report_nutrition_summary_footer: "Батафсил — овқатланиш ва профилактика бўлимида.",
   // Specialist Names and Specialties — барча мутахассислар ўзбекча (кирилл)
   specialist_name_gemini: 'Кардиолог АИ (Гемини)',
   specialty_gemini: 'Кардиология',

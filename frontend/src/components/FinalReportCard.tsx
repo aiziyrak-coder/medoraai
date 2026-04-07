@@ -90,7 +90,12 @@ const AdverseEventRiskCard: React.FC<{risks: FinalReport['adverseEventRisks']}> 
          <Section title={t('final_report_adverse_risks_title')} icon={<ShieldWarningIcon className="w-6 h-6"/>}>
             {risks.map((risk, i) => (
                 <div key={i} className="p-3 bg-yellow-50 border-l-4 border-yellow-400">
-                    <p className="font-semibold text-yellow-800">{risk.drug}: {risk.risk} (ehtimollik ~{Math.round(risk.probability * 100)}%)</p>
+                    <p className="font-semibold text-yellow-800">
+                        {t('final_report_adverse_risk_item')
+                            .replace('{drug}', String(risk.drug))
+                            .replace('{risk}', String(risk.risk))
+                            .replace('{prob}', String(Math.round(risk.probability * 100)))}
+                    </p>
                 </div>
             ))}
         </Section>
@@ -317,17 +322,13 @@ const FinalReportCard: React.FC<{
                     </div>
                     {report.folkMedicine && (report.folkMedicine.intro?.trim() || (report.folkMedicine.items?.length ?? 0) > 0) && (
                         <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70">
-                            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2">Xalq tabobati (qo'shimcha)</h3>
+                            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2">{t('final_report_folk_title')}</h3>
                             {report.folkMedicine.intro?.trim() ? (
                                 <p className="text-sm text-slate-800 whitespace-pre-wrap">{report.folkMedicine.intro}</p>
                             ) : (
-                                <p className="text-sm text-slate-800">
-                                    Dorivor o'simliklar va an'anaviy qo'llanmalar — quyidagi alohida bo'limda keltirilgan.
-                                </p>
+                                <p className="text-sm text-slate-800">{t('final_report_folk_summary_intro')}</p>
                             )}
-                            <p className="text-xs text-emerald-900 mt-2 font-medium">
-                                To'liq ro'yxat va ehtiyot choralar — «Xalq tabobati va dorivor o'simliklar (qo'shimcha)» bo'limida.
-                            </p>
+                            <p className="text-xs text-emerald-900 mt-2 font-medium">{t('final_report_folk_summary_footer')}</p>
                         </div>
                     )}
                     {report.nutritionPrevention && (
@@ -336,17 +337,13 @@ const FinalReportCard: React.FC<{
                             (report.nutritionPrevention.preventionMeasures?.length ?? 0) > 0 ||
                             report.nutritionPrevention.disclaimer?.trim()) && (
                         <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/70">
-                            <h3 className="text-sm font-bold text-sky-900 uppercase tracking-wider mb-2">Ovqatlanish va profilaktika</h3>
+                            <h3 className="text-sm font-bold text-sky-900 uppercase tracking-wider mb-2">{t('final_report_nutrition_title')}</h3>
                             {report.nutritionPrevention.intro?.trim() ? (
                                 <p className="text-sm text-slate-800 whitespace-pre-wrap">{report.nutritionPrevention.intro}</p>
                             ) : (
-                                <p className="text-sm text-slate-800">
-                                    Kasalliklarni oldini olish, to'g'ri ovqatlanish va profilaktika bo'yicha tavsiyalar quyidagi alohida bo'limda keltirilgan.
-                                </p>
+                                <p className="text-sm text-slate-800">{t('final_report_nutrition_summary_intro')}</p>
                             )}
-                            <p className="text-xs text-sky-900 mt-2 font-medium">
-                                Batafsil — «To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)» bo'limida.
-                            </p>
+                            <p className="text-xs text-sky-900 mt-2 font-medium">{t('final_report_nutrition_summary_footer')}</p>
                         </div>
                     ))}
                 </div>
@@ -356,21 +353,21 @@ const FinalReportCard: React.FC<{
             <div className="space-y-10">
 
                 {report.imageAnalysis?.findings && (
-                    <Section title="Tasvir Tahlili" icon={<ImageIcon className="w-6 h-6"/>}>
+                    <Section title={t('final_report_image_analysis_title')} icon={<ImageIcon className="w-6 h-6"/>}>
                         <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                            <p><span className='font-semibold'>Topilmalar:</span> {report.imageAnalysis.findings}</p>
-                            <p className="mt-2"><span className='font-semibold'>Klinik bog'liqlik:</span> {report.imageAnalysis.correlation}</p>
+                            <p><span className='font-semibold'>{t('final_report_image_findings')}:</span> {report.imageAnalysis.findings}</p>
+                            <p className="mt-2"><span className='font-semibold'>{t('final_report_image_correlation')}:</span> {report.imageAnalysis.correlation}</p>
                         </div>
                     </Section>
                 )}
 
                 {report.unexpectedFindings && String(report.unexpectedFindings).trim() && (
-                    <Section title="Kutilmagan topilmalar va gipotezalar" icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
+                    <Section title={t('final_report_unexpected_findings')} icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
                         <p className="text-text-primary whitespace-pre-wrap">{report.unexpectedFindings}</p>
                     </Section>
                 )}
 
-                <Section title="Tavsiya Etilgan Davolash Rejasi" icon={<BrainCircuitIcon className="w-6 h-6"/>}>
+                <Section title={t('final_report_treatment_plan_title')} icon={<BrainCircuitIcon className="w-6 h-6"/>}>
                     {!isEditingPlan ? (
                         <div className="space-y-3">
                             {safePlan.length > 0 ? (
@@ -391,7 +388,7 @@ const FinalReportCard: React.FC<{
                             )}
                             {onUpdateReport && !isScenario && (
                                 <button onClick={() => setIsEditingPlan(true)} className="flex items-center gap-2 text-sm font-semibold text-accent-color-blue bg-slate-200/50 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors mt-3">
-                                    <PencilIcon className="w-4 h-4" /> Tahrirlash
+                                    <PencilIcon className="w-4 h-4" /> {t('final_report_edit')}
                                 </button>
                             )}
                         </div>
@@ -404,30 +401,30 @@ const FinalReportCard: React.FC<{
                                         onChange={(e) => handlePlanChange(index, e.target.value)}
                                         rows={2}
                                         className="flex-grow common-input"
-                                        placeholder="Davolash bosqichini kiriting..."
+                                        placeholder={t('final_report_edit_plan_placeholder')}
                                     />
-                                    <button onClick={() => handleRemovePlanStep(index)} className="delete-button" title="O'chirish">
+                                    <button onClick={() => handleRemovePlanStep(index)} className="delete-button" title={t('final_report_delete_btn')}>
                                         <TrashIcon className="w-4 h-4" />
                                     </button>
                                 </div>
                             ))}
                             <button onClick={handleAddPlanStep} className="text-sm font-semibold text-accent-color-blue hover:underline">
-                                + Yangi qadam qo'shish
+                                {t('final_report_add_step')}
                             </button>
                             <div className="flex justify-end gap-2 pt-3 border-t border-border-color">
                                 <button onClick={handleCancelEditPlan} className="edit-control-button secondary">
-                                    <XIcon className="w-4 h-4" /> Bekor qilish
+                                    <XIcon className="w-4 h-4" /> {t('cancel')}
                                 </button>
                                 <button onClick={handleSavePlan} className="edit-control-button primary">
-                                    <CheckIcon className="w-4 h-4" /> Saqlash
+                                    <CheckIcon className="w-4 h-4" /> {t('save')}
                                 </button>
                             </div>
                         </div>
                     )}
-                    {report.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>Iqtisodiy samaradorlik:</strong> {report.costEffectivenessNotes}</p>}
+                    {report.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>{t('final_report_cost_effectiveness')}:</strong> {report.costEffectivenessNotes}</p>}
                 </Section>
                 
-                <Section title="Dori-Darmonlar bo'yicha Tavsiyalar (O'zbekiston)" icon={<PillIcon className="w-6 h-6"/>}>
+                <Section title={t('final_report_medications_uz')} icon={<PillIcon className="w-6 h-6"/>}>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) ? report.medicationRecommendations.map((med, index) => {
                         const drugName = (med.name && String(med.name).trim()) || (med.localAvailability && String(med.localAvailability).trim()) || 'Dori';
@@ -438,27 +435,27 @@ const FinalReportCard: React.FC<{
                            <div className="absolute top-0 right-0 bg-blue-500 w-16 h-16 rounded-bl-full -mr-8 -mt-8 opacity-10"></div>
                            <p className="font-bold text-lg text-text-primary">{drugName}</p>
                            {(med.dosage && String(med.dosage).trim()) ? (
-                               <p className="text-sm text-text-secondary mt-1"><span className="font-semibold">Doza:</span> {med.dosage}</p>
+                               <p className="text-sm text-text-secondary mt-1"><span className="font-semibold">{t('final_report_dosage_inline')}</span> {med.dosage}</p>
                            ) : null}
                            
                            {showLocalAvailability && (
                                <div className="mt-2 p-2 bg-green-50 border border-green-100 rounded text-xs text-green-800">
-                                   <span className="font-bold">Mahalliy savdo nomlari:</span> {med.localAvailability}
+                                   <span className="font-bold">{t('final_report_local_names')}</span> {med.localAvailability}
                                </div>
                            )}
                            
                            {med.priceEstimate && (
-                               <p className="text-xs text-slate-500 mt-1 italic">Taxminiy narxi: {med.priceEstimate}</p>
+                               <p className="text-xs text-slate-500 mt-1 italic">{t('final_report_estimated_price')} {med.priceEstimate}</p>
                            )}
                            
                            {med.notes && (
                                <p className="text-sm text-text-secondary mt-2 pt-2 border-t border-slate-200">
-                                   <span className="font-semibold">Qanday qabul qilish (yo&apos;riqnoma):</span> {med.notes}
+                                   <span className="font-semibold">{t('final_report_instructions_inline')}</span> {med.notes}
                                </p>
                            )}
                         </div>
                     ); }) : (
-                        <p className="text-slate-500 text-sm italic">Dori tavsiyalari tashxis asosida hisobotga kiritiladi. Konsiliumni qayta ishga tushiring yoki bir oz kuting.</p>
+                        <p className="text-slate-500 text-sm italic">{t('final_report_medications_placeholder')}</p>
                     )}
                     </div>
                 </Section>
@@ -469,7 +466,7 @@ const FinalReportCard: React.FC<{
 
                 <AdverseEventRiskCard risks={report.adverseEventRisks} />
 
-                 <Section title="Qo'shimcha Tekshiruvlar" icon={<DocumentTextIcon className="w-6 h-6"/>}>
+                 <Section title={t('final_report_additional_tests_title')} icon={<DocumentTextIcon className="w-6 h-6"/>}>
                     <ul className="list-disc list-inside space-y-2 text-text-primary">
                         {(Array.isArray(report.recommendedTests) ? report.recommendedTests : []).map((item, index) => (
                             <li key={index}>{recommendedTestToDisplay(item)}</li>
@@ -489,23 +486,22 @@ const FinalReportCard: React.FC<{
                 
                 <RelatedResearchCard research={report.relatedResearch} />
 
-                 <Section title="Inkor Etilgan Gipotezalar" icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>
+                 <Section title={t('final_report_rejected_hypotheses_title')} icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>
                      {(Array.isArray(report.rejectedHypotheses) && report.rejectedHypotheses.length > 0) ? report.rejectedHypotheses.map((hypo, index) => (
                         <div key={index} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                            <p className="font-semibold text-text-primary line-through">{hypo.name}</p>
-                           <p className="text-sm text-text-secondary mt-1">Sabab: {hypo.reason}</p>
+                           <p className="text-sm text-text-secondary mt-1">{t('final_report_reason_inline')} {hypo.reason}</p>
                         </div>
                     )) : (
-                        <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+                        <p className="text-slate-500 text-sm italic">{t('final_report_no_data')}</p>
                     )}
                 </Section>
 
                 {/* Legal Disclaimer specific to Uzbekistan */}
                 <div className="mt-8 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 text-center">
-                    <p className="font-bold mb-1">Yuridik Eslatma (O'zbekiston Respublikasi):</p>
+                    <p className="font-bold mb-1">{t('final_report_legal_note')}</p>
                     <p>
-                        Ushbu xulosa faqat maslahat xarakteriga ega. Yakuniy tashxis va davolash uchun javobgarlik davolovchi shifokor zimmasida. 
-                        Retsept bilan beriladigan dori vositalarini faqat shifokor ko'rsatmasi bilan qabul qiling.
+                        {t('final_report_legal_disclaimer')}
                         {report.uzbekistanLegislativeNote && <span className="block mt-1 font-semibold">{report.uzbekistanLegislativeNote}</span>}
                     </p>
                 </div>

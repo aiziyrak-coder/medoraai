@@ -557,6 +557,10 @@ export const en = {
   final_report_nutrition_title: 'Healthy nutrition and disease prevention (prophylaxis)',
   final_report_nutrition_diet_title: 'Nutrition guidance',
   final_report_nutrition_prevention_title: 'Prevention and risk reduction',
+  final_report_folk_summary_intro: 'Medicinal plants and traditional supportive practices are listed in the dedicated section below.',
+  final_report_folk_summary_footer: 'Full list and safety precautions are in the traditional medicine section.',
+  final_report_nutrition_summary_intro: 'Nutrition and prevention recommendations are provided in the dedicated section below.',
+  final_report_nutrition_summary_footer: 'See details in the nutrition and prevention section.',
 
   // Specialist Names and Specialties
   specialist_name_gemini: 'Cardiologist AI (Gemini)',

@@ -559,6 +559,10 @@ export const ru: TranslationSet = {
   final_report_nutrition_title: 'Правильное питание и профилактика заболеваний',
   final_report_nutrition_diet_title: 'Рекомендации по питанию',
   final_report_nutrition_prevention_title: 'Профилактика и предотвращение',
+  final_report_folk_summary_intro: 'Лекарственные растения и традиционные поддерживающие подходы приведены в отдельном разделе ниже.',
+  final_report_folk_summary_footer: 'Полный список и меры предосторожности — в разделе народной медицины.',
+  final_report_nutrition_summary_intro: 'Рекомендации по питанию и профилактике приведены в отдельном разделе ниже.',
+  final_report_nutrition_summary_footer: 'Подробности смотрите в разделе питания и профилактики.',
 
   // Specialist Names and Specialties
   specialist_name_gemini: 'Кардиолог ИИ (Gemini)',

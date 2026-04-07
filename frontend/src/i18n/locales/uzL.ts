@@ -564,6 +564,10 @@ export const uzL: TranslationSet = {
   final_report_nutrition_title: "To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)",
   final_report_nutrition_diet_title: "To'g'ri ovqatlanish bo'yicha",
   final_report_nutrition_prevention_title: 'Profilaktika va oldini olish',
+  final_report_folk_summary_intro: "Dorivor o'simliklar va an'anaviy qo'llanmalar quyidagi alohida bo'limda keltirilgan.",
+  final_report_folk_summary_footer: "To'liq ro'yxat va ehtiyot choralar — xalq tabobati bo'limida.",
+  final_report_nutrition_summary_intro: "Ovqatlanish va profilaktika bo'yicha tavsiyalar quyidagi alohida bo'limda keltirilgan.",
+  final_report_nutrition_summary_footer: "Batafsil — ovqatlanish va profilaktika bo'limida.",
 
   // Specialist Names and Specialties — barcha mutaxassislar o'zbekcha
   specialist_name_gemini: 'Kardiolog AI (Gemini)',
