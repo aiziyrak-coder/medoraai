@@ -331,7 +331,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                             id="patient-complaint"
                             value={patientComplaint}
                             onChange={(e) => setPatientComplaint(e.target.value)}
-                            placeholder={t('uzi_utt_patient_complaint_placeholder')}
+                            placeholder=""
                             rows={2}
                             className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
                         />
@@ -345,7 +345,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                             id="patient-history"
                             value={patientHistory}
                             onChange={(e) => setPatientHistory(e.target.value)}
-                            placeholder={t('uzi_utt_patient_history_placeholder')}
+                            placeholder=""
                             rows={2}
                             className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
                         />
@@ -359,7 +359,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                             id="uzi-context"
                             value={context}
                             onChange={(e) => setContext(e.target.value)}
-                            placeholder={t('uzi_utt_context_placeholder')}
+                            placeholder=""
                             rows={3}
                             className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
                         />

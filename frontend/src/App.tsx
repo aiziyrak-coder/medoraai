@@ -53,8 +53,9 @@ import CopyrightIcon from './components/icons/CopyrightIcon';
 import { AIModel } from './constants/specialists';
 import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT, PLATFORM_NAME, INSTITUTE_LOGO_SRC } from './constants/brand';
 
+// Scrollni bitta joy boshqaradi (main). Ichki wrapperlar overflow qilmasin — mouse wheel hamma oynada ishlasin.
 const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="h-full min-h-0 flex-1 overflow-y-auto overflow-x-hidden page-px py-6 pb-8 custom-scrollbar min-w-0 touch-scroll-y max-md:pb-24">
+    <div className="h-full min-h-0 flex-1 overflow-x-hidden page-px py-6 pb-8 min-w-0 max-md:pb-24">
         {children}
     </div>
 );
