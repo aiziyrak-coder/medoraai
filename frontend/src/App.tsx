@@ -1042,7 +1042,8 @@ const AppContent: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden w-full min-w-0 relative z-10 isolate touch-scroll-y">
+            {/* Scroll: butun hujjat (body). Ichki overflow-y trap sichqoncha/touchni uzadi. */}
+            <main className="flex-1 flex flex-col w-full min-w-0 relative z-10 isolate overflow-x-hidden">
                {renderMainContent()}
             </main>
             

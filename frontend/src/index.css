@@ -4,16 +4,25 @@
 
 /* --- Full-screen layout & responsive --- */
 @layer base {
-  html, #root {
+  /*
+   * height: 100% #root/html da scrollni “o‘ldiradi”: kontent viewportdan chiqsa ham
+   * hujjat scroll bo‘lmay qoladi. Faqat min-height — sahifa o‘sadi, body scroll ishlaydi.
+   */
+  html {
     width: 100%;
-    min-height: 100vh;
+    min-height: 100%;
     min-height: 100dvh;
-    /* Smart doska / sensorli ekran: vertikal scroll zincirini uzmaymiz */
-    height: 100%;
+  }
+  #root {
+    width: 100%;
+    min-height: 100%;
+    min-height: 100dvh;
   }
   body {
     width: 100%;
     min-width: 0;
+    min-height: 100%;
+    min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -31,7 +40,7 @@
   /* Windows smartboard / Edge kiosk: make touch panning consistently usable */
   -ms-overflow-style: -ms-autohiding-scrollbar;
   scrollbar-gutter: stable both-edges;
-  max-height: 100%;
+  /* max-height: 100% flex ichida scrollni buzadi — ishlatmaymiz */
 }
 
 @layer utilities {
