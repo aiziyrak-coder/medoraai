@@ -115,8 +115,17 @@ for i in 1 2; do
   fi
 done
 
-echo "=== 6. Nginx reload ==="
-nginx -t 2>/dev/null && systemctl reload nginx && echo "  Nginx reload OK" || echo "  Nginx reload skip (config mavjud bo'lsa qo'lda reload qiling)"
+echo "=== 6. Nginx (fjsti.ziyrak konfig + reload) ==="
+if [ -f "$APP_DIR/deploy/nginx-fjsti-ziyrak.conf" ] && [ -d /etc/nginx/sites-available ]; then
+  cp "$APP_DIR/deploy/nginx-fjsti-ziyrak.conf" /etc/nginx/sites-available/fjsti-ziyrak.conf
+  ln -sf /etc/nginx/sites-available/fjsti-ziyrak.conf /etc/nginx/sites-enabled/fjsti-ziyrak.conf 2>/dev/null || true
+  echo "  sites-available/fjsti-ziyrak.conf yangilandi"
+fi
+if nginx -t 2>/dev/null; then
+  systemctl reload nginx && echo "  Nginx reload OK"
+else
+  echo "  XATO: nginx -t — konfni qo'lda tekshiring"
+fi
 
 echo "=== 7. Tekshirish ==="
 sleep 2
