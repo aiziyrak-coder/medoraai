@@ -48,7 +48,26 @@ if [ -f "$APP_DIR/backend/.env" ]; then
 fi
 export VITE_API_BASE_URL
 echo "  VITE_API_BASE_URL=$VITE_API_BASE_URL"
-npm run build
+# Atomik almashtirish: index.html va assets/ bir vaqtda — yarim deployda eski index + yo'q chunk 404 bo'lmasin
+DIST_NEW="dist.new.$$"
+rm -rf "$APP_DIR/frontend/$DIST_NEW"
+npx vite build --outDir "$DIST_NEW"
+if [ ! -f "$APP_DIR/frontend/$DIST_NEW/index.html" ]; then
+  echo "XATO: frontend/$DIST_NEW/index.html topilmadi."
+  rm -rf "$APP_DIR/frontend/$DIST_NEW"
+  exit 1
+fi
+cd "$APP_DIR/frontend"
+rm -rf dist.prev.$$
+[ -d dist ] && mv dist dist.prev.$$
+if ! mv "$DIST_NEW" dist; then
+  echo "XATO: dist almashtirish"
+  rm -rf dist
+  [ -d dist.prev.$$ ] && mv dist.prev.$$ dist
+  exit 1
+fi
+rm -rf dist.prev.$$
+cd "$APP_DIR"
 
 chmod 755 /root 2>/dev/null || true
 chmod 755 "$APP_DIR" "$APP_DIR/frontend/dist" 2>/dev/null || true
