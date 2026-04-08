@@ -66,7 +66,44 @@ const Dashboard: React.FC<DashboardProps> = ({
     userName, onNewAnalysis, onViewHistory, onOpenUziUtt,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
+
+    const uziStripFallback: Record<'uz-L' | 'uz-C' | 'ru' | 'en', { badge: string; title: string; subtitle: string; open: string }> = {
+        'uz-L': {
+            badge: 'Tasvirlash',
+            title: 'UTT / UZI — chuqur AI tahlil',
+            subtitle: 'Rasm yoki PDF • tizimli professional xulosa',
+            open: 'Ochish',
+        },
+        'uz-C': {
+            badge: 'Тасвирлаш',
+            title: 'УТТ / УЗИ — чуқур AI таҳлил',
+            subtitle: 'Расм ёки PDF • тизимли профессионал хулоса',
+            open: 'Очиш',
+        },
+        ru: {
+            badge: 'Визуализация',
+            title: 'УЗД / УЗИ — глубокий AI-разбор',
+            subtitle: 'Снимки или PDF • структурированное заключение',
+            open: 'Открыть',
+        },
+        en: {
+            badge: 'Imaging',
+            title: 'UTT / UZI — deep AI read',
+            subtitle: 'Images or PDF • subspecialty-style structured report',
+            open: 'Open',
+        },
+    };
+
+    const trSafe = (key: 'uzi_utt_badge' | 'uzi_utt_strip_title' | 'uzi_utt_strip_subtitle' | 'uzi_utt_open') => {
+        const v = t(key);
+        if (v !== key) return v;
+        const fb = uziStripFallback[language];
+        if (key === 'uzi_utt_badge') return fb.badge;
+        if (key === 'uzi_utt_strip_title') return fb.title;
+        if (key === 'uzi_utt_strip_subtitle') return fb.subtitle;
+        return fb.open;
+    };
 
     const avatarGrads = [
         'linear-gradient(135deg,#06b6d4,#10b981)',
@@ -252,7 +289,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     className="text-[11px] font-mono font-bold tracking-wider uppercase leading-none mb-0.5"
                                     style={{ color: '#5eead4' }}
                                 >
-                                    {t('uzi_utt_badge')}
+                                    {trSafe('uzi_utt_badge')}
                                 </p>
                                 <p
                                     className="text-sm sm:text-base font-bold leading-tight"
@@ -262,19 +299,19 @@ const Dashboard: React.FC<DashboardProps> = ({
                                         WebkitTextFillColor: 'transparent',
                                     }}
                                 >
-                                    {t('uzi_utt_strip_title')}
+                                    {trSafe('uzi_utt_strip_title')}
                                 </p>
                                 <p
                                     className="text-[10px] sm:text-xs leading-snug mt-0.5 line-clamp-2 sm:line-clamp-none"
                                     style={{ color: 'rgba(180,220,245,0.82)' }}
                                 >
-                                    {t('uzi_utt_strip_subtitle')}
+                                    {trSafe('uzi_utt_strip_subtitle')}
                                 </p>
                             </div>
                             <span
                                 className="relative z-[1] flex-shrink-0 inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-cyan-300 group-hover:text-cyan-200 transition-colors"
                             >
-                                {t('uzi_utt_open')}
+                                {trSafe('uzi_utt_open')}
                                 <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
