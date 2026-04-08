@@ -849,7 +849,8 @@ const AppContent: React.FC = () => {
                                 <button type="button" onClick={() => setError(null)} className="shrink-0 underline" aria-label={t('close')}>{t('close')}</button>
                             </div>
                         )}
-                        <div className="flex-1 min-h-0 page-px py-4 overflow-y-auto touch-scroll-y">
+                        {/* Scrollni bitta joy boshqarsin (main); nested overflow mouse-wheelni bloklamasin */}
+                        <div className="flex-1 min-h-0 page-px py-4">
                             <DataInputForm
                                 onSubmit={handleDataSubmit}
                                 isAnalyzing={isProcessing}
