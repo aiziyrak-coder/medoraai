@@ -27,7 +27,8 @@ export enum ErrorCode {
  */
 export const getUserFriendlyError = (error: unknown, defaultMessage: string = "Xatolik yuz berdi"): string => {
   if (error instanceof Error) {
-    const message = error.message.toLowerCase();
+    const rawMessage = error.message || '';
+    const message = rawMessage.toLowerCase();
     
     // Network errors
     if (message.includes('network') || message.includes('fetch') || message.includes('connection')) {
@@ -42,6 +43,15 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
     // 503 / model overloaded / UNAVAILABLE
     if (message.includes('503') || message.includes('overloaded') || message.includes('unavailable')) {
       return "AI server hozir band. Iltimos, 10 - 15 soniyadan keyin qayta urinib ko'ring.";
+    }
+
+    // Provider-side infra errors (Cursor/OpenAI/Azure wrappers)
+    if (
+      message.includes('provider error') ||
+      message.includes("trouble connecting to the model provider") ||
+      message.includes('request id:')
+    ) {
+      return "AI provayder bilan vaqtinchalik aloqa muammosi bor. Iltimos, 1-2 daqiqadan keyin qayta urinib ko'ring.";
     }
 
     // Invalid/truncated JSON response
@@ -70,8 +80,22 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "Ushbu amal uchun ruxsat yo'q. Iltimos, hisobingizni tekshiring.";
     }
     
-    // Return original message if it's already user-friendly
-    return error.message;
+    // If looks technical/noisy, hide internals and show generic text
+    if (
+      message.includes('vscode-file://') ||
+      message.includes('workbench.desktop.main.js') ||
+      message.includes(' at ') ||
+      message.includes('{') ||
+      message.includes('provider')
+    ) {
+      return defaultMessage;
+    }
+
+    // Return original message only when it is short and user-facing
+    if (rawMessage.length <= 180) {
+      return rawMessage;
+    }
+    return defaultMessage;
   }
   
   return defaultMessage;

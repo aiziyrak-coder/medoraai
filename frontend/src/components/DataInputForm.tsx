@@ -14,7 +14,7 @@ import { getPatients, convertPatientToPatientData, type Patient } from '../servi
 import { getAuthToken } from '../services/api';
 import SearchIcon from './icons/SearchIcon';
 
-type SpecialtyKey = 'gastro' | 'cardio' | 'neuro' | 'therapist' | 'endo' | 'pulmo' | 'nephro' | 'derma' | 'ortho' | 'gynec' | 'uro' | 'ophth' | 'ent' | 'reuma';
+type SpecialtyKey = 'gastro' | 'cardio' | 'neuro' | 'therapist' | 'endo' | 'pulmo' | 'nephro' | 'derma' | 'ortho' | 'gynec' | 'uro' | 'ophth' | 'ent' | 'reuma' | 'psych';
 
 // Get complaint templates from i18n based on current language
 const getComplaintTemplates = (t: (key: string) => string): Record<SpecialtyKey, string[]> => ({
@@ -32,6 +32,7 @@ const getComplaintTemplates = (t: (key: string) => string): Record<SpecialtyKey,
     ophth: Array.from({ length: 10 }, (_, i) => t(`tmpl_ophth_comp_${i}`)),
     ent: Array.from({ length: 10 }, (_, i) => t(`tmpl_ent_comp_${i}`)),
     reuma: Array.from({ length: 9 }, (_, i) => t(`tmpl_reuma_comp_${i}`)),
+    psych: Array.from({ length: 18 }, (_, i) => t(`tmpl_psych_comp_${i}`)),
 });
 
 // Get history templates from i18n based on current language
@@ -50,6 +51,7 @@ const getHistoryTemplates = (t: (key: string) => string): Record<SpecialtyKey, s
     ophth: Array.from({ length: 3 }, (_, i) => t(`tmpl_ophth_hist_${i}`)),
     ent: Array.from({ length: 3 }, (_, i) => t(`tmpl_ent_hist_${i}`)),
     reuma: Array.from({ length: 3 }, (_, i) => t(`tmpl_reuma_hist_${i}`)),
+    psych: Array.from({ length: 8 }, (_, i) => t(`tmpl_psych_hist_${i}`)),
 });
 
 // Batafsil va keng shikoyat shablonlari — doktor tanlab to'liq matn oladi (fallback)
@@ -309,6 +311,26 @@ const COMPLAINT_TEMPLATES: Record<SpecialtyKey, string[]> = {
         "Behchet yoki boshqa vaskulit shubha.",
         "Revmatologik tekshiruv va qon tahlili kerak.",
     ],
+    psych: [
+        "2 haftadan ortiq davom etuvchi tushkunlik, hech narsadan zavq olmaslik, charchoq — asosiy depressiya shubhasi.",
+        "Doimiy tashvish, bezovtalik, yurak urishi yoki terlash — bezovtalik buzilishlari shubhasi.",
+        "Panik xurujlari: yurak urishi, nafas yetishmasligi, o'lim qo'rquvi.",
+        "Ko'tarilgan kayfiyat, uyquga ehtiyoj kamayishi, impulsiv xarajatlar — manik yoki gipomanik alomatlar.",
+        "Ovozlar eshitish (akkustik gallutsinatsiya), debiya, ijtimoiy chekinish — psixoz / shizofreniya spektri shubhasi.",
+        "O'z joniga qasd qilish fikrlari, reja yoki o'ziga zarar yetkazish xohishi — xavfsizlikni baholash, shoshilinch.",
+        "Uyqu buzilishi, erta uyg'onish, uyqudan keyin tiklanmaslik hissi.",
+        "Alkogol yoki moddalarni boshqarolmaslik, sustlashish, yoki ulardan qat'iy kamaytira olmaslik.",
+        "Diqqatni jamlashda qiyinchilik, ish yoki o'qishda pasayish — kattalarda ADHD yoki stressga bog'liq kognitiv alomatlar.",
+        "Majburiy fikrlar va kunlik hayotga xalaqit beradigan ritual — OCD alomatlari.",
+        "Travmadan keyin tasavvurlar, qo'rquvli tushlar, gigervojilantlik — PTSD alomatlari.",
+        "Ovqatni keskin cheklash yoki ovqat yeb keyin qusish tsikllari — ovqatlanish buzilishlari shubhasi.",
+        "Xotira yo'qolishi, orientatsiya buzilishi, shaxs o'zgarishi — neyrokognitiv buzilish shubhasi.",
+        "Hayajonlanish, agressiya, o'tkir chalkashlik — delirium yoki psixiatrik favqulodda holat.",
+        "Psixotrop dorilar yon ta'siri yoki rejaga rioya qilmaslik — dori maslahati.",
+        "Birinchi marta psixoz — keng qamrovli psixiatrik baholash shoshilinch.",
+        "Uzoq davom etgan qayg'u bilan funksional buzilish — depressiya va qayg'u farqi.",
+        "Bolada/yosh o'smanda: xulq-atvor muammolari, maktabdan qochish, o'ziga zarar — rivoj bahosi.",
+    ],
 };
 
 // Batafsil va keng anamnez shablonlari — doktor tanlab to'liq matn oladi
@@ -463,6 +485,16 @@ const HISTORY_TEMPLATES: Record<SpecialtyKey, string[]> = {
         "Revmatoid artrit yoki boshqa autoimmun kasallik.",
         "Bo'g'im jarrohligi yoki endoprotez.",
         "Kortikosteroidlar yoki MTX qabul qilgan.",
+    ],
+    psych: [
+        "Oldin qo'yilgan psixiatrik tashxis (depressiya, bipolyar buzilish, shizofreniya spektri va h.k.).",
+        "Oldin psixiatrik statsionarda bo'lgan yoki o'ziga qasd urinish tarixi.",
+        "Oilada ruhiy kasallik yoki o'ziga qasd tarixi.",
+        "Hozirgi psixotrop dorilar (nomlari, dozalari, qabul qilish intizomi).",
+        "Modda ishlatish (alkogol, kanabinoidlar, stimulyatorlar) — naqsh va chastota.",
+        "Psixosotsial og'ir stressorlar — yo'qotish, nizo, moliyaviy qiyinchilik.",
+        "Kayfiyat va fikrlashga ta'sir qiluvchi somatik kasalliklar (qalqon bezi, B12 yetishmovchiligi, epilepsiya).",
+        "Oldin psixoterapiya, TMS yoki EKT o'tkazilgan.",
     ],
 };
 
@@ -1165,6 +1197,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 <option value="ophth">{t('specialty_ophth')}</option>
                                                 <option value="ent">{t('specialty_ent')}</option>
                                                 <option value="reuma">{t('specialty_reuma')}</option>
+                                                <option value="psych">{t('specialty_psychiatrist')}</option>
                                             </select>
                                         </div>
                                         <div className="flex flex-col">

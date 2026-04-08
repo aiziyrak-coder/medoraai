@@ -991,7 +991,7 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col min-h-0 h-[100dvh] h-screen w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-x-hidden">
+        <div className="flex flex-col min-h-[100dvh] w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-x-hidden">
             {/* Oq/kulrang animatsion gradient (index.css .app-bg) */}
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
             {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}

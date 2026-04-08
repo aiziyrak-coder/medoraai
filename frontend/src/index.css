@@ -31,6 +31,7 @@
   /* Windows smartboard / Edge kiosk: make touch panning consistently usable */
   -ms-overflow-style: -ms-autohiding-scrollbar;
   scrollbar-gutter: stable both-edges;
+  max-height: 100%;
 }
 
 @layer utilities {
