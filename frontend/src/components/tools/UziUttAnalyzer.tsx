@@ -63,6 +63,12 @@ function readFileBase64(file: File): Promise<string> {
 const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const { t, language } = useTranslation();
     const [items, setItems] = useState<File[]>([]);
+    const [modality, setModality] = useState<'auto' | 'ultrasound' | 'xray' | 'mixed'>('auto');
+    const [patientName, setPatientName] = useState('');
+    const [patientAge, setPatientAge] = useState('');
+    const [patientSex, setPatientSex] = useState<'unknown' | 'male' | 'female'>('unknown');
+    const [patientComplaint, setPatientComplaint] = useState('');
+    const [patientHistory, setPatientHistory] = useState('');
     const [context, setContext] = useState('');
     const [report, setReport] = useState<UziUttReport | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -118,6 +124,21 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         setError(null);
         setReport(null);
         try {
+            const patientContextParts: string[] = [];
+            if (patientName.trim()) patientContextParts.push(`${t('uzi_utt_patient_name')}: ${patientName.trim()}`);
+            if (patientAge.trim()) patientContextParts.push(`${t('uzi_utt_patient_age')}: ${patientAge.trim()}`);
+            if (patientSex !== 'unknown') patientContextParts.push(`${t('uzi_utt_patient_sex')}: ${t(`uzi_utt_patient_sex_${patientSex}` as TranslationKey)}`);
+            if (patientComplaint.trim()) patientContextParts.push(`${t('uzi_utt_patient_complaint')}: ${patientComplaint.trim()}`);
+            if (patientHistory.trim()) patientContextParts.push(`${t('uzi_utt_patient_history')}: ${patientHistory.trim()}`);
+            const clinicalContext = [
+                `${t('uzi_utt_modality_label')}: ${t(`uzi_utt_modality_${modality}` as TranslationKey)}`,
+                ...patientContextParts,
+                context.trim(),
+            ]
+                .map((x) => x.trim())
+                .filter(Boolean)
+                .join('\n');
+
             const payload = await Promise.all(
                 items.map(async (file) => {
                     const mime = mimeForFile(file);
@@ -128,7 +149,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                     };
                 }),
             );
-            const result = await analyzeUziUttDocuments(payload, language, context.trim() || undefined);
+            const result = await analyzeUziUttDocuments(payload, language, clinicalContext || undefined);
             setReport(result);
         } catch (err) {
             setError(err instanceof Error ? err.message : t('alert_error_generic'));
@@ -239,6 +260,96 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                             ))}
                         </ul>
                     )}
+
+                    <div>
+                        <label htmlFor="modality" className="block text-xs font-semibold text-slate-600 mb-1">
+                            {t('uzi_utt_modality_label')}
+                        </label>
+                        <select
+                            id="modality"
+                            value={modality}
+                            onChange={(e) => setModality(e.target.value as 'auto' | 'ultrasound' | 'xray' | 'mixed')}
+                            className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800"
+                        >
+                            <option value="auto">{t('uzi_utt_modality_auto')}</option>
+                            <option value="ultrasound">{t('uzi_utt_modality_ultrasound')}</option>
+                            <option value="xray">{t('uzi_utt_modality_xray')}</option>
+                            <option value="mixed">{t('uzi_utt_modality_mixed')}</option>
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label htmlFor="patient-name" className="block text-xs font-semibold text-slate-600 mb-1">
+                                {t('uzi_utt_patient_name')}
+                            </label>
+                            <input
+                                id="patient-name"
+                                type="text"
+                                value={patientName}
+                                onChange={(e) => setPatientName(e.target.value)}
+                                placeholder={t('uzi_utt_patient_name_placeholder')}
+                                className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="patient-age" className="block text-xs font-semibold text-slate-600 mb-1">
+                                {t('uzi_utt_patient_age')}
+                            </label>
+                            <input
+                                id="patient-age"
+                                type="text"
+                                value={patientAge}
+                                onChange={(e) => setPatientAge(e.target.value)}
+                                placeholder={t('uzi_utt_patient_age_placeholder')}
+                                className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="patient-sex" className="block text-xs font-semibold text-slate-600 mb-1">
+                            {t('uzi_utt_patient_sex')}
+                        </label>
+                        <select
+                            id="patient-sex"
+                            value={patientSex}
+                            onChange={(e) => setPatientSex(e.target.value as 'unknown' | 'male' | 'female')}
+                            className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800"
+                        >
+                            <option value="unknown">{t('uzi_utt_patient_sex_unknown')}</option>
+                            <option value="male">{t('uzi_utt_patient_sex_male')}</option>
+                            <option value="female">{t('uzi_utt_patient_sex_female')}</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label htmlFor="patient-complaint" className="block text-xs font-semibold text-slate-600 mb-1">
+                            {t('uzi_utt_patient_complaint')}
+                        </label>
+                        <textarea
+                            id="patient-complaint"
+                            value={patientComplaint}
+                            onChange={(e) => setPatientComplaint(e.target.value)}
+                            placeholder={t('uzi_utt_patient_complaint_placeholder')}
+                            rows={2}
+                            className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="patient-history" className="block text-xs font-semibold text-slate-600 mb-1">
+                            {t('uzi_utt_patient_history')}
+                        </label>
+                        <textarea
+                            id="patient-history"
+                            value={patientHistory}
+                            onChange={(e) => setPatientHistory(e.target.value)}
+                            placeholder={t('uzi_utt_patient_history_placeholder')}
+                            rows={2}
+                            className="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400"
+                        />
+                    </div>
 
                     <div>
                         <label htmlFor="uzi-context" className="block text-xs font-semibold text-slate-600 mb-1">

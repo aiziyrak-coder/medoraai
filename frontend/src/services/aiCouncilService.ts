@@ -1790,13 +1790,35 @@ export const analyzeUziUttDocuments = async (
     const lang = langMap[language] || 'Uzbek';
     const ctx = (clinicalContext ?? '').trim();
     const intro = [
-        'You are an expert radiologist and clinical ultrasound specialist.',
-        'Analyze ALL attached documents (ultrasound UZI/UTT reports, scanned protocols, or still images). Studies may be any modality (abdomen, pelvis, thyroid, vascular, obstetric, etc.).',
-        `Write every human-readable field in ${lang} (clinical style). Do not leave studyType, regionOrOrgan, keyFindings, impression, or clinicalConclusion empty unless the image truly has no readable data — then explain in limitations.`,
-        ctx ? `Additional clinical context from the clinician: ${ctx}` : '',
-        'Rules: (1) Summarize only what is supported by the attachments; (2) If text is illegible or quality is poor, state this in limitations; (3) Do not invent numeric measurements that are not visible; (4) Set urgencyLevel to emergent/urgent if critical or acute findings are described.',
-        'JSON STRICT: keyFindings and recommendations MUST be JSON arrays of plain strings only — one short sentence per string. Never put objects inside arrays.',
-        'differentialDiagnosis MUST be one plain string (or empty string), not an array of objects. limitations MUST be plain string in the same language as other fields.',
+        `You are a subspecialty-level attending radiologist/rentgenologist for multimodal imaging: ultrasound (UZI/UTT) and X-ray radiography. Your report must meet the standard of a tertiary referral center peer review: exhaustive, systematic, and clinically actionable.`,
+        'Analyze EVERY attachment end-to-end (all pages of PDFs, every still image). Integrate findings across files into one coherent report.',
+        `All narrative fields (studyType, regionOrOrgan, techniqueNotes, measurements, impression, clinicalConclusion, differentialDiagnosis, limitations, and every string in keyFindings and recommendations) MUST be written in ${lang} — professional clinical register, suitable for a colleague physician.`,
+        ctx ? `Clinician-provided context (must weigh in conclusions): ${ctx}` : '',
+        '',
+        'SYSTEMATIC READING PROTOCOL (apply what is relevant to the study type):',
+        '- Identify modality and organ/region; note technique (B-mode, CFM/power Doppler, spectral Doppler, elastography if mentioned).',
+        '- For X-ray: projection/view (AP/PA/lateral if visible), positioning/rotation quality, exposure adequacy, silhouette signs, focal opacity/consolidation, pleural air/fluid, cardiomediastinal contours, fractures/dislocation, and foreign bodies when visible.',
+        '- Describe echotexture, size/shape, margins, focal lesions, walls, ducts/vessels, effusions, lymph nodes, and any printed hemodynamic numbers.',
+        '- For OB: gestational age if stated, biometry, placenta, liquor (AFI/single pocket), cervix if visible; flag red-flag obstetric patterns if imaging suggests them.',
+        '- For thyroid/small parts: nodule/lesion descriptors (composition, margins, echogenic foci, vascularity); use guideline-consistent language when data allow — do NOT assign TI-RADS/BIRADS category numbers unless the source image/report explicitly states them.',
+        '- For vascular UTT: flow direction, stenosis/occlusion language if velocities or ratios are printed; do not invent velocities.',
+        '- For abdomen/pelvis: organ-by-organ concise positives; free fluid, biliary dilation, hydronephrosis, masses, ascites clues.',
+        '',
+        'OUTPUT DEPTH (when data exist — do not stay superficial):',
+        '- keyFindings: 6–12 separate plain-string bullets when justified; each bullet one clear finding. Fewer only if the study is truly limited.',
+        '- measurements: copy ALL visible numeric values with units verbatim; if none, write a short note in the same language.',
+        '- impression: structured synthesis (not a repeat of bullets only).',
+        '- clinicalConclusion: integrates findings, working clinical significance, uncertainty, and immediate safety message if any.',
+        '- differentialDiagnosis: one multi-line plain string — ranked differentials with brief why/why-not tied to visible findings.',
+        '- recommendations: 5–10 prioritized plain-string actions (follow-up interval, repeat US, CT/MRI/labs, specialist referral, inpatient vs outpatient) when clinically appropriate.',
+        '- limitations: technical limits (image quality, single plane, incomplete study) explicitly.',
+        '',
+        'SAFETY & URGENCY: If you identify emergency patterns (examples: suspected ectopic pregnancy with hemoperitoneum, ovarian/testicular torsion suspicion, ruptured AAA features, massive hemoperitoneum, critical DVT/PE clues when documented), set urgencyLevel to emergent or urgent and state so in clinicalConclusion.',
+        'EVIDENCE & CONTEXT: Align reasoning with mainstream radiology practice and, where relevant, note consistency with national clinical pathway thinking in Uzbekistan (SSV protocols mindset) without inventing protocol numbers or citations.',
+        'HONESTY: Never fabricate measurements or diagnoses not supported by the images/text. If ambiguous, say so and recommend appropriate next step.',
+        '',
+        'JSON STRICT: keyFindings and recommendations MUST be arrays of plain strings only — one sentence per element. Never embed objects in arrays.',
+        'differentialDiagnosis MUST be a single plain string (use \\n between lines). limitations MUST be a plain string.',
         'Return ONLY valid JSON matching the schema.',
     ].filter(Boolean).join('\n');
 
@@ -1834,7 +1856,7 @@ export const analyzeUziUttDocuments = async (
         ],
     };
 
-    const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 8192);
+    const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 12288);
     return normalizeUziUttReport(raw);
 };
 
