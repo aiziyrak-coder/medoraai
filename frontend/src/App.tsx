@@ -1041,7 +1041,7 @@ const AppContent: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 flex flex-col min-h-0 overflow-hidden w-full min-w-0 relative z-10 isolate">
+            <main className="flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden w-full min-w-0 relative z-10 isolate touch-scroll-y">
                {renderMainContent()}
             </main>
             

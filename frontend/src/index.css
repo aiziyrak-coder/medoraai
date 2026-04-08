@@ -25,8 +25,12 @@
 .touch-scroll-y {
   -webkit-overflow-scrolling: touch;
   overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  touch-action: pan-y !important;
+  /* Windows smartboard / Edge kiosk: make touch panning consistently usable */
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  scrollbar-gutter: stable both-edges;
 }
 
 @layer utilities {
