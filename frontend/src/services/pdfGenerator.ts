@@ -652,6 +652,18 @@ export const generateUziUttPdf = async (
     const pageWidth = doc.internal.pageSize.width;
     let y = MARGIN;
 
+    // Generate QR code for platform
+    let qrDataUrl = '';
+    try {
+        qrDataUrl = await QRCode.toDataURL(PLATFORM_URL, {
+            width: 80,
+            margin: 1,
+            color: { dark: '#1e293b', light: '#ffffff' },
+        });
+    } catch {
+        // ignore
+    }
+
     const drawLine = (yPos: number, color: [number, number, number] = [200, 200, 200]) => {
         doc.setDrawColor(...color);
         doc.setLineWidth(0.3);
@@ -709,21 +721,56 @@ export const generateUziUttPdf = async (
     const title = tr('pdf_uzi_utt_title', 'UZI / UTT: Tahlil va xulosa');
     const subtitle = tr('pdf_uzi_utt_subtitle', "Rasmiy tibbiy maslahat hujjati - faqat ma'lumot uchun. Doktor xulosasining o'rnini bosmaydi.");
 
-    doc.setFontSize(14);
+    // === DOCUMENT HEADER (consilium-style) ===
+    const qrSize = 20;
+    const qrX = pageWidth - MARGIN - qrSize;
+    const qrY = y - 2;
+    if (qrDataUrl) {
+        try {
+            doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    // Optional institute logo on the left
+    const headerLogoSize = 10;
+    const headerLogoX = MARGIN;
+    const headerLogoY = y - 1;
+    const headerTextX = branding?.instituteLogoDataUrl ? MARGIN + headerLogoSize + 3 : MARGIN;
+    if (branding?.instituteLogoDataUrl) {
+        try {
+            doc.addImage(branding.instituteLogoDataUrl, 'PNG', headerLogoX, headerLogoY, headerLogoSize, headerLogoSize);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    doc.setFontSize(16);
     doc.setFont(PDF_FONT, 'bold');
     doc.setTextColor(30, 41, 59);
-    doc.text(title, MARGIN, y);
-    y += 6;
-    doc.setFontSize(9);
-    doc.setFont(PDF_FONT, 'italic');
-    doc.setTextColor(80, 80, 90);
-    const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2);
-    for (const line of subLines) {
-        doc.text(line, MARGIN, y);
-        y += 4;
+    doc.text(title, headerTextX, y);
+    y += 5;
+
+    doc.setFontSize(8);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(100, 100, 100);
+    const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2 - (branding?.instituteLogoDataUrl ? headerLogoSize + 3 : 0) - (qrSize + 6));
+    doc.text(subLines[0] || '', headerTextX, y);
+
+    const reportDate = new Date();
+    const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    doc.text(`Sana: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
+
+    if (qrDataUrl) {
+        doc.setFontSize(6);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Skannerlang →', qrX + qrSize / 2, qrY + qrSize + 2, { align: 'center' });
+        doc.text('fjsti.ziyrak.org', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
-    y += 2;
-    drawLine(y, [180, 180, 180]);
+
+    y = Math.max(y + 4, qrY + qrSize + 8);
+    drawLine(y, [150, 150, 150]);
     y += 6;
 
     doc.setFont(PDF_FONT, 'normal');
