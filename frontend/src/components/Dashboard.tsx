@@ -225,26 +225,55 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <button
                             type="button"
                             onClick={() => onOpenUziUtt()}
-                            className="group w-full text-left rounded-xl border border-slate-200/90 bg-white/75 hover:bg-white backdrop-blur-md px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4 shadow-sm hover:shadow transition-all duration-200"
+                            className="group w-full text-left rounded-xl overflow-hidden relative px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4 transition-all duration-200"
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(7,19,34,0.96) 0%, rgba(10,28,52,0.94) 45%, rgba(8,40,72,0.92) 100%)',
+                                border: '1px solid rgba(0,210,255,0.32)',
+                                boxShadow: '0 0 28px rgba(0,210,255,0.08), 0 8px 24px rgba(0,0,0,0.2)',
+                            }}
                         >
+                            <div
+                                className="absolute inset-0 opacity-[0.07] pointer-events-none hex-grid-bg"
+                                aria-hidden
+                            />
                             <span
-                                className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-50 border border-sky-200/90 flex items-center justify-center text-lg sm:text-xl"
+                                className="relative z-[1] flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg sm:text-xl"
+                                style={{
+                                    background: 'rgba(0,210,255,0.12)',
+                                    border: '1px solid rgba(0,210,255,0.4)',
+                                    boxShadow: '0 0 16px rgba(0,210,255,0.15)',
+                                }}
                                 aria-hidden
                             >
                                 📡
                             </span>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-mono font-bold tracking-wider uppercase text-sky-700/90 leading-none mb-0.5">
+                            <div className="relative z-[1] flex-1 min-w-0">
+                                <p
+                                    className="text-[11px] font-mono font-bold tracking-wider uppercase leading-none mb-0.5"
+                                    style={{ color: '#5eead4' }}
+                                >
                                     {t('uzi_utt_badge')}
                                 </p>
-                                <p className="text-sm sm:text-base font-bold text-slate-800 leading-tight">
+                                <p
+                                    className="text-sm sm:text-base font-bold leading-tight"
+                                    style={{
+                                        background: 'linear-gradient(135deg,#ffffff 0%,#b0e8ff 55%,#5eead4 100%)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
                                     {t('uzi_utt_strip_title')}
                                 </p>
-                                <p className="text-[10px] sm:text-xs text-slate-500 leading-snug mt-0.5 line-clamp-2 sm:line-clamp-none">
+                                <p
+                                    className="text-[10px] sm:text-xs leading-snug mt-0.5 line-clamp-2 sm:line-clamp-none"
+                                    style={{ color: 'rgba(180,220,245,0.82)' }}
+                                >
                                     {t('uzi_utt_strip_subtitle')}
                                 </p>
                             </div>
-                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-sky-600 group-hover:text-sky-700">
+                            <span
+                                className="relative z-[1] flex-shrink-0 inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-cyan-300 group-hover:text-cyan-200 transition-colors"
+                            >
                                 {t('uzi_utt_open')}
                                 <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />

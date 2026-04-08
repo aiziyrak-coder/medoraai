@@ -30,5 +30,9 @@ export function resolveTranslation(language: Language, key: TranslationKey): str
       return val;
     }
   }
+  const enFallback = translations.en[key];
+  if (typeof enFallback === 'string' && enFallback.length > 0) {
+    return enFallback;
+  }
   return String(key);
 }
