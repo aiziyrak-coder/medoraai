@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
-import type { FinalReport, PatientData } from '../types';
+import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 
 interface jsPDFInternal {
@@ -632,4 +632,178 @@ export const generatePdfReport = async (
     doc.text(tr('pdf_platform_name', "(AiDoktor)"), logoX - 25, promoY + 7);
 
     doc.save(`Konsilium_${patientData.lastName}_${patientData.firstName}.pdf`);
+};
+
+/** UTT/UZI AI xulosasi — konsilium PDF bilan bir xil pastki qism va brending */
+export const generateUziUttPdf = async (
+    report: UziUttReport,
+    branding?: InstituteBranding,
+    t?: (key: string) => string,
+) => {
+    const tr = (key: string, fallback: string): string => {
+        if (t) {
+            const translated = t(key);
+            return translated === key ? fallback : translated;
+        }
+        return fallback;
+    };
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.width;
+    let y = MARGIN;
+
+    const drawLine = (yPos: number, color: [number, number, number] = [200, 200, 200]) => {
+        doc.setDrawColor(...color);
+        doc.setLineWidth(0.3);
+        doc.line(MARGIN, yPos, pageWidth - MARGIN, yPos);
+    };
+
+    const ensureSpace = (needed: number) => {
+        if (y > pageHeight - needed) {
+            doc.addPage();
+            y = MARGIN;
+        }
+    };
+
+    const addParagraph = (label: string, body: string, fontSize = 9) => {
+        ensureSpace(28);
+        doc.setFontSize(10);
+        doc.setFont(PDF_FONT, 'bold');
+        doc.setTextColor(50, 60, 80);
+        doc.text(label, MARGIN, y);
+        y += LINE_HEIGHT;
+        doc.setFont(PDF_FONT, 'normal');
+        doc.setFontSize(fontSize);
+        doc.setTextColor(40, 40, 40);
+        const lines = doc.splitTextToSize(body || '—', pageWidth - MARGIN * 2);
+        for (const line of lines) {
+            ensureSpace(LINE_HEIGHT + 2);
+            doc.text(line, MARGIN, y);
+            y += LINE_HEIGHT;
+        }
+        y += 3;
+    };
+
+    const addBulletList = (title: string, items: string[]) => {
+        ensureSpace(16);
+        doc.setFontSize(10);
+        doc.setFont(PDF_FONT, 'bold');
+        doc.setTextColor(50, 60, 80);
+        doc.text(title, MARGIN, y);
+        y += LINE_HEIGHT + 1;
+        doc.setFont(PDF_FONT, 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(40, 40, 40);
+        const list = items.length ? items : ['—'];
+        for (const item of list) {
+            const wrapped = doc.splitTextToSize(`• ${item}`, pageWidth - MARGIN * 2 - 4);
+            for (const line of wrapped) {
+                ensureSpace(LINE_HEIGHT);
+                doc.text(line, MARGIN + 2, y);
+                y += LINE_HEIGHT - 0.5;
+            }
+        }
+        y += 3;
+    };
+
+    const title = tr('pdf_uzi_utt_title', 'UZI / UTT: Tahlil va xulosa');
+    const subtitle = tr('pdf_uzi_utt_subtitle', "Rasmiy tibbiy maslahat hujjati - faqat ma'lumot uchun. Doktor xulosasining o'rnini bosmaydi.");
+
+    doc.setFontSize(14);
+    doc.setFont(PDF_FONT, 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text(title, MARGIN, y);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setFont(PDF_FONT, 'italic');
+    doc.setTextColor(80, 80, 90);
+    const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2);
+    for (const line of subLines) {
+        doc.text(line, MARGIN, y);
+        y += 4;
+    }
+    y += 2;
+    drawLine(y, [180, 180, 180]);
+    y += 6;
+
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 70);
+    const urgLabel = tr('pdf_uzi_utt_urgency', 'Shoshilinchlik');
+    doc.text(`${urgLabel}: ${report.urgencyLevel}`, MARGIN, y);
+    y += 6;
+
+    addParagraph(tr('pdf_uzi_utt_study_type', 'Tekshiruv turi'), report.studyType);
+    addParagraph(tr('pdf_uzi_utt_region', 'Organ / soha'), report.regionOrOrgan);
+    if (report.techniqueNotes) {
+        addParagraph(tr('pdf_uzi_utt_technique', 'Texnika / izoh'), report.techniqueNotes);
+    }
+    addBulletList(tr('pdf_uzi_utt_findings', 'Asosiy topilmalar'), report.keyFindings);
+    if (report.measurements) {
+        addParagraph(tr('pdf_uzi_utt_measurements', "O'lchamlar"), report.measurements);
+    }
+    addParagraph(tr('pdf_uzi_utt_impression', 'Impression'), report.impression);
+    addParagraph(tr('pdf_uzi_utt_conclusion', 'Klinik xulosa'), report.clinicalConclusion);
+    addBulletList(tr('pdf_uzi_utt_recommendations', 'Tavsiyalar'), report.recommendations);
+    if (report.differentialDiagnosis) {
+        addParagraph(tr('pdf_uzi_utt_ddx', 'Farqlovchi tashxislar'), report.differentialDiagnosis);
+    }
+    if (report.limitations) {
+        addParagraph(tr('pdf_uzi_utt_limitations', 'Cheklovlar'), report.limitations);
+    }
+
+    const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
+    const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
+    const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
+    const promoLink = "fjsti.ziyrak.org";
+    const promoPhone = "+998 99 575 11 11";
+    const promoPhone2 = "+998 90 786 38 88";
+
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        drawLine(pageHeight - FOOTER_RESERVE - 2, [200, 200, 200]);
+        doc.setFontSize(7);
+        doc.setFont(PDF_FONT, 'normal');
+        doc.setTextColor(120, 120, 120);
+        doc.text(footerText, MARGIN, pageHeight - 5);
+        doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, pageHeight - 5, { align: 'right' });
+    }
+
+    doc.setPage(pageCount);
+    const promoY = pageHeight - FOOTER_RESERVE - 18;
+    doc.setFillColor(248, 250, 252);
+    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'F');
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'S');
+    doc.setFontSize(7);
+    doc.setFont(PDF_FONT, 'bold');
+    doc.setTextColor(50, 60, 80);
+    doc.text(promoText, MARGIN + 3, promoY + 2);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(30, 100, 180);
+    doc.text(promoLink, MARGIN + 70, promoY + 2);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
+    doc.setFont(PDF_FONT, 'italic');
+    doc.setTextColor(30, 100, 180);
+    doc.text('www.fjsti.uz', MARGIN + 3, promoY + 10);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`  — ${tr('pdf_institute_website', "Farg'ona jamoat salomatligi tibbiyot instituti rasmiy sayti")}`, MARGIN + 20, promoY + 10);
+    const logoSize = 10;
+    const logoX = pageWidth - MARGIN - logoSize - 3;
+    const logoY = promoY;
+    if (branding?.instituteLogoDataUrl) {
+        try {
+            doc.addImage(branding.instituteLogoDataUrl, 'PNG', logoX, logoY, logoSize, logoSize);
+        } catch { /* ignore */ }
+    }
+    doc.setFontSize(5);
+    doc.setTextColor(100, 100, 100);
+    doc.text(tr('pdf_institute_name', "Farg'ona JSTI"), logoX - 25, logoY + 4);
+    doc.text(tr('pdf_platform_name', "(AiDoktor)"), logoX - 25, logoY + 7);
+
+    const stamp = new Date().toISOString().slice(0, 19).replace('T', '_');
+    doc.save(`UTT_UZI_tahlil_${stamp}.pdf`);
 };

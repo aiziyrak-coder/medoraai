@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
+from accounts.group_scope import clinic_peer_user_ids
 from .models import AnalysisRecord, DiagnosisFeedback, AnalysisAuditLog, AnalysisUsefulnessFeedback
 from .serializers import (
     AnalysisRecordSerializer,
@@ -41,12 +42,15 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = AnalysisRecord.objects.select_related('patient', 'created_by', 'patient__created_by')
+        queryset = AnalysisRecord.objects.select_related(
+            'patient', 'created_by', 'patient__created_by', 'patient__created_by__clinic_group'
+        )
         # Superuser / staff: barcha tahlillar (admin)
         if not (user.is_superuser or user.is_staff):
+            ids = clinic_peer_user_ids(user)
             queryset = queryset.filter(
-                Q(patient__created_by=user)
-                | Q(patient__created_by__isnull=True, created_by=user)
+                Q(patient__created_by_id__in=ids)
+                | Q(patient__created_by__isnull=True, created_by_id__in=ids)
             )
         # List: skip loading huge JSON columns (serializer does not expose them)
         if getattr(self, 'action', None) == 'list':

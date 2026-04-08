@@ -58,6 +58,38 @@ class SubscriptionPlan(models.Model):
         return self.name
 
 
+class ClinicGroup(models.Model):
+    """
+    Klinika jamoasi (guruh). Admin panelda yaratiladi; foydalanuvchilar User yozuvida shu guruhga biriktiriladi.
+    Bir guruh a'zolari bemorlar ro'yxati va tahlillar (arxiv) bo'yicha bir-biriga ko'rinish huquqiga ega.
+    """
+    name = models.CharField(max_length=200, verbose_name='Guruh nomi')
+    slug = models.SlugField(max_length=80, unique=True, blank=True, help_text='Bo\'sh qoldirilsa, nomdan avtomatik')
+    notes = models.TextField(blank=True, verbose_name='Izoh (faqat admin)')
+    is_active = models.BooleanField(default=True, verbose_name='Faol')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Klinika guruhi'
+        verbose_name_plural = 'Klinika guruhlari'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not (self.slug and str(self.slug).strip()):
+            import uuid
+            from django.utils.text import slugify
+            base = slugify(self.name)[:80] or f'g-{uuid.uuid4().hex[:10]}'
+            self.slug = base
+            n = 2
+            while ClinicGroup.objects.filter(slug=self.slug).exclude(pk=self.pk).exists():
+                self.slug = f'{base}-{n}'
+                n += 1
+        super().save(*args, **kwargs)
+
+
 class SubscriptionPayment(models.Model):
     """To'lov/obuna so'rovi - chek yuborilganda yoki keyinroq admin tasdiqlaganda"""
     STATUS_CHOICES = [
@@ -159,6 +191,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         related_name='assistants',
         verbose_name='Bog\'langan shifokor'
     )
+
+    clinic_group = models.ForeignKey(
+        'ClinicGroup',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='members',
+        verbose_name='Klinika guruhi',
+        help_text='Bir guruhdagi foydalanuvchilar bemor va tahlillarni bir-biriga ko\'radi.',
+    )
     
     # Subscription fields
     subscription_plan = models.ForeignKey(
@@ -199,6 +241,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             models.Index(fields=['subscription_status', 'subscription_expiry']),  # Subscription queries
             models.Index(fields=['role', 'subscription_status']),  # Role-based queries
             models.Index(fields=['linked_doctor']),  # Staff-doctor relationship
+            models.Index(fields=['clinic_group']),
             models.Index(fields=['date_joined']),  # User listing
         ]
     

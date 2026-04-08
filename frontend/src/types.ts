@@ -4,7 +4,7 @@ import { AIModel } from './constants/specialists';
 // Original types - some modified for new features
 export { AIModel };
 
-export type AppView = 'dashboard' | 'new_analysis' | 'clarification' | 'team_recommendation' | 'live_analysis' | 'history' | 'view_history_item' | 'case_library' | 'research' | 'live_consultation' | 'prescription' | 'tumor_board' | 'longitudinal_view' | 'subscription';
+export type AppView = 'dashboard' | 'new_analysis' | 'clarification' | 'team_recommendation' | 'live_analysis' | 'history' | 'view_history_item' | 'case_library' | 'research' | 'live_consultation' | 'prescription' | 'tumor_board' | 'longitudinal_view' | 'subscription' | 'uzi_utt';
 
 export type UserRole = 'clinic';
 
@@ -560,6 +560,23 @@ export interface EcgReport {
   axis: string;
   morphology: string;
   interpretation: string;
+}
+
+/** UZI (ultratovush) / UTT tahlil natijasi — AI tuzilgan strukturali xulosa */
+export type UziUttUrgency = 'routine' | 'soon' | 'urgent' | 'emergent';
+
+export interface UziUttReport {
+  studyType: string;
+  regionOrOrgan: string;
+  techniqueNotes?: string;
+  keyFindings: string[];
+  measurements?: string;
+  impression: string;
+  clinicalConclusion: string;
+  recommendations: string[];
+  differentialDiagnosis?: string;
+  limitations?: string;
+  urgencyLevel: UziUttUrgency;
 }
 
 export interface Icd10Code {

@@ -7,6 +7,7 @@ from .models import AnalysisRecord, DiagnosisFeedback
 from patients.models import Patient
 from patients.serializers import PatientSerializer
 from accounts.serializers import UserSerializer
+from accounts.group_scope import clinic_peer_user_ids
 
 User = get_user_model()
 
@@ -133,11 +134,14 @@ class AnalysisRecordCreateSerializer(serializers.ModelSerializer):
         if user.is_superuser or user.is_staff:
             return patient
         owner_id = patient.created_by_id
-        if owner_id is not None and owner_id != user.id:
-            raise serializers.ValidationError("Bemor boshqa hisobga tegishli.")
         if owner_id is None:
             raise serializers.ValidationError(
                 "Bemor yozuvi to'liq emas yoki boshqa hisobga tegishli. Iltimos, bemorlarni ro'yxatdan qayta tanlang."
+            )
+        peer_ids = clinic_peer_user_ids(user)
+        if owner_id not in peer_ids:
+            raise serializers.ValidationError(
+                "Bemor boshqa hisobga tegishli yoki sizning klinika guruhingizga kirmaydi."
             )
         return patient
     

@@ -3,6 +3,7 @@ import ToolCard from './tools/ToolCard';
 import { useTranslation } from '../hooks/useTranslation';
 import DrugInteractionChecker from './tools/DrugInteractionChecker';
 import EcgAnalyzer from './tools/EcgAnalyzer';
+import UziUttAnalyzer from './tools/UziUttAnalyzer';
 import PatientExplanationGenerator from './tools/PatientExplanationGenerator';
 import MedicalCodingAssistant from './tools/MedicalCodingAssistant';
 import GuidelineNavigator from './tools/GuidelineNavigator';
@@ -23,9 +24,10 @@ import TranslateIcon from './icons/TranslateIcon';
 import DocumentReportIcon from './icons/DocumentReportIcon';
 import ChildIcon from './icons/ChildIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
+import PhotoIcon from './icons/PhotoIcon';
 
 
-type Tool = 'drug-interactions' | 'ecg-analyzer' | 'patient-explainer' | 'coding-assistant' | 'guideline-navigator' | 'lab-interpreter' | 'abbreviation-expander' | 'document-generator' | 'pediatric-dose' | 'risk-scoring';
+type Tool = 'drug-interactions' | 'ecg-analyzer' | 'uzi-utt' | 'patient-explainer' | 'coding-assistant' | 'guideline-navigator' | 'lab-interpreter' | 'abbreviation-expander' | 'document-generator' | 'pediatric-dose' | 'risk-scoring';
 
 type ToolConfig = { id: Tool; title: string; description: string; icon: React.FC<{className?: string}>; color: string; component: React.FC<{onBack?: () => void}> };
 
@@ -57,6 +59,14 @@ const ToolsDashboard: React.FC = () => {
             icon: HeartPulseIcon,
             color: 'text-red-600',
             component: EcgAnalyzer,
+        },
+        {
+            id: 'uzi-utt',
+            title: t('tools_uzi_utt_title'),
+            description: t('tools_uzi_utt_desc'),
+            icon: PhotoIcon,
+            color: 'text-sky-600',
+            component: UziUttAnalyzer,
         },
         {
             id: 'risk-scoring',

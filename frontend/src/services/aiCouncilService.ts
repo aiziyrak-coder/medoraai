@@ -7,6 +7,8 @@ import type {
     ChatMessage,
     DrugInteraction,
     EcgReport,
+    UziUttReport,
+    UziUttUrgency,
     Icd10Code,
     GuidelineSearchResult,
     ResearchProgressUpdate,
@@ -1665,6 +1667,90 @@ export const analyzeEcgImage = async (image: { base64Data: string, mimeType: str
     };
     
     return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+};
+
+const UZI_UTT_URGENCY: UziUttUrgency[] = ['routine', 'soon', 'urgent', 'emergent'];
+
+function normalizeUziUttReport(raw: unknown): UziUttReport {
+    const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const urg = String(r.urgencyLevel ?? 'routine');
+    const urgencyLevel = UZI_UTT_URGENCY.includes(urg as UziUttUrgency) ? (urg as UziUttUrgency) : 'routine';
+    const kf = r.keyFindings;
+    const rec = r.recommendations;
+    return {
+        studyType: String(r.studyType ?? ''),
+        regionOrOrgan: String(r.regionOrOrgan ?? ''),
+        techniqueNotes: r.techniqueNotes != null ? String(r.techniqueNotes) : undefined,
+        keyFindings: Array.isArray(kf) ? kf.map((x) => String(x)) : [],
+        measurements: r.measurements != null ? String(r.measurements) : undefined,
+        impression: String(r.impression ?? ''),
+        clinicalConclusion: String(r.clinicalConclusion ?? ''),
+        recommendations: Array.isArray(rec) ? rec.map((x) => String(x)) : [],
+        differentialDiagnosis: r.differentialDiagnosis != null ? String(r.differentialDiagnosis) : undefined,
+        limitations: r.limitations != null ? String(r.limitations) : undefined,
+        urgencyLevel,
+    };
+}
+
+/**
+ * UZI/UTT: bir yoki bir nechta rasm yoki PDF protokolni tahlil qiladi (multimodal).
+ */
+export const analyzeUziUttDocuments = async (
+    files: Array<{ base64Data: string; mimeType: string; fileName?: string }>,
+    language: Language,
+    clinicalContext?: string,
+): Promise<UziUttReport> => {
+    if (!files.length) {
+        throw new Error("Kamida bitta fayl yuklang.");
+    }
+    const systemInstr = getSystemInstruction(language);
+    const lang = langMap[language] || 'Uzbek';
+    const ctx = (clinicalContext ?? '').trim();
+    const intro = [
+        'You are an expert radiologist and clinical ultrasound specialist.',
+        'Analyze ALL attached documents (ultrasound UZI/UTT reports, scanned protocols, or still images). Studies may be any modality (abdomen, pelvis, thyroid, vascular, obstetric, etc.).',
+        `Write every human-readable field in ${lang} (clinical style).`,
+        ctx ? `Additional clinical context from the clinician: ${ctx}` : '',
+        'Rules: (1) Summarize only what is supported by the attachments; (2) If text is illegible or quality is poor, state this in limitations; (3) Do not invent numeric measurements that are not visible; (4) Set urgencyLevel to emergent/urgent if critical or acute findings are described.',
+        'Return ONLY valid JSON matching the schema.',
+    ].filter(Boolean).join('\n');
+
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: intro }];
+    for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        parts.push({ text: `Attachment ${i + 1}: ${f.fileName || 'file'}` });
+        parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64Data } });
+    }
+
+    const prompt = { parts };
+    const schema = {
+        type: 'object',
+        properties: {
+            studyType: { type: 'string', description: 'e.g. abdominal US, pelvic UTT' },
+            regionOrOrgan: { type: 'string' },
+            techniqueNotes: { type: 'string' },
+            keyFindings: { type: 'array', items: { type: 'string' } },
+            measurements: { type: 'string' },
+            impression: { type: 'string' },
+            clinicalConclusion: { type: 'string' },
+            recommendations: { type: 'array', items: { type: 'string' } },
+            differentialDiagnosis: { type: 'string' },
+            limitations: { type: 'string' },
+            urgencyLevel: { type: 'string', enum: ['routine', 'soon', 'urgent', 'emergent'] },
+        },
+        required: [
+            'studyType',
+            'regionOrOrgan',
+            'keyFindings',
+            'impression',
+            'clinicalConclusion',
+            'recommendations',
+            'urgencyLevel',
+        ],
+    };
+
+    const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 8192);
+    return normalizeUziUttReport(raw);
 };
 
 export const getIcd10Codes = async (diagnosis: string, language: Language): Promise<Icd10Code[]> => {

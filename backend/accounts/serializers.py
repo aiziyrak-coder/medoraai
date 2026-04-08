@@ -28,20 +28,27 @@ class UserSerializer(serializers.ModelSerializer):
     """User serializer for read operations"""
     subscription_plan_detail = SubscriptionPlanSerializer(source='subscription_plan', read_only=True)
     has_active_subscription = serializers.SerializerMethodField()
+    clinic_group_name = serializers.SerializerMethodField()
 
     def get_has_active_subscription(self, obj):
         return bool(obj.has_active_subscription)
+
+    @staticmethod
+    def get_clinic_group_name(obj):
+        g = getattr(obj, 'clinic_group', None)
+        return g.name if g else None
 
     class Meta:
         model = User
         fields = [
             'id', 'phone', 'name', 'role', 'specialties',
+            'clinic_group', 'clinic_group_name',
             'subscription_plan', 'subscription_plan_detail',
             'subscription_status', 'subscription_expiry', 'trial_ends_at',
             'has_active_subscription', 'is_staff', 'is_superuser',
             'is_active', 'date_joined', 'last_login'
         ]
-        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff', 'is_superuser']
+        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff', 'is_superuser', 'clinic_group', 'clinic_group_name']
 
 
 def _validate_password_length(value):

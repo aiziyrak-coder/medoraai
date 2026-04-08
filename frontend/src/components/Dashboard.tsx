@@ -8,6 +8,7 @@ interface DashboardProps {
     userName: string;
     onNewAnalysis: () => void;
     onViewHistory: () => void;
+    onOpenUziUtt?: () => void;
     recentAnalyses: AnalysisRecord[];
     allAnalyses: AnalysisRecord[];
     onSelectAnalysis: (record: AnalysisRecord) => void;
@@ -62,7 +63,7 @@ const glass: React.CSSProperties = {
 };
 
 const Dashboard: React.FC<DashboardProps> = ({
-    userName, onNewAnalysis, onViewHistory,
+    userName, onNewAnalysis, onViewHistory, onOpenUziUtt,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t } = useTranslation();
@@ -125,6 +126,61 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             {/* ── Grid ──────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:items-stretch">
+
+                {onOpenUziUtt && (
+                    <div className="lg:col-span-12">
+                        <button
+                            type="button"
+                            onClick={onOpenUziUtt}
+                            className="w-full text-left rounded-[20px] overflow-hidden transition-all duration-300 group"
+                            style={{
+                                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #0c4a6e 100%)',
+                                border: '1px solid rgba(56, 189, 248, 0.35)',
+                                boxShadow: '0 8px 32px rgba(8, 47, 73, 0.2)',
+                            }}
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 md:p-6">
+                                <div
+                                    className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                                    style={{
+                                        background: 'rgba(56, 189, 248, 0.15)',
+                                        border: '1px solid rgba(56, 189, 248, 0.4)',
+                                    }}
+                                    aria-hidden
+                                >
+                                    📡
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1"
+                                       style={{ color: 'rgba(125, 211, 252, 0.95)' }}>
+                                        {t('uzi_utt_badge')}
+                                    </p>
+                                    <h2 className="text-lg md:text-xl font-black text-white tracking-tight">
+                                        {t('uzi_utt_dashboard_title')}
+                                    </h2>
+                                    <p className="text-sm mt-1 leading-relaxed" style={{ color: 'rgba(186, 230, 253, 0.9)' }}>
+                                        {t('uzi_utt_dashboard_desc')}
+                                    </p>
+                                </div>
+                                <div className="flex-shrink-0 flex items-center gap-2 self-end sm:self-center">
+                                    <span
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
+                                        style={{
+                                            background: 'linear-gradient(135deg,#38bdf8,#22d3ee)',
+                                            color: '#0c1220',
+                                            boxShadow: '0 0 20px rgba(56, 189, 248, 0.35)',
+                                        }}
+                                    >
+                                        {t('uzi_utt_open')}
+                                        <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                )}
 
                 {/* Hero — torroq; Analitika Hub keng */}
                 <div

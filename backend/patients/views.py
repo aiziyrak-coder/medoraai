@@ -5,7 +5,9 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
+from accounts.group_scope import clinic_peer_user_ids
 from .models import Patient, PatientAttachment
 from .serializers import (
     PatientSerializer, PatientCreateSerializer,
@@ -32,10 +34,20 @@ class PatientViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
-        queryset = Patient.objects.select_related('created_by')
+        queryset = Patient.objects.select_related('created_by', 'created_by__clinic_group')
         if user.is_superuser or user.is_staff:
             return queryset
-        return queryset.filter(created_by=user)
+        ids = clinic_peer_user_ids(user)
+        return queryset.filter(created_by_id__in=ids)
+
+    def perform_destroy(self, instance):
+        """Bemorni faqat yaratgan shifokor yoki admin o'chira oladi (guruh a'zosi o'chirmasin)."""
+        user = self.request.user
+        if user.is_superuser or user.is_staff:
+            return super().perform_destroy(instance)
+        if instance.created_by_id and instance.created_by_id != user.id:
+            raise PermissionDenied("Bemorni faqat uni yaratgan shifokor o'chirishi mumkin.")
+        return super().perform_destroy(instance)
     
     @action(detail=True, methods=['post'], url_path='upload-attachment')
     def upload_attachment(self, request, pk=None):

@@ -9,9 +9,23 @@ from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
-from .models import User, SubscriptionPlan, SubscriptionPayment, ActiveSession
+from .models import User, SubscriptionPlan, SubscriptionPayment, ActiveSession, ClinicGroup
 
 logger = logging.getLogger(__name__)
+
+
+@admin.register(ClinicGroup)
+class ClinicGroupAdmin(admin.ModelAdmin):
+    """Klinika guruhi: a'zolar User admin orqali shu guruhga biriktiriladi."""
+    list_display = ['name', 'slug', 'is_active', 'member_count', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['name', 'slug', 'notes']
+    readonly_fields = ['created_at']
+    prepopulated_fields = {'slug': ('name',)}
+
+    @admin.display(description="A'zolar soni")
+    def member_count(self, obj):
+        return obj.members.count()
 
 
 @admin.register(SubscriptionPlan)
@@ -70,14 +84,18 @@ class SubscriptionPaymentAdmin(admin.ModelAdmin):
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Custom User Admin  -  safe delete: clear JWT tokens first to avoid 500."""
-    list_display = ['phone', 'name', 'role', 'subscription_status', 'subscription_expiry', 'is_active', 'date_joined']
-    list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'date_joined']
+    list_display = ['phone', 'name', 'role', 'clinic_group', 'subscription_status', 'subscription_expiry', 'is_active', 'date_joined']
+    list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'clinic_group', 'date_joined']
     search_fields = ['phone', 'name']
     ordering = ['-date_joined']
     
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
         ('Shaxsiy ma\'lumotlar', {'fields': ('name', 'role', 'specialties')}),
+        ('Klinika guruhi', {
+            'fields': ('clinic_group',),
+            'description': 'Bir guruhdagi foydalanuvchilar bemor va tahlillarni bir-biriga ko\'radi. Guruhni yuqorida «Klinika guruhlari» orqali yarating.',
+        }),
         ('Obuna', {'fields': ('subscription_plan', 'subscription_status', 'subscription_expiry', 'trial_ends_at')}),
         ('Ruxsatlar', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Muhim sanalar', {'fields': ('last_login', 'date_joined')}),

@@ -33,6 +33,7 @@ import MobileNavBar from './components/MobileNavBar';
 const ResearchView = lazy(() => import('./components/ResearchView'));
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
+import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
 import LiveConsultationView from './components/LiveConsultationView';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
@@ -828,6 +829,7 @@ const AppContent: React.FC = () => {
                             userName={currentUser!.name}
                             onNewAnalysis={() => handleNavigation('new_analysis')}
                             onViewHistory={() => setAppView('history')}
+                            onOpenUziUtt={() => setAppView('uzi_utt')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
                             onSelectAnalysis={viewHistoryItem}
@@ -923,6 +925,20 @@ const AppContent: React.FC = () => {
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
                                 <CaseLibraryView onBack={() => setAppView('history')} analyses={userHistory} />
                             </Suspense>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'uzi_utt':
+                return (
+                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                        <BackBar
+                            title={t('uzi_utt_page_title')}
+                            subtitle={t('uzi_utt_page_subtitle')}
+                            onBack={() => handleNavigation('dashboard')}
+                        />
+                        <ScrollWrapper>
+                            <UziUttAnalyzer />
                         </ScrollWrapper>
                     </div>
                 );
