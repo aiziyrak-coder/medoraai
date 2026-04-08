@@ -175,6 +175,11 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         return map[u] ?? u;
     };
 
+    const fieldOrDash = (value: string | undefined) => {
+        const v = (value ?? '').trim();
+        return v.length > 0 ? v : t('uzi_utt_field_empty');
+    };
+
     return (
         <div className="glass-panel p-6 md:p-8 max-w-5xl mx-auto w-full min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
@@ -276,11 +281,11 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                             <div className="p-4 bg-slate-50 rounded-xl border border-border-color space-y-3">
                                 <div>
                                     <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('uzi_utt_study_type')}</h4>
-                                    <p className="text-sm font-semibold text-slate-900">{report.studyType}</p>
+                                    <p className="text-sm font-semibold text-slate-900 whitespace-pre-wrap">{fieldOrDash(report.studyType)}</p>
                                 </div>
                                 <div>
                                     <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('uzi_utt_region')}</h4>
-                                    <p className="text-sm text-slate-800">{report.regionOrOrgan}</p>
+                                    <p className="text-sm text-slate-800 whitespace-pre-wrap">{fieldOrDash(report.regionOrOrgan)}</p>
                                 </div>
                                 {report.techniqueNotes && (
                                     <div>
@@ -292,11 +297,17 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
                             <div className="p-4 bg-white rounded-xl border border-slate-200">
                                 <h4 className="font-bold text-text-primary mb-2">{t('uzi_utt_findings')}</h4>
-                                <ul className="list-disc list-inside space-y-1 text-sm text-slate-700">
-                                    {report.keyFindings.map((x, i) => (
-                                        <li key={i}>{x}</li>
-                                    ))}
-                                </ul>
+                                {report.keyFindings.length > 0 ? (
+                                    <ul className="list-disc list-inside space-y-1.5 text-sm text-slate-700">
+                                        {report.keyFindings.map((x, i) => (
+                                            <li key={i} className="whitespace-pre-wrap break-words">
+                                                {x}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-slate-500">{t('uzi_utt_field_empty')}</p>
+                                )}
                             </div>
 
                             {report.measurements && (
@@ -308,27 +319,33 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
                             <div className="p-4 bg-blue-50/80 rounded-xl border border-blue-200">
                                 <h4 className="font-bold text-accent-color-blue">{t('uzi_utt_impression')}</h4>
-                                <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap">{report.impression}</p>
+                                <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap break-words">{fieldOrDash(report.impression)}</p>
                             </div>
 
                             <div className="p-4 bg-emerald-50/90 rounded-xl border border-emerald-200">
                                 <h4 className="font-bold text-emerald-800">{t('uzi_utt_conclusion')}</h4>
-                                <p className="text-sm text-slate-900 mt-1 whitespace-pre-wrap">{report.clinicalConclusion}</p>
+                                <p className="text-sm text-slate-900 mt-1 whitespace-pre-wrap break-words">{fieldOrDash(report.clinicalConclusion)}</p>
                             </div>
 
                             <div className="p-4 bg-white rounded-xl border border-slate-200">
                                 <h4 className="font-bold text-text-primary mb-2">{t('uzi_utt_recommendations')}</h4>
-                                <ul className="list-decimal list-inside space-y-1 text-sm text-slate-800">
-                                    {report.recommendations.map((x, i) => (
-                                        <li key={i}>{x}</li>
-                                    ))}
-                                </ul>
+                                {report.recommendations.length > 0 ? (
+                                    <ol className="list-decimal list-inside space-y-1.5 text-sm text-slate-800">
+                                        {report.recommendations.map((x, i) => (
+                                            <li key={i} className="whitespace-pre-wrap break-words pl-1 marker:font-semibold">
+                                                {x}
+                                            </li>
+                                        ))}
+                                    </ol>
+                                ) : (
+                                    <p className="text-sm text-slate-500">{t('uzi_utt_field_empty')}</p>
+                                )}
                             </div>
 
-                            {report.differentialDiagnosis && (
+                            {report.differentialDiagnosis != null && report.differentialDiagnosis.trim() !== '' && (
                                 <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200">
                                     <h4 className="font-bold text-amber-900">{t('uzi_utt_ddx')}</h4>
-                                    <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap">{report.differentialDiagnosis}</p>
+                                    <p className="text-sm text-slate-800 mt-1 whitespace-pre-wrap break-words">{report.differentialDiagnosis}</p>
                                 </div>
                             )}
 

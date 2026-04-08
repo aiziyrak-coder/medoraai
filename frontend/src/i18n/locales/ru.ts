@@ -1501,7 +1501,7 @@ export const ru: TranslationSet = {
   uzi_utt_technique: 'Техника / примечания',
   uzi_utt_findings: 'Ключевые находки',
   uzi_utt_measurements: 'Измерения',
-  uzi_utt_impression: 'Импрессия',
+  uzi_utt_impression: 'Импрессия (предварительное заключение)',
   uzi_utt_conclusion: 'Клиническое заключение',
   uzi_utt_recommendations: 'Рекомендации',
   uzi_utt_ddx: 'Дифференциальный диагноз',
@@ -1512,6 +1512,7 @@ export const ru: TranslationSet = {
   uzi_utt_urgency_urgent: 'Срочно',
   uzi_utt_urgency_emergent: 'Экстренно',
   uzi_utt_empty_result: 'Результаты появятся здесь после анализа.',
+  uzi_utt_field_empty: '— (не определено)',
   tools_uzi_utt_title: 'Анализ УЗД / УЗИ',
   tools_uzi_utt_desc: 'Загрузка протоколов изображений/PDF, структурированная AI-интерпретация и экспорт PDF.',
 

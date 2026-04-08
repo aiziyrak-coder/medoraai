@@ -1671,23 +1671,106 @@ export const analyzeEcgImage = async (image: { base64Data: string, mimeType: str
 
 const UZI_UTT_URGENCY: UziUttUrgency[] = ['routine', 'soon', 'urgent', 'emergent'];
 
+/** AI ba'zan massiv ichiga obyekt qaytaradi — String(x) "[object Object]" bo'ladi; matnga aylantiramiz. */
+function unknownToPlainString(v: unknown): string {
+    if (v == null) return '';
+    if (typeof v === 'string') return v.trim();
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    if (Array.isArray(v)) {
+        return v.map(unknownToPlainString).filter(Boolean).join('; ');
+    }
+    if (typeof v === 'object') {
+        const o = v as Record<string, unknown>;
+        const tryKeys = [
+            'text', 'finding', 'description', 'content', 'value', 'recommendation',
+            'name', 'diagnosis', 'label', 'title', 'impression', 'summary',
+        ];
+        for (const k of tryKeys) {
+            const x = o[k];
+            if (typeof x === 'string' && x.trim()) return x.trim();
+        }
+        if (typeof o.code === 'string' && typeof o.description === 'string') {
+            return `${o.code.trim()}: ${o.description.trim()}`;
+        }
+        try {
+            return JSON.stringify(o);
+        } catch {
+            return '';
+        }
+    }
+    return String(v);
+}
+
+function normalizeStringArrayField(value: unknown): string[] {
+    if (value == null) return [];
+    if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+        const o = value as Record<string, unknown>;
+        if (Array.isArray(o.items)) {
+            return normalizeStringArrayField(o.items);
+        }
+        if (Array.isArray(o.keyFindings)) {
+            return normalizeStringArrayField(o.keyFindings);
+        }
+        if (Array.isArray(o.findings)) {
+            return normalizeStringArrayField(o.findings);
+        }
+        if (Array.isArray(o.recommendations)) {
+            return normalizeStringArrayField(o.recommendations);
+        }
+    }
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => unknownToPlainString(item))
+            .map((s) => s.trim())
+            .filter(Boolean);
+    }
+    if (typeof value === 'string') {
+        const t = value.trim();
+        if (!t) return [];
+        if (t.includes('\n')) {
+            return t
+                .split(/\n/)
+                .map((s) => s.replace(/^\s*[\d]+[.)]\s*/, '').replace(/^[•\-*]\s*/, '').trim())
+                .filter(Boolean);
+        }
+        return [t];
+    }
+    if (typeof value === 'object') {
+        const s = unknownToPlainString(value);
+        return s ? [s] : [];
+    }
+    return [];
+}
+
+function normalizeDifferentialField(value: unknown): string | undefined {
+    if (value == null) return undefined;
+    if (typeof value === 'string') {
+        const t = value.trim();
+        return t || undefined;
+    }
+    if (Array.isArray(value)) {
+        const lines = normalizeStringArrayField(value);
+        return lines.length ? lines.join('\n') : undefined;
+    }
+    const s = unknownToPlainString(value);
+    return s || undefined;
+}
+
 function normalizeUziUttReport(raw: unknown): UziUttReport {
     const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
     const urg = String(r.urgencyLevel ?? 'routine');
     const urgencyLevel = UZI_UTT_URGENCY.includes(urg as UziUttUrgency) ? (urg as UziUttUrgency) : 'routine';
-    const kf = r.keyFindings;
-    const rec = r.recommendations;
     return {
-        studyType: String(r.studyType ?? ''),
-        regionOrOrgan: String(r.regionOrOrgan ?? ''),
-        techniqueNotes: r.techniqueNotes != null ? String(r.techniqueNotes) : undefined,
-        keyFindings: Array.isArray(kf) ? kf.map((x) => String(x)) : [],
-        measurements: r.measurements != null ? String(r.measurements) : undefined,
-        impression: String(r.impression ?? ''),
-        clinicalConclusion: String(r.clinicalConclusion ?? ''),
-        recommendations: Array.isArray(rec) ? rec.map((x) => String(x)) : [],
-        differentialDiagnosis: r.differentialDiagnosis != null ? String(r.differentialDiagnosis) : undefined,
-        limitations: r.limitations != null ? String(r.limitations) : undefined,
+        studyType: unknownToPlainString(r.studyType),
+        regionOrOrgan: unknownToPlainString(r.regionOrOrgan),
+        techniqueNotes: normalizeDifferentialField(r.techniqueNotes),
+        keyFindings: normalizeStringArrayField(r.keyFindings),
+        measurements: r.measurements != null ? unknownToPlainString(r.measurements) : undefined,
+        impression: unknownToPlainString(r.impression),
+        clinicalConclusion: unknownToPlainString(r.clinicalConclusion),
+        recommendations: normalizeStringArrayField(r.recommendations),
+        differentialDiagnosis: normalizeDifferentialField(r.differentialDiagnosis),
+        limitations: r.limitations != null ? unknownToPlainString(r.limitations) : undefined,
         urgencyLevel,
     };
 }
@@ -1709,9 +1792,11 @@ export const analyzeUziUttDocuments = async (
     const intro = [
         'You are an expert radiologist and clinical ultrasound specialist.',
         'Analyze ALL attached documents (ultrasound UZI/UTT reports, scanned protocols, or still images). Studies may be any modality (abdomen, pelvis, thyroid, vascular, obstetric, etc.).',
-        `Write every human-readable field in ${lang} (clinical style).`,
+        `Write every human-readable field in ${lang} (clinical style). Do not leave studyType, regionOrOrgan, keyFindings, impression, or clinicalConclusion empty unless the image truly has no readable data — then explain in limitations.`,
         ctx ? `Additional clinical context from the clinician: ${ctx}` : '',
         'Rules: (1) Summarize only what is supported by the attachments; (2) If text is illegible or quality is poor, state this in limitations; (3) Do not invent numeric measurements that are not visible; (4) Set urgencyLevel to emergent/urgent if critical or acute findings are described.',
+        'JSON STRICT: keyFindings and recommendations MUST be JSON arrays of plain strings only — one short sentence per string. Never put objects inside arrays.',
+        'differentialDiagnosis MUST be one plain string (or empty string), not an array of objects. limitations MUST be plain string in the same language as other fields.',
         'Return ONLY valid JSON matching the schema.',
     ].filter(Boolean).join('\n');
 
