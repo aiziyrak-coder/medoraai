@@ -127,139 +127,86 @@ const Dashboard: React.FC<DashboardProps> = ({
             {/* ── Grid ──────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:items-stretch">
 
-                {onOpenUziUtt && (
-                    <div className="lg:col-span-12">
-                        <button
-                            type="button"
-                            onClick={onOpenUziUtt}
-                            className="w-full text-left rounded-[20px] overflow-hidden transition-all duration-300 group"
-                            style={{
-                                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 45%, #0c4a6e 100%)',
-                                border: '1px solid rgba(56, 189, 248, 0.35)',
-                                boxShadow: '0 8px 32px rgba(8, 47, 73, 0.2)',
-                            }}
-                        >
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 md:p-6">
-                                <div
-                                    className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
-                                    style={{
-                                        background: 'rgba(56, 189, 248, 0.15)',
-                                        border: '1px solid rgba(56, 189, 248, 0.4)',
-                                    }}
-                                    aria-hidden
-                                >
-                                    📡
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1"
-                                       style={{ color: 'rgba(125, 211, 252, 0.95)' }}>
-                                        {t('uzi_utt_badge')}
-                                    </p>
-                                    <h2 className="text-lg md:text-xl font-black text-white tracking-tight">
-                                        {t('uzi_utt_dashboard_title')}
-                                    </h2>
-                                    <p className="text-sm mt-1 leading-relaxed" style={{ color: 'rgba(186, 230, 253, 0.9)' }}>
-                                        {t('uzi_utt_dashboard_desc')}
-                                    </p>
-                                </div>
-                                <div className="flex-shrink-0 flex items-center gap-2 self-end sm:self-center">
-                                    <span
-                                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
-                                        style={{
-                                            background: 'linear-gradient(135deg,#38bdf8,#22d3ee)',
-                                            color: '#0c1220',
-                                            boxShadow: '0 0 20px rgba(56, 189, 248, 0.35)',
-                                        }}
-                                    >
-                                        {t('uzi_utt_open')}
-                                        <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                        </svg>
-                                    </span>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                )}
-
-                {/* Hero — torroq; Analitika Hub keng */}
-                <div
-                    onClick={onNewAnalysis}
-                    className="lg:col-span-4 relative overflow-hidden rounded-[24px] cursor-pointer"
-                    style={{
-                        background: 'linear-gradient(135deg, #071322 0%, #0c1e3a 55%, #082040 100%)',
-                        border: '1px solid rgba(0,210,255,0.25)',
-                        minHeight: '230px',
-                        boxShadow: '0 0 40px rgba(0,210,255,0.1), 0 16px 48px rgba(0,0,0,0.25)',
-                        transition: 'box-shadow .3s, border-color .3s',
-                    }}
-                    onMouseEnter={e => {
-                        const d = e.currentTarget as HTMLDivElement;
-                        d.style.boxShadow = '0 0 70px rgba(0,210,255,0.22), 0 16px 48px rgba(0,0,0,0.3)';
-                        d.style.borderColor = 'rgba(0,210,255,0.5)';
-                    }}
-                    onMouseLeave={e => {
-                        const d = e.currentTarget as HTMLDivElement;
-                        d.style.boxShadow = '0 0 40px rgba(0,210,255,0.1), 0 16px 48px rgba(0,0,0,0.25)';
-                        d.style.borderColor = 'rgba(0,210,255,0.25)';
-                    }}
-                >
-                    <div className="absolute inset-0 hex-grid-bg" aria-hidden="true" />
-                    <div className="absolute top-[-30%] right-[-5%] w-72 h-72 rounded-full pointer-events-none"
-                         style={{ background: 'radial-gradient(circle, rgba(0,0,0,0.04) 0%, transparent 70%)' }} aria-hidden="true" />
-                    <div className="absolute bottom-[-25%] left-[8%] w-56 h-56 rounded-full pointer-events-none"
-                         style={{ background: 'radial-gradient(circle, rgba(0,0,0,0.03) 0%, transparent 70%)' }} aria-hidden="true" />
-                    <div className="absolute bottom-0 left-0 right-0 h-14" aria-hidden="true">
-                        <EcgLine />
-                    </div>
-
-                    <div className="relative z-10 p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 min-h-[230px]">
-                        <div className="flex-1 space-y-5">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase"
-                                 style={{ background: 'rgba(0,255,135,0.12)', border: '1px solid rgba(0,255,135,0.35)', color: '#00FF87' }}>
-                                <span className="w-1.5 h-1.5 rounded-full animate-dot-pulse" style={{ background: '#00FF87' }} />
-                                {t('dashboard_hero_badge')}
-                            </div>
-                            <div>
-                                <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-tight mb-2"
-                                    style={{
-                                        background: 'linear-gradient(135deg,#ffffff 0%,#b0dcf5 50%,#00D2FF 100%)',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent',
-                                    }}>
-                                    {t('dashboard_new_analysis_title')}
-                                </h2>
-                                <p className="text-sm leading-relaxed max-w-md"
-                                   style={{ color: 'rgba(180,220,245,0.85)' }}>
-                                    {t('dashboard_new_analysis_desc')}
-                                </p>
-                            </div>
-                            <button className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm"
-                                    style={{
-                                        background: 'linear-gradient(135deg,#00D2FF 0%,#00FF87 100%)',
-                                        color: '#06111F',
-                                        boxShadow: '0 0 24px rgba(0,210,255,0.35)',
-                                    }}>
-                                {t('dashboard_start')}
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                            </button>
+                {/* Yangi konsilium (hero) */}
+                <div className="lg:col-span-4 flex flex-col gap-3 min-w-0">
+                    <div
+                        onClick={onNewAnalysis}
+                        className="relative overflow-hidden rounded-[24px] cursor-pointer flex-1 min-h-0"
+                        style={{
+                            background: 'linear-gradient(135deg, #071322 0%, #0c1e3a 55%, #082040 100%)',
+                            border: '1px solid rgba(0,210,255,0.25)',
+                            minHeight: '230px',
+                            boxShadow: '0 0 40px rgba(0,210,255,0.1), 0 16px 48px rgba(0,0,0,0.25)',
+                            transition: 'box-shadow .3s, border-color .3s',
+                        }}
+                        onMouseEnter={e => {
+                            const d = e.currentTarget as HTMLDivElement;
+                            d.style.boxShadow = '0 0 70px rgba(0,210,255,0.22), 0 16px 48px rgba(0,0,0,0.3)';
+                            d.style.borderColor = 'rgba(0,210,255,0.5)';
+                        }}
+                        onMouseLeave={e => {
+                            const d = e.currentTarget as HTMLDivElement;
+                            d.style.boxShadow = '0 0 40px rgba(0,210,255,0.1), 0 16px 48px rgba(0,0,0,0.25)';
+                            d.style.borderColor = 'rgba(0,210,255,0.25)';
+                        }}
+                    >
+                        <div className="absolute inset-0 hex-grid-bg" aria-hidden="true" />
+                        <div className="absolute top-[-30%] right-[-5%] w-72 h-72 rounded-full pointer-events-none"
+                             style={{ background: 'radial-gradient(circle, rgba(0,0,0,0.04) 0%, transparent 70%)' }} aria-hidden="true" />
+                        <div className="absolute bottom-[-25%] left-[8%] w-56 h-56 rounded-full pointer-events-none"
+                             style={{ background: 'radial-gradient(circle, rgba(0,0,0,0.03) 0%, transparent 70%)' }} aria-hidden="true" />
+                        <div className="absolute bottom-0 left-0 right-0 h-14" aria-hidden="true">
+                            <EcgLine />
                         </div>
-                        <div className="flex-shrink-0 relative hidden md:flex">
-                            {[1,2,3].map(r=>(
-                                <div key={r} className="absolute rounded-full" aria-hidden="true"
-                                     style={{ inset:`${-(r*16)}px`, border:`1px solid rgba(0,210,255,${0.18-r*0.05})` }} />
-                            ))}
-                            <div className="w-24 h-24 rounded-full flex items-center justify-center"
-                                 style={{
-                                     background:'rgba(0,210,255,0.08)',
-                                     border:'1.5px solid rgba(0,210,255,0.45)',
-                                     boxShadow:'0 0 40px rgba(0,210,255,0.25)',
-                                 }}>
-                                <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="#00D2FF" strokeWidth="1.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
+
+                        <div className="relative z-10 p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 min-h-[230px]">
+                            <div className="flex-1 space-y-5">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase"
+                                     style={{ background: 'rgba(0,255,135,0.12)', border: '1px solid rgba(0,255,135,0.35)', color: '#00FF87' }}>
+                                    <span className="w-1.5 h-1.5 rounded-full animate-dot-pulse" style={{ background: '#00FF87' }} />
+                                    {t('dashboard_hero_badge')}
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-tight mb-2"
+                                        style={{
+                                            background: 'linear-gradient(135deg,#ffffff 0%,#b0dcf5 50%,#00D2FF 100%)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                        }}>
+                                        {t('dashboard_new_analysis_title')}
+                                    </h2>
+                                    <p className="text-sm leading-relaxed max-w-md"
+                                       style={{ color: 'rgba(180,220,245,0.85)' }}>
+                                        {t('dashboard_new_analysis_desc')}
+                                    </p>
+                                </div>
+                                <button type="button" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm"
+                                        style={{
+                                            background: 'linear-gradient(135deg,#00D2FF 0%,#00FF87 100%)',
+                                            color: '#06111F',
+                                            boxShadow: '0 0 24px rgba(0,210,255,0.35)',
+                                        }}>
+                                    {t('dashboard_start')}
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="flex-shrink-0 relative hidden md:flex">
+                                {[1,2,3].map(r=>(
+                                    <div key={r} className="absolute rounded-full" aria-hidden="true"
+                                         style={{ inset:`${-(r*16)}px`, border:`1px solid rgba(0,210,255,${0.18-r*0.05})` }} />
+                                ))}
+                                <div className="w-24 h-24 rounded-full flex items-center justify-center"
+                                     style={{
+                                         background:'rgba(0,210,255,0.08)',
+                                         border:'1.5px solid rgba(0,210,255,0.45)',
+                                         boxShadow:'0 0 40px rgba(0,210,255,0.25)',
+                                     }}>
+                                    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="#00D2FF" strokeWidth="1.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -271,6 +218,41 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <AnalyticsHubPanel stats={stats} allAnalyses={allAnalyses} />
                     </div>
                 </div>
+
+                {/* UTT/UZI — hero va analitikadan keyin, so‘nggi tahlillardan oldin */}
+                {onOpenUziUtt && (
+                    <div className="lg:col-span-12">
+                        <button
+                            type="button"
+                            onClick={() => onOpenUziUtt()}
+                            className="group w-full text-left rounded-xl border border-slate-200/90 bg-white/75 hover:bg-white backdrop-blur-md px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4 shadow-sm hover:shadow transition-all duration-200"
+                        >
+                            <span
+                                className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-50 border border-sky-200/90 flex items-center justify-center text-lg sm:text-xl"
+                                aria-hidden
+                            >
+                                📡
+                            </span>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-mono font-bold tracking-wider uppercase text-sky-700/90 leading-none mb-0.5">
+                                    {t('uzi_utt_badge')}
+                                </p>
+                                <p className="text-sm sm:text-base font-bold text-slate-800 leading-tight">
+                                    {t('uzi_utt_strip_title')}
+                                </p>
+                                <p className="text-[10px] sm:text-xs text-slate-500 leading-snug mt-0.5 line-clamp-2 sm:line-clamp-none">
+                                    {t('uzi_utt_strip_subtitle')}
+                                </p>
+                            </div>
+                            <span className="flex-shrink-0 inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-sky-600 group-hover:text-sky-700">
+                                {t('uzi_utt_open')}
+                                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                )}
 
                 {/* So‘nggi tahlillar — to‘liq kenglik */}
                 <div className="lg:col-span-12">

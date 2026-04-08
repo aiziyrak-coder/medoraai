@@ -3,6 +3,7 @@ User and Authentication Models
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -89,6 +90,14 @@ class ClinicGroup(models.Model):
                 n += 1
         super().save(*args, **kwargs)
 
+    @classmethod
+    def get_default_fjsti_group(cls):
+        """Barcha foydalanuvchilar uchun standart klinika guruhi (admin panelda yaratilgan bo‘lishi mumkin)."""
+        g = cls.objects.filter(Q(name__iexact='FJSTI') | Q(slug__iexact='fjsti')).first()
+        if g:
+            return g
+        return cls.objects.create(name='FJSTI', is_active=True)
+
 
 class SubscriptionPayment(models.Model):
     """To'lov/obuna so'rovi - chek yuborilganda yoki keyinroq admin tasdiqlaganda"""
@@ -141,7 +150,10 @@ class UserManager(BaseUserManager):
         """Create and save a regular user"""
         if not phone:
             raise ValueError('Telefon raqami kiritilishi shart')
-        
+
+        if 'clinic_group' not in extra_fields and 'clinic_group_id' not in extra_fields:
+            extra_fields['clinic_group'] = ClinicGroup.get_default_fjsti_group()
+
         user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -247,7 +259,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def __str__(self):
         return f"{self.name} ({self.phone})"
-    
+
+    def save(self, *args, **kwargs):
+        # Admin yoki to'g'ridan-to'g'ri Model.save() — create_user dan tashqari yo'llarda ham FJSTI
+        if self._state.adding and self.clinic_group_id is None:
+            self.clinic_group = ClinicGroup.get_default_fjsti_group()
+        super().save(*args, **kwargs)
+
     @property
     def is_clinic(self):
         return self.role == 'clinic'

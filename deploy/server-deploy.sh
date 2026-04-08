@@ -27,6 +27,7 @@ fi
 source venv/bin/activate
 pip install -q -r requirements.txt
 python manage.py migrate --noinput
+python manage.py assign_fjsti_group
 # Bazaga yozish huquqi (restart dan keyin ham saqlanadi)
 [ -f db.sqlite3 ] && chmod 664 db.sqlite3
 [ -f "$MEDORA_DB" ] && chmod 664 "$MEDORA_DB" 2>/dev/null || true
