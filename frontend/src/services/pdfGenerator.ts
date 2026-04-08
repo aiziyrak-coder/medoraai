@@ -651,6 +651,7 @@ export const generateUziUttPdf = async (
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     let y = MARGIN;
+    const contentBottom = () => pageHeight - FOOTER_RESERVE - 24; // footer + promo hududi uchun joy qoldiramiz
 
     // Generate QR code for platform
     let qrDataUrl = '';
@@ -671,7 +672,7 @@ export const generateUziUttPdf = async (
     };
 
     const ensureSpace = (needed: number) => {
-        if (y > pageHeight - needed) {
+        if (y + needed > contentBottom()) {
             doc.addPage();
             y = MARGIN;
         }
@@ -696,7 +697,7 @@ export const generateUziUttPdf = async (
         y += 3;
     };
 
-    const addBulletList = (title: string, items: string[]) => {
+    const addBulletList = (title: string, items: string[], limit = 10) => {
         ensureSpace(16);
         doc.setFontSize(10);
         doc.setFont(PDF_FONT, 'bold');
@@ -706,7 +707,7 @@ export const generateUziUttPdf = async (
         doc.setFont(PDF_FONT, 'normal');
         doc.setFontSize(9);
         doc.setTextColor(40, 40, 40);
-        const list = items.length ? items : ['—'];
+        const list = (items.length ? items : ['—']).slice(0, Math.max(1, limit));
         for (const item of list) {
             const wrapped = doc.splitTextToSize(`• ${item}`, pageWidth - MARGIN * 2 - 4);
             for (const line of wrapped) {
@@ -785,18 +786,24 @@ export const generateUziUttPdf = async (
     if (report.techniqueNotes) {
         addParagraph(tr('pdf_uzi_utt_technique', 'Texnika / izoh'), report.techniqueNotes);
     }
-    addBulletList(tr('pdf_uzi_utt_findings', 'Asosiy topilmalar'), report.keyFindings);
+    addBulletList(tr('pdf_uzi_utt_findings', 'Asosiy topilmalar'), report.keyFindings, 10);
     if (report.measurements) {
         addParagraph(tr('pdf_uzi_utt_measurements', "O'lchamlar"), report.measurements);
     }
     addParagraph(tr('pdf_uzi_utt_impression', 'Impression'), report.impression);
     addParagraph(tr('pdf_uzi_utt_conclusion', 'Klinik xulosa'), report.clinicalConclusion);
-    addBulletList(tr('pdf_uzi_utt_recommendations', 'Tavsiyalar'), report.recommendations);
+    addBulletList(tr('pdf_uzi_utt_recommendations', 'Tavsiyalar'), report.recommendations, 8);
     if (report.differentialDiagnosis) {
         addParagraph(tr('pdf_uzi_utt_ddx', 'Farqlovchi tashxislar'), report.differentialDiagnosis);
     }
     if (report.limitations) {
         addParagraph(tr('pdf_uzi_utt_limitations', 'Cheklovlar'), report.limitations);
+    }
+
+    // Agar kontent promo hududiga juda yaqinlashsa, promo uchun alohida sahifa ochamiz
+    if (y > contentBottom() - 6) {
+        doc.addPage();
+        y = MARGIN;
     }
 
     const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");

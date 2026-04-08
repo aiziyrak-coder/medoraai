@@ -55,7 +55,7 @@ import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT, PLATFORM_NAME, INSTITUTE_LOG
 
 // Scrollni bitta joy boshqaradi (main). Ichki wrapperlar overflow qilmasin — mouse wheel hamma oynada ishlasin.
 const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="h-full min-h-0 flex-1 overflow-x-hidden page-px py-6 pb-8 min-w-0 max-md:pb-24">
+    <div className="w-full overflow-x-hidden page-px py-6 pb-8 min-w-0 max-md:pb-24">
         {children}
     </div>
 );
@@ -841,7 +841,7 @@ const AppContent: React.FC = () => {
 
             case 'new_analysis':
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('nav_new_case')} subtitle={t('new_case_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         {error && (
                             <div className="mx-4 mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2" role="alert">
@@ -850,8 +850,7 @@ const AppContent: React.FC = () => {
                                 <button type="button" onClick={() => setError(null)} className="shrink-0 underline" aria-label={t('close')}>{t('close')}</button>
                             </div>
                         )}
-                        {/* Scrollni bitta joy boshqarsin (main); nested overflow mouse-wheelni bloklamasin */}
-                        <div className="flex-1 min-h-0 page-px py-4">
+                        <div className="page-px py-4">
                             <DataInputForm
                                 onSubmit={handleDataSubmit}
                                 isAnalyzing={isProcessing}
@@ -865,7 +864,7 @@ const AppContent: React.FC = () => {
 
             case 'clarification':
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('clarification_title')} subtitle={t('clarification_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
                         <ScrollWrapper>
                             <div className="max-w-3xl mx-auto w-full min-w-0">
@@ -877,10 +876,10 @@ const AppContent: React.FC = () => {
 
             case 'team_recommendation':
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('team_recommendation_title')} subtitle={t('team_recommendation_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
                         <ScrollWrapper>
-                            <div className="max-w-3xl mx-auto w-full h-full flex flex-col min-w-0">
+                            <div className="max-w-3xl mx-auto w-full flex flex-col min-w-0">
                                 <TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} />
                             </div>
                         </ScrollWrapper>
@@ -893,14 +892,14 @@ const AppContent: React.FC = () => {
                 if (!record || !record.patientData) return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
                 const isArchive = appView === 'view_history_item' && !isProcessing && debateHistory.length > 0;
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar
                             title={isArchive ? t('analysis_view_title') : t('consilium_process_title')}
                             subtitle={record.patientData ? `${record.patientData.firstName} ${record.patientData.lastName}` : ''}
                             onBack={() => isArchive ? setAppView('history') : handleNavigation('dashboard')}
                             backLabel={isArchive ? t('nav_archive') : t('back_to_home')}
                         />
-                        <div className="flex-1 min-h-0 page-px py-3 overflow-y-auto touch-scroll-y">
+                        <div className="page-px py-3">
                             <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} />
                         </div>
                     </div>
@@ -909,7 +908,7 @@ const AppContent: React.FC = () => {
 
             case 'history':
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('history_title')} subtitle={t('history_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
@@ -921,7 +920,7 @@ const AppContent: React.FC = () => {
 
             case 'case_library':
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('case_library_title')} onBack={() => setAppView('history')} backLabel={t('nav_archive')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
@@ -933,7 +932,7 @@ const AppContent: React.FC = () => {
 
             case 'uzi_utt':
                 return (
-                    <div className="h-full min-h-0 flex flex-col overflow-hidden min-w-0">
+                    <div className="min-h-full flex flex-col min-w-0">
                         <BackBar
                             title={t('uzi_utt_page_title')}
                             subtitle={t('uzi_utt_page_subtitle')}

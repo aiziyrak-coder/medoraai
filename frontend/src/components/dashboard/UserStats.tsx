@@ -29,11 +29,15 @@ const StatItem: React.FC<{
 );
 
 const UserStatsComponent: React.FC<UserStatsProps> = ({ stats }) => {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const feedbackDisplayPct =
         stats.feedbackEvalCount === 0
             ? FEEDBACK_ACCURACY_SAMPLE_PERCENT
             : feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy);
+    const feedbackDisplayPctText = Number(feedbackDisplayPct).toLocaleString(
+        language === 'ru' ? 'ru-RU' : language?.startsWith('uz') ? 'uz-UZ' : 'en-US',
+        { maximumFractionDigits: 1 },
+    );
     const feedbackSubtitle =
         stats.feedbackEvalCount === 0
             ? `${t('stats_feedback_accuracy_sub')} (${t('stats_feedback_sample_note')})`
@@ -47,7 +51,7 @@ const UserStatsComponent: React.FC<UserStatsProps> = ({ stats }) => {
                 <StatItem label={t('stats_total_analyses')} value={stats.totalAnalyses} color="text-[#007AFF]" />
                 <StatItem
                     label={t('stats_feedback_accuracy')}
-                    value={`${feedbackDisplayPct}%`}
+                    value={`${feedbackDisplayPctText}%`}
                     color="text-[#34C759]"
                     subtitle={feedbackSubtitle}
                 />

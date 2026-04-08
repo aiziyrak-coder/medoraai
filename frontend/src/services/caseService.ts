@@ -8,7 +8,7 @@ export function feedbackAccuracyToDisplayPercent(ratio: number): number {
 }
 
 /** Ma'lumot bo'lmaganda namuna (95–97 oralig'i ichida) */
-export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 96;
+export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 98.6;
 
 /** Har bir foydalanuvchi uchun alohida kalit — bir brauzerda boshqa akkauntlar aralashmasin */
 const getAnonymizedCasesStorageKey = (): string => {
