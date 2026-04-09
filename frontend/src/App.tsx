@@ -892,14 +892,15 @@ const AppContent: React.FC = () => {
                 if (!record || !record.patientData) return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
                 const isArchive = appView === 'view_history_item' && !isProcessing && debateHistory.length > 0;
                 return (
-                    <div className="min-h-full flex flex-col min-w-0">
+                    // Faqat shu sahifada: flex-1 + overflow-hidden — panellar viewportni to'ldiradi va ichi scroll
+                    <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                         <BackBar
                             title={isArchive ? t('analysis_view_title') : t('consilium_process_title')}
                             subtitle={record.patientData ? `${record.patientData.firstName} ${record.patientData.lastName}` : ''}
                             onBack={() => isArchive ? setAppView('history') : handleNavigation('dashboard')}
                             backLabel={isArchive ? t('nav_archive') : t('back_to_home')}
                         />
-                        <div className="page-px py-3">
+                        <div className="flex-1 min-h-0 page-px py-3 overflow-hidden">
                             <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} />
                         </div>
                     </div>
@@ -992,7 +993,7 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col min-h-[100dvh] w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-x-hidden">
+        <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-x-hidden">
             {/* Oq/kulrang animatsion gradient (index.css .app-bg) */}
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
             {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
@@ -1042,8 +1043,7 @@ const AppContent: React.FC = () => {
                 </div>
             </header>
 
-            {/* Scroll: butun hujjat (body). Ichki overflow-y trap sichqoncha/touchni uzadi. */}
-            <main className="flex-1 flex flex-col w-full min-w-0 relative z-10 isolate overflow-x-hidden">
+            <main className="flex-1 min-h-0 flex flex-col w-full min-w-0 relative z-10 isolate overflow-x-hidden">
                {renderMainContent()}
             </main>
             
