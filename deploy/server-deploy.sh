@@ -21,6 +21,16 @@ else
   echo "DB_NAME=$MEDORA_DB" >> .env
   echo "DB_ENGINE=django.db.backends.sqlite3" >> .env
 fi
+# CORS: .env da fjsti.ziyrak.org bo'lmasa qo'shib yozamiz (brauzer 401 berib qo'ymasin)
+_CORS_REQUIRED="https://fjsti.ziyrak.org"
+if grep -q '^CORS_ALLOWED_ORIGINS=' .env 2>/dev/null; then
+  if ! grep '^CORS_ALLOWED_ORIGINS=' .env | grep -q "fjsti.ziyrak.org"; then
+    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|&,https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org|" .env
+    echo "  CORS yangilandi: fjsti.ziyrak.org qo'shildi"
+  fi
+else
+  echo "CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz" >> .env
+fi
 if [ ! -d venv ]; then
   python3 -m venv venv
 fi

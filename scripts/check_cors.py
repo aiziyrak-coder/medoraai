@@ -1,0 +1,18 @@
+import sys, paramiko, time
+sys.stdout.reconfigure(encoding='utf-8')
+from pathlib import Path
+pw = Path('E:/medoraai/deploy_credentials.local').read_text().strip().splitlines()[0].strip()
+c = paramiko.SSHClient()
+c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+c.connect('167.71.53.238', username='root', password=pw, timeout=30)
+_, out, _ = c.exec_command('grep CORS /root/medoraai/backend/.env')
+time.sleep(2)
+print(out.read().decode('utf-8', errors='replace'))
+_, out2, _ = c.exec_command('curl -s -o /dev/null -w "%{http_code}" https://fjstiapi.ziyrak.org/health/')
+time.sleep(4)
+print('Health check:', out2.read().decode('utf-8', errors='replace'))
+_, out3, _ = c.exec_command('curl -s -I -H "Origin: https://fjsti.ziyrak.org" https://fjstiapi.ziyrak.org/api/auth/profile/ 2>&1 | head -20')
+time.sleep(4)
+print('CORS test:')
+print(out3.read().decode('utf-8', errors='replace'))
+c.close()
