@@ -876,13 +876,11 @@ const AppContent: React.FC = () => {
 
             case 'team_recommendation':
                 return (
-                    <div className="min-h-full flex flex-col min-w-0">
+                    <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                         <BackBar title={t('team_recommendation_title')} subtitle={t('team_recommendation_subtitle')} onBack={() => handleNavigation('new_analysis')} backLabel={t('back')} />
-                        <ScrollWrapper>
-                            <div className="max-w-3xl mx-auto w-full flex flex-col min-w-0">
-                                <TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} />
-                            </div>
-                        </ScrollWrapper>
+                        <div className="flex-1 min-h-0 page-px py-3 overflow-hidden">
+                            <TeamRecommendationView isProcessing={isProcessing} recommendations={recommendedTeam} onConfirm={handleTeamConfirmation} />
+                        </div>
                     </div>
                 );
 

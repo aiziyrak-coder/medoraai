@@ -139,10 +139,10 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     }
 
     return (
-        <div className="glass-panel p-6 animate-fade-in-up flex flex-col h-full overflow-hidden">
+        <div className="glass-panel p-4 sm:p-6 animate-fade-in-up flex flex-col h-full min-h-0 overflow-hidden">
             {/* Header */}
-            <div className="flex-shrink-0 mb-4 text-center">
-                <h2 className="text-2xl font-black text-transparent bg-clip-text animated-gradient-text tracking-tight mb-2">
+            <div className="flex-shrink-0 mb-3 text-center">
+                <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text animated-gradient-text tracking-tight mb-1">
                     Konsilium Tarkibini Shakllantirish
                 </h2>
                 <p className="text-sm text-text-secondary">
@@ -151,19 +151,19 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             </div>
 
             {/* Orchestrator */}
-            <div className="flex-shrink-0 mb-4 p-2 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
-                <UsersIcon className="w-5 h-5 text-indigo-600" />
+            <div className="flex-shrink-0 mb-3 p-2 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
+                <UsersIcon className="w-5 h-5 text-indigo-600 flex-shrink-0" />
                 <div>
                     <p className="font-bold text-xs text-indigo-900">Konsilium Professori (Orkestrator)</p>
                     <p className="text-[9px] text-indigo-600">Munozarani boshqaradi</p>
                 </div>
             </div>
 
-            {/* Main Content: 2 columns */}
-            <div className="flex-grow flex gap-4 overflow-hidden">
+            {/* Main Content: 2 columns — flex-1 min-h-0 to fill remaining height */}
+            <div className="flex-1 min-h-0 flex gap-3 sm:gap-4 overflow-hidden">
                 {/* LEFT: Specialist List */}
-                <div className="flex-1 flex flex-col">
-                    <div className="relative mb-3">
+                <div className="flex-1 min-h-0 flex flex-col">
+                    <div className="relative mb-2">
                         <input
                             type="text"
                             value={searchTerm}
@@ -173,7 +173,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     </div>
-                    <div ref={listScrollRef} className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 rounded-lg border border-slate-200">
+                    <div ref={listScrollRef} className="flex-1 min-h-0 overflow-y-auto touch-scroll-y bg-slate-50 rounded-lg border border-slate-200">
                         {filteredSpecialists.map((model) => {
                             const specialistInfo = AI_SPECIALISTS[model];
                             const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
@@ -211,15 +211,15 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 </div>
 
                 {/* RIGHT: Selected Specialists */}
-                <div className="w-64 flex flex-col bg-blue-50/30 rounded-lg border-2 border-blue-200 p-3">
-                    <h3 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-1">
+                <div className="w-52 sm:w-64 flex-shrink-0 flex flex-col min-h-0 bg-blue-50/30 rounded-lg border-2 border-blue-200 p-3">
+                    <h3 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-1 flex-shrink-0">
                         <UsersIcon className="w-4 h-4" />
                         Tanlangan ({selectedSpecialists.size})
                     </h3>
                     {selectedSpecialists.size === 0 ? (
                         <p className="text-xs text-slate-500 text-center mt-8">Hali mutaxassis tanlanmagan</p>
                     ) : (
-                        <div className="space-y-1 overflow-y-auto custom-scrollbar">
+                        <div className="flex-1 min-h-0 space-y-1 overflow-y-auto touch-scroll-y">
                             {Array.from(selectedSpecialists).map((model: AIModel) => {
                                 const spec = AI_SPECIALISTS[model];
                                 return (
