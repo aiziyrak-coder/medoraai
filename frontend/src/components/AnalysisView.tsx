@@ -59,8 +59,12 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
     const [scenarioResult, setScenarioResult] = useState<FinalReport | null>(null);
 
     useEffect(() => {
-        if (debateScrollRef.current) {
-            debateScrollRef.current.scrollTop = debateScrollRef.current.scrollHeight;
+        const el = debateScrollRef.current;
+        if (!el) return;
+        // Faqat foydalanuvchi pastda bo'lsagina avtomatik scroll (o'qiyotganda chalg'itmasin)
+        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (distanceFromBottom < 120) {
+            el.scrollTop = el.scrollHeight;
         }
     }, [record?.debateHistory, statusMessage, socraticQuestion]);
 
@@ -160,9 +164,9 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                     )}
 
                     {dh.length > 0 && (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {(Array.isArray(dh) ? dh : []).map(msg => (
-                                <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} compact />
+                                <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />
                             ))}
                         </div>
                     )}

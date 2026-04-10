@@ -67,7 +67,7 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
                         </button>
                     )}
                 </div>
-                <div className={`rounded-xl rounded-tl-lg bg-slate-200/50 min-w-0 overflow-hidden ${compact ? 'p-2' : 'p-3.5'}`}>
+                <div className={`rounded-xl rounded-tl-lg bg-slate-200/50 min-w-0 ${compact ? 'p-2' : 'p-3.5'}`}>
                     {isThinking ? (
                         <div className="flex items-center gap-2 text-text-secondary text-xs">
                             <SpinnerIcon className="w-3 h-3 text-accent-color-blue flex-shrink-0" />
