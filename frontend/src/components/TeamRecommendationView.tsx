@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { AIModel } from '../types';
 import { AI_SPECIALISTS } from '../constants';
 import AIAvatar from './AIAvatar';
@@ -23,6 +23,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     const { t } = useTranslation();
     const [selectedSpecialists, setSelectedSpecialists] = useState<Set<AIModel>>(new Set());
     const [searchTerm, setSearchTerm] = useState("");
+    const listScrollRef = useRef<HTMLDivElement>(null);
+    const itemRefs = useRef<Partial<Record<AIModel, HTMLDivElement | null>>>({});
 
     // Initialize state when recommendations load - with null safety
     useEffect(() => {
@@ -38,6 +40,21 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
         }
     }, [recommendations]);
 
+    const scrollToItem = useCallback((model: AIModel) => {
+        const el = itemRefs.current[model];
+        const container = listScrollRef.current;
+        if (!el || !container) return;
+        const elTop = el.offsetTop;
+        const elBottom = elTop + el.offsetHeight;
+        const containerTop = container.scrollTop;
+        const containerBottom = containerTop + container.clientHeight;
+        if (elTop < containerTop) {
+            container.scrollTo({ top: elTop - 8, behavior: 'smooth' });
+        } else if (elBottom > containerBottom) {
+            container.scrollTo({ top: elBottom - container.clientHeight + 8, behavior: 'smooth' });
+        }
+    }, []);
+
     const toggleSpecialist = (model: AIModel) => {
         const newSelection = new Set(selectedSpecialists);
         if (newSelection.has(model)) {
@@ -48,6 +65,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 return;
             }
             newSelection.add(model);
+            // Tanlangan cardga scroll qilamiz
+            requestAnimationFrame(() => scrollToItem(model));
         }
         setSelectedSpecialists(newSelection);
     };
@@ -154,17 +173,18 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 rounded-lg border border-slate-200">
+                    <div ref={listScrollRef} className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 rounded-lg border border-slate-200">
                         {filteredSpecialists.map((model) => {
                             const specialistInfo = AI_SPECIALISTS[model];
                             const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
                             const recommendation = safeRecommendations.find(r => r?.model === model);
                             const isSelected = selectedSpecialists.has(model);
                             return (
-                                <div 
+                                <div
                                     key={model}
+                                    ref={el => { itemRefs.current[model] = el; }}
                                     onClick={() => toggleSpecialist(model)}
-                                    className={`p-2 flex items-center gap-2 border-b border-slate-100 cursor-pointer transition ${isSelected ? 'bg-blue-50' : 'hover:bg-white'}`}
+                                    className={`p-2 flex items-center gap-2 border-b border-slate-100 cursor-pointer transition ${isSelected ? 'bg-blue-50 ring-1 ring-blue-300' : 'hover:bg-white'}`}
                                 >
                                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
                                         {isSelected && <CheckCircleIcon className="w-3 h-3 text-white" />}
