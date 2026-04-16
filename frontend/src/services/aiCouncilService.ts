@@ -48,12 +48,12 @@ function getGemini(): GoogleGenAI {
 }
 
 /*
- * Barqaror: gemini-2.5-flash (Google "stable"). Preview modellar ba'zan 503.
- * Pro: gemini-3.1-pro-preview (gemini-3-pro-preview 2026 martda o‘chirilgan).
+ * Asosiy tez: gemini-2.5-flash-lite — 2.5-flash ko‘pincha 503 (yuk) beradi, lite odatda ishlaydi.
+ * Keyin to‘liq flash va boshqa zaxiralar. Pro: gemini-3.1-pro-preview.
  * Override: VITE_GEMINI_MODEL_FAST / VITE_GEMINI_MODEL_PRO
  */
 const MODEL_FAST =
-    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-2.5-flash';
+    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-2.5-flash-lite';
 const MODEL_PRO =
     (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-3.1-pro-preview';
 /** Aliases used across council/debate */
@@ -61,12 +61,11 @@ const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
 
 /**
- * Zaxira: 2.5 oilasi → 3.x preview → flash-latest.
- * gemini-2.0-flash API da ko‘pincha 404 (deprecated / yangi loyihalar).
+ * Zaxira: avvalo to‘liq 2.5-flash (sifat), keyin 3.x / latest / pro.
  */
 const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
-    'gemini-2.5-flash',
     'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
     'gemini-flash-latest',
@@ -74,7 +73,7 @@ const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
     'gemini-3.1-pro-preview',
 ];
 const GEMINI_FALLBACK_AFTER_FLASH: readonly string[] = [
-    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
     'gemini-flash-latest',
