@@ -19,14 +19,35 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
 };
 
 /**
+ * Matn — Error, oddiy obyekt yoki JSON ichidagi status kodlari uchun.
+ */
+const errorMessageForRetry = (error: unknown): string => {
+  if (error == null) return '';
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) {
+    const withCause = error as Error & { cause?: unknown; status?: number };
+    const base = [error.message, typeof withCause.status === 'number' ? String(withCause.status) : '']
+      .filter(Boolean)
+      .join(' ');
+    const cause = withCause.cause != null ? ` ${errorMessageForRetry(withCause.cause)}` : '';
+    return (base + cause).trim();
+  }
+  if (typeof error === 'object') {
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+};
+
+/**
  * Checks if an error is retryable
  */
 const isRetryableError = (error: unknown, retryableErrors: string[]): boolean => {
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    return retryableErrors.some(keyword => message.includes(keyword));
-  }
-  return false;
+  const message = errorMessageForRetry(error).toLowerCase();
+  return retryableErrors.some(keyword => message.includes(keyword));
 };
 
 /**

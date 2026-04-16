@@ -48,29 +48,38 @@ function getGemini(): GoogleGenAI {
 }
 
 /*
- * Asosiy: gemini-3-flash-preview (tez, 2025 yangi). gemini-2.5-flash hozir 503 bermoqda.
+ * Barqaror: gemini-2.5-flash (Google "stable"). Preview modellar ba'zan 503.
+ * Pro: gemini-3.1-pro-preview (gemini-3-pro-preview 2026 martda o‘chirilgan).
  * Override: VITE_GEMINI_MODEL_FAST / VITE_GEMINI_MODEL_PRO
  */
 const MODEL_FAST =
-    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-3-flash-preview';
+    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-2.5-flash';
 const MODEL_PRO =
-    (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-3-pro-preview';
+    (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-3.1-pro-preview';
 /** Aliases used across council/debate */
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
 
-/** Zaxira: 2.5-flash, keyin 2.0-flash, keyin Pro variantlari */
+/**
+ * Zaxira: 2.5 oilasi → 3.x preview → flash-latest.
+ * gemini-2.0-flash API da ko‘pincha 404 (deprecated / yangi loyihalar).
+ */
 const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
-    'gemini-3-flash-preview',
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3-flash-preview',
+    'gemini-flash-latest',
     'gemini-2.5-pro',
+    'gemini-3.1-pro-preview',
 ];
 const GEMINI_FALLBACK_AFTER_FLASH: readonly string[] = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-3-pro-preview',
+    'gemini-2.5-flash-lite',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3-flash-preview',
+    'gemini-flash-latest',
     'gemini-2.5-pro',
+    'gemini-3.1-pro-preview',
 ];
 
 /** Map model label to Gemini model name */
@@ -206,6 +215,33 @@ const getSystemInstruction = (language: Language): string => {
 // --- HELPER FUNCTIONS ---
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** @google/genai ba'zan HTTP kodini message tashqarida qoldiradi — zanjir va retry uchun bitta qator */
+function geminiErrorFingerprint(err: unknown): string {
+    const parts: string[] = [];
+    const walk = (e: unknown, depth: number): void => {
+        if (depth > 6 || e == null) return;
+        if (typeof e === 'string') {
+            parts.push(e);
+            return;
+        }
+        if (e instanceof Error) {
+            parts.push(e.message);
+            walk((e as Error & { cause?: unknown }).cause, depth + 1);
+            return;
+        }
+        if (typeof e === 'object') {
+            const o = e as Record<string, unknown>;
+            for (const k of ['message', 'status', 'code', 'statusText']) {
+                if (o[k] != null) parts.push(String(o[k]));
+            }
+            if (o.error) walk(o.error, depth + 1);
+            if (o.details) walk(o.details, depth + 1);
+        }
+    };
+    walk(err, 0);
+    return parts.join(' ');
+}
 
 function tryRepairTruncatedJson(raw: string): unknown | null {
     let s = raw.trim();
@@ -512,29 +548,32 @@ const callGemini = async (
                 return await executeCall(m);
             } catch (e) {
                 lastErr = e;
-                const msg = String((e as Error & { message?: string })?.message ?? e).toLowerCase();
-                const is404 = /404|not found|NOT_FOUND/i.test(msg);
-                const is503 = /503|unavailable|overloaded|service.?unavailable/i.test(msg);
+                const msg = geminiErrorFingerprint(e).toLowerCase();
+                const is404 = /404|not found|not_found|model.*not found|unsupported/i.test(msg);
+                const is503 = /503|502|504|unavailable|overloaded|deadline|econnreset|aborted|failed to fetch|service.?unavailable|load failed/i.test(msg);
                 const isRate = /429|resource_exhausted|rate_limit_exceeded|quota/i.test(msg);
                 if (is404 || is503 || isRate) {
                     logger.warning(
                         'Gemini model %s not available (%s), trying next',
                         m,
-                        isRate ? '429' : (is503 ? '503' : '404')
+                        isRate ? '429' : (is503 ? '503/502' : '404')
                     );
                     // 429: limit tushishi uchun kutish; keyingi model boshqa kvota bo‘lishi mumkin
                     if (isRate) {
                         const base = 2500 * (idx + 1);
                         await sleep(Math.min(15000, base + Math.floor(Math.random() * 1200)));
                     } else if (is503) {
-                        await sleep(2000 + idx * 800);
+                        await sleep(3500 + idx * 1200);
                     }
                     continue;
                 }
                 throw e;
             }
         }
-        throw lastErr;
+        const tail = geminiErrorFingerprint(lastErr);
+        throw new Error(
+            tail ? `Gemini (${modelsToTry.join(' → ')}): ${tail}` : 'Gemini: barcha modellar muvaffaqiyatsiz'
+        );
     };
 
     if (shouldRetry) {
@@ -546,9 +585,11 @@ const callGemini = async (
                 maxDelay: 28000,
                 backoffMultiplier: 2,
                 retryableErrors: [
-                    'network', 'timeout', 'fetch', 'connection', '503', 'unavailable', 'overloaded',
+                    'network', 'timeout', 'fetch', 'connection', '503', '502', '504', 'unavailable', 'overloaded',
+                    'deadline', 'aborted', 'econnreset', 'load failed',
                     'service unavailable', 'parse_json', "noto'g'ri", 'javob', 'invalid json',
                     'failed to parse', 'rate_limit_exceeded', '429', 'resource_exhausted', 'quota',
+                    'gemini (', // executeWithModelFallback oxirgi xatolik
                 ],
             });
         } catch (error) {
@@ -1489,9 +1530,16 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
     
     const finalReportMultimodalPrompt = buildMultimodalPrompt(finalReportTextPrompt, patientData, pastCasesForContext);
 
-    const runFinalReport = async (maxTok: number): Promise<FinalReport> => {
-        // Tezlikni oshirish uchun yakuniy hisobot FAST model orqali, lekin to'liq JSON struktura bilan
-        const raw = await callGemini(finalReportMultimodalPrompt, DEPLOY_FAST, finalReportSchema, false, systemInstr, true, maxTok) as FinalReport;
+    const runFinalReport = async (maxTok: number, modelLabel: string = DEPLOY_FAST): Promise<FinalReport> => {
+        const raw = await callGemini(
+            finalReportMultimodalPrompt,
+            modelLabel,
+            finalReportSchema,
+            false,
+            systemInstr,
+            true,
+            maxTok,
+        ) as FinalReport;
         return {
             ...raw,
             consensusDiagnosis: normalizeConsensusDiagnosis(raw.consensusDiagnosis),
@@ -1504,15 +1552,52 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             // Yakuniy hisobot uchun kengroq token limiti — kesilmasdan to'liq JSON chiqishi uchun
             rawReport = await runFinalReport(8192);
         } catch (firstErr) {
-            const isParseErr = (firstErr as Error & { cause?: string })?.cause === 'parse_json' || String((firstErr as Error).message).includes('AI_JSON_PARSE_ERROR');
+            const fp = geminiErrorFingerprint(firstErr).toLowerCase();
+            const isParseErr =
+                (firstErr as Error & { cause?: string })?.cause === 'parse_json' ||
+                String((firstErr as Error).message).includes('AI_JSON_PARSE_ERROR');
+            const isTransientApi =
+                /503|502|504|429|unavailable|overloaded|network|timeout|fetch|failed to fetch|deadline|econnreset|gemini \(/.test(fp);
             if (isParseErr) {
                 logger.warn('Final report JSON kesilgan, qisqaroq reasoningChain bilan qayta urinilmoqda');
                 const shortPrompt = finalReportTextPrompt + '\n\nQISQACHA: reasoningChain da har bir element FAQAT 1 jumla (max 15 so\'z). To\'liq yopilgan JSON qaytaring.';
                 const shortMultimodal = buildMultimodalPrompt(shortPrompt, patientData, pastCasesForContext);
                 const raw = await callGemini(shortMultimodal, DEPLOY_PRO, finalReportSchema, false, systemInstr, true, 8192) as FinalReport;
                 rawReport = { ...raw, consensusDiagnosis: normalizeConsensusDiagnosis(raw.consensusDiagnosis) };
+            } else if (isTransientApi) {
+                logger.warn('Yakuniy hisobot: API vaqtinchalik xato, PRO model bilan qayta urinilmoqda');
+                rawReport = await runFinalReport(8192, DEPLOY_PRO);
             } else {
                 throw firstErr;
+            }
+        }
+        if (normalizeConsensusDiagnosis(rawReport.consensusDiagnosis).length === 0) {
+            logger.warn('consensusDiagnosis bo‘sh — fayllarsiz qisqa qayta urinish (multimodal hajm kamaytiriladi)');
+            const slimPatient: PatientData = { ...patientData, attachments: [] };
+            const slimPrompt =
+                finalReportTextPrompt +
+                "\n\n[QAYTA URINISH] Yuklangan skan/rasm fayllarsiz, faqat strukturaviy bemor ma'lumoti va munozaradan consensusDiagnosis (kamida 1 ta), treatmentPlan va medicationRecommendations ni to'ldiring. reasoningChain har elementda 1 qisqa jumla.";
+            const slimMultimodal = buildMultimodalPrompt(slimPrompt, slimPatient, pastCasesForContext);
+            try {
+                const raw2 = await callGemini(
+                    slimMultimodal,
+                    DEPLOY_PRO,
+                    finalReportSchema,
+                    false,
+                    systemInstr,
+                    true,
+                    6144,
+                ) as FinalReport;
+                const dx2 = normalizeConsensusDiagnosis(raw2.consensusDiagnosis);
+                if (dx2.length > 0) {
+                    rawReport = {
+                        ...rawReport,
+                        ...raw2,
+                        consensusDiagnosis: dx2,
+                    };
+                }
+            } catch {
+                /* ignore */
             }
         }
         if (rawReport.criticalFinding && rawReport.criticalFinding.finding) {
