@@ -27,8 +27,7 @@ if not DEBUG and SECRET_KEY == _default_secret:
 # ALLOWED_HOSTS: .env da vergul bilan; * ISHLATMASLIK (Host header spoofing / cache zaharlash).
 _DEFAULT_ALLOWED_HOSTS = (
     'localhost,127.0.0.1,'
-    'fjsti.ziyrak.org,fjstiapi.ziyrak.org,'
-    'medora.cdcgroup.uz,medoraapi.cdcgroup.uz,medoraai.cdcgroup.uz'
+    'fjsti.ziyrak.org,fjstiapi.ziyrak.org'
 )
 _allowed_env = config('ALLOWED_HOSTS', default='')
 if _allowed_env and str(_allowed_env).strip():
@@ -231,8 +230,6 @@ _CORS_DEFAULT_STR = (
     'http://localhost:3000,http://127.0.0.1:3000,'
     'https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,'
     'https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,'
-    'https://medora.cdcgroup.uz,http://medora.cdcgroup.uz,'
-    'https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
     'http://localhost:5173,http://127.0.0.1:5173'
 )
 _CORS_ALWAYS_APPEND = (
@@ -255,7 +252,6 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF (Django 4+): ishonchli originlar — FJSTI har doim qo'shiladi (.env cheklangan bo'lsa ham)
 _csrf_default = (
     'https://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,'
-    'https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz,https://medoraai.cdcgroup.uz,'
     'http://localhost:3000,http://127.0.0.1:3000,'
     'http://localhost:5173,http://127.0.0.1:5173'
 )

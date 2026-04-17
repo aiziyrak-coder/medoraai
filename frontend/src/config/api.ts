@@ -1,17 +1,14 @@
 /**
  * API Configuration
  *
- * Ba'zi production buildlar API ni front domeniga (medora.cdcgroup.uz) qo'yib yuboradi —
- * DNS `medoraapi` da. Sahifa hostiga qarab to'g'ri API bazasini tanlaymiz.
+ * Sahifa fjsti.ziyrak.org da ochilganda build noto'g'ri API host qo'ygan bo'lsa — fjstiapi ga tuzatiladi.
  */
 
 const rawFromEnv = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
 
 /** Front hostname → haqiqiy API (split domen) */
 const API_BASE_BY_PAGE_HOST: Record<string, string> = {
-  'medora.cdcgroup.uz': 'https://medoraapi.cdcgroup.uz/api',
-  /** Eski domen DNS ishlamasa ham ishlaydigan API */
-  'fjsti.ziyrak.org': 'https://medoraapi.cdcgroup.uz/api',
+  'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/api',
 };
 
 function stripApiSuffix(u: string): string {
@@ -44,8 +41,8 @@ function resolveApiBaseUrl(): string {
 
   try {
     const apiUrl = new URL(base.endsWith('/') ? base : `${base}/`);
-    const wrongHosts = new Set([pageHost, 'medora.cdcgroup.uz', 'fjsti.ziyrak.org']);
-    // API URL front bilan bir xil host yoki ma'lum xato hostlar — almashtiramiz
+    const wrongHosts = new Set([pageHost, 'fjsti.ziyrak.org']);
+    // API URL front bilan bir xil host yoki fjsti front host — fjstiapi ga almashtiramiz
     if (wrongHosts.has(apiUrl.hostname) && apiUrl.hostname !== new URL(preferred).hostname) {
       return preferred;
     }

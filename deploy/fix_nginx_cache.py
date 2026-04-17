@@ -3,7 +3,7 @@
 import paramiko
 
 SERVER_USER = "root"
-SERVER_HOST = "medora.cdcgroup.uz"
+SERVER_HOST = "167.71.53.238"
 SERVER_PASSWORD = "Ziyrak2025Ai"
 
 client = paramiko.SSHClient()

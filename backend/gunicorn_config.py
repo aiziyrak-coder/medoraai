@@ -1,6 +1,6 @@
 """
 Gunicorn Production Config
-Farg'ona JSTI | medora.cdcgroup.uz
+Farg'ona JSTI | fjsti.ziyrak.org
 2 vCPU Azure Standard B2s  -  4 worker (2*CPU+1)
 """
 

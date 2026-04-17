@@ -42,7 +42,6 @@ import CriticalFindingAlert from './components/modals/CriticalFindingAlert';
 import RationaleModal from './components/modals/RationaleModal';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import DeviceSessionBanner from './components/DeviceSessionBanner';
-import { PLATFORM_WEBSITE } from './constants/brand';
 
 // --- Icons ---
 import HomeIcon from './components/icons/HomeIcon';
@@ -51,7 +50,13 @@ import DocumentReportIcon from './components/icons/DocumentReportIcon';
 import LightBulbIcon from './components/icons/LightBulbIcon';
 import CopyrightIcon from './components/icons/CopyrightIcon';
 import { AIModel } from './constants/specialists';
-import { INSTITUTE_NAME_FULL, INSTITUTE_NAME_SHORT, PLATFORM_NAME, INSTITUTE_LOGO_SRC } from './constants/brand';
+import {
+    INSTITUTE_NAME_FULL,
+    INSTITUTE_NAME_SHORT,
+    PLATFORM_NAME,
+    INSTITUTE_LOGO_SRC,
+    PLATFORM_WEBSITE,
+} from './constants/brand';
 
 // Scrollni bitta joy boshqaradi (main). Ichki wrapperlar overflow qilmasin — mouse wheel hamma oynada ishlasin.
 const ScrollWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -1001,8 +1006,7 @@ const AppContent: React.FC = () => {
                         <span className="break-words">
                             Domen boshqa serverga yo&apos;naltirilgan. DNS tekshiring:{' '}
                             <code className="bg-black/20 px-1 rounded">nslookup {PLATFORM_WEBSITE}</code>
-                            {' -> '}
-                            <code className="bg-black/20 px-1 rounded">167.71.53.238</code> bo&apos;lishi kerak.
+                            {' — A yozuv server IP ga ishora qilishi kerak.'}
                         </span>
                     ) : (
                         <span className="break-words">

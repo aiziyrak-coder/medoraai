@@ -29,7 +29,7 @@ if grep -q '^CORS_ALLOWED_ORIGINS=' .env 2>/dev/null; then
     echo "  CORS yangilandi: fjsti.ziyrak.org qo'shildi"
   fi
 else
-  echo "CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz" >> .env
+  echo "CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org" >> .env
 fi
 if [ ! -d venv ]; then
   python3 -m venv venv
@@ -49,7 +49,7 @@ echo "=== 3. Frontend build ==="
 cd "$APP_DIR/frontend"
 npm install --silent 2>/dev/null || npm install
 # API URL: backend .env da VITE_API_BASE_URL bo'lsa shu (FJSTI: https://fjstiapi.ziyrak.org/api)
-VITE_API_BASE_URL="https://medora.cdcgroup.uz/api"
+VITE_API_BASE_URL="https://fjstiapi.ziyrak.org/api"
 if [ -f "$APP_DIR/backend/.env" ]; then
   _v=$(grep -E '^VITE_API_BASE_URL=' "$APP_DIR/backend/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r')
   _v=$(echo "$_v" | sed "s/^[\"']//;s/[\"']$//")
@@ -142,12 +142,12 @@ echo "=== 7. Tekshirish ==="
 sleep 2
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/ && echo " Backend 8001 OK" || echo " Backend 8001 javob bermadi"
 systemctl is-active --quiet medoraai-backend-8001.service && echo "medoraai-backend-8001: active" || echo "medoraai-backend-8001: FAIL"
-HTTP_API=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: medoraapi.cdcgroup.uz" http://127.0.0.1:8001/ 2>/dev/null || echo "000")
-echo "  medoraapi.cdcgroup.uz (8001): HTTP $HTTP_API (200 kerak)"
-HTTP_FRONT=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: medora.cdcgroup.uz" http://127.0.0.1/ 2>/dev/null || echo "000")
-echo "  medora.cdcgroup.uz (local): HTTP $HTTP_FRONT (200 kerak)"
+HTTP_API=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: fjstiapi.ziyrak.org" http://127.0.0.1:8001/ 2>/dev/null || echo "000")
+echo "  fjstiapi.ziyrak.org (8001): HTTP $HTTP_API (200 kerak)"
+HTTP_FRONT=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: fjsti.ziyrak.org" http://127.0.0.1/ 2>/dev/null || echo "000")
+echo "  fjsti.ziyrak.org (nginx 80): HTTP $HTTP_FRONT (200/301 kerak)"
 
 echo ""
-echo "Tugadi. https://medora.cdcgroup.uz — Brauzerda Ctrl+Shift+R bilan yangilang."
-PUBLIC_HEALTH=$(curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://medora.cdcgroup.uz/health/" 2>/dev/null || echo "err")
+echo "Tugadi. https://fjsti.ziyrak.org — Brauzerda Ctrl+Shift+R bilan yangilang."
+PUBLIC_HEALTH=$(curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://fjsti.ziyrak.org/health/" 2>/dev/null || echo "err")
 echo "  Public /health/: HTTP $PUBLIC_HEALTH"
