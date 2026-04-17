@@ -41,5 +41,7 @@ export const FOOTER_COPYRIGHT = "© 2026 FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT IN
 
 /** Institute official website */
 export const INSTITUTE_WEBSITE = "https://fjsti.uz/";
-/** Platforma veb-manzili (frontend domen) */
-export const PLATFORM_WEBSITE = "fjsti.ziyrak.org";
+/** Platforma veb-manzili (frontend domen) — ishlab turgan production */
+export const PLATFORM_WEBSITE = "medora.cdcgroup.uz";
+/** To'liq URL (QR kod, tashqi havolalar) */
+export const PLATFORM_PUBLIC_URL = `https://${PLATFORM_WEBSITE}`;

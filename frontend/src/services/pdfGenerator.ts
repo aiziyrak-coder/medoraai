@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
+import { PLATFORM_PUBLIC_URL, PLATFORM_WEBSITE } from '../constants/brand';
 
 interface jsPDFInternal {
     pages: unknown[];
@@ -16,8 +17,6 @@ const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
 const FOOTER_RESERVE = 12;
 const MARGIN = 10;
-const PLATFORM_URL = 'https://fjsti.ziyrak.org';
-
 export interface InstituteBranding {
     instituteName?: string;
     instituteLogoDataUrl?: string;
@@ -46,7 +45,7 @@ export const generatePdfReport = async (
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
-        qrDataUrl = await QRCode.toDataURL(PLATFORM_URL, { 
+        qrDataUrl = await QRCode.toDataURL(PLATFORM_PUBLIC_URL, { 
             width: 80, 
             margin: 1,
             color: { dark: '#1e293b', light: '#ffffff' }
@@ -185,7 +184,7 @@ export const generatePdfReport = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text('Skannerlang →', qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
-        doc.text('fjsti.ziyrak.org', qrX + qrSize/2, qrY + qrSize + 5, { align: 'center' });
+        doc.text(PLATFORM_WEBSITE, qrX + qrSize/2, qrY + qrSize + 5, { align: 'center' });
     }
     
     // Move past QR code area
@@ -566,7 +565,7 @@ export const generatePdfReport = async (
     
     // Platform promo text for last page
     const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
-    const promoLink = "fjsti.ziyrak.org";
+    const promoLink = PLATFORM_WEBSITE;
     const promoPhone = "+998 99 575 11 11";
     const promoPhone2 = "+998 90 786 38 88";
     
@@ -656,7 +655,7 @@ export const generateUziUttPdf = async (
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
-        qrDataUrl = await QRCode.toDataURL(PLATFORM_URL, {
+        qrDataUrl = await QRCode.toDataURL(PLATFORM_PUBLIC_URL, {
             width: 80,
             margin: 1,
             color: { dark: '#1e293b', light: '#ffffff' },
@@ -767,7 +766,7 @@ export const generateUziUttPdf = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text('Skannerlang →', qrX + qrSize / 2, qrY + qrSize + 2, { align: 'center' });
-        doc.text('fjsti.ziyrak.org', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
+        doc.text(PLATFORM_WEBSITE, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
 
     y = Math.max(y + 4, qrY + qrSize + 8);
@@ -809,7 +808,7 @@ export const generateUziUttPdf = async (
     const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
     const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
     const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
-    const promoLink = "fjsti.ziyrak.org";
+    const promoLink = PLATFORM_WEBSITE;
     const promoPhone = "+998 99 575 11 11";
     const promoPhone2 = "+998 90 786 38 88";
 

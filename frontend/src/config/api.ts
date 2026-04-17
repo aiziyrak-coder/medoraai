@@ -10,7 +10,8 @@ const rawFromEnv = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 
 /** Front hostname → haqiqiy API (split domen) */
 const API_BASE_BY_PAGE_HOST: Record<string, string> = {
   'medora.cdcgroup.uz': 'https://medoraapi.cdcgroup.uz/api',
-  'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/api',
+  /** Eski domen DNS ishlamasa ham ishlaydigan API */
+  'fjsti.ziyrak.org': 'https://medoraapi.cdcgroup.uz/api',
 };
 
 function stripApiSuffix(u: string): string {
