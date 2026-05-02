@@ -19,13 +19,12 @@ fi
 
 if [ ! -d "$ROOT/.git" ]; then
   mkdir -p "$(dirname "$ROOT")"
-  git clone --branch "$BRANCH" "$REPO_URL" "$ROOT"
-else
-  cd "$ROOT"
-  git fetch origin
-  git checkout "$BRANCH"
-  git pull origin "$BRANCH"
+  git clone "$REPO_URL" "$ROOT"
 fi
+cd "$ROOT"
+git fetch origin
+git checkout "$BRANCH" 2>/dev/null || git checkout -b "$BRANCH" "origin/$BRANCH" 2>/dev/null || true
+git pull origin "$BRANCH" || git pull origin HEAD
 
 cd "$ROOT/frontend"
 if [ ! -f .env.production ] && [ -f .env.example ]; then
@@ -69,12 +68,12 @@ systemctl enable aidoktorfjsti-backend
 systemctl restart aidoktorfjsti-backend
 
 sleep 2
-curl -fsS "http://127.0.0.1:${BACKEND_PORT}/health/" || {
+curl -fsS --max-time 15 "http://127.0.0.1:${BACKEND_PORT}/health/" || {
   echo "Gunicorn salomatligi tekshiruvi muvaffaqiyatsiz — journalctl -u aidoktorfjsti-backend -n 50"
   exit 1
 }
 
-# TLS
+# TLS: avval HTTP bootstrap, keyin certbot; certbot yiqilsa HTTP qoladi (DNS keyin tuzatiladi)
 NGX_AVAIL="/etc/nginx/sites-available/aidoktor-uz.conf"
 NGX_EN="/etc/nginx/sites-enabled/aidoktor-uz.conf"
 CERT_PATH="/etc/letsencrypt/live/aidoktor.uz/fullchain.pem"
@@ -84,17 +83,28 @@ if [ ! -f "$CERT_PATH" ]; then
   ln -sf "$NGX_AVAIL" "$NGX_EN"
   nginx -t
   systemctl reload nginx
-  certbot certonly --webroot -w "$ROOT/frontend/dist" \
-    -d aidoktor.uz -d api.aidoktor.uz \
-    --agree-tos --non-interactive -m "$CERT_EMAIL" || {
-      echo "certbot xato — DNS A yozuvlari 167.71.53.238 ga yo'naltirilganini tekshiring"
-      exit 1
-    }
+  if command -v certbot >/dev/null 2>&1; then
+    certbot certonly --webroot -w "$ROOT/frontend/dist" \
+      -d aidoktor.uz -d api.aidoktor.uz \
+      --agree-tos --non-interactive -m "$CERT_EMAIL" \
+      || echo "WARN: certbot muvaffaqiyatsiz — HTTP ishlaydi; DNS A yozuvlari va domen tekshirilsin."
+  else
+    echo "WARN: certbot o'rnatilmagan — faqat HTTP."
+  fi
 fi
 
-install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-ssl.conf" "$NGX_AVAIL"
+if [ -f "$CERT_PATH" ]; then
+  install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-ssl.conf" "$NGX_AVAIL"
+else
+  install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-http-bootstrap.conf" "$NGX_AVAIL"
+fi
 ln -sf "$NGX_AVAIL" "$NGX_EN"
 nginx -t
 systemctl reload nginx
 
-echo "Tayyor: https://aidoktor.uz  |  API: https://api.aidoktor.uz"
+echo "=== Backend: http://127.0.0.1:${BACKEND_PORT}/health/ ok ==="
+if [ -f "$CERT_PATH" ]; then
+  echo "Tayyor (HTTPS): https://aidoktor.uz  |  https://api.aidoktor.uz"
+else
+  echo "HTTP rejim: http://aidoktor.uz va http://api.aidoktor.uz (TLS uchun DNS + certbot)"
+fi
