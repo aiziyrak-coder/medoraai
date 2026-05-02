@@ -48,7 +48,7 @@ fi
 cd "$ROOT"
 git fetch origin
 git checkout main
-git pull origin main
+git reset --hard origin/main
 chmod +x deploy/provision-aidoktor-uz.sh
 exec bash deploy/provision-aidoktor-uz.sh
 """

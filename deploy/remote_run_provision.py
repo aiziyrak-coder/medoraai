@@ -41,7 +41,9 @@ if [ ! -d "$ROOT/.git" ]; then
   git clone "$REPO" "$ROOT"
 fi
 cd "$ROOT"
-git pull origin main || git pull origin master
+git fetch origin
+git checkout main
+git reset --hard origin/main
 chmod +x deploy/provision-aidoktor-uz.sh
 bash deploy/provision-aidoktor-uz.sh
 """

@@ -24,7 +24,8 @@ fi
 cd "$ROOT"
 git fetch origin
 git checkout "$BRANCH" 2>/dev/null || git checkout -b "$BRANCH" "origin/$BRANCH" 2>/dev/null || true
-git pull origin "$BRANCH" || git pull origin HEAD
+# Serverdagi repodagi mahalliy o'zgarishlarni e'tiborsiz qoldiradi (deploy doimiy bo'lsin)
+git reset --hard "origin/$BRANCH"
 
 cd "$ROOT/frontend"
 if [ ! -f .env.production ] && [ -f .env.example ]; then
