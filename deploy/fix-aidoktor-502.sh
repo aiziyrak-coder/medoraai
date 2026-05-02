@@ -28,6 +28,19 @@ if ! curl -fsS --max-time 10 "http://127.0.0.1:${BACKEND_PORT}/health/" >/dev/nu
 fi
 echo "OK: backend ${BACKEND_PORT} /health/"
 
+echo "==> 2b) Nginx: boshqa yoqilgan saytlarda aidoktor dublikati (502 sababi bo'lishi mumkin)"
+BACKDIR="/root/nginx-aidoktor-dup-$(date +%Y%m%d%H%M%S)"
+mkdir -p "$BACKDIR"
+for f in /etc/nginx/sites-enabled/*; do
+  [ -e "$f" ] || continue
+  bn=$(basename "$f")
+  [[ "$bn" == "$(basename "$EN_PRI")" ]] && continue
+  if grep -qE 'server_name[^;]*aidoktor\.uz|server_name[^;]*api\.aidoktor\.uz' "$f" 2>/dev/null; then
+    echo "Duplikat olib tashlanmoqda: $f -> $BACKDIR/"
+    mv "$f" "$BACKDIR/"
+  fi
+done
+
 echo "==> 3) Nginx (00- prefiks — boshqa default_server bilan chalkashmasin)"
 if [ -f "$CERT" ]; then
   install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-ssl.conf" "$AVAIL"
