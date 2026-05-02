@@ -27,7 +27,8 @@ if not DEBUG and SECRET_KEY == _default_secret:
 # ALLOWED_HOSTS: .env da vergul bilan; * ISHLATMASLIK (Host header spoofing / cache zaharlash).
 _DEFAULT_ALLOWED_HOSTS = (
     'localhost,127.0.0.1,'
-    'fjsti.ziyrak.org,fjstiapi.ziyrak.org'
+    'fjsti.ziyrak.org,fjstiapi.ziyrak.org,'
+    'aidoktor.uz,www.aidoktor.uz,api.aidoktor.uz'
 )
 _allowed_env = config('ALLOWED_HOSTS', default='')
 if _allowed_env and str(_allowed_env).strip():
@@ -237,6 +238,12 @@ _CORS_ALWAYS_APPEND = (
     'http://fjsti.ziyrak.org',
     'https://fjstiapi.ziyrak.org',
     'http://fjstiapi.ziyrak.org',
+    'https://aidoktor.uz',
+    'http://aidoktor.uz',
+    'https://www.aidoktor.uz',
+    'http://www.aidoktor.uz',
+    'https://api.aidoktor.uz',
+    'http://api.aidoktor.uz',
 )
 _cors_raw = config('CORS_ALLOWED_ORIGINS', default='')
 if _cors_raw and str(_cors_raw).strip():
@@ -260,6 +267,12 @@ _CSRF_ALWAYS_APPEND = (
     'https://fjstiapi.ziyrak.org',
     'http://fjsti.ziyrak.org',
     'http://fjstiapi.ziyrak.org',
+    'https://aidoktor.uz',
+    'https://www.aidoktor.uz',
+    'https://api.aidoktor.uz',
+    'http://aidoktor.uz',
+    'http://www.aidoktor.uz',
+    'http://api.aidoktor.uz',
 )
 _csrf_raw = config('CSRF_TRUSTED_ORIGINS', default='')
 if _csrf_raw and str(_csrf_raw).strip():
