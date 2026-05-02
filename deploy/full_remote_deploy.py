@@ -89,8 +89,14 @@ def main() -> int:
     # Uzoq build: kanal to'lib qolmasin
     out, err, code = _pump_channels(stdout, stderr)
     client.close()
-    sys.stdout.write(out)
-    sys.stderr.write(err)
+    for text, stream in ((out, sys.stdout), (err, sys.stderr)):
+        if not text:
+            continue
+        try:
+            stream.write(text)
+        except UnicodeEncodeError:
+            enc = getattr(stream, "encoding", None) or "utf-8"
+            stream.buffer.write(text.encode(enc, errors="replace"))
     return code
 
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Serverda ishga tushiring: /root/aidoktorfjsti dan keyin.
-# Boshqa Gunicorn jarayonlariga tegmaydi — faqat systemd: aidoktorfjsti-backend (port 8020).
+# Boshqa Gunicorn jarayonlariga tegmaydi — faqat systemd: aidoktorfjsti-backend (port 8099).
 # Nginx: faqat yangi fayl sites-enabled/aidoktor-uz.conf (mavjud saytlarni o'zgartirmaydi).
 
 set -euo pipefail
 
 ROOT="${AIDOKTOR_ROOT:-/root/aidoktorfjsti}"
-BACKEND_PORT="${AIDOKTOR_BACKEND_PORT:-8020}"
+BACKEND_PORT="${AIDOKTOR_BACKEND_PORT:-8099}"
 REPO_URL="${AIDOKTOR_REPO_URL:-https://github.com/aiziyrak-coder/aidoktorfjsti.git}"
 BRANCH="${AIDOKTOR_BRANCH:-main}"
 CERT_EMAIL="${DEPLOY_CERTBOT_EMAIL:-admin@aidoktor.uz}"

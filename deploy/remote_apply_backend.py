@@ -1,4 +1,4 @@
-"""Bir martalik: serverda 8020 port, pull, nginx+systemd yangilash, qayta ishga tushirish."""
+"""Bir martalik: serverda 8099 port, pull, nginx+systemd yangilash, qayta ishga tushirish."""
 from __future__ import annotations
 
 import os
@@ -14,7 +14,7 @@ SCRIPT = r"""
 set -euo pipefail
 systemctl stop aidoktorfjsti-backend || true
 cd """ + ROOT + r"""
-git pull origin main
+git fetch origin && git checkout main && git reset --hard origin/main
 install -m 644 deploy/systemd/aidoktorfjsti-backend.service /etc/systemd/system/aidoktorfjsti-backend.service
 CERT=/etc/letsencrypt/live/aidoktor.uz/fullchain.pem
 if [ -f "$CERT" ]; then
@@ -27,10 +27,10 @@ systemctl daemon-reload
 systemctl enable aidoktorfjsti-backend
 systemctl start aidoktorfjsti-backend
 sleep 2
-curl -fsS http://127.0.0.1:8020/health/
+curl -fsS http://127.0.0.1:8099/health/
 nginx -t
 systemctl reload nginx
-echo OK_PORT8020
+echo OK_PORT8099
 """
 
 
