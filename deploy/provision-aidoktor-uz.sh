@@ -88,8 +88,8 @@ if [ ! -f "$CERT_PATH" ]; then
   systemctl reload nginx
   if command -v certbot >/dev/null 2>&1; then
     certbot certonly --webroot -w "$ROOT/frontend/dist" \
-      -d aidoktor.uz -d api.aidoktor.uz \
-      --agree-tos --non-interactive -m "$CERT_EMAIL" \
+      -d aidoktor.uz -d www.aidoktor.uz -d api.aidoktor.uz \
+      --agree-tos --non-interactive -m "$CERT_EMAIL" --expand \
       || echo "WARN: certbot muvaffaqiyatsiz — HTTP ishlaydi; DNS A yozuvlari va domen tekshirilsin."
   else
     echo "WARN: certbot o'rnatilmagan — faqat HTTP."
