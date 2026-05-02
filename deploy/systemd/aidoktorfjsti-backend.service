@@ -9,7 +9,7 @@ Group=root
 WorkingDirectory=/root/aidoktorfjsti/backend
 EnvironmentFile=-/root/aidoktorfjsti/backend/.env
 ExecStart=/root/aidoktorfjsti/backend/venv/bin/gunicorn medoraai_backend.wsgi:application --bind 127.0.0.1:8099 --workers 3 --threads 2 --timeout 180 --access-logfile /root/aidoktorfjsti/backend/logs/access.log --error-logfile /root/aidoktorfjsti/backend/logs/error.log
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]

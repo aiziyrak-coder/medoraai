@@ -76,11 +76,13 @@ curl -fsS --max-time 15 "http://127.0.0.1:${BACKEND_PORT}/health/" || {
 
 # TLS: avval HTTP bootstrap, keyin certbot; certbot yiqilsa HTTP qoladi (DNS keyin tuzatiladi)
 NGX_AVAIL="/etc/nginx/sites-available/aidoktor-uz.conf"
-NGX_EN="/etc/nginx/sites-enabled/aidoktor-uz.conf"
+# 00- prefiks: boshqa saytlarning default proxy bilan chalkashmasin
+NGX_EN="/etc/nginx/sites-enabled/00-aidoktor-uz.conf"
 CERT_PATH="/etc/letsencrypt/live/aidoktor.uz/fullchain.pem"
 
 if [ ! -f "$CERT_PATH" ]; then
   install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-http-bootstrap.conf" "$NGX_AVAIL"
+  rm -f /etc/nginx/sites-enabled/aidoktor-uz.conf
   ln -sf "$NGX_AVAIL" "$NGX_EN"
   nginx -t
   systemctl reload nginx
@@ -99,6 +101,7 @@ if [ -f "$CERT_PATH" ]; then
 else
   install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-http-bootstrap.conf" "$NGX_AVAIL"
 fi
+rm -f /etc/nginx/sites-enabled/aidoktor-uz.conf
 ln -sf "$NGX_AVAIL" "$NGX_EN"
 nginx -t
 systemctl reload nginx

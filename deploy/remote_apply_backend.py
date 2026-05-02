@@ -22,7 +22,8 @@ if [ -f "$CERT" ]; then
 else
   install -m 644 deploy/nginx-aidoktor-uz-http-bootstrap.conf /etc/nginx/sites-available/aidoktor-uz.conf
 fi
-ln -sf /etc/nginx/sites-available/aidoktor-uz.conf /etc/nginx/sites-enabled/aidoktor-uz.conf
+rm -f /etc/nginx/sites-enabled/aidoktor-uz.conf
+ln -sf /etc/nginx/sites-available/aidoktor-uz.conf /etc/nginx/sites-enabled/00-aidoktor-uz.conf
 systemctl daemon-reload
 systemctl enable aidoktorfjsti-backend
 systemctl start aidoktorfjsti-backend
