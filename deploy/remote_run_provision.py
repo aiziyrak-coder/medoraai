@@ -48,12 +48,21 @@ bash deploy/provision-aidoktor-uz.sh
     stdin, stdout, stderr = client.exec_command(script, get_pty=True)
     out = stdout.read().decode("utf-8", errors="replace")
     err = stderr.read().decode("utf-8", errors="replace")
+    code = stdout.channel.recv_exit_status()
     client.close()
+
+    def _safe_write(stream, text: str) -> None:
+        enc = getattr(stream, "encoding", None) or "utf-8"
+        try:
+            stream.write(text)
+        except UnicodeEncodeError:
+            stream.buffer.write(text.encode(enc, errors="replace"))
+
     if out:
-        print(out, end="")
+        _safe_write(sys.stdout, out)
     if err:
-        print(err, end="", file=sys.stderr)
-    return stdout.channel.recv_exit_status()
+        _safe_write(sys.stderr, err)
+    return code
 
 
 if __name__ == "__main__":
