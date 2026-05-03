@@ -11,7 +11,10 @@ PWD = os.environ.get("SSH_DEPLOY_PASSWORD", "")
 
 REMOTE = r"""
 set -e
-cd /root/aidoktorfjsti 2>/dev/null && git fetch -q origin && git reset -q --hard origin/main 2>/dev/null || true
+# git fetch ba'zan uzoq — auditda majburiy emas (timeout bilan ixtiyoriy yangilash)
+if [ -d /root/aidoktorfjsti/.git ]; then
+  ( cd /root/aidoktorfjsti && timeout 25 git fetch origin main && git reset --hard origin/main ) 2>/dev/null || true
+fi
 echo "=== systemctl aidoktorfjsti-backend ==="
 systemctl is-active aidoktorfjsti-backend || true
 systemctl show aidoktorfjsti-backend -p MainPID -p ActiveState --no-pager
