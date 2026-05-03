@@ -28,9 +28,11 @@ git checkout "$BRANCH" 2>/dev/null || git checkout -b "$BRANCH" "origin/$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 cd "$ROOT/frontend"
-if [ ! -f .env.production ] && [ -f .env.example ]; then
-  echo "VITE_API_BASE_URL=https://api.aidoktor.uz/api" > .env.production
-  echo "Taqqoslash: kerak bo'lsa GEMINI va boshqa VITE_* ni .env.production ga qo'shing"
+touch .env.production
+if grep -q '^VITE_API_BASE_URL=' .env.production 2>/dev/null; then
+  sed -i 's|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=https://api.aidoktor.uz/api|' .env.production
+else
+  echo 'VITE_API_BASE_URL=https://api.aidoktor.uz/api' >> .env.production
 fi
 npm ci
 export NODE_ENV=production
@@ -58,6 +60,14 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_PAYMENT_GROUP_ID=
 EOF
   echo "Yangi backend/.env yaratildi — GEMINI_API_KEY va boshqalarni to'ldiring."
+fi
+# Production: doim HTTPS redirect (Nginx orqali TLS)
+if [ -f "$ROOT/backend/.env" ]; then
+  if grep -q '^SECURE_SSL_REDIRECT=' "$ROOT/backend/.env"; then
+    sed -i 's/^SECURE_SSL_REDIRECT=.*/SECURE_SSL_REDIRECT=True/' "$ROOT/backend/.env"
+  else
+    echo 'SECURE_SSL_REDIRECT=True' >> "$ROOT/backend/.env"
+  fi
 fi
 
 python manage.py migrate --noinput
@@ -97,6 +107,8 @@ if [ ! -f "$CERT_PATH" ]; then
 fi
 
 if [ -f "$CERT_PATH" ]; then
+  mkdir -p /etc/nginx/snippets
+  install -m 644 "$ROOT/deploy/nginx-snippet-ssl-aidoktor-uz.conf" /etc/nginx/snippets/ssl-aidoktor-uz.conf
   install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-ssl.conf" "$NGX_AVAIL"
 else
   install -m 644 "$ROOT/deploy/nginx-aidoktor-uz-http-bootstrap.conf" "$NGX_AVAIL"
