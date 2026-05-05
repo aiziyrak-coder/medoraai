@@ -17,7 +17,7 @@ import {
   TASK_LAB_INTERPRET,
   TASK_FOLLOW_UP,
 } from '../services/apiAiService';
-import { runDoctorSupportViaGemini } from '../services/aiCouncilService';
+import { isBrowserGeminiConfigured, runDoctorSupportViaGemini } from '../services/aiCouncilService';
 import { isApiConfigured } from '../config/api';
 
 interface Props {
@@ -224,6 +224,22 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           setResult(resp.data);
           return;
         }
+        if (!isBrowserGeminiConfigured()) {
+          onError(
+            resp.error?.message ||
+              "AI javobi kelmadi. Serverda GEMINI_API_KEY (backend/.env) yoki frontend build uchun VITE_GEMINI_API_KEY ni tekshiring.",
+          );
+          return;
+        }
+        const geminiResult = await runDoctorSupportViaGemini(patientData, { query, taskType, language });
+        setResult(geminiResult as DoctorSupportResult);
+        return;
+      }
+      if (!isBrowserGeminiConfigured()) {
+        onError(
+          'Gemini AI xizmati sozlanmagan. Iltimos, VITE_GEMINI_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
+        );
+        return;
       }
       const geminiResult = await runDoctorSupportViaGemini(patientData, { query, taskType, language });
       setResult(geminiResult as DoctorSupportResult);
@@ -257,6 +273,10 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
         },
         (err) => {
           setStreaming(false);
+          if (!isBrowserGeminiConfigured()) {
+            onError(err);
+            return;
+          }
           runDoctorSupportViaGemini(patientData, { query, taskType, language })
             .then((geminiResult) => {
               setResult(geminiResult as DoctorSupportResult);
@@ -268,6 +288,14 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
       return;
     }
 
+    if (!isBrowserGeminiConfigured()) {
+      setStreaming(false);
+      onError(
+        'Gemini AI xizmati sozlanmagan. Iltimos, VITE_GEMINI_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
+      );
+      cancelStreamRef.current = () => { setStreaming(false); };
+      return;
+    }
     runDoctorSupportViaGemini(patientData, { query, taskType, language })
       .then((geminiResult) => {
         setStreaming(false);

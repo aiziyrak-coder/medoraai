@@ -36,6 +36,11 @@ import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const validKey = !!(GEMINI_API_KEY && GEMINI_API_KEY !== 'your-gemini-api-key-here');
 
+/** Client-side Gemini (Vite build-time key). Backend `GEMINI_API_KEY` alone does not enable this. */
+export function isBrowserGeminiConfigured(): boolean {
+  return validKey;
+}
+
 let _geminiClient: GoogleGenAI | null = null;
 function getGemini(): GoogleGenAI {
   if (!validKey) {

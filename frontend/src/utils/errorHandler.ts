@@ -65,6 +65,15 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "So'rovlar soni cheklangan (kvota tugagan). Iltimos, biroz kuting yoki kvotani oshiring.";
     }
 
+    // Missing AI env / admin setup — must stay explicit (VITE_* and server .env)
+    if (
+      message.includes('sozlanmagan') ||
+      message.includes('vite_gemini') ||
+      (message.includes('.env') && (message.includes('kiriting') || message.includes('qoying')))
+    ) {
+      return rawMessage.length <= 320 ? rawMessage : `${rawMessage.slice(0, 317)}...`;
+    }
+
     // API errors
     if (message.includes('api') || message.includes('gemini')) {
       return "AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";
