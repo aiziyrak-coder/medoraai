@@ -75,83 +75,87 @@ const DECREE_SIGNATURE = "O'zbekiston Respublikasi Prezidenti Sh. MIRZIYOYEV\nTo
 
 const AboutInstitutePage: React.FC<Props> = ({ onBack }) => {
     return (
-        <div className="min-h-screen bg-slate-950 text-white font-sans">
+        <div className="about-institute-doc min-h-screen bg-gradient-to-b from-slate-100 via-white to-slate-50 text-slate-900 font-sans antialiased [text-rendering:optimizeLegibility]">
 
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-white/10">
+            <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
                 <div className="page-px py-4 flex items-center justify-between gap-4">
                     <button
+                        type="button"
                         onClick={onBack}
-                        className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-semibold"
+                        className="flex items-center gap-2 text-slate-700 hover:text-blue-700 transition-colors text-sm font-semibold"
                     >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                         Orqaga
                     </button>
                     <div className="text-center min-w-0 flex-1 flex items-center justify-center gap-2">
-                        <img src={INSTITUTE_LOGO_SRC} alt="" className="w-9 h-9 rounded-full object-contain" />
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest truncate">{INSTITUTE_LOGO_TEXT}</p>
+                        <img src={INSTITUTE_LOGO_SRC} alt="" className="w-9 h-9 rounded-full object-contain ring-2 ring-slate-200" />
+                        <p className="text-xs font-bold text-slate-600 uppercase tracking-widest truncate">{INSTITUTE_LOGO_TEXT}</p>
                     </div>
-                    <div className="w-16" />
+                    <div className="w-16 sm:w-20" aria-hidden />
                 </div>
             </header>
 
             {/* Hero */}
-            <section className="relative py-12 sm:py-16 px-4 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-950/50 to-slate-950" />
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
+            <section className="relative py-12 sm:py-16 px-4 overflow-hidden border-b border-slate-200/80 bg-white">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(37,99,235,0.12),transparent)] pointer-events-none" />
                 <div className="relative z-10 max-w-4xl mx-auto text-center">
-                    <img src={INSTITUTE_LOGO_SRC} alt="" className="w-24 h-24 rounded-full object-contain mx-auto mb-6 shadow-2xl ring-4 ring-white/10" />
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-widest mb-6">
+                    <img
+                        src={INSTITUTE_LOGO_SRC}
+                        alt=""
+                        className="w-24 h-24 rounded-full object-contain mx-auto mb-6 shadow-xl ring-4 ring-white ring-offset-2 ring-offset-slate-100"
+                    />
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-widest mb-6 shadow-sm">
                         Rasmiy hujjat
                     </div>
-                    <h1 className="text-xl sm:text-3xl font-black tracking-tight leading-tight mb-3 uppercase text-white">
+                    <h1 className="text-xl sm:text-3xl font-black tracking-tight leading-snug mb-3 uppercase text-slate-900">
                         {INSTITUTE_NAME_FULL}
                     </h1>
-                    <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-slate-700 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-medium">
                         O'zbekiston Respublikasi Prezidentining 2020-yil 3-dekabr, PQ-4911-son Qarori bilan tashkil etilgan
                     </p>
                 </div>
             </section>
 
             {/* Decree title block */}
-            <section className="page-px py-6 max-w-4xl mx-auto">
-                <div className="rounded-2xl border border-amber-500/25 p-6 sm:p-8"
-                     style={{ background: 'linear-gradient(135deg,rgba(120,53,15,0.25),rgba(180,83,9,0.12))' }}>
-                    <p className="text-amber-400/90 text-xs font-bold uppercase tracking-widest mb-2">O'ZBEKISTON RESPUBLIKASI PREZIDENTINING QARORI</p>
-                    <h2 className="text-white text-lg sm:text-xl font-black mb-4 leading-snug">
+            <section className="page-px py-8 max-w-4xl mx-auto">
+                <div className="rounded-2xl border-2 border-amber-300/80 bg-gradient-to-br from-amber-50 to-orange-50/90 p-6 sm:p-8 shadow-md">
+                    <p className="text-amber-900 text-xs font-bold uppercase tracking-widest mb-2">O'ZBEKISTON RESPUBLIKASI PREZIDENTINING QARORI</p>
+                    <h2 className="text-slate-900 text-lg sm:text-xl font-black mb-4 leading-snug">
                         FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT INSTITUTINI TASHKIL ETISH TO'G'RISIDA
                     </h2>
-                    <p className="text-slate-300 text-sm leading-relaxed">{DECREE_INTRODUCTION}</p>
+                    <p className="text-slate-800 text-sm sm:text-[15px] leading-[1.75] font-normal">{DECREE_INTRODUCTION}</p>
                 </div>
             </section>
 
-            {/* Decree clauses 1-12 */}
-            <section className="page-px py-4 max-w-4xl mx-auto space-y-5">
+            {/* Decree clauses 1-12 — bitta uslub: qorong‘i panel + yorug‘ matn (kontrast barqaror) */}
+            <section className="page-px py-6 max-w-4xl mx-auto space-y-4 bg-slate-100/80 rounded-3xl border border-slate-200/90 shadow-inner">
                 {DECREE_CLAUSES.map((clause) => (
-                    <div
+                    <article
                         key={clause.num}
-                        className="rounded-2xl border border-white/10 p-5 sm:p-6"
-                        style={{ background: 'rgba(255,255,255,0.04)' }}
+                        className="about-decree-clause dash-panel rounded-2xl p-5 sm:p-6 shadow-xl"
                     >
-                        <div className="flex items-start gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-                                <span className="text-blue-400 font-black text-sm">{clause.num}</span>
+                        <div className="flex items-start gap-4">
+                            <div
+                                className="w-10 h-10 rounded-xl bg-blue-600 text-white border-2 border-sky-400/40 flex items-center justify-center flex-shrink-0 shadow-md"
+                                aria-hidden
+                            >
+                                <span className="font-black text-sm tabular-nums text-white">{clause.num}</span>
                             </div>
-                            <div className="text-slate-300 text-sm sm:text-base leading-relaxed flex-1 min-w-0">
+                            <p className="!text-slate-100 text-slate-100 text-sm sm:text-[15px] leading-[1.8] flex-1 min-w-0 font-normal [text-shadow:0_1px_0_rgba(0,0,0,0.35)]">
                                 {clause.text}
-                            </div>
+                            </p>
                         </div>
-                    </div>
+                    </article>
                 ))}
             </section>
 
             {/* Signature */}
-            <section className="page-px py-6 max-w-4xl mx-auto">
-                <div className="rounded-2xl border border-white/10 p-6 text-center sm:text-right"
-                     style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <p className="text-slate-300 text-sm whitespace-pre-line leading-relaxed">{DECREE_SIGNATURE}</p>
+            <section className="page-px py-8 max-w-4xl mx-auto">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center sm:text-right shadow-inner">
+                    <p className="text-slate-800 text-sm whitespace-pre-line leading-relaxed font-medium">{DECREE_SIGNATURE}</p>
                 </div>
             </section>
 
@@ -166,11 +170,10 @@ const AboutInstitutePage: React.FC<Props> = ({ onBack }) => {
                     ].map((s) => (
                         <div
                             key={s.label}
-                            className="rounded-2xl p-5 text-center"
-                            style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}
+                            className="rounded-2xl p-5 text-center bg-white border border-blue-100 shadow-sm"
                         >
-                            <p className="text-blue-300 font-black text-xl sm:text-2xl mb-1">{s.num}</p>
-                            <p className="text-slate-400 text-xs leading-tight">{s.label}</p>
+                            <p className="text-blue-700 font-black text-xl sm:text-2xl mb-1 tabular-nums">{s.num}</p>
+                            <p className="text-slate-600 text-xs leading-tight font-medium">{s.label}</p>
                         </div>
                     ))}
                 </div>
@@ -178,56 +181,47 @@ const AboutInstitutePage: React.FC<Props> = ({ onBack }) => {
 
             {/* Contact */}
             <section className="page-px py-10 max-w-4xl mx-auto">
-                <h2 className="text-xl sm:text-2xl font-black text-white mb-6">Aloqa ma'lumotlari</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-6 border-l-4 border-blue-600 pl-4">Aloqa ma'lumotlari</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div
-                        className="rounded-2xl p-5 col-span-1 sm:col-span-2"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
+                    <div className="rounded-2xl p-5 col-span-1 sm:col-span-2 bg-white border border-slate-200 shadow-md">
                         <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                                 </svg>
                             </div>
                             <div>
-                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Manzil</p>
-                                <p className="text-white font-semibold text-sm">{INSTITUTE_ADDRESS}</p>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Manzil</p>
+                                <p className="text-slate-900 font-semibold text-sm leading-snug">{INSTITUTE_ADDRESS}</p>
                             </div>
                         </div>
                     </div>
-                    <div
-                        className="rounded-2xl p-5"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
+                    <div className="rounded-2xl p-5 bg-white border border-slate-200 shadow-md">
                         <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <div className="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-sky-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                                 </svg>
                             </div>
                             <div>
-                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Telefon</p>
-                                <a href="tel:+998950442345" className="block text-white font-bold text-sm hover:text-sky-400 transition-colors">{INSTITUTE_PHONE_1}</a>
-                                <a href="tel:+998950482345" className="block text-white font-bold text-sm hover:text-sky-400 transition-colors">{INSTITUTE_PHONE_2}</a>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Telefon</p>
+                                <a href="tel:+998950442345" className="block text-slate-900 font-bold text-sm hover:text-sky-700 underline-offset-2 hover:underline">{INSTITUTE_PHONE_1}</a>
+                                <a href="tel:+998950482345" className="block text-slate-900 font-bold text-sm hover:text-sky-700 underline-offset-2 hover:underline">{INSTITUTE_PHONE_2}</a>
                             </div>
                         </div>
                     </div>
-                    <div
-                        className="rounded-2xl p-5"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
+                    <div className="rounded-2xl p-5 bg-white border border-slate-200 shadow-md">
                         <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <div className="w-10 h-10 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                                 </svg>
                             </div>
                             <div>
-                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Email</p>
-                                <a href={`mailto:${INSTITUTE_EMAIL_1}`} className="block text-white font-bold text-sm hover:text-violet-400 transition-colors">{INSTITUTE_EMAIL_1}</a>
-                                <a href={`mailto:${INSTITUTE_EMAIL_2}`} className="block text-white text-sm hover:text-violet-400 transition-colors">{INSTITUTE_EMAIL_2}</a>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Email</p>
+                                <a href={`mailto:${INSTITUTE_EMAIL_1}`} className="block text-slate-900 font-bold text-sm hover:text-violet-700 break-all">{INSTITUTE_EMAIL_1}</a>
+                                <a href={`mailto:${INSTITUTE_EMAIL_2}`} className="block text-slate-800 text-sm hover:text-violet-700 break-all">{INSTITUTE_EMAIL_2}</a>
                             </div>
                         </div>
                     </div>
@@ -235,19 +229,20 @@ const AboutInstitutePage: React.FC<Props> = ({ onBack }) => {
             </section>
 
             {/* Footer */}
-            <footer className="border-t border-white/10 mt-8">
-                <div className="page-px py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <footer className="border-t border-slate-200 bg-slate-900 text-white mt-4">
+                <div className="page-px py-8 flex flex-col sm:flex-row items-center justify-between gap-6">
                     <div className="text-center sm:text-left flex items-center gap-3">
-                        <img src={INSTITUTE_LOGO_SRC} alt="" className="w-12 h-12 rounded-full object-contain flex-shrink-0" />
+                        <img src={INSTITUTE_LOGO_SRC} alt="" className="w-12 h-12 rounded-full object-contain flex-shrink-0 ring-2 ring-white/20" />
                         <div>
-                        <p className="text-white font-black text-sm uppercase">{INSTITUTE_LOGO_TEXT}</p>
-                        <p className="text-slate-500 text-xs mt-1">{FOOTER_COPYRIGHT}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">{PLATFORM_NAME}</p>
+                            <p className="font-black text-sm uppercase tracking-wide text-white">{INSTITUTE_LOGO_TEXT}</p>
+                            <p className="text-slate-400 text-xs mt-1">{FOOTER_COPYRIGHT}</p>
+                            <p className="text-slate-500 text-xs mt-0.5">{PLATFORM_NAME}</p>
                         </div>
                     </div>
                     <button
+                        type="button"
                         onClick={onBack}
-                        className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                        className="text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors px-4 py-2 rounded-lg hover:bg-white/10"
                     >
                         ← Bosh sahifaga qaytish
                     </button>
