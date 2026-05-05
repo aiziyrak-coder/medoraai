@@ -25,4 +25,4 @@
 ## Serverda muhim
 
 - `backend/.env`: `ALLOWED_HOSTS` ga barcha haqiqiy API domenlari (va kerak bo‘lsa IP) kiriting.
-- FJSTI build uchun: `VITE_API_BASE_URL=https://fjstiapi.ziyrak.org/api` (`server-deploy.sh` `.env` dan o‘qiydi).
+- FJSTI build uchun: `VITE_API_BASE_URL=https://api.aidoktor.uz/api` (`server-deploy.sh` `.env` dan o‘qiydi).

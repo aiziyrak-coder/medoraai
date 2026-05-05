@@ -38,10 +38,10 @@ def main() -> None:
 ln -sf {REMOTE_PATH} {ENABLED}
 nginx -t
 systemctl reload nginx
-echo "=== SNI fjsti.ziyrak.org (local) ==="
-echo | openssl s_client -connect 127.0.0.1:443 -servername fjsti.ziyrak.org 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName
-echo "=== SNI fjstiapi.ziyrak.org ==="
-echo | openssl s_client -connect 127.0.0.1:443 -servername fjstiapi.ziyrak.org 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName
+echo "=== SNI aidoktor.uz (local) ==="
+echo | openssl s_client -connect 127.0.0.1:443 -servername aidoktor.uz 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName
+echo "=== SNI api.aidoktor.uz ==="
+echo | openssl s_client -connect 127.0.0.1:443 -servername api.aidoktor.uz 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName
 """
     stdin, stdout, stderr = client.exec_command(shell)
     sys.stdout.write(stdout.read().decode("utf-8", errors="replace"))

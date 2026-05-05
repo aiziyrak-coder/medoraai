@@ -4,7 +4,7 @@ MedoraAI Server Deployment Script
 Connects to server via SSH and deploys latest changes.
 
 Security: parol repoda saqlanmaydi. Muhit o'zgaruvchilari:
-  DEPLOY_SSH_HOST   — masalan 167.71.53.238 yoki fjsti.ziyrak.org
+  DEPLOY_SSH_HOST   — masalan 167.71.53.238 yoki aidoktor.uz
   DEPLOY_SSH_USER   — odatda root
   DEPLOY_SSH_PASSWORD yoki SSH parolni shell env orqali bering
 
@@ -35,7 +35,7 @@ SERVER_USER = os.environ.get("DEPLOY_SSH_USER", "root")
 SERVER_HOST = os.environ.get("DEPLOY_SSH_HOST", "167.71.53.238")
 SERVER_PASSWORD = os.environ.get("DEPLOY_SSH_PASSWORD", "").strip()
 REMOTE_DIR = os.environ.get("DEPLOY_REMOTE_DIR", "/root/medoraai")
-# 1 = fjsti.ziyrak.org uchun nginx da boshqa loyiha bilan to'qnashuvni bartaraf etadi (HTTP :80)
+# 1 = aidoktor.uz uchun nginx da boshqa loyiha bilan to'qnashuvni bartaraf etadi (HTTP :80)
 FIX_FJSTI_NGINX = os.environ.get("DEPLOY_FIX_FJSTI_NGINX", "1").strip().lower() in (
     "1",
     "true",
@@ -43,7 +43,7 @@ FIX_FJSTI_NGINX = os.environ.get("DEPLOY_FIX_FJSTI_NGINX", "1").strip().lower() 
 )
 
 CERTBOT_EMAIL = os.environ.get("DEPLOY_CERTBOT_EMAIL", "").strip()
-CERT_PATH = "/etc/letsencrypt/live/fjsti.ziyrak.org/fullchain.pem"
+CERT_PATH = "/etc/letsencrypt/live/aidoktor.uz/fullchain.pem"
 
 # Optional: rotate Gemini key on server + bake to frontend build env (Vite).
 # SECURITY: key repo'ga yozilmaydi, faqat deploy vaqtida env orqali beriladi.
@@ -104,7 +104,7 @@ if ! command -v certbot >/dev/null 2>&1; then
 fi
 certbot certonly --webroot -w {webroot} \\
   --non-interactive --agree-tos --email {em} \\
-  -d fjsti.ziyrak.org -d fjstiapi.ziyrak.org \\
+  -d aidoktor.uz -d api.aidoktor.uz \\
   --preferred-challenges http --expand
 test -f {CERT_PATH}
 echo CERTBOT_OK
@@ -281,7 +281,7 @@ def deploy():
 
         # Step 2: Build frontend (serverda to'g'ri API domeni bilan)
         vite_api = os.environ.get(
-            "DEPLOY_VITE_API_BASE_URL", "https://fjstiapi.ziyrak.org/api"
+            "DEPLOY_VITE_API_BASE_URL", "https://api.aidoktor.uz/api"
         )
         build_cmd = (
             f"cd {REMOTE_DIR}/frontend && "
@@ -363,14 +363,14 @@ def deploy():
             print("=" * 60)
             print()
             print("Backend service is running.")
-            print("Frontend: https://fjsti.ziyrak.org")
-            print("API:      https://fjstiapi.ziyrak.org/api/")
-            print("Test URL: https://fjstiapi.ziyrak.org/api/ai/clarifying-questions/")
+            print("Frontend: https://aidoktor.uz")
+            print("API:      https://api.aidoktor.uz/api/")
+            print("Test URL: https://api.aidoktor.uz/api/ai/clarifying-questions/")
             print()
             print("CORS preflight (login xatosi bo'lsa, serverda nginx yangilanganini tekshiring):")
-            print('  curl -sI -X OPTIONS "https://fjstiapi.ziyrak.org/api/auth/login/" \\')
-            print('    -H "Origin: https://fjsti.ziyrak.org" -H "Access-Control-Request-Method: POST"')
-            print("  Kutilyapti: access-control-allow-origin: https://fjsti.ziyrak.org")
+            print('  curl -sI -X OPTIONS "https://api.aidoktor.uz/api/auth/login/" \\')
+            print('    -H "Origin: https://aidoktor.uz" -H "Access-Control-Request-Method: POST"')
+            print("  Kutilyapti: access-control-allow-origin: https://aidoktor.uz")
             print()
             return True
         else:

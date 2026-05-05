@@ -17,13 +17,13 @@ HEALTH_BODY = b'{"status":"healthy","service":"Farg\'ona JSTI backend"}'
 class EarlyHealthMiddleware(MiddlewareMixin):
     """
     Birinchi qatlam: GET /health tez javob (Gunicorn/Django yukisiz tekshiruv).
-    Eski fargana.uz domenini fjsti.ziyrak.org ga normalize qiladi (ALLOWED_HOSTS bilan mos).
+    Eski fargana.uz domenini aidoktor.uz ga normalize qiladi (ALLOWED_HOSTS bilan mos).
     """
     def process_request(self, request):
         _meta = request.META
         host_raw = (_meta.get('HTTP_HOST') or '').strip().split(':')[0].lower()
         if host_raw and 'fargana.uz' in host_raw:
-            _meta['HTTP_HOST'] = 'fjsti.ziyrak.org'
+            _meta['HTTP_HOST'] = 'aidoktor.uz'
         if request.method in ('GET', 'OPTIONS') and request.path.rstrip('/') == '/health':
             r = HttpResponse(HEALTH_BODY, content_type='application/json', status=200)
             r['Access-Control-Allow-Origin'] = '*'
@@ -36,12 +36,12 @@ class EarlyHealthMiddleware(MiddlewareMixin):
 class NormalizeHostMiddleware(MiddlewareMixin):
     """
     Run first: normalize Host for fargana.uz so ALLOWED_HOSTS check never returns 400.
-    Barcha so'rovlar (login, health, api) uchun Host ni fjsti.ziyrak.org qiladi.
+    Barcha so'rovlar (login, health, api) uchun Host ni aidoktor.uz qiladi.
     """
     def process_request(self, request):
         host = (request.META.get('HTTP_HOST') or '').strip().split(':')[0].lower()
         if host and 'fargana.uz' in host:
-            request.META['HTTP_HOST'] = 'fjsti.ziyrak.org'
+            request.META['HTTP_HOST'] = 'aidoktor.uz'
         return None
 
 
@@ -62,7 +62,7 @@ class CORSFallbackMiddleware(MiddlewareMixin):
                 try:
                     origin = request.build_absolute_uri('/').rstrip('/')
                 except Exception:
-                    origin = 'https://fjsti.ziyrak.org'
+                    origin = 'https://aidoktor.uz'
             if origin is None:
                 return response
             if getattr(response, 'headers', None):

@@ -12,7 +12,7 @@ def pw():
 cmd = r"""
 set -e
 echo "=== fullchain.pem on disk ==="
-openssl x509 -in /etc/letsencrypt/live/fjsti.ziyrak.org/fullchain.pem -noout -subject -dates -ext subjectAltName 2>&1
+openssl x509 -in /etc/letsencrypt/live/aidoktor.uz/fullchain.pem -noout -subject -dates -ext subjectAltName 2>&1
 
 echo ""
 echo "=== nginx -T server blocks for fjsti (snippet) ==="

@@ -15,14 +15,14 @@ echo "=== first 25 listen 443 lines in merged config ==="
 nginx -T 2>/dev/null | grep -n 'listen.*443' | head -25
 echo ""
 echo "=== curl with resolve ==="
-curl -skI --resolve fjsti.ziyrak.org:443:127.0.0.1 https://fjsti.ziyrak.org/ 2>&1 | head -15
+curl -skI --resolve aidoktor.uz:443:127.0.0.1 https://aidoktor.uz/ 2>&1 | head -15
 echo ""
 echo "=== openssl session new ==="
-echo | openssl s_client -connect 127.0.0.1:443 -servername fjsti.ziyrak.org -nosession 2>/dev/null | openssl x509 -noout -subject 2>/dev/null || true
+echo | openssl s_client -connect 127.0.0.1:443 -servername aidoktor.uz -nosession 2>/dev/null | openssl x509 -noout -subject 2>/dev/null || true
 systemctl restart nginx
 sleep 1
 echo "=== after full restart ==="
-echo | openssl s_client -connect 127.0.0.1:443 -servername fjsti.ziyrak.org 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName 2>/dev/null
+echo | openssl s_client -connect 127.0.0.1:443 -servername aidoktor.uz 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName 2>/dev/null
 """
 c = paramiko.SSHClient()
 c.set_missing_host_key_policy(paramiko.AutoAddPolicy())

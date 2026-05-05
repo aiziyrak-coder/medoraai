@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SSH: nginx ichida fjsti.ziyrak.org qayerda ekanini ko'rsatish."""
+"""SSH: nginx ichida aidoktor.uz qayerda ekanini ko'rsatish."""
 from __future__ import annotations
 
 import os

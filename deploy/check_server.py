@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serverda fjsti.ziyrak.org uchun HTTP javobni tekshirish."""
+"""Serverda aidoktor.uz uchun HTTP javobni tekshirish."""
 import paramiko
 import sys
 
@@ -16,9 +16,9 @@ def main():
     except Exception:
         client.connect(HOST, username=USER, password=PASSWORD, timeout=10)
     _, out, _ = client.exec_command(
-        "echo '=== HTTP 80 ==='; curl -sI -H 'Host: fjsti.ziyrak.org' http://127.0.0.1/ | head -3; "
-        "echo '=== HTTPS 443 ==='; curl -skI -H 'Host: fjsti.ziyrak.org' https://127.0.0.1/ 2>/dev/null | head -3 || echo '443 yopiq yoki cert yoq'; "
-        "ls /etc/letsencrypt/live/fjsti.ziyrak.org/fullchain.pem 2>/dev/null && echo 'SSL cert mavjud' || echo 'SSL cert yoq'"
+        "echo '=== HTTP 80 ==='; curl -sI -H 'Host: aidoktor.uz' http://127.0.0.1/ | head -3; "
+        "echo '=== HTTPS 443 ==='; curl -skI -H 'Host: aidoktor.uz' https://127.0.0.1/ 2>/dev/null | head -3 || echo '443 yopiq yoki cert yoq'; "
+        "ls /etc/letsencrypt/live/aidoktor.uz/fullchain.pem 2>/dev/null && echo 'SSL cert mavjud' || echo 'SSL cert yoq'"
     )
     print(out.read().decode())
     client.close()

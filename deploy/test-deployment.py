@@ -9,7 +9,7 @@ import json
 import sys
 
 # Server URL
-BASE_URL = "https://fjsti.ziyrak.org"
+BASE_URL = "https://aidoktor.uz"
 
 def test_health():
     """Test health endpoint"""

@@ -27,7 +27,7 @@ if not DEBUG and SECRET_KEY == _default_secret:
 # ALLOWED_HOSTS: .env da vergul bilan; * ISHLATMASLIK (Host header spoofing / cache zaharlash).
 _DEFAULT_ALLOWED_HOSTS = (
     'localhost,127.0.0.1,'
-    'fjsti.ziyrak.org,fjstiapi.ziyrak.org,'
+    'aidoktor.uz,api.aidoktor.uz,'
     'aidoktor.uz,www.aidoktor.uz,api.aidoktor.uz'
 )
 _allowed_env = config('ALLOWED_HOSTS', default='')
@@ -226,18 +226,18 @@ SIMPLE_JWT = {
 }
 
 # CORS Settings — .env dagi CORS_ALLOWED_ORIGINS defaultni almashtiradi; FJSTI domenlari har doim qo'shiladi
-# (aks holda production .env da faqat eski domen qolsa, fjsti.ziyrak.org dan login CORS xatosi beradi).
+# (aks holda production .env da faqat eski domen qolsa, aidoktor.uz dan login CORS xatosi beradi).
 _CORS_DEFAULT_STR = (
     'http://localhost:3000,http://127.0.0.1:3000,'
-    'https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,'
-    'https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org,'
+    'https://aidoktor.uz,http://aidoktor.uz,'
+    'https://api.aidoktor.uz,http://api.aidoktor.uz,'
     'http://localhost:5173,http://127.0.0.1:5173'
 )
 _CORS_ALWAYS_APPEND = (
-    'https://fjsti.ziyrak.org',
-    'http://fjsti.ziyrak.org',
-    'https://fjstiapi.ziyrak.org',
-    'http://fjstiapi.ziyrak.org',
+    'https://aidoktor.uz',
+    'http://aidoktor.uz',
+    'https://api.aidoktor.uz',
+    'http://api.aidoktor.uz',
     'https://aidoktor.uz',
     'http://aidoktor.uz',
     'https://www.aidoktor.uz',
@@ -258,15 +258,15 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF (Django 4+): ishonchli originlar — FJSTI har doim qo'shiladi (.env cheklangan bo'lsa ham)
 _csrf_default = (
-    'https://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,'
+    'https://aidoktor.uz,https://api.aidoktor.uz,'
     'http://localhost:3000,http://127.0.0.1:3000,'
     'http://localhost:5173,http://127.0.0.1:5173'
 )
 _CSRF_ALWAYS_APPEND = (
-    'https://fjsti.ziyrak.org',
-    'https://fjstiapi.ziyrak.org',
-    'http://fjsti.ziyrak.org',
-    'http://fjstiapi.ziyrak.org',
+    'https://aidoktor.uz',
+    'https://api.aidoktor.uz',
+    'http://aidoktor.uz',
+    'http://api.aidoktor.uz',
     'https://aidoktor.uz',
     'https://www.aidoktor.uz',
     'https://api.aidoktor.uz',

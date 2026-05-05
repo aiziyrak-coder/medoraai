@@ -21,15 +21,15 @@ else
   echo "DB_NAME=$MEDORA_DB" >> .env
   echo "DB_ENGINE=django.db.backends.sqlite3" >> .env
 fi
-# CORS: .env da fjsti.ziyrak.org bo'lmasa qo'shib yozamiz (brauzer 401 berib qo'ymasin)
-_CORS_REQUIRED="https://fjsti.ziyrak.org"
+# CORS: .env da aidoktor.uz bo'lmasa qo'shib yozamiz (brauzer 401 berib qo'ymasin)
+_CORS_REQUIRED="https://aidoktor.uz"
 if grep -q '^CORS_ALLOWED_ORIGINS=' .env 2>/dev/null; then
-  if ! grep '^CORS_ALLOWED_ORIGINS=' .env | grep -q "fjsti.ziyrak.org"; then
-    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|&,https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org|" .env
-    echo "  CORS yangilandi: fjsti.ziyrak.org qo'shildi"
+  if ! grep '^CORS_ALLOWED_ORIGINS=' .env | grep -q "aidoktor.uz"; then
+    sed -i "s|^CORS_ALLOWED_ORIGINS=.*|&,https://aidoktor.uz,http://aidoktor.uz,https://api.aidoktor.uz,http://api.aidoktor.uz|" .env
+    echo "  CORS yangilandi: aidoktor.uz qo'shildi"
   fi
 else
-  echo "CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,http://fjstiapi.ziyrak.org" >> .env
+  echo "CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://aidoktor.uz,http://aidoktor.uz,https://api.aidoktor.uz,http://api.aidoktor.uz" >> .env
 fi
 if [ ! -d venv ]; then
   python3 -m venv venv
@@ -48,8 +48,8 @@ systemctl restart medoraai-backend-8001.service 2>/dev/null || true
 echo "=== 3. Frontend build ==="
 cd "$APP_DIR/frontend"
 npm install --silent 2>/dev/null || npm install
-# API URL: backend .env da VITE_API_BASE_URL bo'lsa shu (FJSTI: https://fjstiapi.ziyrak.org/api)
-VITE_API_BASE_URL="https://fjstiapi.ziyrak.org/api"
+# API URL: backend .env da VITE_API_BASE_URL bo'lsa shu (FJSTI: https://api.aidoktor.uz/api)
+VITE_API_BASE_URL="https://api.aidoktor.uz/api"
 if [ -f "$APP_DIR/backend/.env" ]; then
   _v=$(grep -E '^VITE_API_BASE_URL=' "$APP_DIR/backend/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r')
   _v=$(echo "$_v" | sed "s/^[\"']//;s/[\"']$//")
@@ -142,12 +142,12 @@ echo "=== 7. Tekshirish ==="
 sleep 2
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8001/health/ && echo " Backend 8001 OK" || echo " Backend 8001 javob bermadi"
 systemctl is-active --quiet medoraai-backend-8001.service && echo "medoraai-backend-8001: active" || echo "medoraai-backend-8001: FAIL"
-HTTP_API=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: fjstiapi.ziyrak.org" http://127.0.0.1:8001/ 2>/dev/null || echo "000")
-echo "  fjstiapi.ziyrak.org (8001): HTTP $HTTP_API (200 kerak)"
-HTTP_FRONT=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: fjsti.ziyrak.org" http://127.0.0.1/ 2>/dev/null || echo "000")
-echo "  fjsti.ziyrak.org (nginx 80): HTTP $HTTP_FRONT (200/301 kerak)"
+HTTP_API=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: api.aidoktor.uz" http://127.0.0.1:8001/ 2>/dev/null || echo "000")
+echo "  api.aidoktor.uz (8001): HTTP $HTTP_API (200 kerak)"
+HTTP_FRONT=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: aidoktor.uz" http://127.0.0.1/ 2>/dev/null || echo "000")
+echo "  aidoktor.uz (nginx 80): HTTP $HTTP_FRONT (200/301 kerak)"
 
 echo ""
-echo "Tugadi. https://fjsti.ziyrak.org — Brauzerda Ctrl+Shift+R bilan yangilang."
-PUBLIC_HEALTH=$(curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://fjsti.ziyrak.org/health/" 2>/dev/null || echo "err")
+echo "Tugadi. https://aidoktor.uz — Brauzerda Ctrl+Shift+R bilan yangilang."
+PUBLIC_HEALTH=$(curl -sk -o /dev/null -w "%{http_code}" --connect-timeout 5 "https://aidoktor.uz/health/" 2>/dev/null || echo "err")
 echo "  Public /health/: HTTP $PUBLIC_HEALTH"

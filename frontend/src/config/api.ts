@@ -1,14 +1,14 @@
 /**
  * API Configuration
  *
- * Sahifa fjsti.ziyrak.org da ochilganda build noto'g'ri API host qo'ygan bo'lsa — fjstiapi ga tuzatiladi.
+ * Sahifa aidoktor.uz da ochilganda build noto'g'ri API host qo'ygan bo'lsa — fjstiapi ga tuzatiladi.
  */
 
 const rawFromEnv = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
 
 /** Front hostname → haqiqiy API (split domen) */
 const API_BASE_BY_PAGE_HOST: Record<string, string> = {
-  'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/api',
+  'aidoktor.uz': 'https://api.aidoktor.uz/api',
 };
 
 function stripApiSuffix(u: string): string {
@@ -41,7 +41,7 @@ function resolveApiBaseUrl(): string {
 
   try {
     const apiUrl = new URL(base.endsWith('/') ? base : `${base}/`);
-    const wrongHosts = new Set([pageHost, 'fjsti.ziyrak.org']);
+    const wrongHosts = new Set([pageHost, 'aidoktor.uz']);
     // API URL front bilan bir xil host yoki fjsti front host — fjstiapi ga almashtiramiz
     if (wrongHosts.has(apiUrl.hostname) && apiUrl.hostname !== new URL(preferred).hostname) {
       return preferred;

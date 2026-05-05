@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SSH: fjsti.ziyrak.org / fjstiapi.ziyrak.org uchun TLS tekshiruvi va Certbot + nginx reload.
+SSH: aidoktor.uz / api.aidoktor.uz uchun TLS tekshiruvi va Certbot + nginx reload.
 
 Parol: MEDORA_SSH_PASSWORD yoki deploy_credentials.local (1-qator) — remote_pull_gemini_deploy.py bilan bir xil.
 """
@@ -63,17 +63,17 @@ echo "=== nginx: fjsti server_name ==="
 nginx -T 2>/dev/null | grep -nE 'server_name|ssl_certificate' | grep -i fjsti || true
 
 echo ""
-echo "=== curl local SNI fjsti.ziyrak.org ==="
-echo | openssl s_client -connect 127.0.0.1:443 -servername fjsti.ziyrak.org 2>/dev/null | openssl x509 -noout -subject -dates 2>/dev/null || echo "openssl failed"
+echo "=== curl local SNI aidoktor.uz ==="
+echo | openssl s_client -connect 127.0.0.1:443 -servername aidoktor.uz 2>/dev/null | openssl x509 -noout -subject -dates 2>/dev/null || echo "openssl failed"
 
 echo ""
 echo "=== certbot (expand / issue) ==="
 if [ -x /usr/bin/certbot ] || command -v certbot >/dev/null 2>&1; then
   certbot certonly --nginx \
-    -d fjsti.ziyrak.org -d fjstiapi.ziyrak.org \
+    -d aidoktor.uz -d api.aidoktor.uz \
     --non-interactive --agree-tos --email "__EMAIL__" \
     --expand 2>&1 || certbot certonly --nginx \
-    -d fjsti.ziyrak.org -d fjstiapi.ziyrak.org \
+    -d aidoktor.uz -d api.aidoktor.uz \
     --non-interactive --agree-tos --email "__EMAIL__" 2>&1 || true
 else
   echo "certbot not installed"
@@ -85,7 +85,7 @@ nginx -t && systemctl reload nginx && echo "nginx reload OK" || echo "nginx FAIL
 
 echo ""
 echo "=== verify SNI after ==="
-echo | openssl s_client -connect 127.0.0.1:443 -servername fjsti.ziyrak.org 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName 2>/dev/null || true
+echo | openssl s_client -connect 127.0.0.1:443 -servername aidoktor.uz 2>/dev/null | openssl x509 -noout -subject -ext subjectAltName 2>/dev/null || true
 """
 
     remote = remote.replace("__EMAIL__", email.replace('"', ""))

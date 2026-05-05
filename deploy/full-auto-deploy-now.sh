@@ -2,7 +2,7 @@
 # MedoraAI - To'liq avtomatik deploy (faqat /root/medoraai)
 # Boshqa loyihalar: nginx ni restart qilmang — faqat reload; boshqa saytlarning
 # sites-enabled konfiglariga tegmang.
-# Server: fjsti.ziyrak.org  |  katalog: /root/medoraai
+# Server: aidoktor.uz  |  katalog: /root/medoraai
 
 set -e
 
@@ -59,7 +59,7 @@ fi
 echo ""
 echo "🎉 DEPLOY MUVAFFAQIYATLI TUGADI!"
 echo "================================"
-echo "✅ Sayt: https://fjsti.ziyrak.org/"
+echo "✅ Sayt: https://aidoktor.uz/"
 echo "✅ Backend: Port 8001"
 echo "✅ Frontend: Yangilandi"
 echo "✅ Optimallashtirish: Faol"

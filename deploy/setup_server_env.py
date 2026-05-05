@@ -3,12 +3,12 @@
 import paramiko
 
 SERVER_USER = "root"
-SERVER_HOST = "fjsti.ziyrak.org"
+SERVER_HOST = "aidoktor.uz"
 SERVER_PASSWORD = "Ziyrak2025Ai"
 REMOTE_DIR = "/root/medoraai"
 
 GEMINI_API_KEY = ""  # Set manually on server - do NOT put key here
-VITE_API_BASE_URL = "https://fjstiapi.ziyrak.org/api"
+VITE_API_BASE_URL = "https://api.aidoktor.uz/api"
 
 env_content = f"""VITE_API_BASE_URL={VITE_API_BASE_URL}
 VITE_GEMINI_API_KEY={GEMINI_API_KEY}
