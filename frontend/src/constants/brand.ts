@@ -45,3 +45,11 @@ export const INSTITUTE_WEBSITE = "https://fjsti.uz/";
 export const PLATFORM_WEBSITE = "fjsti.ziyrak.org";
 /** To'liq URL (QR kod, tashqi havolalar) */
 export const PLATFORM_PUBLIC_URL = `https://${PLATFORM_WEBSITE}`;
+
+/**
+ * PDF va boshqa eksport qilinadigan rasmiy blankalar uchun mahsulot brendi (AiDoktor).
+ * Chop etilgan hujjatlarda institut (FJSTI) ko‘rinmaydi — mahalliy savdo / mualliflik uchun faqat mahsulot nomi.
+ */
+export const PDF_PRODUCT_NAME = PLATFORM_NAME;
+export const PDF_PRODUCT_PUBLIC_URL = 'https://aidoktor.uz';
+export const PDF_PRODUCT_WEBSITE_DISPLAY = 'www.aidoktor.uz';

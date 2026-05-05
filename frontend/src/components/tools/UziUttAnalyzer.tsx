@@ -6,7 +6,6 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import UploadCloudIcon from '../icons/UploadCloudIcon';
 import DownloadIcon from '../icons/DownloadIcon';
 import { useTranslation, type TranslationKey } from '../../hooks/useTranslation';
-import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../../constants/brand';
 
 const MAX_FILES = 12;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -29,22 +28,6 @@ function mimeForFile(f: File): string | null {
     if (lower.endsWith('.webp')) return 'image/webp';
     if (lower.endsWith('.gif')) return 'image/gif';
     return null;
-}
-
-async function getInstituteLogoDataUrl(): Promise<string | undefined> {
-    try {
-        const res = await fetch(INSTITUTE_LOGO_SRC);
-        if (!res.ok) return undefined;
-        const blob = await res.blob();
-        return await new Promise((resolve, reject) => {
-            const r = new FileReader();
-            r.onload = () => resolve(r.result as string);
-            r.onerror = reject;
-            r.readAsDataURL(blob);
-        });
-    } catch {
-        return undefined;
-    }
 }
 
 function readFileBase64(file: File): Promise<string> {
@@ -162,10 +145,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         if (!report) return;
         setPdfLoading(true);
         try {
-            const logo = await getInstituteLogoDataUrl();
-            await generateUziUttPdf(report, { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logo }, (key) =>
-                t(key as TranslationKey),
-            );
+            await generateUziUttPdf(report, undefined, (key) => t(key as TranslationKey));
         } catch {
             setError(t('alert_error_generic'));
         } finally {

@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
-import { PLATFORM_PUBLIC_URL, PLATFORM_WEBSITE } from '../constants/brand';
+import { PDF_PRODUCT_PUBLIC_URL, PDF_PRODUCT_WEBSITE_DISPLAY } from '../constants/brand';
 
 interface jsPDFInternal {
     pages: unknown[];
@@ -25,8 +25,8 @@ export interface InstituteBranding {
 export const generatePdfReport = async (
     report: FinalReport,
     patientData: PatientData,
-    branding?: InstituteBranding,
-    t?: (key: string) => string
+    _branding?: InstituteBranding,
+    t?: (key: string) => string,
 ) => {
     // Translation helper - returns key if translation not found
     const tr = (key: string, fallback: string): string => {
@@ -45,10 +45,10 @@ export const generatePdfReport = async (
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
-        qrDataUrl = await QRCode.toDataURL(PLATFORM_PUBLIC_URL, { 
-            width: 80, 
+        qrDataUrl = await QRCode.toDataURL(PDF_PRODUCT_PUBLIC_URL, {
+            width: 80,
             margin: 1,
-            color: { dark: '#1e293b', light: '#ffffff' }
+            color: { dark: '#1e293b', light: '#ffffff' },
         });
     } catch {
         // QR generation failed, continue without it
@@ -184,7 +184,7 @@ export const generatePdfReport = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text('Skannerlang →', qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
-        doc.text(PLATFORM_WEBSITE, qrX + qrSize/2, qrY + qrSize + 5, { align: 'center' });
+        doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
     
     // Move past QR code area
@@ -563,9 +563,9 @@ export const generatePdfReport = async (
     
     const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
     
-    // Platform promo text for last page
-    const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
-    const promoLink = PLATFORM_WEBSITE;
+    // Platform promo text for last page (rasmiy AiDoktor blanka — FJSTI emas)
+    const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
+    const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
     const promoPhone = "+998 99 575 11 11";
     const promoPhone2 = "+998 93 777 31 54";
     
@@ -606,29 +606,32 @@ export const generatePdfReport = async (
     doc.setFont(PDF_FONT, 'normal');
     doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
     
-    // Row 3: Institute website
+    // Row 3: Mahsulot veb-sayti (AiDoktor)
     doc.setFont(PDF_FONT, 'italic');
     doc.setTextColor(30, 100, 180);
-    doc.text('www.fjsti.uz', MARGIN + 3, promoY + 10);
+    doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(`  — ${tr('pdf_institute_website', "Farg'ona jamoat salomatligi tibbiyot instituti rasmiy sayti")}`, MARGIN + 20, promoY + 10);
-    
-    // Institute logo (small)
-    const logoSize = 10;
-    const logoX = pageWidth - MARGIN - logoSize - 3;
-    const logoY = promoY;
-    if (branding?.instituteLogoDataUrl) {
-        try {
-            doc.addImage(branding.instituteLogoDataUrl, 'PNG', logoX, logoY, logoSize, logoSize);
-        } catch { /* ignore */ }
-    }
-    
-    // Institute name small
+    doc.text(
+        `  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`,
+        MARGIN + 24,
+        promoY + 10,
+    );
+
+    // O‘ng tomonda mahsulot nomi va mualliflik (institut logotipi ishlatilmaydi)
+    doc.setFontSize(8);
+    doc.setFont(PDF_FONT, 'bold');
+    doc.setTextColor(25, 55, 95);
+    doc.text(tr('pdf_product_brand_footer', 'AiDoktor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
     doc.setFontSize(5);
-    doc.setTextColor(100, 100, 100);
-    doc.text(tr('pdf_institute_name', "Farg'ona JSTI"), logoX - 25, promoY + 4);
-    doc.text(tr('pdf_platform_name', "(AiDoktor)"), logoX - 25, promoY + 7);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(110, 110, 110);
+    doc.text(
+        tr('pdf_product_copyright_short', '© Mualliflik huquqi himoyalangan'),
+        pageWidth - MARGIN - 3,
+        promoY + 8,
+        { align: 'right' },
+    );
 
     doc.save(`Konsilium_${patientData.lastName}_${patientData.firstName}.pdf`);
 };
@@ -636,7 +639,7 @@ export const generatePdfReport = async (
 /** UTT/UZI AI xulosasi — konsilium PDF bilan bir xil pastki qism va brending */
 export const generateUziUttPdf = async (
     report: UziUttReport,
-    branding?: InstituteBranding,
+    _branding?: InstituteBranding,
     t?: (key: string) => string,
 ) => {
     const tr = (key: string, fallback: string): string => {
@@ -655,7 +658,7 @@ export const generateUziUttPdf = async (
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
-        qrDataUrl = await QRCode.toDataURL(PLATFORM_PUBLIC_URL, {
+        qrDataUrl = await QRCode.toDataURL(PDF_PRODUCT_PUBLIC_URL, {
             width: 80,
             margin: 1,
             color: { dark: '#1e293b', light: '#ffffff' },
@@ -733,18 +736,7 @@ export const generateUziUttPdf = async (
         }
     }
 
-    // Optional institute logo on the left
-    const headerLogoSize = 10;
-    const headerLogoX = MARGIN;
-    const headerLogoY = y - 1;
-    const headerTextX = branding?.instituteLogoDataUrl ? MARGIN + headerLogoSize + 3 : MARGIN;
-    if (branding?.instituteLogoDataUrl) {
-        try {
-            doc.addImage(branding.instituteLogoDataUrl, 'PNG', headerLogoX, headerLogoY, headerLogoSize, headerLogoSize);
-        } catch {
-            /* ignore */
-        }
-    }
+    const headerTextX = MARGIN;
 
     doc.setFontSize(16);
     doc.setFont(PDF_FONT, 'bold');
@@ -755,7 +747,7 @@ export const generateUziUttPdf = async (
     doc.setFontSize(8);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(100, 100, 100);
-    const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2 - (branding?.instituteLogoDataUrl ? headerLogoSize + 3 : 0) - (qrSize + 6));
+    const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2 - (qrSize + 6));
     doc.text(subLines[0] || '', headerTextX, y);
 
     const reportDate = new Date();
@@ -766,7 +758,7 @@ export const generateUziUttPdf = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text('Skannerlang →', qrX + qrSize / 2, qrY + qrSize + 2, { align: 'center' });
-        doc.text(PLATFORM_WEBSITE, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
+        doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
 
     y = Math.max(y + 4, qrY + qrSize + 8);
@@ -807,8 +799,8 @@ export const generateUziUttPdf = async (
 
     const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
     const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
-    const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
-    const promoLink = PLATFORM_WEBSITE;
+    const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
+    const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
     const promoPhone = "+998 99 575 11 11";
     const promoPhone2 = "+998 93 777 31 54";
 
@@ -840,22 +832,23 @@ export const generateUziUttPdf = async (
     doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
     doc.setFont(PDF_FONT, 'italic');
     doc.setTextColor(30, 100, 180);
-    doc.text('www.fjsti.uz', MARGIN + 3, promoY + 10);
+    doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);
     doc.setFont(PDF_FONT, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(`  — ${tr('pdf_institute_website', "Farg'ona jamoat salomatligi tibbiyot instituti rasmiy sayti")}`, MARGIN + 20, promoY + 10);
-    const logoSize = 10;
-    const logoX = pageWidth - MARGIN - logoSize - 3;
-    const logoY = promoY;
-    if (branding?.instituteLogoDataUrl) {
-        try {
-            doc.addImage(branding.instituteLogoDataUrl, 'PNG', logoX, logoY, logoSize, logoSize);
-        } catch { /* ignore */ }
-    }
+    doc.text(`  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`, MARGIN + 24, promoY + 10);
+    doc.setFontSize(8);
+    doc.setFont(PDF_FONT, 'bold');
+    doc.setTextColor(25, 55, 95);
+    doc.text(tr('pdf_product_brand_footer', 'AiDoktor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
     doc.setFontSize(5);
-    doc.setTextColor(100, 100, 100);
-    doc.text(tr('pdf_institute_name', "Farg'ona JSTI"), logoX - 25, logoY + 4);
-    doc.text(tr('pdf_platform_name', "(AiDoktor)"), logoX - 25, logoY + 7);
+    doc.setFont(PDF_FONT, 'normal');
+    doc.setTextColor(110, 110, 110);
+    doc.text(
+        tr('pdf_product_copyright_short', '© Mualliflik huquqi himoyalangan'),
+        pageWidth - MARGIN - 3,
+        promoY + 8,
+        { align: 'right' },
+    );
 
     const stamp = new Date().toISOString().slice(0, 19).replace('T', '_');
     doc.save(`UTT_UZI_tahlil_${stamp}.pdf`);
