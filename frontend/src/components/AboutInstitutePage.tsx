@@ -206,8 +206,8 @@ const AboutInstitutePage: React.FC<Props> = ({ onBack }) => {
                             </div>
                             <div>
                                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Telefon</p>
-                                <a href="tel:+998950442345" className="block text-slate-900 font-bold text-sm hover:text-sky-700 underline-offset-2 hover:underline">{INSTITUTE_PHONE_1}</a>
-                                <a href="tel:+998950482345" className="block text-slate-900 font-bold text-sm hover:text-sky-700 underline-offset-2 hover:underline">{INSTITUTE_PHONE_2}</a>
+                                <a href="tel:+998995751111" className="block text-slate-900 font-bold text-sm hover:text-sky-700 underline-offset-2 hover:underline">{INSTITUTE_PHONE_1}</a>
+                                <a href="tel:+998937773154" className="block text-slate-900 font-bold text-sm hover:text-sky-700 underline-offset-2 hover:underline">{INSTITUTE_PHONE_2}</a>
                             </div>
                         </div>
                     </div>

@@ -10,7 +10,7 @@ interface SubscriptionPageProps {
 
 type PlanMode = 'clinic' | 'doctor';
 
-const CONTACT_PHONE = '+998907863888';
+const CONTACT_PHONE = '+998937773154';
 
 type ClinicTariffDef = {
   title: string;

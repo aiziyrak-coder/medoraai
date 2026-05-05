@@ -567,7 +567,7 @@ export const generatePdfReport = async (
     const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
     const promoLink = PLATFORM_WEBSITE;
     const promoPhone = "+998 99 575 11 11";
-    const promoPhone2 = "+998 90 786 38 88";
+    const promoPhone2 = "+998 93 777 31 54";
     
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -810,7 +810,7 @@ export const generateUziUttPdf = async (
     const promoText = tr('pdf_promo_text', "AI Tibbiy Konsilium Platformasi - MedoraAI");
     const promoLink = PLATFORM_WEBSITE;
     const promoPhone = "+998 99 575 11 11";
-    const promoPhone2 = "+998 90 786 38 88";
+    const promoPhone2 = "+998 93 777 31 54";
 
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);

@@ -29,7 +29,7 @@ Default:
 Boshqa raqam/parol bilan:
 
 ```bash
-ADMIN_PHONE=+998907863888 ADMIN_PASSWORD=MySecret123 python create_superuser.py
+ADMIN_PHONE=+998937773154 ADMIN_PASSWORD=MySecret123 python create_superuser.py
 ```
 
 Agar bu telefon allaqachon mavjud bo'lsa, parol yangilanadi va superuser huquqlari beriladi.
