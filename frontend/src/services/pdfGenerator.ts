@@ -70,6 +70,31 @@ export const generatePdfReport = async (
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     let y = MARGIN;
+    const contentBottom = () => pageHeight - FOOTER_RESERVE - 26;
+
+    const ensureSpace = (needed: number) => {
+        if (y + needed > contentBottom()) {
+            doc.addPage();
+            y = MARGIN;
+        }
+    };
+
+    const addWrappedText = (text: string, x: number, maxWidth: number, lineHeight = COMPACT_LINE) => {
+        const lines = doc.splitTextToSize(text || '', maxWidth);
+        lines.forEach((line: string) => {
+            ensureSpace(lineHeight + 2);
+            doc.text(line, x, y);
+            y += lineHeight;
+        });
+        return lines.length;
+    };
+
+    const sourceUrl = (title: string, url?: string) => {
+        const raw = (url || '').trim();
+        if (/^https?:\/\//i.test(raw)) return raw;
+        const q = encodeURIComponent(title || raw || 'clinical guideline');
+        return `https://pubmed.ncbi.nlm.nih.gov/?term=${q}`;
+    };
 
     // Generate QR code for platform
     let qrDataUrl = '';
@@ -103,10 +128,7 @@ export const generatePdfReport = async (
 
     // Compact header with line
     const addHeader = (text: string) => {
-        if (y > pageHeight - 40) {
-            doc.addPage();
-            y = MARGIN;
-        }
+        ensureSpace(18);
         doc.setFontSize(14);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(30, 41, 59);
@@ -118,10 +140,7 @@ export const generatePdfReport = async (
 
     // Small section title
     const addSectionTitle = (text: string) => {
-        if (y > pageHeight - 30) {
-            doc.addPage();
-            y = MARGIN;
-        }
+        ensureSpace(10);
         doc.setFontSize(10);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(50, 60, 80);
@@ -132,6 +151,7 @@ export const generatePdfReport = async (
     // Compact key-value pair
     const addKeyValueCompact = (key: string, value: string | undefined | null, keyWidth = 40) => {
         if (!value) return;
+        ensureSpace(8);
         doc.setFontSize(9);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(80, 80, 80);
@@ -140,6 +160,7 @@ export const generatePdfReport = async (
         doc.setTextColor(40, 40, 40);
         const splitValue = doc.splitTextToSize(value, pageWidth - MARGIN * 2 - keyWidth - 4);
         splitValue.forEach((line: string, i: number) => {
+            if (i > 0) ensureSpace(COMPACT_LINE + 1);
             doc.text(line, MARGIN + keyWidth + 2, y + i * COMPACT_LINE);
         });
         y += splitValue.length * COMPACT_LINE + 1;
@@ -167,20 +188,55 @@ export const generatePdfReport = async (
 
     // Bullet point item
     const addBullet = (text: string) => {
-        if (y > pageHeight - 20) {
-            doc.addPage();
-            y = MARGIN;
-        }
+        ensureSpace(8);
         doc.setFontSize(9);
         doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const indent = MARGIN + 4;
-        doc.text('\u2022', MARGIN + 2, y);
         const splitText = doc.splitTextToSize(text, pageWidth - MARGIN * 2 - 8);
         splitText.forEach((line: string, i: number) => {
-            doc.text(line, indent + (i > 0 ? 4 : 0), y + i * COMPACT_LINE);
+            ensureSpace(COMPACT_LINE + 1);
+            if (i === 0) doc.text('\u2022', MARGIN + 2, y);
+            doc.text(line, indent + (i > 0 ? 4 : 0), y);
+            y += COMPACT_LINE;
         });
-        y += splitText.length * COMPACT_LINE;
+        y += 1.5;
+    };
+
+    const addLinkedSource = (title: string, url: string, summary?: string) => {
+        const indent = MARGIN + 4;
+        const maxWidth = pageWidth - MARGIN * 2 - 8;
+
+        doc.setFontSize(9);
+        doc.setFont(fontName, 'bold');
+        doc.setTextColor(25, 90, 180);
+        const titleLines = doc.splitTextToSize(title || url, maxWidth);
+        titleLines.forEach((line: string, i: number) => {
+            ensureSpace(COMPACT_LINE + 2);
+            if (i === 0) doc.text('\u2022', MARGIN + 2, y);
+            const x = indent + (i > 0 ? 4 : 0);
+            doc.text(line, x, y);
+            doc.link(x, y - 3, Math.min(doc.getTextWidth(line), maxWidth), COMPACT_LINE + 1, { url });
+            y += COMPACT_LINE;
+        });
+
+        doc.setFont(fontName, 'normal');
+        doc.setTextColor(25, 90, 180);
+        const urlLines = doc.splitTextToSize(url, maxWidth - 4);
+        urlLines.forEach((line: string) => {
+            ensureSpace(COMPACT_LINE + 2);
+            const x = indent + 4;
+            doc.text(line, x, y);
+            doc.link(x, y - 3, Math.min(doc.getTextWidth(line), maxWidth - 4), COMPACT_LINE + 1, { url });
+            y += COMPACT_LINE;
+        });
+
+        if (summary) {
+            doc.setFontSize(7);
+            doc.setTextColor(70, 70, 70);
+            addWrappedText(summary, indent + 4, maxWidth - 4, 3.2);
+        }
+        y += 1.5;
     };
 
     // === DOCUMENT HEADER ===
@@ -238,7 +294,7 @@ export const generatePdfReport = async (
     doc.text(tr('pdf_patient_info', "BEMOR MA'LUMOTLARI"), MARGIN + 2, y + 4);
     y += rowHeight;
 
-    // Row 1: Name, Age, Gender
+    // Patient name uses the full row so long names do not collide with age/sex.
     doc.setDrawColor(230, 230, 230);
     doc.line(MARGIN, y, pageWidth - MARGIN, y);
     const fullName = `${patientData.lastName} ${patientData.firstName}`.trim() + (patientData.fatherName ? ` ${patientData.fatherName}` : '');
@@ -254,14 +310,22 @@ export const generatePdfReport = async (
     doc.text(tr('pdf_patient', "Bemor:") + ' ', MARGIN + 2, y + 4);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(40, 40, 40);
-    doc.text(fullName, MARGIN + 20, y + 4);
-    
+    const nameLines = doc.splitTextToSize(fullName, pageWidth - MARGIN * 2 - 24);
+    doc.text(nameLines[0] || '', MARGIN + 22, y + 4);
+    y += rowHeight;
+    for (let i = 1; i < Math.min(nameLines.length, 3); i++) {
+        ensureSpace(rowHeight);
+        doc.text(nameLines[i], MARGIN + 22, y + 4);
+        y += rowHeight;
+    }
+
+    doc.line(MARGIN, y, pageWidth - MARGIN, y);
     doc.setFont(fontName, 'bold');
     doc.setTextColor(80, 80, 80);
-    doc.text(tr('pdf_age', "Yoshi:") + ' ', MARGIN + col1Width + col2Width + 2, y + 4);
+    doc.text(tr('pdf_age', "Yoshi:") + ' ', MARGIN + 2, y + 4);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(40, 40, 40);
-    doc.text(patientData.age, MARGIN + col1Width + col2Width + 18, y + 4);
+    doc.text(patientData.age, MARGIN + 24, y + 4);
 
     doc.setFont(fontName, 'bold');
     doc.setTextColor(80, 80, 80);
@@ -325,32 +389,29 @@ export const generatePdfReport = async (
 
     // === CRITICAL FINDING (compact) ===
     if (report.criticalFinding && report.criticalFinding.finding) {
-        if (y > pageHeight - 50) {
-            doc.addPage();
-            y = MARGIN;
-        }
-        // Increase box height to fit two lines
+        ensureSpace(28);
+        const cfText = (report.criticalFinding.finding + ' - ' + report.criticalFinding.implication).substring(0, 260);
+        const cfSplit = doc.splitTextToSize(cfText, pageWidth - MARGIN * 2 - 8).slice(0, 4);
+        const boxHeight = 10 + cfSplit.length * COMPACT_LINE + 5;
+        const boxY = y;
         doc.setFillColor(255, 245, 245);
-        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 16, 'F');
+        doc.rect(MARGIN, boxY, pageWidth - MARGIN * 2, boxHeight, 'F');
         doc.setDrawColor(220, 100, 100);
         doc.setLineWidth(0.5);
-        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 16, 'S');
+        doc.rect(MARGIN, boxY, pageWidth - MARGIN * 2, boxHeight, 'S');
         doc.setFontSize(8);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(180, 50, 50);
-        doc.text(tr('pdf_critical_finding', "Muhim topilma (Shoshilinch):"), MARGIN + 3, y + 4);
+        doc.text(tr('pdf_critical_finding', "Muhim topilma (Shoshilinch):"), MARGIN + 3, boxY + 4);
+        doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, boxY + 4, { align: 'right' });
         doc.setFont(fontName, 'normal');
         doc.setTextColor(80, 40, 40);
-        const cfText = (report.criticalFinding.finding + ' - ' + report.criticalFinding.implication).substring(0, 120);
-        const cfSplit = doc.splitTextToSize(cfText, pageWidth - MARGIN * 2 - 6);
-        doc.text(cfSplit[0] || '', MARGIN + 3, y + 9);
-        if (cfSplit[1]) {
-            doc.text(cfSplit[1], MARGIN + 3, y + 13);
-        }
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(180, 50, 50);
-        doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, y + 13, { align: 'right' });
-        y += 20;
+        y = boxY + 9;
+        cfSplit.forEach((line: string) => {
+            doc.text(line, MARGIN + 3, y);
+            y += COMPACT_LINE;
+        });
+        y = boxY + boxHeight + 4;
     }
 
     // === CONSENSUS SECTION ===
@@ -360,21 +421,32 @@ export const generatePdfReport = async (
     addSectionTitle(tr('pdf_diagnoses', "Tashxislar"));
     const diagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis).slice(0, 4);
     diagnoses.forEach((diag, idx) => {
+        ensureSpace(14);
         const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
         doc.setFontSize(9);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(40, 80, 120);
-        doc.text(`${idx + 1}. ${diag.name}`, MARGIN, y);
+        const diagnosisLines = doc.splitTextToSize(`${idx + 1}. ${diag.name}`, pageWidth - MARGIN * 2 - 46);
+        doc.text(diagnosisLines[0] || '', MARGIN, y);
         doc.setFont(fontName, 'normal');
         doc.setTextColor(100, 100, 100);
         doc.text(`(${pct}) - ${diag.evidenceLevel || 'N/A'}`, pageWidth - MARGIN - 50, y, { align: 'left' });
         y += COMPACT_LINE;
+        diagnosisLines.slice(1, 3).forEach((line: string) => {
+            doc.setFont(fontName, 'bold');
+            doc.setTextColor(40, 80, 120);
+            doc.text(line, MARGIN + 4, y);
+            y += COMPACT_LINE;
+        });
         if (diag.justification) {
             doc.setFontSize(8);
             doc.setTextColor(80, 80, 80);
             const justSplit = doc.splitTextToSize(diag.justification, pageWidth - MARGIN * 2 - 10);
-            doc.text(justSplit[0] || '', MARGIN + 6, y);
-            y += COMPACT_LINE;
+            justSplit.slice(0, 2).forEach((line: string) => {
+                ensureSpace(COMPACT_LINE + 1);
+                doc.text(line, MARGIN + 6, y);
+                y += COMPACT_LINE;
+            });
         }
         y += 1;
     });
@@ -397,22 +469,16 @@ export const generatePdfReport = async (
         addSectionTitle(tr('pdf_medications', "Dori Tavsiyalari"));
         const meds = report.medicationRecommendations.slice(0, 6);
         meds.forEach(med => {
-            doc.setFontSize(9);
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(40, 80, 40);
-            doc.text('\u2022 ' + (med.name || ''), MARGIN + 2, y);
-            if (med.dosage) {
-                doc.setFont(fontName, 'normal');
-                doc.setTextColor(80, 80, 80);
-                doc.text(med.dosage, MARGIN + 80, y);
-            }
-            y += COMPACT_LINE;
-            if (med.notes) {
-                doc.setFontSize(8);
-                doc.setTextColor(100, 100, 100);
-                doc.text('   ' + med.notes, MARGIN + 2, y);
-                y += COMPACT_LINE;
-            }
+            const medText = [
+                med.name,
+                med.dosage,
+                med.frequency,
+                med.duration,
+                med.timing,
+                med.instructions,
+                med.notes,
+            ].filter(Boolean).join(' — ');
+            addBullet(medText);
         });
     }
 
@@ -588,23 +654,8 @@ export const generatePdfReport = async (
         y += 2;
         addSectionTitle(tr('final_report_related_research_title', 'Dalillar va manbalar'));
         report.relatedResearch.slice(0, 6).forEach((item) => {
-            const source = `${item.title}${item.url ? ` — ${item.url}` : ''}`;
-            addBullet(source);
-            if (item.summary) {
-                doc.setFontSize(7);
-                doc.setTextColor(90, 90, 90);
-                const summaryLines = doc.splitTextToSize(item.summary, pageWidth - MARGIN * 2 - 8);
-                summaryLines.slice(0, 2).forEach((line: string) => {
-                    if (y > pageHeight - 20) {
-                        doc.addPage();
-                        y = MARGIN;
-                    }
-                    doc.text(line, MARGIN + 8, y);
-                    y += COMPACT_LINE;
-                });
-                doc.setFontSize(9);
-                doc.setTextColor(40, 40, 40);
-            }
+            const url = sourceUrl(item.title, item.url);
+            addLinkedSource(item.title, url, item.summary);
         });
     }
 

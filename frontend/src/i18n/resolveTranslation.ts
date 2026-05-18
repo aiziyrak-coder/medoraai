@@ -17,7 +17,7 @@ export function resolveTranslation(language: Language, key: TranslationKey): str
       case 'uz-L':
         return ['uz-L', 'en'];
       case 'kaa':
-        return ['kaa', 'uz-L', 'en'];
+        return ['kaa', 'en'];
       default:
         return ['en'];
     }

@@ -1,4 +1,4 @@
-import { Document, DocumentDefaults, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } from 'docx';
+import { Document, DocumentDefaults, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink } from 'docx';
 import type { FinalReport, PatientData } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { logger } from '../utils/logger';
@@ -14,6 +14,21 @@ const createKeyValue = (key: string, value: string | undefined | null) => new Pa
     ],
     spacing: { after: 100 }
 });
+const createHyperlinkKeyValue = (key: string, value: string, url: string) => new Paragraph({
+    children: [
+        new TextRun({ text: `${key}: `, bold: true }),
+        new ExternalHyperlink({
+            link: url,
+            children: [
+                new TextRun({
+                    text: value,
+                    style: 'Hyperlink',
+                }),
+            ],
+        }),
+    ],
+    spacing: { after: 100 }
+});
 const createListItem = (text: string) => new Paragraph({ text, bullet: { level: 0 } });
 
 /** Decode data URL to Uint8Array for docx ImageRun */
@@ -24,6 +39,13 @@ function dataUrlToArrayBuffer(dataUrl: string): Uint8Array {
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
+}
+
+function sourceUrl(title: string, url?: string): string {
+    const raw = (url || '').trim();
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const q = encodeURIComponent(title || raw || 'clinical guideline');
+    return `https://pubmed.ncbi.nlm.nih.gov/?term=${q}`;
 }
 
 export const generateDocxReport = async (
@@ -195,12 +217,15 @@ export const generateDocxReport = async (
 
         ...(report.relatedResearch && report.relatedResearch.length > 0 ? [
             createHeading2(tr('final_report_related_research_title', 'Dalillar va manbalar')),
-            ...report.relatedResearch.slice(0, 6).flatMap((item) => [
-                createKeyValue(tr('docx_source_title', 'Manba'), item.title),
-                createKeyValue('URL', item.url),
-                createKeyValue(tr('docx_source_evidence', 'Dalil'), item.summary),
-                new Paragraph({ text: "" }),
-            ]),
+            ...report.relatedResearch.slice(0, 6).flatMap((item) => {
+                const url = sourceUrl(item.title, item.url);
+                return [
+                    createHyperlinkKeyValue(tr('docx_source_title', 'Manba'), item.title, url),
+                    createHyperlinkKeyValue('URL', url, url),
+                    createKeyValue(tr('docx_source_evidence', 'Dalil'), item.summary),
+                    new Paragraph({ text: "" }),
+                ];
+            }),
         ] : []),
 
         ...(report.uzbekistanLegislativeNote ? [

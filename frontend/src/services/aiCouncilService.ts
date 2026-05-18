@@ -98,7 +98,55 @@ const langMap: Record<Language, string> = {
     'uz-C': 'Uzbek (Cyrillic script)',
     'ru': 'Russian',
     'en': 'English',
-    'kaa': 'Karakalpak',
+    'kaa': 'Karakalpak (Latin script, Qaraqalpaqsha)',
+};
+
+const strictLanguageRule = (language: Language): string => {
+    switch (language) {
+        case 'uz-L':
+            return "STRICT OUTPUT LANGUAGE: Uzbek Latin only. Do not use Russian, English, Cyrillic Uzbek, or Karakalpak words except drug names and official abbreviations.";
+        case 'uz-C':
+            return "STRICT OUTPUT LANGUAGE: Uzbek Cyrillic only. Do not use Russian, English, Uzbek Latin, or Karakalpak words except drug names and official abbreviations.";
+        case 'ru':
+            return "STRICT OUTPUT LANGUAGE: Russian only. Do not use Uzbek, English, or Karakalpak words except drug names and official abbreviations.";
+        case 'en':
+            return "STRICT OUTPUT LANGUAGE: English only. Do not use Uzbek, Russian, or Karakalpak words except drug names and official abbreviations.";
+        case 'kaa':
+            return "STRICT OUTPUT LANGUAGE: Karakalpak Latin (Qaraqalpaqsha) only. Do not use Uzbek, Russian, English, or Cyrillic words except drug names, ICD-10, URL and official abbreviations. Translate all explanations, headings, diagnosis justifications, treatment instructions, folk medicine, nutrition, legal notes, and source summaries into Karakalpak.";
+        default:
+            return "STRICT OUTPUT LANGUAGE: English only.";
+    }
+};
+
+const localizedMedicalText = (language: Language, key: 'diagnosis' | 'protocol' | 'availability'): string => {
+    const map: Record<Language, Record<'diagnosis' | 'protocol' | 'availability', string>> = {
+        'uz-L': {
+            diagnosis: 'Tashxis',
+            protocol: 'SSV klinik protokollariga muvofiq',
+            availability: "O'zbekistonda mavjud",
+        },
+        'uz-C': {
+            diagnosis: 'Ташхис',
+            protocol: 'ССВ клиник протоколларига мувофиқ',
+            availability: 'Ўзбекистонда мавжуд',
+        },
+        ru: {
+            diagnosis: 'Диагноз',
+            protocol: 'Соответствует клиническим протоколам МЗ Республики Узбекистан',
+            availability: 'Доступно в Узбекистане',
+        },
+        en: {
+            diagnosis: 'Diagnosis',
+            protocol: 'Aligned with Uzbekistan Ministry of Health clinical protocols',
+            availability: 'Available in Uzbekistan',
+        },
+        kaa: {
+            diagnosis: 'Diagnoz',
+            protocol: 'Ózbekstan Respublikası Densawlıq saqlaw ministrliginiń klinikalıq protokollarına muwapıq',
+            availability: 'Ózbekstanda bar',
+        },
+    };
+    return map[language]?.[key] || map.en[key];
 };
 
 /**
@@ -158,6 +206,9 @@ export function getCaseBasedClarificationQuestions(data: PatientData, language: 
 // --- DYNAMIC SYSTEM INSTRUCTIONS (Kuchli va Aqlli) ---
 const getSystemInstruction = (language: Language): string => {
     const baseInstruction = `
+    ${strictLanguageRule(language)}
+    This language rule is higher priority than any other instruction text. Even if instructions below are written in another language, the final answer values must be in the selected language only.
+
     SIZ - TIBBIYOT SOHASIDAGI SUPPER-INTELLEKTUAL, AQLLI AI TIZIMISIZ.
     Vazifangiz: shifokorga ENG ANIQ, DALILLI va XAVFSIZ yechim taqdim etish.
     
@@ -187,7 +238,7 @@ const getSystemInstruction = (language: Language): string => {
 
     DIALOG USLUBI (majburiy): Suhbat har doim "Hurmatli professor va hamkasblar" yoki boshqa rasmiy salomlashuv bilan boshlanishi SHART EMAS. Haqiqiy klinik muhokama kabi yozing: e'tibor KASALLIK, ANIQ TASHXIS va FIKRLARGA qaratsin. Bir-biriga mulozamat ko'rsatish yoki bir-birini rozi qilish maqsad emas — muhimi aniq tashxis va dalilli fikrlar. Ibora qisqa, mazmunli, keraksiz tantanalardan xoli bo'lsin.
 
-    MANBALAR VA DALILLAR (majburiy): Muhim klinik da'vo, tashxis, dori yoki davolash tavsiyasi berganda ishonchli manbani ko'rsating: SSV/WHO/NICE/ESC/ACC/ADA/IDSA kabi klinik protokol yoki PubMed/DOI maqola. Manba nomi + URL yozing. URL to'qimang: aniq URL bilmasangiz "URL kerak" deb yozing va manba nomini bering. Yakuniy hisobotda relatedResearch bo'limini to'ldiring.
+    MANBALAR VA DALILLAR (majburiy): Muhim klinik da'vo, tashxis, dori yoki davolash tavsiyasi berganda ishonchli manbani ko'rsating: SSV/WHO/NICE/ESC/ACC/ADA/IDSA kabi klinik protokol yoki PubMed/DOI maqola. Manba nomi + URL yozing. Agar aniq URL bilmasangiz PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=... (sarlavha yoki guideline nomi bilan). Yakuniy hisobotda relatedResearch bo'limini to'ldiring.
     `;
 
     const specificInstructions: Record<Language, string> = {
@@ -218,6 +269,7 @@ const getSystemInstruction = (language: Language): string => {
     const uzbekistanBlock = getUzbekistanContextForAI(language);
 
     return baseInstruction + "\n" + specificInstructions[language] + "\n\n" + uzbekistanBlock + "\n\n" + `
+    ${strictLanguageRule(language)}
     ASOSIY QOIDALAR:
     1. Har bir xulosa uchun "NEGA?" savoliga aniq, ilmiy va dalillarga asoslangan javob bering; reasoningChain har doim to'ldirilgan bo'lsin.
     2. Kontekstni to'liq tushuning; diktofon/suhbat bo'lsa shovqinni e'tiborsiz qoldiring, tibbiy ma'noni ajratib oling.
@@ -226,7 +278,7 @@ const getSystemInstruction = (language: Language): string => {
     5. criticalFinding: hayotga xavf yoki shoshilinch davolash kerak bo'lsa, finding, implication va urgency ni aniq to'ldiring.
     AMALIY YORDAM (majburiy): Javoblaringiz shifokor darhol qo'llashi mumkin bo'lsin. Dori nomi + aniq doza + kuniga necha marta + davomiyligi; davolash rejasi 1-qadam, 2-qadam tarzida; SSV protokolga havola yoki agar taklif protokoldan farq qilsa — protokoldan voz kechish sababini (dalil asosida) ko'rsating; "darhol qilish kerak" va "keyinroq/kuzatuv" ni ajrating. Umumiy so'zlar o'rniga konkret, amaliy tavsiyalar bering.
     ANIQLIK (majburiy): (1) Faqat kiritilgan ma'lumot va klinik dalillarga asoslangan xulosa chiqaring; ma'lumot yetishmasa "Tasdiqlash uchun ... tekshiruv kerak" deb aniq yozing. (2) Har bir tashxis uchun probability (0-100) ni faqat dalil kuchiga mos RAQAM sifatida bering — KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%, shubhali=<70%. Taxminiy yoki "chiroyli" shablonlar (masalan doim 60/25/20, 50/50, 75/25) ISHLATMANG. Bir nechta differensial tashxis bo'lsa, ular bir-birini istisno qiluvchi bo'lishi uchun probability lar yig'indisi 100% ga yaqin bo'lishi kerak. (3) reasoningChain va justification da "nima uchun shunday" savoliga aniq javob bo'lsin; umumiy iboralardan saqlaning. (4) SSV protokol havolasi yoki protokoldan chetga chiqish sababi (dalil bilan). (5) Taxminiy tashxisni yakuniy deb yozmang; differensial tashxisda eng ehtimolini birinchi qo'ying va dalil asosini ko'rsating.
-    `;
+    \n${strictLanguageRule(language)}`;
 };
 
 // --- HELPER FUNCTIONS ---
@@ -677,9 +729,11 @@ const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
 /** Tez tahlil: qisqa tizim - tez qaytish uchun */
 const getFastDoctorSystemInstruction = (language: Language): string => {
     const til = langMap[language];
-    return `Siz shifokor uchun amaliy tibbiy yordamchisiz. Javob: ${til}, FAQAT JSON.
+    return `${strictLanguageRule(language)}
+Siz shifokor uchun amaliy tibbiy yordamchisiz. Javob: ${til}, FAQAT JSON.
 QOIDALAR: Tashxis nomi aniq; justification 2-3 jumla dalilli; treatmentPlan 3-5 aniq qadam; medications: O'zbekistonda mavjud savdo nomi + doza + davomiylik; uzbekProtocolMatch: SSV protokolga mos yoki protokoldan chetga chiqish sababi (dalil bilan). criticalFinding faqat shoshilinch bo'lsa. Dastur maqsadi yangi samarali davolash topish — dalil bo'lsa protokoldan voz kechish mumkin.
-ANIQLIK: Faqat berilgan ma'lumotga tayaning; probability ni dalil kuchiga mos qo'ying (KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%); reasoningChain har qadamda "nima uchun" javob bersin. SSV havola yoki protokoldan chetga chiqish sababini yozing.`;
+ANIQLIK: Faqat berilgan ma'lumotga tayaning; probability ni dalil kuchiga mos qo'ying (KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%); reasoningChain har qadamda "nima uchun" javob bersin. SSV havola yoki protokoldan chetga chiqish sababini yozing.
+${strictLanguageRule(language)}`;
 };
 
 export const generateFastDoctorConsultation = async (
@@ -765,12 +819,12 @@ export const generateFastDoctorConsultation = async (
         consensusDiagnosis: normalizeConsensusDiagnosis(
             primaryDiag
                 ? [{
-                    name: String(primaryDiag.name || 'Tashxis'),
+                    name: String(primaryDiag.name || localizedMedicalText(language, 'diagnosis')),
                     probability: primaryDiag.probability,
                     justification: String(primaryDiag.justification || ''),
                     evidenceLevel: 'High',
                     reasoningChain,
-                    uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || 'SSV protokoliga muvofiq'),
+                    uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || localizedMedicalText(language, 'protocol')),
                 }]
                 : [],
         ),
@@ -784,12 +838,12 @@ export const generateFastDoctorConsultation = async (
             duration: String(med?.duration ?? ''),
             instructions: String(med?.instructions ?? ''),
             notes: '',
-            localAvailability: "O'zbekistonda mavjud",
+            localAvailability: localizedMedicalText(language, 'availability'),
             priceEstimate: ''
         })),
         recommendedTests,
         unexpectedFindings: '',
-        uzbekistanLegislativeNote: "SSV klinik protokollariga muvofiq",
+        uzbekistanLegislativeNote: localizedMedicalText(language, 'protocol'),
         criticalFinding: safe(result.criticalFinding) ? result.criticalFinding as { finding: string; implication: string; urgency: string } : undefined
     } as FinalReport;
 };
@@ -826,12 +880,12 @@ export const generateFastDoctorConsultationStream = async (
         consensusDiagnosis: normalizeConsensusDiagnosis(
             primaryDiag
                 ? [{
-                    name: String(primaryDiag.name || 'Tashxis'),
+                    name: String(primaryDiag.name || localizedMedicalText(language, 'diagnosis')),
                     probability: primaryDiag.probability,
                     justification: String(primaryDiag.justification || ''),
                     evidenceLevel: 'High',
                     reasoningChain: (primaryDiag.reasoningChain as string[]) || [],
-                    uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || 'SSV protokoliga muvofiq'),
+                    uzbekProtocolMatch: String(primaryDiag.uzbekProtocolMatch || localizedMedicalText(language, 'protocol')),
                 }]
                 : [],
         ),
@@ -845,7 +899,7 @@ export const generateFastDoctorConsultationStream = async (
             duration: String(med.duration || ''),
             instructions: String(med.instructions || ''),
             notes: '',
-            localAvailability: "O'zbekistonda mavjud",
+            localAvailability: localizedMedicalText(language, 'availability'),
             priceEstimate: ''
         })),
         recommendedTests: (result.recommendedTests as string[]) || [],
@@ -1314,7 +1368,7 @@ QAT'IY:
 - Avval: klinik holat va shikoyatlar bo'yicha qisqa umumlashtirish (3-5 jumla).
 - Keyin: birinchi mavzu — asosiy shubhalar, differensial yo'nalishlar, mutaxassislardan nima kutish kerak; hujjatlar bo'lsa topilmalar (qisqa).
 - Oxirida mutaxassislarga aniq yo'naltirish (qanday baho va xavf belgilari muhim).
-- Muhim da'volar uchun 1-2 ta manba nomi va URL yozing (masalan WHO/NICE/ESC/ADA/SSV protokoli yoki PubMed/DOI maqola). URL to'qimang; aniq bilmasangiz "URL kerak" deb yozing.
+- Muhim da'volar uchun 1-2 ta manba nomi va URL yozing (masalan WHO/NICE/ESC/ADA/SSV protokoli yoki PubMed/DOI maqola). Aniq URL bilmasangiz PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=...
 - TIL: ${langMap[language]}.
 - Javobni TO'LIQ yakunlang: oxirgi jumla nuqta bilan tugasin; jumla yarmida, so'z yarmida TO'XTAMANG. Agar joy yetmasa, qisqaroq yozing, lekin har bir jumla to'liq bo'lsin.
 
@@ -1416,7 +1470,7 @@ QOIDALAR:
 4. Ob'ektiv ko'rik (qon bosimi, puls, harorat, SpO2, nafas) yuqorida berilgan — shifokordan HECH QACHON so'ramang, xulosangizda hisobga oling.
 5. Laboratoriya va diagnostika hujjatlari (agar yuklangan bo'lsa) quyida/ilovada — ularni tahlil qiling, xulosangizda ishlating. Bu ma'lumotlarni shifokordan SO'RAMANG — allaqachon berilgan.
 6. Javob tuzilishi (faqat matn, bullet/yulduzcha yo'q): (1) Asosiy tashxis va 2 ta asosiy dalil — har biri 1 qisqa jumla. (2) 2 ta differensial — har biri 1 jumla (nimaga kamroq ehtimol). (3) Tavsiya — 1–2 jumla (tekshiruv + davolash yo'nalishi). (4) Manba: 1 ta protokol yoki maqola nomi + URL.
-7. Manba URL to'qimang; aniq URL bilmasangiz "URL kerak" deb yozing, lekin manba nomini ayting.
+7. Aniq URL bo'lmasa, PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=...
 
 JAMI 4–6 QISQA, ANIQ jumla. Ortiqcha tafsilot va tantana YO'Q. TIL: ${langMap[language]}.
 OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
@@ -1539,12 +1593,13 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         'uz-C': "ТИЛ: Барча майдонлар ўзбек тилида (кирилл) бўлсин. Кераксиз инглизча техник сўзларни аралаштирманг.",
         'ru': 'ЯЗЫК: Все поля отчёта должны быть строго на русском языке.',
         'en': 'LANGUAGE: All report fields must be strictly in English.',
-        'kaa': 'TIL: Barlıq esabat maydanları qatań qaraqalpaq tilinde bolsın.',
+        'kaa': 'TIL: Barlıq esabat maydanları qatań Qaraqalpaq latin jazıwında bolsın. Ózbek, rus, ingliz yamasa kirill sózleri shıqpasın (tek dári atları, ICD-10, URL hám rásmiy qısqartpalar múmkin). Barlıq bólimler, túsindirmeler, dáliller, dári qollanıw jolı, derek xulasaları, xalıq medicinası hám awqatlanıw usınısları qaraqalpaqsha bolıwı shárt.',
     };
 
     const finalReportTextPrompt = `
         Role: Council Chair. Create the Final Report. Be AQLLI and XAVFSIZ. O'ZBEKISTON KONTEKSTI MAJBURIY.
         ${finalReportLanguageRule[language]}
+        ${strictLanguageRule(language)}
         LANGUAGE: ${langMap[language]}.
         REQUIREMENTS:
         1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: qaysi SSV protokoliga mos yoki "protokoldan chetga chiqish: [sabab]" (agar yangi/samarali yondashuv taklif qilsangiz).
@@ -1556,7 +1611,8 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         7. rejectedHypotheses: MAJBURIY. Munozarada ko'rib chiqilgan lekin rad etilgan tashxislar (differensial tashxislar). Har biri uchun name (tashxis nomi) va reason (nimaga rad etildi, qisqa sabab). Kamida 1-3 ta yozing agar bahsda boshqa variantlar tilga olingan bo'lsa; agar hech qanday rad etilgan tashxis bo'lmasa, bo'sh massiv [] qaytaring.
         8. folkMedicine (ALOHIDA BO'LIM, MAJBURIY): Konservativ davolash va reabilitatsiyaga MOS, O'zbekiston va Markaziy Osiyo xalq tabobatida ishlatiladigan dorivor o'simliklar haqida qisqa ma'lumot. Bu rasmiy dori-darmonlar o'rnini BOSMAYDI; shifokor bilan maslahat va qabul qilinayotgan dorilar bilan o'zaro ta'sirlar haqida ogohlantirish bo'lsin. Har bir o'simlik uchun: plantName (lotin yoki o'zbekcha nom), ixtiyoriy plantPart (gul, barg, ildiz), preparationOrUsage (qaynatma, choy, tashqiy ishlatish — qisqa va xavfsiz), traditionalContext (1 jumla qayerda qanday qo'llaniladi), precautions (homiladorlik, bolalar, allergiya, dori bilan ta'sir). Kamida 2 ta, odatda 2-5 ta o'simlik. intro: 1-2 jumla (masalan, qo'shimcha qo'llanma sifatida). disclaimer: "Rasmiy tibbiyot va shifokor ko'rsatmasini almashtirmaydi; individual sezuvchanlik va zaharli o'simliklardan xavfsizlik" mazmunida. Agar holat uchun xalq tabobati qo'llanishi ma'qul emas bo'lsa (masalan, o'tkir jiddiy holat), folkMedicine.items da kamida 1 ta qisqa qator bilan "hozirgi bosqichda xalq tabobati tavsiya etilmaydi" yoki shunga o'xshash sabab yozing.
         9. nutritionPrevention (ALOHIDA BO'LIM, MAJBURIY): Konsensus tashxis va bemor holatiga MOS ravishda kasalliklarni oldini olish, to'g'ri ovqatlanish va profilaktika bo'yicha aniq tavsiyalar. dietaryGuidelines: 4-8 ta qisqa band (masalan, tuz/shakar, suv, tolali mahsulotlar, ovqatlanish tartibi, mahalliy mahsulotlar — O'zbekiston oziq-ovqat realiati). preventionMeasures: 4-8 ta band (profilaktika: jismoniy faollik, uyqu, stress, gigiyena, skrining, vaksinatsiya agar mavzuga tegishli bo'lsa, qayta kasallanishning oldini olish). intro: 1-2 jumla (masalan, bu bo'limning maqsadi). disclaimer: ixtiyoriy qisqa — individual parhez va cheklovlar uchun shifokor/dietolog bilan kelishish kerakligi. Bu bo'lim davolash rejasi o'rnini bosmasin.
-        10. relatedResearch (DALIL VA MANBALAR, MAJBURIY): 3-6 ta ishonchli manba qaytaring. Har birida title (protokol/maqola nomi), url (aniq URL: PubMed, DOI, WHO/NICE/ESC/ACC/ADA/IDSA/SSV protokoli sahifasi; URL to'qimang), summary (ushbu manba aynan qaysi tashxis/dori/tekshiruv/tavsiya uchun dalil ekanini 1 jumlada yozing). Kamida bittasi klinik protokol/guideline, kamida bittasi maqola yoki sistematik sharh bo'lsin. Agar aniq URL ma'lum bo'lmasa, url maydoniga "URL kerak" yozing, lekin title va summary ni to'ldiring.
+        10. relatedResearch (DALIL VA MANBALAR, MAJBURIY): 3-6 ta ishonchli manba qaytaring. Har birida title (protokol/maqola nomi), url (aniq URL: PubMed, DOI, WHO/NICE/ESC/ACC/ADA/IDSA/SSV protokoli sahifasi; URL to'qimang), summary (ushbu manba aynan qaysi tashxis/dori/tekshiruv/tavsiya uchun dalil ekanini 1 jumlada yozing). Kamida bittasi klinik protokol/guideline, kamida bittasi maqola yoki sistematik sharh bo'lsin. Agar aniq URL ma'lum bo'lmasa, url maydoniga PubMed qidiruv URLini yozing: https://pubmed.ncbi.nlm.nih.gov/?term=...
+        11. JSON kalitlari inglizcha qoladi, lekin HAR BIR string qiymat tanlangan til qoidasiga qat'iy mos bo'lsin.
         ANIQLIK: consensusDiagnosis da har bir element uchun probability — 0-100 oralig'ida, faqat klinik dalil va justification ga mos RAQAM (taxminiy 60/25/20 yoki 75/15 kabi takrorlanuvchi shablonlar YO'Q). Bir nechta tashxis bo'lsa, probability lar yig'indisi 100% bo'lishi kerak (bir-birini istisno qiluvchi differensial ro'yxat). reasoningChain har qadamda "nima uchun" javob bersin (HAR BIR ELEMENT 1-2 JUMLADAN OSHMASIN, qisqa holda yozing - to'liq JSON kesilmasin); uzbekProtocolMatch — aniq protokol nomi/yo'nalishi yoki protokoldan chetga chiqish sababi. Taxminiy tashxisni yakuniy deb yozmang.
         KRITIK TOPILMA: Suhbat (debate history) yoki bemor ma'lumotlarida shoshilinch, hayotga xavf, kritik holat tilga olingan bo'lsa — criticalFinding ni albatta to'ldiring (finding, implication, urgency). Bo'sh qoldirmang.
         Debate history: ${JSON.stringify(debateHistory)}
@@ -2099,7 +2155,7 @@ export const continueDebate = async (
         User intervention: "${userIntervention}".
         Role: Council Chair.
         Task: Respond to user and continue debate. Use SSV protocols as baseline; you may suggest evidence-based alternative or innovative options for better outcomes. Uzbekistan context (drugs, standards).
-        Include a short "Manba/Source" sentence with protocol/article name and URL for any clinical claim. Do not invent URLs; write "URL kerak" if exact URL is unknown.
+        Include a short "Manba/Source" sentence with protocol/article name and URL for any clinical claim. If the exact URL is unknown, provide a PubMed search URL: https://pubmed.ncbi.nlm.nih.gov/?term=...
         LANGUAGE: ${langMap[language]}.
         History: ${JSON.stringify(debateHistory)}
     `;
@@ -2151,7 +2207,7 @@ export const runScenarioAnalysis = async (
 export const explainRationale = async (message: ChatMessage, patientData: PatientData, debateHistory: ChatMessage[], language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
-    const prompt = `Explain medical rationale for message: "${message.content}". Reference symptoms and protocols. Include source/protocol/article names and URLs (PubMed/DOI/guideline) for key claims; do not invent URLs, write "URL kerak" if exact URL is unknown. LANGUAGE: ${langMap[language]}. Patient: ${JSON.stringify(rest)}.`;
+    const prompt = `Explain medical rationale for message: "${message.content}". Reference symptoms and protocols. Include source/protocol/article names and URLs (PubMed/DOI/guideline) for key claims; if the exact URL is unknown, provide a PubMed search URL: https://pubmed.ncbi.nlm.nih.gov/?term=... LANGUAGE: ${langMap[language]}. Patient: ${JSON.stringify(rest)}.`;
     return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 

@@ -105,11 +105,24 @@ const AdverseEventRiskCard: React.FC<{risks: FinalReport['adverseEventRisks']}> 
 const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> = ({research}) => {
     const { t } = useTranslation();
     if (!research || research.length === 0) return null;
+    const sourceUrl = (title: string, url?: string) => {
+        const raw = (url || '').trim();
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(title || raw || 'clinical guideline')}`;
+    };
     return (
         <Section title={t('final_report_related_research_title')} icon={<GlobeIcon className="w-6 h-6"/>}>
             {research.map((item, i) => (
                 <div key={i} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="font-bold text-accent-color-blue hover:underline">{item.title}</a>
+                    {(() => {
+                        const url = sourceUrl(item.title, item.url);
+                        return (
+                            <>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="font-bold text-accent-color-blue hover:underline">{item.title}</a>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="block text-xs text-accent-color-blue hover:underline break-all mt-1">{url}</a>
+                            </>
+                        );
+                    })()}
                     <p className="text-xs text-text-secondary mt-1">{item.summary}</p>
                 </div>
             ))}
@@ -377,11 +390,11 @@ const FinalReportCard: React.FC<{
                             ) : (
                                 <div className="space-y-2 text-sm text-slate-600">
                                     <p className="italic text-slate-500">
-                                        Yakuniy JSONda davolash rejasi bo‘sh kelgan. Quyidagi «Dori-darmonlar» bo‘limi va konsensus tashxisiga qarab, «Tahrirlash» orqali 3–5 ta aniq qadamni qo‘lda yozishingiz mumkin.
+                                        {t('final_report_empty_plan_note')}
                                     </p>
                                     {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) && (
                                         <p className="text-xs text-slate-500">
-                                            Masalan, dori blokidagi tavsiyalar asosida: birinchi qadam — tashxisni tasdiqlash / qo‘shimcha tekshiruv; keyingi qadamlar — dori rejasi va kuzatuv.
+                                            {t('final_report_empty_plan_hint')}
                                         </p>
                                     )}
                                 </div>
