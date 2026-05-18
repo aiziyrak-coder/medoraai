@@ -98,7 +98,19 @@ def main() -> None:
 cd /root/aidoktorfjsti/frontend
 mkdir -p public/fonts
 if [ ! -s public/fonts/AiDoktorSans.ttf ]; then
-  cp /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf public/fonts/AiDoktorSans.ttf
+  for FONT in \
+    /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
+    /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \
+    /usr/share/fonts/truetype/freefont/FreeSans.ttf \
+    /usr/share/fonts/dejavu/DejaVuSans.ttf; do
+    if [ -s "$FONT" ]; then
+      cp "$FONT" public/fonts/AiDoktorSans.ttf
+      break
+    fi
+  done
+  if [ ! -s public/fonts/AiDoktorSans.ttf ]; then
+    echo "WARN: Unicode PDF font not found; PDF will use built-in fallback"
+  fi
 fi
 npm run build
 sudo nginx -t
