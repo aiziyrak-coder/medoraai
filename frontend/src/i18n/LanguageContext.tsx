@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, ReactNode } from 'react';
 
-export type Language = 'uz-L' | 'uz-C' | 'ru' | 'en';
+export type Language = 'uz-L' | 'uz-C' | 'ru' | 'en' | 'kaa';
 
 interface LanguageContextType {
     language: Language;
@@ -23,12 +23,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
                 localStorage.removeItem('preferred_language');
                 return 'uz-L';
             }
-            // Migration: Karakalpak (kaa) was removed; fall back to Uzbek Latin
-            if (saved === 'kaa') {
-                localStorage.removeItem('preferred_language');
-                return 'uz-L';
-            }
-            if (saved && ['uz-L', 'uz-C', 'ru', 'en'].includes(saved)) {
+            if (saved && ['uz-L', 'uz-C', 'ru', 'en', 'kaa'].includes(saved)) {
                 return saved;
             }
         }

@@ -6,6 +6,7 @@ import type { Language } from '../i18n/LanguageContext';
 const languageOptions: { id: Language; label: string; short: string; }[] = [
     { id: 'uz-C', label: "Ўзбекча (Кирилл)", short: "ЎЗБ" },
     { id: 'uz-L', label: "O'zbekcha (Lotin)", short: "O'ZB" },
+    { id: 'kaa', label: "Qaraqalpaqsha", short: "QAA" },
     { id: 'ru', label: "Русский", short: "РУС" },
     { id: 'en', label: "English", short: "ENG" },
 ];

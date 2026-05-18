@@ -29,8 +29,14 @@ function dataUrlToArrayBuffer(dataUrl: string): Uint8Array {
 export const generateDocxReport = async (
     report: FinalReport,
     patientData: PatientData,
-    branding?: InstituteBranding
+    branding?: InstituteBranding,
+    t?: (key: string) => string,
 ) => {
+    const tr = (key: string, fallback: string): string => {
+        if (!t) return fallback;
+        const translated = t(key);
+        return translated === key ? fallback : translated;
+    };
     const children: Paragraph[] = [];
 
     if (branding?.instituteName || branding?.instituteLogoDataUrl) {
@@ -65,71 +71,77 @@ export const generateDocxReport = async (
 
     const reportDate = new Date();
     const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const genderText =
+        patientData.gender === 'male'
+            ? tr('pdf_gender_male', 'Erkak')
+            : patientData.gender === 'female'
+                ? tr('pdf_gender_female', 'Ayol')
+                : tr('pdf_gender_other', 'Boshqa');
 
     children.push(
         new Paragraph({
-            text: "KONSILIUM: Yakuniy Klinik Xulosa",
+            text: tr('pdf_title', 'KONSILIUM: Yakuniy Klinik Xulosa'),
             heading: HeadingLevel.TITLE,
             alignment: AlignmentType.CENTER,
         }),
         new Paragraph({
-            children: [new TextRun({ text: "Rasmiy tibbiy maslahat hujjati. Hisobot sanasi: " + dateStr, italics: true, size: 20 })],
+            children: [new TextRun({ text: `${tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati. Faqat ma'lumot uchun.")} ${tr('pdf_date', 'Sana')}: ${dateStr}`, italics: true, size: 20 })],
             alignment: AlignmentType.CENTER,
             spacing: { after: 200 },
         }),
         new Paragraph({ text: "\n" }),
 
-        createHeading1("Bemor Ma'lumotlari"),
-        createKeyValue("Bemor", `${patientData.firstName} ${patientData.lastName}`),
-        createKeyValue("Yoshi", patientData.age),
-        createKeyValue("Jinsi", patientData.gender === 'male' ? 'Erkak' : patientData.gender === 'female' ? 'Ayol' : 'Boshqa'),
-        createKeyValue("Shikoyatlar va Anamnez", patientData.complaints),
-        createKeyValue("Kasallik Tarixi", patientData.history),
-        createKeyValue("Ob'ektiv Ko'rik", patientData.objectiveData),
-        createKeyValue("Laborator Tahlillar", patientData.labResults),
+        createHeading1(tr('pdf_patient_info', "Bemor Ma'lumotlari")),
+        createKeyValue(tr('pdf_patient', 'Bemor'), `${patientData.firstName} ${patientData.lastName}`),
+        createKeyValue(tr('pdf_age', 'Yoshi'), patientData.age),
+        createKeyValue(tr('pdf_gender', 'Jinsi'), genderText),
+        createKeyValue(tr('docx_complaints_history', 'Shikoyatlar va Anamnez'), patientData.complaints),
+        createKeyValue(tr('docx_medical_history', 'Kasallik Tarixi'), patientData.history),
+        createKeyValue(tr('docx_objective_exam', "Ob'ektiv Ko'rik"), patientData.objectiveData),
+        createKeyValue(tr('docx_laboratory_tests', 'Laborator Tahlillar'), patientData.labResults),
 
         ...(report.criticalFinding && report.criticalFinding.finding ? [
-            createHeading1("Muhim topilma (shoshilinch)"),
-            createKeyValue("Topilma", report.criticalFinding.finding),
-            createKeyValue("Oqibat", report.criticalFinding.implication),
-            createKeyValue("Shoshilinchlik", report.criticalFinding.urgency),
+            createHeading1(tr('pdf_critical_finding', 'Muhim topilma (Shoshilinch)')),
+            createKeyValue(tr('docx_finding', 'Topilma'), report.criticalFinding.finding),
+            createKeyValue(tr('docx_implication', 'Oqibat'), report.criticalFinding.implication),
+            createKeyValue(tr('pdf_urgency', 'Shoshilinchlik'), report.criticalFinding.urgency),
             new Paragraph({ text: "" }),
         ] : []),
 
-        createHeading1("Konsilium Konsensusi"),
-        createHeading2("Eng Ehtimolli Tashxis(lar)"),
+        createHeading1(tr('pdf_consensus', 'Konsilium Konsensusi')),
+        createHeading2(tr('docx_most_likely_diagnoses', 'Eng Ehtimolli Tashxis(lar)')),
         ...normalizeConsensusDiagnosis(report.consensusDiagnosis).flatMap(diag => [
-            createKeyValue("Tashxis", `${diag.name} (${diag.probability}%)`),
-            createKeyValue("Dalillilik Darajasi", diag.evidenceLevel || "N/A"),
-            createKeyValue("Asoslash", diag.justification),
+            createKeyValue(tr('docx_diagnosis', 'Tashxis'), `${diag.name} (${diag.probability}%)`),
+            createKeyValue(tr('docx_evidence_level', 'Dalillilik Darajasi'), diag.evidenceLevel || "N/A"),
+            createKeyValue(tr('docx_justification', 'Asoslash'), diag.justification),
             new Paragraph({ text: "" }),
         ]),
 
-        createHeading2("Tavsiya Etilgan Davolash Rejasi"),
+        createHeading2(tr('pdf_treatment_plan', 'Tavsiya Etilgan Davolash Rejasi')),
         ...(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map((step: unknown) =>
             createListItem(typeof step === 'string' ? step : (step && typeof step === 'object' ? [(step as Record<string, unknown>).step, (step as Record<string, unknown>).details, (step as Record<string, unknown>).text].filter(Boolean).map(String).join(' - ') || JSON.stringify(step) : String(step ?? '')))
         ),
         new Paragraph({ text: "" }),
 
-        createHeading2("Dori-Darmonlar bo'yicha Tavsiyalar"),
+        createHeading2(tr('pdf_medications', "Dori-Darmonlar bo'yicha Tavsiyalar")),
         ...report.medicationRecommendations.flatMap(med => [
-            createKeyValue("Nomi", med.name),
-            createKeyValue("Doza", med.dosage),
-            createKeyValue("Izoh", med.notes),
+            createKeyValue(tr('docx_med_name', 'Nomi'), med.name),
+            createKeyValue(tr('docx_dose', 'Doza'), med.dosage),
+            createKeyValue(tr('docx_note', 'Izoh'), med.notes),
             new Paragraph({ text: "" }),
         ]),
 
         ...(report.folkMedicine && (report.folkMedicine.items?.length || report.folkMedicine.intro || report.folkMedicine.disclaimer) ? [
-            createHeading2("Xalq tabobati va dorivor o'simliklar (qo'shimcha)"),
-            new Paragraph({ children: [new TextRun({ text: "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi.", italics: true })], spacing: { after: 120 } }),
-            ...(report.folkMedicine.intro ? [createKeyValue("Kirish", report.folkMedicine.intro)] : []),
-            ...(report.folkMedicine.disclaimer ? [createKeyValue("Ogohlantirish", report.folkMedicine.disclaimer)] : []),
+            createHeading2(tr('pdf_folk_medicine', "Xalq tabobati va dorivor o'simliklar (qo'shimcha)")),
+            new Paragraph({ children: [new TextRun({ text: tr('pdf_folk_medicine_note', "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi."), italics: true })], spacing: { after: 120 } }),
+            ...(report.folkMedicine.intro ? [createKeyValue(tr('docx_intro', 'Kirish'), report.folkMedicine.intro)] : []),
+            ...(report.folkMedicine.disclaimer ? [createKeyValue(tr('docx_warning', 'Ogohlantirish'), report.folkMedicine.disclaimer)] : []),
             ...(report.folkMedicine.items ?? []).flatMap(it => [
-                createKeyValue("O'simlik", it.plantName),
-                ...(it.plantPart ? [createKeyValue("Qismi", it.plantPart)] : []),
-                ...(it.preparationOrUsage ? [createKeyValue("Tayyorlash / qo'llash", it.preparationOrUsage)] : []),
-                ...(it.traditionalContext ? [createKeyValue("An'anaviy kontekst", it.traditionalContext)] : []),
-                ...(it.precautions ? [createKeyValue("Ehtiyotkorlik", it.precautions)] : []),
+                createKeyValue(tr('docx_plant', "O'simlik"), it.plantName),
+                ...(it.plantPart ? [createKeyValue(tr('docx_plant_part', 'Qismi'), it.plantPart)] : []),
+                ...(it.preparationOrUsage ? [createKeyValue(tr('docx_preparation_usage', "Tayyorlash / qo'llash"), it.preparationOrUsage)] : []),
+                ...(it.traditionalContext ? [createKeyValue(tr('docx_traditional_context', "An'anaviy kontekst"), it.traditionalContext)] : []),
+                ...(it.precautions ? [createKeyValue(tr('docx_precautions', 'Ehtiyotkorlik'), it.precautions)] : []),
                 new Paragraph({ text: "" }),
             ]),
         ] : []),
@@ -140,32 +152,32 @@ export const generateDocxReport = async (
                 report.nutritionPrevention.intro ||
                 report.nutritionPrevention.disclaimer)
             ? [
-                createHeading2("To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)"),
+                createHeading2(tr('pdf_nutrition_prevention', "To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)")),
                 new Paragraph({
-                    children: [new TextRun({ text: "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat.", italics: true })],
+                    children: [new TextRun({ text: tr('pdf_nutrition_note', 'Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat.'), italics: true })],
                     spacing: { after: 120 },
                 }),
                 ...(report.nutritionPrevention.intro
-                    ? [createKeyValue("Kirish", report.nutritionPrevention.intro)]
+                    ? [createKeyValue(tr('docx_intro', 'Kirish'), report.nutritionPrevention.intro)]
                     : []),
                 new Paragraph({
-                    children: [new TextRun({ text: "To'g'ri ovqatlanish bo'yicha:", bold: true })],
+                    children: [new TextRun({ text: tr('pdf_dietary_guidelines', "To'g'ri ovqatlanish bo'yicha:"), bold: true })],
                     spacing: { before: 120, after: 80 },
                 }),
                 ...report.nutritionPrevention.dietaryGuidelines.map((line) => createListItem(line)),
                 new Paragraph({
-                    children: [new TextRun({ text: 'Profilaktika va oldini olish:', bold: true })],
+                    children: [new TextRun({ text: tr('pdf_prevention_measures', 'Profilaktika va oldini olish:'), bold: true })],
                     spacing: { before: 200, after: 80 },
                 }),
                 ...report.nutritionPrevention.preventionMeasures.map((line) => createListItem(line)),
                 ...(report.nutritionPrevention.disclaimer
-                    ? [createKeyValue("Eslatma", report.nutritionPrevention.disclaimer)]
+                    ? [createKeyValue(tr('docx_reminder', 'Eslatma'), report.nutritionPrevention.disclaimer)]
                     : []),
                 new Paragraph({ text: '' }),
             ]
             : []),
 
-        createHeading2("Tavsiya Etiladigan Qo'shimcha Tekshiruvlar"),
+        createHeading2(tr('pdf_tests', "Tavsiya Etiladigan Qo'shimcha Tekshiruvlar")),
         ...(Array.isArray(report.recommendedTests) ? report.recommendedTests : []).map((test: unknown) => {
             const str = typeof test === 'string' ? test : (test && typeof test === 'object'
                 ? [(test as Record<string, unknown>).testName ?? (test as Record<string, unknown>).name, (test as Record<string, unknown>).reason, (test as Record<string, unknown>).urgency].filter(Boolean).map(String).join(' - ') || JSON.stringify(test)
@@ -174,15 +186,25 @@ export const generateDocxReport = async (
         }),
         new Paragraph({ text: "" }),
         
-        createHeading2("Inkor Etilgan Gipotezalar"),
+        createHeading2(tr('pdf_rejected', 'Inkor Etilgan Gipotezalar')),
          ...report.rejectedHypotheses.flatMap(hyp => [
-            createKeyValue("Gipoteza", hyp.name),
-            createKeyValue("Rad etish sababi", hyp.reason),
+            createKeyValue(tr('docx_hypothesis', 'Gipoteza'), hyp.name),
+            createKeyValue(tr('docx_rejection_reason', 'Rad etish sababi'), hyp.reason),
             new Paragraph({ text: "" }),
         ]),
 
+        ...(report.relatedResearch && report.relatedResearch.length > 0 ? [
+            createHeading2(tr('final_report_related_research_title', 'Dalillar va manbalar')),
+            ...report.relatedResearch.slice(0, 6).flatMap((item) => [
+                createKeyValue(tr('docx_source_title', 'Manba'), item.title),
+                createKeyValue('URL', item.url),
+                createKeyValue(tr('docx_source_evidence', 'Dalil'), item.summary),
+                new Paragraph({ text: "" }),
+            ]),
+        ] : []),
+
         ...(report.uzbekistanLegislativeNote ? [
-            createHeading2("Qonuniy eslatma"),
+            createHeading2(tr('docx_legal_note', 'Qonuniy eslatma')),
             new Paragraph({ children: [new TextRun(report.uzbekistanLegislativeNote)], spacing: { after: 200 } }),
         ] : []),
     );
@@ -202,7 +224,7 @@ export const generateDocxReport = async (
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Tibbiy_Xulosa_${patientData.lastName}_${patientData.firstName}.docx`;
+        a.download = `${tr('docx_filename_prefix', 'Tibbiy_Xulosa')}_${patientData.lastName}_${patientData.firstName}.docx`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -210,6 +232,6 @@ export const generateDocxReport = async (
     } catch (e) {
         // DOCX generation error
         logger.error("Could not generate DOCX file.", e);
-        alert("DOCX faylini yaratishda xatolik yuz berdi.");
+        alert(tr('docx_generation_error', "DOCX faylini yaratishda xatolik yuz berdi."));
     }
 };

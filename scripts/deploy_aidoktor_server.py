@@ -34,6 +34,10 @@ CMD = """set -e
 cd /root/aidoktorfjsti
 git pull
 cd frontend
+mkdir -p public/fonts
+if [ ! -s public/fonts/AiDoktorSans.ttf ]; then
+  cp /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf public/fonts/AiDoktorSans.ttf
+fi
 npm run build
 sudo nginx -t
 sudo systemctl reload nginx

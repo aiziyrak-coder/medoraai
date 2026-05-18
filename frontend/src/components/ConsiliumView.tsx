@@ -389,7 +389,8 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                     await generateDocxReport(
                       result.final_report as unknown as FinalReport,
                       patientData,
-                      { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl }
+                      { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
+                      t
                     );
                   }}
                   className="px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-sm"

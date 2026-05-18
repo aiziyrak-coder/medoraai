@@ -62,7 +62,7 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
         await generateDocxReport(report, record.patientData!, {
             instituteName: INSTITUTE_NAME_FULL,
             instituteLogoDataUrl: logoDataUrl,
-        });
+        }, t);
     };
 
     return (

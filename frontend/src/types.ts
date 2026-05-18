@@ -201,6 +201,7 @@ export interface AdverseEventRisk {
 export interface RelatedResearch {
     title: string;
     url: string;
+    /** Short evidence note: what exactly this source supports. */
     summary: string;
 }
 

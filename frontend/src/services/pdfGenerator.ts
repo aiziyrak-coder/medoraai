@@ -13,6 +13,8 @@ interface jsPDFInternal {
 }
 
 const PDF_FONT = 'times' as const;
+const PDF_UNICODE_FONT = 'AiDoktorSans';
+const PDF_UNICODE_FONT_URL = '/fonts/AiDoktorSans.ttf';
 const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
 const FOOTER_RESERVE = 12;
@@ -20,6 +22,32 @@ const MARGIN = 10;
 export interface InstituteBranding {
     instituteName?: string;
     instituteLogoDataUrl?: string;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+}
+
+async function setupPdfFont(doc: jsPDF): Promise<string> {
+    try {
+        const res = await fetch(PDF_UNICODE_FONT_URL, { cache: 'force-cache' });
+        if (!res.ok) return PDF_FONT;
+        const fontBase64 = arrayBufferToBase64(await res.arrayBuffer());
+        doc.addFileToVFS(`${PDF_UNICODE_FONT}.ttf`, fontBase64);
+        doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'normal');
+        doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'bold');
+        doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'italic');
+        doc.setFont(PDF_UNICODE_FONT, 'normal');
+        return PDF_UNICODE_FONT;
+    } catch {
+        return PDF_FONT;
+    }
 }
 
 export const generatePdfReport = async (
@@ -38,6 +66,7 @@ export const generatePdfReport = async (
         return fallback;
     };
     const doc = new jsPDF();
+    const fontName = await setupPdfFont(doc);
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     let y = MARGIN;
@@ -79,7 +108,7 @@ export const generatePdfReport = async (
             y = MARGIN;
         }
         doc.setFontSize(14);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(30, 41, 59);
         doc.text(text, MARGIN, y);
         y += 2;
@@ -94,7 +123,7 @@ export const generatePdfReport = async (
             y = MARGIN;
         }
         doc.setFontSize(10);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(50, 60, 80);
         doc.text(text, MARGIN, y);
         y += 4;
@@ -104,10 +133,10 @@ export const generatePdfReport = async (
     const addKeyValueCompact = (key: string, value: string | undefined | null, keyWidth = 40) => {
         if (!value) return;
         doc.setFontSize(9);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(80, 80, 80);
         doc.text(key + ':', MARGIN, y);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const splitValue = doc.splitTextToSize(value, pageWidth - MARGIN * 2 - keyWidth - 4);
         splitValue.forEach((line: string, i: number) => {
@@ -125,10 +154,10 @@ export const generatePdfReport = async (
         doc.setFontSize(9);
         let xPos = MARGIN;
         cols.forEach(col => {
-            doc.setFont(PDF_FONT, 'bold');
+            doc.setFont(fontName, 'bold');
             doc.setTextColor(80, 80, 80);
             doc.text(col.label + ':', xPos, y);
-            doc.setFont(PDF_FONT, 'normal');
+            doc.setFont(fontName, 'normal');
             doc.setTextColor(40, 40, 40);
             doc.text(col.value, xPos + doc.getTextWidth(col.label + ': ') + 2, y);
             xPos += col.width;
@@ -143,7 +172,7 @@ export const generatePdfReport = async (
             y = MARGIN;
         }
         doc.setFontSize(9);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const indent = MARGIN + 4;
         doc.text('\u2022', MARGIN + 2, y);
@@ -166,24 +195,24 @@ export const generatePdfReport = async (
     }
     
     doc.setFontSize(16);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(30, 41, 59);
     doc.text(tr('pdf_title', "KONSILIUM: Yakuniy Klinik Xulosa"), MARGIN, y);
     y += 5;
 
     doc.setFontSize(8);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati - doktor tavsiyasi sifatida. Faqat ma'lumot uchun."), MARGIN, y);
     const reportDate = new Date();
     const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    doc.text(`Sana: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
+    doc.text(`${tr('pdf_date', 'Sana')}: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
     
     // QR code label (positioned below QR code)
     if (qrDataUrl) {
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
-        doc.text('Skannerlang →', qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
+        doc.text(`${tr('pdf_scan', 'Skannerlang')} →`, qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
         doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
     
@@ -204,7 +233,7 @@ export const generatePdfReport = async (
     doc.rect(MARGIN, y, pageWidth - MARGIN * 2, rowHeight, 'F');
     drawLine(y);
     doc.setFontSize(9);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(50, 60, 80);
     doc.text(tr('pdf_patient_info', "BEMOR MA'LUMOTLARI"), MARGIN + 2, y + 4);
     y += rowHeight;
@@ -213,32 +242,43 @@ export const generatePdfReport = async (
     doc.setDrawColor(230, 230, 230);
     doc.line(MARGIN, y, pageWidth - MARGIN, y);
     const fullName = `${patientData.lastName} ${patientData.firstName}`.trim() + (patientData.fatherName ? ` ${patientData.fatherName}` : '');
-    const gender = patientData.gender === 'male' ? 'Erkak' : patientData.gender === 'female' ? 'Ayol' : 'Boshqa';
+    const gender = patientData.gender === 'male'
+        ? tr('pdf_gender_male', 'Erkak')
+        : patientData.gender === 'female'
+            ? tr('pdf_gender_female', 'Ayol')
+            : tr('pdf_gender_other', 'Boshqa');
     
     doc.setFontSize(9);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(80, 80, 80);
     doc.text(tr('pdf_patient', "Bemor:") + ' ', MARGIN + 2, y + 4);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(40, 40, 40);
     doc.text(fullName, MARGIN + 20, y + 4);
     
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(80, 80, 80);
     doc.text(tr('pdf_age', "Yoshi:") + ' ', MARGIN + col1Width + col2Width + 2, y + 4);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(40, 40, 40);
     doc.text(patientData.age, MARGIN + col1Width + col2Width + 18, y + 4);
+
+    doc.setFont(fontName, 'bold');
+    doc.setTextColor(80, 80, 80);
+    doc.text(tr('pdf_gender', "Jinsi:") + ' ', MARGIN + col1Width + 2, y + 4);
+    doc.setFont(fontName, 'normal');
+    doc.setTextColor(40, 40, 40);
+    doc.text(gender, MARGIN + col1Width + 18, y + 4);
     y += rowHeight;
 
     // Vital signs row if available
     if (patientData.objectiveData) {
         doc.line(MARGIN, y, pageWidth - MARGIN, y);
         doc.setFontSize(8);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(80, 80, 80);
         doc.text(tr('pdf_objective', "Ob'ektiv:") + ' ', MARGIN + 2, y + 4);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const vitalText = patientData.objectiveData.substring(0, 100);
         const vitalSplit = doc.splitTextToSize(vitalText, pageWidth - MARGIN * 2 - 22);
@@ -250,10 +290,10 @@ export const generatePdfReport = async (
     if (patientData.complaints) {
         doc.line(MARGIN, y, pageWidth - MARGIN, y);
         doc.setFontSize(8);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(80, 80, 80);
         doc.text(tr('pdf_complaints', "Shikoyat:") + ' ', MARGIN + 2, y + 4);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const compSplit = doc.splitTextToSize(patientData.complaints, pageWidth - MARGIN * 2 - 28);
         doc.text(compSplit[0] || '', MARGIN + 28, y + 4);
@@ -269,10 +309,10 @@ export const generatePdfReport = async (
     if (patientData.labResults) {
         doc.line(MARGIN, y, pageWidth - MARGIN, y);
         doc.setFontSize(8);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(80, 80, 80);
         doc.text(tr('pdf_lab', "Lab:") + ' ', MARGIN + 2, y + 4);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const labSplit = doc.splitTextToSize(patientData.labResults.substring(0, 200), pageWidth - MARGIN * 2 - 18);
         doc.text(labSplit[0] || '', MARGIN + 18, y + 4);
@@ -296,10 +336,10 @@ export const generatePdfReport = async (
         doc.setLineWidth(0.5);
         doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 16, 'S');
         doc.setFontSize(8);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(180, 50, 50);
         doc.text(tr('pdf_critical_finding', "Muhim topilma (Shoshilinch):"), MARGIN + 3, y + 4);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(80, 40, 40);
         const cfText = (report.criticalFinding.finding + ' - ' + report.criticalFinding.implication).substring(0, 120);
         const cfSplit = doc.splitTextToSize(cfText, pageWidth - MARGIN * 2 - 6);
@@ -307,7 +347,7 @@ export const generatePdfReport = async (
         if (cfSplit[1]) {
             doc.text(cfSplit[1], MARGIN + 3, y + 13);
         }
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(180, 50, 50);
         doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, y + 13, { align: 'right' });
         y += 20;
@@ -322,10 +362,10 @@ export const generatePdfReport = async (
     diagnoses.forEach((diag, idx) => {
         const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
         doc.setFontSize(9);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(40, 80, 120);
         doc.text(`${idx + 1}. ${diag.name}`, MARGIN, y);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(100, 100, 100);
         doc.text(`(${pct}) - ${diag.evidenceLevel || 'N/A'}`, pageWidth - MARGIN - 50, y, { align: 'left' });
         y += COMPACT_LINE;
@@ -358,11 +398,11 @@ export const generatePdfReport = async (
         const meds = report.medicationRecommendations.slice(0, 6);
         meds.forEach(med => {
             doc.setFontSize(9);
-            doc.setFont(PDF_FONT, 'bold');
+            doc.setFont(fontName, 'bold');
             doc.setTextColor(40, 80, 40);
             doc.text('\u2022 ' + (med.name || ''), MARGIN + 2, y);
             if (med.dosage) {
-                doc.setFont(PDF_FONT, 'normal');
+                doc.setFont(fontName, 'normal');
                 doc.setTextColor(80, 80, 80);
                 doc.text(med.dosage, MARGIN + 80, y);
             }
@@ -382,12 +422,12 @@ export const generatePdfReport = async (
         y += 2;
         addSectionTitle(tr('pdf_folk_medicine', "Xalq tabobati (qo'shimcha)"));
         doc.setFontSize(8);
-        doc.setFont(PDF_FONT, 'italic');
+        doc.setFont(fontName, 'italic');
         doc.setTextColor(100, 120, 100);
         const warn = tr('pdf_folk_medicine_note', "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi.");
         doc.text(warn, MARGIN, y);
         y += COMPACT_LINE + 1;
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         if (fm.intro?.trim()) {
             const introLines = doc.splitTextToSize(fm.intro, pageWidth - MARGIN * 2);
@@ -411,11 +451,11 @@ export const generatePdfReport = async (
         }
         (fm.items || []).slice(0, 8).forEach(it => {
             doc.setFontSize(9);
-            doc.setFont(PDF_FONT, 'bold');
+            doc.setFont(fontName, 'bold');
             doc.setTextColor(30, 90, 50);
             doc.text('\u2022 ' + (it.plantName || ''), MARGIN + 2, y);
             y += COMPACT_LINE;
-            doc.setFont(PDF_FONT, 'normal');
+            doc.setFont(fontName, 'normal');
             doc.setTextColor(60, 60, 60);
             const parts = [it.plantPart, it.preparationOrUsage, it.traditionalContext, it.precautions]
                 .filter(Boolean)
@@ -444,11 +484,11 @@ export const generatePdfReport = async (
             tr('pdf_nutrition_prevention', "To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)"),
         );
         doc.setFontSize(8);
-        doc.setFont(PDF_FONT, 'italic');
+        doc.setFont(fontName, 'italic');
         doc.setTextColor(80, 100, 130);
         doc.text(tr('pdf_nutrition_note', "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat."), MARGIN, y);
         y += COMPACT_LINE + 1;
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         if (np.intro?.trim()) {
             const introLines = doc.splitTextToSize(np.intro, pageWidth - MARGIN * 2);
@@ -460,11 +500,11 @@ export const generatePdfReport = async (
         }
         if ((np.dietaryGuidelines?.length ?? 0) > 0) {
             doc.setFontSize(9);
-            doc.setFont(PDF_FONT, 'bold');
+            doc.setFont(fontName, 'bold');
             doc.setTextColor(30, 80, 120);
             doc.text(tr('pdf_dietary_guidelines', "To'g'ri ovqatlanish bo'yicha:"), MARGIN, y);
             y += COMPACT_LINE;
-            doc.setFont(PDF_FONT, 'normal');
+            doc.setFont(fontName, 'normal');
             doc.setTextColor(50, 50, 50);
             np.dietaryGuidelines.slice(0, 12).forEach((line) => {
                 addBullet(line);
@@ -473,11 +513,11 @@ export const generatePdfReport = async (
         if ((np.preventionMeasures?.length ?? 0) > 0) {
             y += 1;
             doc.setFontSize(9);
-            doc.setFont(PDF_FONT, 'bold');
+            doc.setFont(fontName, 'bold');
             doc.setTextColor(30, 80, 120);
             doc.text(tr('pdf_prevention_measures', 'Profilaktika va oldini olish:'), MARGIN, y);
             y += COMPACT_LINE;
-            doc.setFont(PDF_FONT, 'normal');
+            doc.setFont(fontName, 'normal');
             doc.setTextColor(50, 50, 50);
             np.preventionMeasures.slice(0, 12).forEach((line) => {
                 addBullet(line);
@@ -522,7 +562,7 @@ export const generatePdfReport = async (
         const risks = report.adverseEventRisks.slice(0, 3);
         risks.forEach(risk => {
             doc.setFontSize(8);
-            doc.setFont(PDF_FONT, 'normal');
+            doc.setFont(fontName, 'normal');
             doc.setTextColor(40, 40, 40);
             doc.text(`\u2022 ${risk.drug}: ${risk.risk} (~${Math.round(risk.probability * 100)}%)`, MARGIN + 2, y);
             y += COMPACT_LINE;
@@ -536,10 +576,35 @@ export const generatePdfReport = async (
         const hypotheses = report.rejectedHypotheses.slice(0, 3);
         hypotheses.forEach(hyp => {
             doc.setFontSize(8);
-            doc.setFont(PDF_FONT, 'normal');
+            doc.setFont(fontName, 'normal');
             doc.setTextColor(100, 100, 100);
             doc.text(`\u2022 ${hyp.name}: ${hyp.reason}`, MARGIN + 2, y);
             y += COMPACT_LINE;
+        });
+    }
+
+    // Evidence sources and article/guideline links
+    if (report.relatedResearch && report.relatedResearch.length > 0) {
+        y += 2;
+        addSectionTitle(tr('final_report_related_research_title', 'Dalillar va manbalar'));
+        report.relatedResearch.slice(0, 6).forEach((item) => {
+            const source = `${item.title}${item.url ? ` — ${item.url}` : ''}`;
+            addBullet(source);
+            if (item.summary) {
+                doc.setFontSize(7);
+                doc.setTextColor(90, 90, 90);
+                const summaryLines = doc.splitTextToSize(item.summary, pageWidth - MARGIN * 2 - 8);
+                summaryLines.slice(0, 2).forEach((line: string) => {
+                    if (y > pageHeight - 20) {
+                        doc.addPage();
+                        y = MARGIN;
+                    }
+                    doc.text(line, MARGIN + 8, y);
+                    y += COMPACT_LINE;
+                });
+                doc.setFontSize(9);
+                doc.setTextColor(40, 40, 40);
+            }
         });
     }
 
@@ -549,7 +614,7 @@ export const generatePdfReport = async (
         doc.setFillColor(250, 250, 245);
         doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 8, 'F');
         doc.setFontSize(7);
-        doc.setFont(PDF_FONT, 'italic');
+        doc.setFont(fontName, 'italic');
         doc.setTextColor(100, 100, 80);
         const noteSplit = doc.splitTextToSize(report.uzbekistanLegislativeNote, pageWidth - MARGIN * 2 - 6);
         doc.text(noteSplit[0] || '', MARGIN + 3, y + 5);
@@ -575,7 +640,7 @@ export const generatePdfReport = async (
         // Regular footer line
         drawLine(pageHeight - FOOTER_RESERVE - 2, [200, 200, 200]);
         doc.setFontSize(7);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(120, 120, 120);
         doc.text(footerText, MARGIN, pageHeight - 5);
         doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, pageHeight - 5, { align: 'right' });
@@ -594,23 +659,23 @@ export const generatePdfReport = async (
     
     // Row 1: Platform name + link
     doc.setFontSize(7);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(50, 60, 80);
     doc.text(promoText, MARGIN + 3, promoY + 2);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(30, 100, 180);
     doc.text(promoLink, MARGIN + 70, promoY + 2);
     
     // Row 2: Two phone numbers
     doc.setTextColor(60, 60, 60);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
     
     // Row 3: Mahsulot veb-sayti (AiDoktor)
-    doc.setFont(PDF_FONT, 'italic');
+    doc.setFont(fontName, 'italic');
     doc.setTextColor(30, 100, 180);
     doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(
         `  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`,
@@ -620,11 +685,11 @@ export const generatePdfReport = async (
 
     // O‘ng tomonda mahsulot nomi va mualliflik (institut logotipi ishlatilmaydi)
     doc.setFontSize(8);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(25, 55, 95);
     doc.text(tr('pdf_product_brand_footer', 'AiDoktor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
     doc.setFontSize(5);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(110, 110, 110);
     doc.text(
         tr('pdf_product_copyright_short', '© Mualliflik huquqi himoyalangan'),
@@ -650,6 +715,7 @@ export const generateUziUttPdf = async (
         return fallback;
     };
     const doc = new jsPDF();
+    const fontName = await setupPdfFont(doc);
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     let y = MARGIN;
@@ -683,11 +749,11 @@ export const generateUziUttPdf = async (
     const addParagraph = (label: string, body: string, fontSize = 9) => {
         ensureSpace(28);
         doc.setFontSize(10);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(50, 60, 80);
         doc.text(label, MARGIN, y);
         y += LINE_HEIGHT;
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setFontSize(fontSize);
         doc.setTextColor(40, 40, 40);
         const lines = doc.splitTextToSize(body || '—', pageWidth - MARGIN * 2);
@@ -702,11 +768,11 @@ export const generateUziUttPdf = async (
     const addBulletList = (title: string, items: string[], limit = 10) => {
         ensureSpace(16);
         doc.setFontSize(10);
-        doc.setFont(PDF_FONT, 'bold');
+        doc.setFont(fontName, 'bold');
         doc.setTextColor(50, 60, 80);
         doc.text(title, MARGIN, y);
         y += LINE_HEIGHT + 1;
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setFontSize(9);
         doc.setTextColor(40, 40, 40);
         const list = (items.length ? items : ['—']).slice(0, Math.max(1, limit));
@@ -739,25 +805,25 @@ export const generateUziUttPdf = async (
     const headerTextX = MARGIN;
 
     doc.setFontSize(16);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(30, 41, 59);
     doc.text(title, headerTextX, y);
     y += 5;
 
     doc.setFontSize(8);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2 - (qrSize + 6));
     doc.text(subLines[0] || '', headerTextX, y);
 
     const reportDate = new Date();
     const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    doc.text(`Sana: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
+    doc.text(`${tr('pdf_date', 'Sana')}: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
 
     if (qrDataUrl) {
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
-        doc.text('Skannerlang →', qrX + qrSize / 2, qrY + qrSize + 2, { align: 'center' });
+        doc.text(`${tr('pdf_scan', 'Skannerlang')} →`, qrX + qrSize / 2, qrY + qrSize + 2, { align: 'center' });
         doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
 
@@ -765,7 +831,7 @@ export const generateUziUttPdf = async (
     drawLine(y, [150, 150, 150]);
     y += 6;
 
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setFontSize(9);
     doc.setTextColor(60, 60, 70);
     const urgLabel = tr('pdf_uzi_utt_urgency', 'Shoshilinchlik');
@@ -808,7 +874,7 @@ export const generateUziUttPdf = async (
         doc.setPage(i);
         drawLine(pageHeight - FOOTER_RESERVE - 2, [200, 200, 200]);
         doc.setFontSize(7);
-        doc.setFont(PDF_FONT, 'normal');
+        doc.setFont(fontName, 'normal');
         doc.setTextColor(120, 120, 120);
         doc.text(footerText, MARGIN, pageHeight - 5);
         doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, pageHeight - 5, { align: 'right' });
@@ -822,26 +888,26 @@ export const generateUziUttPdf = async (
     doc.setLineWidth(0.3);
     doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'S');
     doc.setFontSize(7);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(50, 60, 80);
     doc.text(promoText, MARGIN + 3, promoY + 2);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(30, 100, 180);
     doc.text(promoLink, MARGIN + 70, promoY + 2);
     doc.setTextColor(60, 60, 60);
     doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
-    doc.setFont(PDF_FONT, 'italic');
+    doc.setFont(fontName, 'italic');
     doc.setTextColor(30, 100, 180);
     doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(`  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`, MARGIN + 24, promoY + 10);
     doc.setFontSize(8);
-    doc.setFont(PDF_FONT, 'bold');
+    doc.setFont(fontName, 'bold');
     doc.setTextColor(25, 55, 95);
     doc.text(tr('pdf_product_brand_footer', 'AiDoktor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
     doc.setFontSize(5);
-    doc.setFont(PDF_FONT, 'normal');
+    doc.setFont(fontName, 'normal');
     doc.setTextColor(110, 110, 110);
     doc.text(
         tr('pdf_product_copyright_short', '© Mualliflik huquqi himoyalangan'),
