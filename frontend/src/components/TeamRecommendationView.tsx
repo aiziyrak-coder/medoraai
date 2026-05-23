@@ -17,7 +17,7 @@ interface TeamRecommendationViewProps {
 }
 
 // Internal constant for the most powerful model - not shown to user
-const INTERNAL_BEST_MODEL = "Gemini 3.0 Pro";
+const INTERNAL_BEST_MODEL = "Claude Opus 4.7";
 
 const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recommendations, isProcessing, onConfirm }) => {
     const { t } = useTranslation();

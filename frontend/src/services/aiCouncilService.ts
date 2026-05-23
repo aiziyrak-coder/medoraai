@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import type {
     PatientData,
     Diagnosis,
@@ -32,64 +31,71 @@ import { handleError, getUserFriendlyError } from '../utils/errorHandler';
 import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
 
-// --- GEMINI AI (single provider) ---
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const validKey = !!(GEMINI_API_KEY && GEMINI_API_KEY !== 'your-gemini-api-key-here');
+// --- Claude AI (Anthropic) ---
+const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
+const validKey = !!(ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'your-anthropic-api-key-here');
 
-/** Client-side Gemini (Vite build-time key). Backend `GEMINI_API_KEY` alone does not enable this. */
-export function isBrowserGeminiConfigured(): boolean {
+/** Client-side Claude (Vite build-time key). Backend `ANTHROPIC_API_KEY` alone does not enable browser AI. */
+export function isBrowserClaudeConfigured(): boolean {
   return validKey;
 }
 
-let _geminiClient: GoogleGenAI | null = null;
-function getGemini(): GoogleGenAI {
-  if (!validKey) {
-    throw new Error('Gemini AI xizmati sozlanmagan. Iltimos, VITE_GEMINI_API_KEY ni .env faylga kiriting.');
-  }
-  if (!_geminiClient) {
-    _geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-  }
-  return _geminiClient;
+/** @deprecated use isBrowserClaudeConfigured */
+export function isBrowserGeminiConfigured(): boolean {
+  return isBrowserClaudeConfigured();
 }
 
-/*
- * Asosiy tez: gemini-2.5-flash-lite — 2.5-flash ko‘pincha 503 (yuk) beradi, lite odatda ishlaydi.
- * Keyin to‘liq flash va boshqa zaxiralar. Pro: gemini-3.1-pro-preview.
- * Override: VITE_GEMINI_MODEL_FAST / VITE_GEMINI_MODEL_PRO
- */
+type ClaudeMessageContent =
+    | string
+    | Array<
+        | { type: 'text'; text: string }
+        | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+      >;
+
+async function claudeMessagesCreate(params: {
+    model: string;
+    max_tokens: number;
+    temperature?: number;
+    system?: string;
+    messages: Array<{ role: 'user'; content: ClaudeMessageContent }>;
+}): Promise<{ content: Array<{ type: string; text?: string }> }> {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        throw new Error(`Claude API ${res.status}: ${errBody.slice(0, 400)}`);
+    }
+    return res.json();
+}
+
 const MODEL_FAST =
-    (import.meta.env.VITE_GEMINI_MODEL_FAST as string | undefined)?.trim() || 'gemini-2.5-flash-lite';
+    (import.meta.env.VITE_CLAUDE_MODEL_FAST as string | undefined)?.trim() || 'claude-sonnet-4-6';
 const MODEL_PRO =
-    (import.meta.env.VITE_GEMINI_MODEL_PRO as string | undefined)?.trim() || 'gemini-3.1-pro-preview';
-/** Aliases used across council/debate */
+    (import.meta.env.VITE_CLAUDE_MODEL_PRO as string | undefined)?.trim() || 'claude-opus-4-7';
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
 
-/**
- * Zaxira: avvalo to‘liq 2.5-flash (sifat), keyin 3.x / latest / pro.
- */
-const GEMINI_FALLBACK_AFTER_PRO: readonly string[] = [
-    'gemini-2.5-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3-flash-preview',
-    'gemini-flash-latest',
-    'gemini-2.5-pro',
-    'gemini-3.1-pro-preview',
+const CLAUDE_FALLBACK_AFTER_PRO: readonly string[] = [
+    'claude-sonnet-4-6',
+    'claude-opus-4-7',
+    'claude-opus-4-6',
 ];
-const GEMINI_FALLBACK_AFTER_FLASH: readonly string[] = [
-    'gemini-2.5-flash',
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3-flash-preview',
-    'gemini-flash-latest',
-    'gemini-2.5-pro',
-    'gemini-3.1-pro-preview',
+const CLAUDE_FALLBACK_AFTER_FLASH: readonly string[] = [
+    'claude-sonnet-4-6',
+    'claude-opus-4-7',
 ];
 
-/** Map model label to Gemini model name */
 function mapModel(modelLabel: string): string {
   const m = (modelLabel || '').toLowerCase();
-  if (m.includes('flash') || m.includes('mini')) return MODEL_FAST;
+  if (m.includes('sonnet') || m.includes('flash') || m.includes('mini') || m.includes('haiku')) return MODEL_FAST;
   return MODEL_PRO;
 }
 
@@ -285,8 +291,7 @@ const getSystemInstruction = (language: Language): string => {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-/** @google/genai ba'zan HTTP kodini message tashqarida qoldiradi — zanjir va retry uchun bitta qator */
-function geminiErrorFingerprint(err: unknown): string {
+function claudeErrorFingerprint(err: unknown): string {
     const parts: string[] = [];
     const walk = (e: unknown, depth: number): void => {
         if (depth > 6 || e == null) return;
@@ -527,10 +532,14 @@ const getRelevantHistoryContext = (currentComplaints: string, pastCasesIn?: impo
     }
 };
 
+type ClaudeContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } };
+
 /**
- * Core Gemini API call. Supports text & multimodal (images via base64 inlineData).
+ * Core Claude API call. Supports text & multimodal (images via base64).
  */
-const callGemini = async (
+const callClaude = async (
     prompt: string | { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> },
     model: string = MODEL_PRO,
     responseSchema?: unknown,
@@ -539,21 +548,31 @@ const callGemini = async (
     shouldRetry: boolean = true,
     maxOutputTokens?: number
 ): Promise<unknown> => {
-    const geminiModel = mapModel(model);
+    const claudeModel = mapModel(model);
     const wantJson = !!responseSchema;
     const sys = systemInstruction || "Siz professional tibbiy AI yordamchisiz. O'zbekiston kontekstida javob bering; protokollar asos, yangi samarali davolash yo'llarini topish maqsadida dalil bo'lsa protokollardan voz kechish mumkin.";
 
-    const buildContents = (): string | Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> => {
+    const buildUserContent = (): string | ClaudeContentPart[] => {
         if (typeof prompt === 'string') {
             const userText = wantJson ? `${prompt}\n\nMuhim: Javobni FAQAT toza JSON formatida qaytaring.` : prompt;
-            return `${sys}\n\n${userText}`;
+            return userText;
         }
-        const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
-            { text: sys + '\n\n' + (wantJson ? 'Muhim: Javobni FAQAT toza JSON formatida qaytaring.\n\n' : '') },
-        ];
+        const parts: ClaudeContentPart[] = [];
         for (const part of prompt.parts) {
-            if ('text' in part) parts.push({ text: part.text });
-            else if ('inlineData' in part) parts.push({ inlineData: part.inlineData });
+            if ('text' in part) parts.push({ type: 'text', text: part.text });
+            else if ('inlineData' in part) {
+                parts.push({
+                    type: 'image',
+                    source: {
+                        type: 'base64',
+                        media_type: part.inlineData.mimeType,
+                        data: part.inlineData.data,
+                    },
+                });
+            }
+        }
+        if (wantJson && parts.length > 0 && parts[0].type === 'text') {
+            parts[0] = { type: 'text', text: parts[0].text + '\n\nMuhim: Javobni FAQAT toza JSON formatida qaytaring.' };
         }
         return parts;
     };
@@ -562,29 +581,30 @@ const callGemini = async (
     const pushModel = (id: string) => {
         if (id && !modelsToTry.includes(id)) modelsToTry.push(id);
     };
-    pushModel(geminiModel);
-    const extras = geminiModel === MODEL_PRO || geminiModel === DEPLOY_PRO
-        ? GEMINI_FALLBACK_AFTER_PRO
-        : GEMINI_FALLBACK_AFTER_FLASH;
+    pushModel(claudeModel);
+    const extras = claudeModel === MODEL_PRO || claudeModel === DEPLOY_PRO
+        ? CLAUDE_FALLBACK_AFTER_PRO
+        : CLAUDE_FALLBACK_AFTER_FLASH;
     for (const id of extras) pushModel(id);
 
     const executeCall = async (modelId?: string): Promise<unknown> => {
-        const useModel = modelId ?? geminiModel;
-        const contents = buildContents();
-        const ai = getGemini();
-        const isPro = (geminiModel === MODEL_PRO || geminiModel === DEPLOY_PRO);
-    const config: { temperature?: number; maxOutputTokens?: number; responseMimeType?: string } = {
-            temperature: 0.1,
-            maxOutputTokens: maxOutputTokens ?? (isPro ? 8192 : 4096),
-        };
-        if (wantJson) config.responseMimeType = 'application/json';
+        const useModel = modelId ?? claudeModel;
+        const userContent = buildUserContent();
+        const isPro = claudeModel === MODEL_PRO || claudeModel === DEPLOY_PRO;
 
-        const response = await ai.models.generateContent({
+        const response = await claudeMessagesCreate({
             model: useModel,
-            contents: typeof contents === 'string' ? contents : [{ role: 'user', parts: contents }],
-            config,
+            max_tokens: maxOutputTokens ?? (isPro ? 8192 : 4096),
+            temperature: 0.1,
+            system: sys,
+            messages: [{ role: 'user', content: userContent }],
         });
-        const text = (response.text ?? '').trim();
+
+        const text = (response.content || [])
+            .filter((b) => b.type === 'text' && b.text)
+            .map((b) => b.text || '')
+            .join('')
+            .trim();
 
         if (wantJson && text) {
             let cleaned = text;
@@ -598,7 +618,7 @@ const callGemini = async (
             } catch {
                 const repaired = tryRepairTruncatedJson(candidate);
                 if (repaired == null) {
-                    logger.error('Failed to parse JSON from Gemini:', candidate?.slice(0, 500));
+                    logger.error('Failed to parse JSON from Claude:', candidate?.slice(0, 500));
                     const err = new Error("AI_JSON_PARSE_ERROR");
                     (err as Error & { cause?: string }).cause = 'parse_json';
                     throw err;
@@ -617,17 +637,12 @@ const callGemini = async (
                 return await executeCall(m);
             } catch (e) {
                 lastErr = e;
-                const msg = geminiErrorFingerprint(e).toLowerCase();
+                const msg = claudeErrorFingerprint(e).toLowerCase();
                 const is404 = /404|not found|not_found|model.*not found|unsupported/i.test(msg);
-                const is503 = /503|502|504|unavailable|overloaded|deadline|econnreset|aborted|failed to fetch|service.?unavailable|load failed/i.test(msg);
-                const isRate = /429|resource_exhausted|rate_limit_exceeded|quota/i.test(msg);
+                const is503 = /503|502|504|529|unavailable|overloaded|deadline|econnreset|aborted|failed to fetch|service.?unavailable|load failed/i.test(msg);
+                const isRate = /429|rate_limit|quota/i.test(msg);
                 if (is404 || is503 || isRate) {
-                    logger.warning(
-                        'Gemini model %s not available (%s), trying next',
-                        m,
-                        isRate ? '429' : (is503 ? '503/502' : '404')
-                    );
-                    // 429: limit tushishi uchun kutish; keyingi model boshqa kvota bo‘lishi mumkin
+                    logger.warning('Claude model %s not available, trying next', m);
                     if (isRate) {
                         const base = 2500 * (idx + 1);
                         await sleep(Math.min(15000, base + Math.floor(Math.random() * 1200)));
@@ -639,9 +654,9 @@ const callGemini = async (
                 throw e;
             }
         }
-        const tail = geminiErrorFingerprint(lastErr);
+        const tail = claudeErrorFingerprint(lastErr);
         throw new Error(
-            tail ? `Gemini (${modelsToTry.join(' → ')}): ${tail}` : 'Gemini: barcha modellar muvaffaqiyatsiz'
+            tail ? `Claude (${modelsToTry.join(' → ')}): ${tail}` : 'Claude: barcha modellar muvaffaqiyatsiz'
         );
     };
 
@@ -654,22 +669,21 @@ const callGemini = async (
                 maxDelay: 28000,
                 backoffMultiplier: 2,
                 retryableErrors: [
-                    'network', 'timeout', 'fetch', 'connection', '503', '502', '504', 'unavailable', 'overloaded',
+                    'network', 'timeout', 'fetch', 'connection', '503', '502', '504', '529', 'unavailable', 'overloaded',
                     'deadline', 'aborted', 'econnreset', 'load failed',
                     'service unavailable', 'parse_json', "noto'g'ri", 'javob', 'invalid json',
-                    'failed to parse', 'rate_limit_exceeded', '429', 'resource_exhausted', 'quota',
-                    'gemini (', // executeWithModelFallback oxirgi xatolik
+                    'failed to parse', 'rate_limit', '429', 'quota', 'claude (',
                 ],
             });
         } catch (error) {
-            logger.error(`Error calling Gemini (model=${geminiModel}) after retries:`, error);
+            logger.error(`Error calling Claude (model=${claudeModel}) after retries:`, error);
             throw new Error(getUserFriendlyError(error, 'AI xizmati bilan muammo yuz berdi.'));
         }
     }
     try {
         return await executeWithModelFallback();
     } catch (error) {
-        logger.error(`Error calling Gemini (model=${geminiModel}):`, error);
+        logger.error(`Error calling Claude (model=${claudeModel}):`, error);
         throw new Error(getUserFriendlyError(error, 'AI xizmati bilan muammo yuz berdi.'));
     }
 };
@@ -790,7 +804,7 @@ export const generateFastDoctorConsultation = async (
     const usePro = (specialties?.length ?? 0) > 0;
     const DOCTOR_MODEL = usePro ? DEPLOY_PRO : DEPLOY_FAST;
     const runWithTokens = (maxTok: number) =>
-        callGemini(multimodalPrompt, DOCTOR_MODEL, finalReportSchema, false, systemInstr, true, maxTok) as Promise<Record<string, unknown>>;
+        callClaude(multimodalPrompt, DOCTOR_MODEL, finalReportSchema, false, systemInstr, true, maxTok) as Promise<Record<string, unknown>>;
 
     let result: Record<string, unknown>;
     try {
@@ -860,7 +874,7 @@ export const generateFastDoctorConsultationStream = async (
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     let fullText = '';
     try {
-        const result = await callGemini(multimodalPrompt, MODEL_FAST, { __json: true }, false, systemInstr, true, 1024);
+        const result = await callClaude(multimodalPrompt, MODEL_FAST, { __json: true }, false, systemInstr, true, 1024);
         fullText = typeof result === 'string' ? result : JSON.stringify(result);
         onChunk(fullText);
     } catch (e) {
@@ -915,7 +929,7 @@ export const generateFastDoctorConsultationStream = async (
 export const structureDictatedNotes = async (notes: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Take the following unstructured clinical notes and organize them into clear, standard medical sections (Complaints, History, Objective, etc.). Correct any obvious transcription errors but preserve the original medical meaning. Notes: "${notes}". Output MUST be in ${langMap[language]}.`;
-    return callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const getDynamicSuggestions = async (complaintText: string, language: Language): Promise<{ relatedSymptoms: string[], diagnosticQuestions: string[] }> => {
@@ -931,11 +945,11 @@ export const getDynamicSuggestions = async (complaintText: string, language: Lan
             diagnosticQuestions: { type: 'array', items: { type: 'string' } },
         }
     };
-    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
-/** Doctor Support via Gemini (frontend). Returns shape compatible with apiAiService.DoctorSupportResult. */
-export const runDoctorSupportViaGemini = async (
+/** Doctor Support via Claude (frontend). Returns shape compatible with apiAiService.DoctorSupportResult. */
+export const runDoctorSupportViaClaude = async (
     patientData: PatientData,
     options: { query?: string; taskType?: string; language?: string } = {},
 ): Promise<Record<string, unknown>> => {
@@ -1042,16 +1056,19 @@ export const runDoctorSupportViaGemini = async (
     const maxTok = usePro ? 4096 : 3000;
 
     try {
-        const raw = await callGemini(userContent, model, schema, false, systemInstr, true, maxTok) as Record<string, unknown>;
+        const raw = await callClaude(userContent, model, schema, false, systemInstr, true, maxTok) as Record<string, unknown>;
         if (!raw || typeof raw !== 'object') {
             return { _task_type: taskType, _language: language, error: 'AI javob qayta ishlashda xatolik' };
         }
         return { ...raw, _task_type: taskType, _language: language };
     } catch (e) {
-        logger.warning('runDoctorSupportViaGemini error', e);
+        logger.warning('runDoctorSupportViaClaude error', e);
         return { _task_type: taskType, _language: language, error: e instanceof Error ? e.message : 'AI xizmati vaqtincha ishlamadi' };
     }
 };
+
+/** @deprecated use runDoctorSupportViaClaude */
+export const runDoctorSupportViaGemini = runDoctorSupportViaClaude;
 
 
 export const generateClarifyingQuestions = async (data: PatientData, language: Language): Promise<string[]> => {
@@ -1069,16 +1086,18 @@ Har savol ALOHIDA QATORDA. Raqam qo'yma. TIL: ${langMap[language]}.
 ${patientSummary}`;
 
     try {
-        const ai = getGemini();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const response = await ai.models.generateContent({
+        const response = await claudeMessagesCreate({
             model: DEPLOY_FAST,
-            contents: plainPrompt,
-            config: { temperature: 0.1, maxOutputTokens: 256 },
+            max_tokens: 256,
+            temperature: 0.1,
+            system: `Tibbiy yordamchi. TIL: ${langMap[language]}.`,
+            messages: [{ role: 'user', content: plainPrompt }],
         });
-        clearTimeout(timeoutId);
-        const text = (response.text ?? '').trim();
+        const text = (response.content || [])
+            .filter((b) => b.type === 'text' && b.text)
+            .map((b) => b.text || '')
+            .join('')
+            .trim();
         const questions = text
             .split('\n')
             .map(l => l.replace(/^[\d\.\-\*\s]+/, '').replace(/^["']|["']$/g, '').trim())
@@ -1116,16 +1135,16 @@ export const recommendSpecialists = async (data: PatientData, language: Language
         required: ['recommendations'],
     };
     try {
-        const result = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 4096) as { recommendations?: Array<{ model?: string; reason?: string }> };
+        const result = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 4096) as { recommendations?: Array<{ model?: string; reason?: string }> };
         const recs = Array.isArray(result?.recommendations) ? result.recommendations : [];
         const mapped = recs.map(r => ({
-            model: (r?.model && Object.values(AIModel).includes(r.model as AIModel) ? r.model : AIModel.GEMINI) as AIModel,
+            model: (r?.model && Object.values(AIModel).includes(r.model as AIModel) ? r.model : AIModel.CLAUDE) as AIModel,
             reason: typeof r?.reason === 'string' ? r.reason : '',
         })).filter(r => r.model && r.reason);
-        return { recommendations: mapped.length > 0 ? mapped : [{ model: AIModel.GEMINI as AIModel, reason: 'Standart jamoa' }] };
+        return { recommendations: mapped.length > 0 ? mapped : [{ model: AIModel.CLAUDE as AIModel, reason: 'Standart jamoa' }] };
     } catch (e) {
         logger.warning('recommendSpecialists error', e);
-        return { recommendations: [{ model: AIModel.GEMINI as AIModel, reason: 'Standart jamoa' }] };
+        return { recommendations: [{ model: AIModel.CLAUDE as AIModel, reason: 'Standart jamoa' }] };
     }
 };
 
@@ -1159,7 +1178,7 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
         },
     };
     try {
-        const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 8192);
+        const raw = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 8192);
         const arr = Array.isArray(raw) ? raw : [];
         return arr.map((item: Record<string, unknown>) => ({
             name: String(item?.name ?? ''),
@@ -1296,11 +1315,11 @@ Bemor: ${JSON.stringify(cleanData)}`;
         }
     };
     try {
-        const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 2048);
+        const raw = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 2048);
         return normalizePrognosisReport(raw);
     } catch (e) {
         try {
-            const rawFast = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 2048);
+            const rawFast = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 2048);
             return normalizePrognosisReport(rawFast);
         } catch {
             return null;
@@ -1376,7 +1395,7 @@ ${patientSummaryForRais}`;
     const professorMultimodal =
         attachmentCount > 0 ? buildMultimodalPrompt(professorOpeningPrompt, patientData, pastCasesForContext) : professorOpeningPrompt;
     // Professor yakuniy gaplari uchun keng limit — oxirida kesilmasin
-    let currentTopic = (await callGemini(professorMultimodal, DEPLOY_FAST, undefined, false, systemInstr, true, 8192)) as string;
+    let currentTopic = (await callClaude(professorMultimodal, DEPLOY_FAST, undefined, false, systemInstr, true, 8192)) as string;
     currentTopic = (currentTopic || '').trim();
 
     const orchestratorIntro: ChatMessage = {
@@ -1477,7 +1496,7 @@ OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
 
                 const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData, pastCasesForContext);
                 try {
-                    const responseText = await callGemini(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 4096) as string;
+                    const responseText = await callClaude(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 4096) as string;
                     const trimmed = (responseText || '').trim();
                     const specialistMessage: ChatMessage = {
                         id: `${spec.role}-${Date.now()}-${idx}`,
@@ -1508,7 +1527,7 @@ ${debateSummary}
 
 VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matnini TO'LIQ yozing — bo'sh qoldirmang. Rasmiy mulozamat yo'q; mazmun — tashxis va kasallik. FOYDALANUVCHI UCHUN SAVOLni faqat tashxis yoki shoshilinch qaror uchun mutlaqo zarur bo'lsagina ishlating (juda kam); aksincha keyingi mavzuni aniq jumla bilan yozing. Javobni oxirigacha yozing. TIL: ${langMap[language]}.`;
             // Agar yana bosqichlar qo'shilsa, keyingi mavzularni PRO modelda hisoblaymiz
-            currentTopic = await callGemini(summarizationPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
+            currentTopic = await callClaude(summarizationPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
         }
     }
 
@@ -1621,7 +1640,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
     const finalReportMultimodalPrompt = buildMultimodalPrompt(finalReportTextPrompt, patientData, pastCasesForContext);
 
     const runFinalReport = async (maxTok: number, modelLabel: string = DEPLOY_FAST): Promise<FinalReport> => {
-        const raw = await callGemini(
+        const raw = await callClaude(
             finalReportMultimodalPrompt,
             modelLabel,
             finalReportSchema,
@@ -1642,17 +1661,17 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             // Yakuniy hisobot uchun kengroq token limiti — kesilmasdan to'liq JSON chiqishi uchun
             rawReport = await runFinalReport(8192);
         } catch (firstErr) {
-            const fp = geminiErrorFingerprint(firstErr).toLowerCase();
+            const fp = claudeErrorFingerprint(firstErr).toLowerCase();
             const isParseErr =
                 (firstErr as Error & { cause?: string })?.cause === 'parse_json' ||
                 String((firstErr as Error).message).includes('AI_JSON_PARSE_ERROR');
             const isTransientApi =
-                /503|502|504|429|unavailable|overloaded|network|timeout|fetch|failed to fetch|deadline|econnreset|gemini \(/.test(fp);
+                /503|502|504|429|unavailable|overloaded|network|timeout|fetch|failed to fetch|deadline|econnreset|claude \(/.test(fp);
             if (isParseErr) {
                 logger.warn('Final report JSON kesilgan, qisqaroq reasoningChain bilan qayta urinilmoqda');
                 const shortPrompt = finalReportTextPrompt + '\n\nQISQACHA: reasoningChain da har bir element FAQAT 1 jumla (max 15 so\'z). To\'liq yopilgan JSON qaytaring.';
                 const shortMultimodal = buildMultimodalPrompt(shortPrompt, patientData, pastCasesForContext);
-                const raw = await callGemini(shortMultimodal, DEPLOY_PRO, finalReportSchema, false, systemInstr, true, 8192) as FinalReport;
+                const raw = await callClaude(shortMultimodal, DEPLOY_PRO, finalReportSchema, false, systemInstr, true, 8192) as FinalReport;
                 rawReport = { ...raw, consensusDiagnosis: normalizeConsensusDiagnosis(raw.consensusDiagnosis) };
             } else if (isTransientApi) {
                 logger.warn('Yakuniy hisobot: API vaqtinchalik xato, PRO model bilan qayta urinilmoqda');
@@ -1669,7 +1688,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
                 "\n\n[QAYTA URINISH] Yuklangan skan/rasm fayllarsiz, faqat strukturaviy bemor ma'lumoti va munozaradan consensusDiagnosis (kamida 1 ta), treatmentPlan va medicationRecommendations ni to'ldiring. reasoningChain har elementda 1 qisqa jumla.";
             const slimMultimodal = buildMultimodalPrompt(slimPrompt, slimPatient, pastCasesForContext);
             try {
-                const raw2 = await callGemini(
+                const raw2 = await callClaude(
                     slimMultimodal,
                     DEPLOY_PRO,
                     finalReportSchema,
@@ -1721,7 +1740,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             if (diagnosisNames.length > 0) {
                 try {
                     const fallbackMedsPrompt = `Tashxis(lar): ${diagnosisNames.join(', ')}. Ushbu tashxis(lar) uchun O'zbekistonda mavjud, bemor uchun eng kerakli 2–5 ta dori tavsiya qiling. Har biri uchun: name (savdo nomi), dosage (aniq doza), notes (qanday ichish, ovqatdan oldin/keyin, kuniga necha marta — qisqa yo'riqnoma), localAvailability. FAQAT JSON massiv: [{"name":"...","dosage":"...","notes":"...","localAvailability":"..."}]. Ortiqcha dori yozmang. TIL: ${langMap[language]}.`;
-                    const fallbackRaw = await callGemini(fallbackMedsPrompt, DEPLOY_FAST, { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' } } } }, false, systemInstr, true, 2048) as unknown;
+                    const fallbackRaw = await callClaude(fallbackMedsPrompt, DEPLOY_FAST, { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' } } } }, false, systemInstr, true, 2048) as unknown;
                     const fallbackArr = Array.isArray(fallbackRaw) ? fallbackRaw : (fallbackRaw && typeof fallbackRaw === 'object' && Array.isArray((fallbackRaw as Record<string, unknown>).medications) ? (fallbackRaw as Record<string, unknown>).medications : []);
                     const fallbackMeds = (Array.isArray(fallbackArr) ? fallbackArr : []).map((m: { name?: string; dosage?: string; notes?: string; localAvailability?: string }) => ({
                         name: String(m?.name ?? '').trim() || 'Dori',
@@ -1762,7 +1781,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
 Tavsiya etilgan dorilar (qisqa): ${medHints || 'kiritilmagan'}.
 Vazifa: 3-5 ta ketma-ket davolash bosqichi — har biri bitta qisqa, aniq jumla (amaliy qadam). Ortiqcha izoh yo'q. TIL: ${langMap[language]}.
 FAQAT JSON massiv: ["...","..."].`;
-                    const fallbackRaw = await callGemini(
+                    const fallbackRaw = await callClaude(
                         fallbackPlanPrompt,
                         DEPLOY_FAST,
                         { type: 'array', items: { type: 'string' } },
@@ -1840,7 +1859,7 @@ export const analyzeEcgImage = async (image: { base64Data: string, mimeType: str
         required: ['rhythm', 'heartRate', 'prInterval', 'qrsDuration', 'qtInterval', 'axis', 'morphology', 'interpretation']
     };
     
-    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 const UZI_UTT_URGENCY: UziUttUrgency[] = ['routine', 'soon', 'urgent', 'emergent'];
@@ -2030,7 +2049,7 @@ export const analyzeUziUttDocuments = async (
         ],
     };
 
-    const raw = await callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 12288);
+    const raw = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 12288);
     return normalizeUziUttReport(raw);
 };
 
@@ -2048,14 +2067,14 @@ export const getIcd10Codes = async (diagnosis: string, language: Language): Prom
             required: ['code', 'description'],
         }
     };
-    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
     // Azure OpenAI doesn't support Google Search grounding - plain text call
-    const summary = await callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
+    const summary = await callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
     return {
         summary,
         sources: [],
@@ -2065,33 +2084,33 @@ export const searchClinicalGuidelines = async (query: string, language: Language
 export const interpretLabValue = async (labValue: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Interpret lab value: "${labValue}". Explain clinical significance. Use O'zbekiston LITS (Laboratoriya-indekslar va tibbiy standartlar) va SI birliklariga mos izoh bering; agar birlik ko'rsatilmasa, O'zbekistonda qo'llaniladigan odatiy birliklarni nazarda tuting. Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generatePatientExplanation = async (clinicalText: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Translate clinical text to simple patient language. Text: "${clinicalText}". Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const expandAbbreviation = async (abbreviation: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const prompt = `Expand medical abbreviation "${abbreviation}". Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateDischargeSummary = async (patientData: PatientData, finalReport: FinalReport, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Generate Discharge Summary. Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateInsurancePreAuth = async (patientData: PatientData, finalReport: FinalReport, procedure: string, language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Write Insurance Pre-Auth letter for "${procedure}". Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
-    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const calculatePediatricDose = async (drugName: string, weightKg: number, language: Language): Promise<PediatricDose> => {
@@ -2107,7 +2126,7 @@ export const calculatePediatricDose = async (drugName: string, weightKg: number,
         },
         required: ['drugName', 'dose', 'calculation', 'warnings'],
     };
-    return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 export const calculateRiskScore = async (scoreType: string, patientData: PatientData, language: Language): Promise<RiskScore> => {
@@ -2123,7 +2142,7 @@ export const calculateRiskScore = async (scoreType: string, patientData: Patient
         },
         required: ['name', 'score', 'interpretation'],
     };
-    return callGemini(prompt, DEPLOY_PRO, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 export const generatePatientEducationContent = async (report: FinalReport, language: Language): Promise<PatientEducationTopic[]> => {
@@ -2141,7 +2160,7 @@ export const generatePatientEducationContent = async (report: FinalReport, langu
             required: ['title', 'content'],
         }
     };
-    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const continueDebate = async (
@@ -2161,7 +2180,7 @@ export const continueDebate = async (
     `;
     
     const prompt = buildMultimodalPrompt(promptText, patientData);
-    const response = await callGemini(prompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
+    const response = await callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as string;
     
     return {
         id: `sys-continue-${Date.now()}`,
@@ -2201,14 +2220,14 @@ export const runScenarioAnalysis = async (
         },
     };
 
-    return callGemini(prompt, DEPLOY_PRO, finalReportSchema, false, systemInstr) as Promise<FinalReport>;
+    return callClaude(prompt, DEPLOY_PRO, finalReportSchema, false, systemInstr) as Promise<FinalReport>;
 };
 
 export const explainRationale = async (message: ChatMessage, patientData: PatientData, debateHistory: ChatMessage[], language: Language): Promise<string> => {
     const systemInstr = getSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Explain medical rationale for message: "${message.content}". Reference symptoms and protocols. Include source/protocol/article names and URLs (PubMed/DOI/guideline) for key claims; if the exact URL is unknown, provide a PubMed search URL: https://pubmed.ncbi.nlm.nih.gov/?term=... LANGUAGE: ${langMap[language]}. Patient: ${JSON.stringify(rest)}.`;
-    return callGemini(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
+    return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const suggestCmeTopics = async (history: AnalysisRecord[], language: Language): Promise<CMETopic[]> => {
@@ -2226,7 +2245,7 @@ export const suggestCmeTopics = async (history: AnalysisRecord[], language: Lang
             required: ['topic', 'relevance'],
         },
     };
-    return callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const runResearchCouncilDebate = async (
@@ -2239,7 +2258,7 @@ export const runResearchCouncilDebate = async (
 
     const specialists = [AIModel.GPT, AIModel.LLAMA, AIModel.CLAUDE];
     for (const model of specialists) {
-        const translatedIntro = await callGemini(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, DEPLOY_FAST, undefined, false, systemInstr);
+        const translatedIntro = await callClaude(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, DEPLOY_FAST, undefined, false, systemInstr);
         onProgress({ type: 'message', message: { id: `${model}-${Date.now()}`, author: model, content: translatedIntro as string, isThinking: false } });
     }
     
@@ -2395,7 +2414,7 @@ export const runResearchCouncilDebate = async (
 
     try {
         // Azure OpenAI - JSON response (no grounding/web search available)
-        const rawText = await callGemini(prompt, DEPLOY_PRO, {}, false, systemInstr) as string;
+        const rawText = await callClaude(prompt, DEPLOY_PRO, {}, false, systemInstr) as string;
         const cleanedText = (rawText || '').replace(/^```json\s*|```\s*$/g, '').trim();
 
         let reportData: ResearchReport;
@@ -2469,7 +2488,7 @@ Output Language: ${langMap[language]}.`;
         }
     };
 
-    const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 896) as Record<string, unknown>;
+    const raw = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 896) as Record<string, unknown>;
 
     const sevRaw = String((raw as any).severity || '').toLowerCase();
     let severityUz = 'Xavf aniqlanmadi';
@@ -2502,7 +2521,7 @@ Talablar:
 Faqat soddalashtirilgan matn yozing, hech qanday ro'yxat, bullet, JSON yoki kod ishlatmang.
 Javob tili: ${langMap[language]}.
 `;
-                description = await callGemini(descPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
+                description = await callClaude(descPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
             } catch {
                 description = `Quyidagi dorilar kombinatsiyasi (${drugs.join(', ')}) uchun AI aniq mexanizmni qaytarmadi, lekin xavf darajasi "${severityUz}". Klinik holatga qarab ehtiyotkorlik bilan qo'llash va qo'shimcha manbalarni ko'rib chiqish zarur.`;
             }
@@ -2527,7 +2546,7 @@ Talablar:
 Faqat izoh matnini yozing, ro'yxat va JSON ishlatmang.
 Javob tili: ${langMap[language]}.
 `;
-                clinicalSignificance = await callGemini(signifPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
+                clinicalSignificance = await callClaude(signifPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
             } catch {
                 clinicalSignificance = `Ushbu kombinatsiya (${drugs.join(', ')}) uchun "${severityUz}" xavf darajasi taxmin qilinmoqda. Ayniqsa xavf guruhi hisoblangan bemorlarda (keksa yosh, ko'p dori qabul qiladiganlar, yurak yoki buyrak/jigar yetishmovchiligi borlar) yaqin monitoring va dozani ehtiyotkorlik bilan tanlash zarur.`;
             }
@@ -2588,7 +2607,7 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar ma'lumotlarini bering
         }
     };
 
-    const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const raw = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 640) as Record<string, unknown>;
     const toArray = (v: unknown): string[] => {
         if (!v) return [];
         if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);
@@ -2669,7 +2688,7 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot ber
         }
     };
 
-    const raw = await callGemini(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 640) as Record<string, unknown>;
+    const raw = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 640) as Record<string, unknown>;
     const toArray = (v: unknown): string[] => {
         if (!v) return [];
         if (Array.isArray(v)) return v.map(x => String(x)).filter(Boolean);

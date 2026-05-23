@@ -204,7 +204,7 @@ const AppContent: React.FC = () => {
     // Core Analysis State
     const [patientData, setPatientData] = useState<PatientData | null>(null);
     const [selectedSpecialistsConfig, setSelectedSpecialistsConfig] = useState<{ role: AIModel, backEndModel: string }[]>([]);
-    const [orchestratorModel, setOrchestratorModel] = useState<string>("Gemini 3.0 Pro");
+    const [orchestratorModel, setOrchestratorModel] = useState<string>("Claude Opus 4.7");
     const [differentialDiagnoses, setDifferentialDiagnoses] = useState<Diagnosis[]>([]);
     const [debateHistory, setDebateHistory] = useState<ChatMessage[]>([]);
     const [finalReport, setFinalReport] = useState<FinalReport | null>(null);
@@ -459,7 +459,7 @@ const AppContent: React.FC = () => {
         else setAppView(view);
     };
 
-    /** Savollar avval API, keyin Gemini orqali; ikkalasi bo'sh bo'lsa ham fallback savollar bilan aniqlashtiruv ko'rsatiladi. */
+    /** Savollar avval API, keyin Claude orqali; ikkalasi bo'sh bo'lsa ham fallback savollar bilan aniqlashtiruv ko'rsatiladi. */
     const CLARIFY_TIMEOUT_MS = 18000;
 
     /** Faqat shikoyatda tilga olingan mavzuga aloqador savollarni qoldiradi; mock/umumiy savollarni olib tashlaydi. */
@@ -502,9 +502,9 @@ const AppContent: React.FC = () => {
 
         if (questions.length < 2) {
             try {
-                const fromGemini = await aiService.generateClarifyingQuestions(data, language);
-                if (fromGemini.length > 0) {
-                    questions = filterQuestionsByComplaint(fromGemini, complaint);
+                const fromClaude = await aiService.generateClarifyingQuestions(data, language);
+                if (fromClaude.length > 0) {
+                    questions = filterQuestionsByComplaint(fromClaude, complaint);
                 }
             } catch { /* ignore */ }
         }
@@ -784,7 +784,7 @@ const AppContent: React.FC = () => {
         setPatientData(full.patientData);
         setDebateHistory(full.debateHistory);
         setFinalReport(full.finalReport);
-        const specs = full.selectedSpecialists?.map(role => ({ role, backEndModel: 'Gemini 3.0 Pro' })) || [];
+        const specs = full.selectedSpecialists?.map(role => ({ role, backEndModel: 'Claude Opus 4.7' })) || [];
         setSelectedSpecialistsConfig(specs);
         setDifferentialDiagnoses(normalizeConsensusDiagnosis(full.finalReport?.consensusDiagnosis));
         setAppView('live_analysis');

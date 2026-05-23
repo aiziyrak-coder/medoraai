@@ -38,7 +38,7 @@ cp .env.example .env
 
 `.env` faylida quyidagilarni o'zgartiring:
 - `SECRET_KEY` - Django secret key
-- `GEMINI_API_KEY` - Google Gemini API kaliti
+- `ANTHROPIC_API_KEY` - Anthropic Claude API kaliti (Opus 4.7)
 - `DEBUG` - Development uchun `True`, production uchun `False`
 
 ### 5. Database migrations

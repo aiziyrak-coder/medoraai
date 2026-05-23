@@ -27,7 +27,7 @@ from .azure_utils import (
     patient_text,
     Deployments,
     gpt4o_client,
-    USE_GEMINI,
+    USE_CLAUDE,
 )
 from .uzbekistan_knowledge_base import get_uz_context, get_drug_context
 
@@ -309,7 +309,7 @@ def doctor_consult_stream(
     msgs = build_messages(system, user, want_json=True)
 
     try:
-        if USE_GEMINI:
+        if USE_CLAUDE:
             full = call_model(
                 Deployments.gpt4o(),
                 msgs,

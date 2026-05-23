@@ -1,6 +1,5 @@
 """
-AI backend: Gemini-only (Azure/OpenAI removed).
-All call_model / _call_gemini use Google Gemini when GEMINI_API_KEY is set.
+AI backend: Claude (Anthropic) when ANTHROPIC_API_KEY is set; else legacy Azure.
 """
 
 from __future__ import annotations
@@ -13,8 +12,9 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# When True, all AI calls use Gemini (gemini_utils). No Azure/OpenAI.
-USE_GEMINI = bool(getattr(settings, "GEMINI_API_KEY", None))
+# When True, all AI calls use Claude (claude_utils).
+USE_CLAUDE = bool(getattr(settings, "ANTHROPIC_API_KEY", None))
+USE_GEMINI = USE_CLAUDE  # backwards-compat alias (deprecated)
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -58,9 +58,9 @@ def _make_client(endpoint: str, api_key: str, api_version: str):
 
 
 def _get_client(deployment_key: str) -> "AzureOpenAI":  # type: ignore[name-defined]
-    """Return a cached AzureOpenAI client. Not used when USE_GEMINI."""
-    if USE_GEMINI:
-        raise RuntimeError("Azure is disabled; only Gemini is used. Set GEMINI_API_KEY in .env")
+    """Return a cached AzureOpenAI client. Not used when USE_CLAUDE."""
+    if USE_CLAUDE:
+        raise RuntimeError("Azure is disabled; Claude is used. Set ANTHROPIC_API_KEY in .env")
     if deployment_key not in _clients:
         endpoint   = _require_cfg("AZURE_OPENAI_ENDPOINT")
         api_key    = _require_cfg("AZURE_OPENAI_API_KEY")
@@ -130,13 +130,13 @@ def mini_client():
 # Core call helper
 # ---------------------------------------------------------------------------
 
-def _deployment_to_gemini_model(deployment_name: str):
-    """Map Azure deployment name to Gemini model (pro or flash)."""
-    from . import gemini_utils
+def _deployment_to_claude_model(deployment_name: str):
+    """Map Azure deployment name to Claude model (opus or sonnet)."""
+    from . import claude_utils
     n = (deployment_name or "").lower()
     if "mini" in n or "flash" in n or "deepseek" in n:
-        return gemini_utils.GEMINI_FLASH
-    return gemini_utils.GEMINI_PRO
+        return claude_utils._model_fast()
+    return claude_utils._model_pro()
 
 
 def call_model(
@@ -148,24 +148,28 @@ def call_model(
     stream: bool = False,
 ) -> str:
     """
-    Call AI model. When GEMINI_API_KEY is set, uses Gemini; otherwise Azure (legacy).
+    Call AI model. When ANTHROPIC_API_KEY is set, uses Claude; otherwise Azure (legacy).
     """
-    if USE_GEMINI:
-        from . import gemini_utils
-        parts = []
+    if USE_CLAUDE:
+        from . import claude_utils
+        system_parts = []
+        user_parts = []
         for m in messages:
             role = (m.get("role") or "user").lower()
             content = (m.get("content") or "").strip()
             if not content:
                 continue
             if role == "system":
-                parts.append(f"[Tizim]: {content}")
+                system_parts.append(content)
             else:
-                parts.append(content)
-        prompt = "\n\n".join(parts)
-        model = _deployment_to_gemini_model(deployment_name)
+                user_parts.append(content)
+        prompt = "\n\n".join(user_parts)
+        system = "\n\n".join(system_parts) or None
+        model = _deployment_to_claude_model(deployment_name)
         mime = "application/json" if response_json else None
-        return gemini_utils._call_gemini(prompt, model_name=model, response_mime_type=mime)
+        return claude_utils._call_claude(
+            prompt, model_name=model, response_mime_type=mime, system=system
+        )
 
     # Legacy Azure path
     deploy_to_client = {
@@ -265,17 +269,23 @@ def patient_text(patient_data: dict) -> str:
 # Backwards-compatible shims for files that still import old names
 # ---------------------------------------------------------------------------
 
+def _call_claude(prompt: str, model_name: str | None = None,
+                 response_mime_type: str | None = None) -> str:
+    """Shim: uses Claude when ANTHROPIC_API_KEY is set, else Azure."""
+    if USE_CLAUDE:
+        from . import claude_utils
+        model = claude_utils._model_pro()
+        if model_name:
+            n = str(model_name).lower()
+            if "sonnet" in n or "flash" in n or "mini" in n or "haiku" in n:
+                model = claude_utils._model_fast()
+        return claude_utils._call_claude(prompt, model_name=model, response_mime_type=response_mime_type)
+
+
 def _call_gemini(prompt: str, model_name: str | None = None,
                  response_mime_type: str | None = None) -> str:
-    """Shim: uses Gemini when GEMINI_API_KEY is set, else Azure."""
-    if USE_GEMINI:
-        from . import gemini_utils
-        model = gemini_utils.GEMINI_PRO
-        if model_name:
-            n = model_name.lower()
-            if "flash" in n or "mini" in n:
-                model = gemini_utils.GEMINI_FLASH
-        return gemini_utils._call_gemini(prompt, model_name=model, response_mime_type=response_mime_type)
+    """Deprecated alias for _call_claude."""
+    return _call_claude(prompt, model_name=model_name, response_mime_type=response_mime_type)
     is_json = response_mime_type == "application/json"
     deployment = _map_old_model(model_name)
     msgs = build_messages(
@@ -312,15 +322,14 @@ SPECIALIST_NAMES: list[str] = [
     "Hepatologist", "Epidemiologist", "Dentist", "Maxillofacial",
     "Proctologist", "Mammologist", "Phthisiatrician", "Narcologist",
     "Psychotherapist", "Sexologist", "Vertebrologist",
-    # Legacy names
-    "Gemini", "Claude", "Grok",
+    "Claude", "Grok",
 ]
 
 
 def generate_clarifying_questions(patient_data: dict) -> list[str]:
-    if USE_GEMINI:
-        from . import gemini_utils
-        return gemini_utils.generate_clarifying_questions(patient_data)
+    if USE_CLAUDE:
+        from . import claude_utils
+        return claude_utils.generate_clarifying_questions(patient_data)
     text = patient_text(patient_data)
     prompt = (
         f"Bemor:\n{text}\n\n"
@@ -351,8 +360,6 @@ def recommend_specialists_fast(patient_data: dict) -> list[dict]:
     TEZKOR mutaxassis tavsiyasi - AI kutishsiz.
     Kasallik kalit so'zlariga asoslangan deterministik funksiya.
     """
-    from . import gemini_utils
-    
     text = patient_text(patient_data).lower()
     
     # Kasallik bo'yicha mutaxassislar xaritasi
@@ -439,9 +446,9 @@ def recommend_specialists(
 
 
 def generate_diagnoses(patient_data: dict) -> list[dict]:
-    if USE_GEMINI:
-        from . import gemini_utils
-        return gemini_utils.generate_diagnoses(patient_data)
+    if USE_CLAUDE:
+        from . import claude_utils
+        return claude_utils.generate_diagnoses(patient_data)
     text = patient_text(patient_data)
     prompt = (
         f"Bemor:\n{text}\n\n"

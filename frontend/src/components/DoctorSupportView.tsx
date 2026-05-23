@@ -17,7 +17,7 @@ import {
   TASK_LAB_INTERPRET,
   TASK_FOLLOW_UP,
 } from '../services/apiAiService';
-import { isBrowserGeminiConfigured, runDoctorSupportViaGemini } from '../services/aiCouncilService';
+import { isBrowserClaudeConfigured, runDoctorSupportViaClaude } from '../services/aiCouncilService';
 import { isApiConfigured } from '../config/api';
 
 interface Props {
@@ -224,25 +224,25 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           setResult(resp.data);
           return;
         }
-        if (!isBrowserGeminiConfigured()) {
+        if (!isBrowserClaudeConfigured()) {
           onError(
             resp.error?.message ||
-              "AI javobi kelmadi. Serverda GEMINI_API_KEY (backend/.env) yoki frontend build uchun VITE_GEMINI_API_KEY ni tekshiring.",
+              "AI javobi kelmadi. Serverda ANTHROPIC_API_KEY (backend/.env) yoki frontend build uchun VITE_ANTHROPIC_API_KEY ni tekshiring.",
           );
           return;
         }
-        const geminiResult = await runDoctorSupportViaGemini(patientData, { query, taskType, language });
-        setResult(geminiResult as DoctorSupportResult);
+        const claudeResult = await runDoctorSupportViaClaude(patientData, { query, taskType, language });
+        setResult(claudeResult as DoctorSupportResult);
         return;
       }
-      if (!isBrowserGeminiConfigured()) {
+      if (!isBrowserClaudeConfigured()) {
         onError(
-          'Gemini AI xizmati sozlanmagan. Iltimos, VITE_GEMINI_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
+          'Claude AI xizmati sozlanmagan. Iltimos, VITE_ANTHROPIC_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
         );
         return;
       }
-      const geminiResult = await runDoctorSupportViaGemini(patientData, { query, taskType, language });
-      setResult(geminiResult as DoctorSupportResult);
+      const claudeResult = await runDoctorSupportViaClaude(patientData, { query, taskType, language });
+      setResult(claudeResult as DoctorSupportResult);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -273,13 +273,13 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
         },
         (err) => {
           setStreaming(false);
-          if (!isBrowserGeminiConfigured()) {
+          if (!isBrowserClaudeConfigured()) {
             onError(err);
             return;
           }
-          runDoctorSupportViaGemini(patientData, { query, taskType, language })
-            .then((geminiResult) => {
-              setResult(geminiResult as DoctorSupportResult);
+          runDoctorSupportViaClaude(patientData, { query, taskType, language })
+            .then((claudeResult) => {
+              setResult(claudeResult as DoctorSupportResult);
             })
             .catch(() => onError(err));
         },
@@ -288,18 +288,18 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
       return;
     }
 
-    if (!isBrowserGeminiConfigured()) {
+    if (!isBrowserClaudeConfigured()) {
       setStreaming(false);
       onError(
-        'Gemini AI xizmati sozlanmagan. Iltimos, VITE_GEMINI_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
+        'Claude AI xizmati sozlanmagan. Iltimos, VITE_ANTHROPIC_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
       );
       cancelStreamRef.current = () => { setStreaming(false); };
       return;
     }
-    runDoctorSupportViaGemini(patientData, { query, taskType, language })
-      .then((geminiResult) => {
+    runDoctorSupportViaClaude(patientData, { query, taskType, language })
+      .then((claudeResult) => {
         setStreaming(false);
-        setResult(geminiResult as DoctorSupportResult);
+        setResult(claudeResult as DoctorSupportResult);
       })
       .catch((err) => {
         setStreaming(false);
@@ -319,7 +319,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
       <div>
         <h2 className="text-xl font-bold text-white">Doktor Yordamchi</h2>
         <p className="text-sm text-slate-400 mt-0.5">
-          Gemini · O'zbekiston SSV Protokollari · Tezkor tahlil
+          Claude · O'zbekiston SSV Protokollari · Tezkor tahlil
         </p>
       </div>
 

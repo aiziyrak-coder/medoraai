@@ -35,9 +35,9 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "Internet aloqasi bilan muammo. Iltimos, internetni tekshiring va qayta urinib ko'ring.";
     }
     
-    // Gemini API key invalid (400 INVALID_ARGUMENT / API_KEY_INVALID)
-    if (message.includes('api key not valid') || message.includes('api_key_invalid') || message.includes('invalid_argument')) {
-      return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: Google AI Studio da yangi kalit yarating va serverda .env.production ni yangilang, keyin frontendni qayta build qiling.";
+    // Anthropic API key invalid
+    if (message.includes('api key not valid') || message.includes('api_key_invalid') || message.includes('invalid_argument') || message.includes('authentication_error') || message.includes('invalid x-api-key')) {
+      return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: Anthropic Console dan yangi kalit yarating va serverda ANTHROPIC_API_KEY ni yangilang, keyin frontendni qayta build qiling.";
     }
 
     // 503 / model overloaded / UNAVAILABLE
@@ -68,14 +68,15 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
     // Missing AI env / admin setup — must stay explicit (VITE_* and server .env)
     if (
       message.includes('sozlanmagan') ||
-      message.includes('vite_gemini') ||
+      message.includes('vite_anthropic') ||
+      message.includes('anthropic_api_key') ||
       (message.includes('.env') && (message.includes('kiriting') || message.includes('qoying')))
     ) {
       return rawMessage.length <= 320 ? rawMessage : `${rawMessage.slice(0, 317)}...`;
     }
 
     // API errors
-    if (message.includes('api') || message.includes('gemini')) {
+    if (message.includes('api') || message.includes('claude') || message.includes('anthropic')) {
       return "AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";
     }
     
@@ -126,7 +127,7 @@ export const handleError = (error: unknown, context: string = 'Application'): Ap
     
     if (message.includes('network') || message.includes('fetch')) {
       appError.code = ErrorCode.NETWORK_ERROR;
-    } else if (message.includes('api') || message.includes('gemini')) {
+    } else if (message.includes('api') || message.includes('claude') || message.includes('anthropic')) {
       appError.code = ErrorCode.API_ERROR;
     } else if (message.includes('validation') || message.includes('invalid')) {
       appError.code = ErrorCode.VALIDATION_ERROR;

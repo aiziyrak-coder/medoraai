@@ -5,8 +5,8 @@ import { AIModel } from './constants/specialists';
 // --- Icons ---
 
 // Brand Icons
-const GeminiLogo: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.71429 13.0612L12 19.347L18.2857 13.0612L12 6.77551L5.71429 13.0612Z" fill="url(#paint0_linear_gemini)"/><path d="M12 6.77551L5.71429 13.0612L12 19.347L18.2857 13.0612L12 6.77551ZM4 13.0612L12 21L20 13.0612L12 5L4 13.0612Z" fill="url(#paint1_linear_gemini)"/><defs><linearGradient id="paint0_linear_gemini" x1="12" y1="6.77551" x2="12" y2="19.347" gradientUnits="userSpaceOnUse"><stop stopColor="#60a5fa"/><stop offset="1" stopColor="#3b82f6"/></linearGradient><linearGradient id="paint1_linear_gemini" x1="12" y1="5" x2="12" y2="21" gradientUnits="userSpaceOnUse"><stop stopColor="#93c5fd"/><stop offset="1" stopColor="#60a5fa"/></linearGradient></defs></svg>
+const ClaudeCardioLogo: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
 );
 const ClaudeLogo: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M16 8C16 12.4183 12.4183 16 8 16C3.58172 16 0 12.4183 0 8C0 3.58172 3.58172 0 8 0C12.4183 0 16 3.58172 16 8ZM8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" transform="translate(4 4)" /></svg>
@@ -77,7 +77,7 @@ const commonStyle = { bg: 'bg-slate-100', border: 'border-slate-200' };
 
 export const AI_SPECIALISTS = {
     // Core AI Models
-    [AIModel.GEMINI]: { name: 'Cardiologist AI (Gemini)', specialty: 'Cardiology', Logo: GeminiLogo, text: 'text-blue-600', ...commonStyle },
+    [AIModel.GEMINI]: { name: 'Cardiologist AI (Claude)', specialty: 'Cardiology', Logo: ClaudeCardioLogo, text: 'text-blue-600', ...commonStyle },
     [AIModel.CLAUDE]: { name: 'Neurologist AI (Claude)', specialty: 'Neurology', Logo: ClaudeLogo, text: 'text-orange-600', ...commonStyle },
     [AIModel.GPT]: { name: 'Radiologist AI (GPT)', specialty: 'Radiology', Logo: GptLogo, text: 'text-teal-600', ...commonStyle },
     [AIModel.LLAMA]: { name: 'Oncologist AI (Llama)', specialty: 'Oncology', Logo: LlamaLogo, text: 'text-rose-600', ...commonStyle },

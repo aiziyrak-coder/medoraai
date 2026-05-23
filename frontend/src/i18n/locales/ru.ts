@@ -565,7 +565,7 @@ export const ru: TranslationSet = {
   final_report_nutrition_summary_footer: 'Подробности смотрите в разделе питания и профилактики.',
 
   // Specialist Names and Specialties
-  specialist_name_gemini: 'Кардиолог ИИ (Gemini)',
+  specialist_name_gemini: 'Кардиолог ИИ (Claude)',
   specialty_gemini: 'Кардиология',
   specialist_name_claude: 'Невролог ИИ (Claude)',
   specialty_claude: 'Неврология',

@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 # Environment variables sozlash
 cp .env.example .env
-# .env faylini tahrirlang va GEMINI_API_KEY ni kiriting
+# .env faylini tahrirlang va ANTHROPIC_API_KEY ni kiriting
 
 # Database migrations
 python manage.py makemigrations
@@ -47,7 +47,7 @@ npm install
 cp .env.example .env.local
 # .env.local faylini tahrirlang:
 # VITE_API_BASE_URL=http://localhost:8000/api
-# VITE_GEMINI_API_KEY=your_gemini_api_key_here
+# VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 # Development serverni ishga tushirish
 npm run dev

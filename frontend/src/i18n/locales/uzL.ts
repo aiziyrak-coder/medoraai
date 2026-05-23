@@ -570,7 +570,7 @@ export const uzL: TranslationSet = {
   final_report_nutrition_summary_footer: "Batafsil — ovqatlanish va profilaktika bo'limida.",
 
   // Specialist Names and Specialties — barcha mutaxassislar o'zbekcha
-  specialist_name_gemini: 'Kardiolog AI (Gemini)',
+  specialist_name_gemini: 'Kardiolog AI (Claude)',
   specialty_gemini: 'Kardiologiya',
   specialist_name_claude: 'Nevrolog AI (Claude)',
   specialty_claude: 'Nevrologiya',

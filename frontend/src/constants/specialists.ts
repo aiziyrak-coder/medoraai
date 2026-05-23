@@ -1,7 +1,7 @@
 
 export enum AIModel {
   // --- Core / Common ---
-  GEMINI = 'Gemini', // Cardiologist
+  GEMINI = 'Claude-Cardio', // Cardiologist (Claude Opus)
   CLAUDE = 'Claude', // Neurologist
   GPT = 'GPT-4o', // Radiologist
   LLAMA = 'Llama 3', // Oncologist

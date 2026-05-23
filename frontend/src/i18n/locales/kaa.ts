@@ -343,7 +343,7 @@ export const kaa: Partial<TranslationSet> = {
   final_report_edit_plan_placeholder: 'Emlew basqıshın kiritiń...',
 
   // Specialist Names and Specialties
-  specialist_name_gemini: 'Kardiolog AI (Gemini)',
+  specialist_name_gemini: 'Kardiolog AI (Claude)',
   specialty_gemini: 'Kardiologiya',
   specialist_name_claude: 'Nevrolog AI (Claude)',
   specialty_claude: 'Nevrologiya',

@@ -46,4 +46,4 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_GEMINI_API_KEY: ''
+          VITE_ANTHROPIC_API_KEY: ''

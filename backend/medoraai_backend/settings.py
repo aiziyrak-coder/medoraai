@@ -339,9 +339,9 @@ AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='FJSTI-llama')
 AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='FJSTI-mistral')
 AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='FJSTI-mini')
 
-# AI: faqat Gemini (kalit .env dan; backend/.env dan aniq o'qish fallback)
-def _load_gemini_key():
-    key = (config('GEMINI_API_KEY', default='') or '').strip()
+# AI: Anthropic Claude (kalit .env dan; backend/.env dan aniq o'qish fallback)
+def _load_anthropic_key():
+    key = (config('ANTHROPIC_API_KEY', default='') or '').strip()
     if key:
         return key
     env_file = BASE_DIR / '.env'
@@ -349,19 +349,18 @@ def _load_gemini_key():
         try:
             with open(env_file, 'r', encoding='utf-8') as f:
                 for line in f:
-                    if line.strip().startswith('GEMINI_API_KEY='):
+                    if line.strip().startswith('ANTHROPIC_API_KEY='):
                         key = line.split('=', 1)[1].strip().strip('"').strip("'").strip()
                         return key
         except Exception:
             pass
     return ''
-GEMINI_API_KEY = _load_gemini_key()
-# Gemini model IDs (.env da override; 3 Pro: gemini-3.1-pro-preview)
-# Default: 2.5 barqaror/tez; 3-preview ba'zan 503. .env da GEMINI_MODEL_FLASH=gemini-3-flash-preview qo'shing.
-GEMINI_MODEL_FLASH = config('GEMINI_MODEL_FLASH', default='gemini-2.5-flash')
-GEMINI_MODEL_PRO = config('GEMINI_MODEL_PRO', default='gemini-2.5-pro')
-GEMINI_MODEL_THINKING = config('GEMINI_MODEL_THINKING', default='gemini-2.0-flash')
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='gemini-2.5-pro')
+
+ANTHROPIC_API_KEY = _load_anthropic_key()
+# Claude modellari: Opus 4.7 (eng kuchli), Sonnet 4.6 (tez)
+CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default='claude-sonnet-4-6')
+CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default='claude-opus-4-7')
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='claude-opus-4-7')
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:

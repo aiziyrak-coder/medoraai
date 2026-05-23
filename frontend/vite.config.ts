@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const apiUrl = env.VITE_API_BASE_URL || (
     mode === 'production' ? 'https://api.aidoktor.uz/api' : 'http://localhost:8000/api'
   );
-  const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
+  const claudeKey = env.VITE_ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY || '';
 
   console.log(`[Vite][${mode}] API: ${apiUrl}`);
 
@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiUrl),
-      'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
+      'import.meta.env.VITE_ANTHROPIC_API_KEY': JSON.stringify(claudeKey),
     },
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
     build: {
@@ -39,7 +39,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             'react-vendor': ['react', 'react-dom'],
-            'ai-vendor': ['@google/genai'],
             'doc-vendor': ['jspdf', 'docx'],
           },
         },

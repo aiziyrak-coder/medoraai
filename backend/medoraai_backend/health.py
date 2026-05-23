@@ -85,7 +85,7 @@ def health_detailed(request):
     
     # AI configured (only whether key is set, no value)
     try:
-        key = (getattr(settings, 'GEMINI_API_KEY', None) or '').strip()
+        key = (getattr(settings, 'ANTHROPIC_API_KEY', None) or '').strip()
         checks['checks']['ai_configured'] = bool(key)
     except Exception:
         checks['checks']['ai_configured'] = False

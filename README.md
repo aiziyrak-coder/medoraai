@@ -47,7 +47,7 @@ npm run dev
 
 - **Backend**: Django REST Framework, PostgreSQL, Gunicorn
 - **Frontend**: React, TypeScript, Vite
-- **AI**: Google Gemini API
+- **AI**: Anthropic Claude API (Opus 4.7)
 - **Security**: JWT, Session limits, Rate limiting
 
 ## 📝 License

@@ -15,7 +15,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from . import gemini_utils
+from . import claude_utils
 from .multi_agent_system     import run_consilium
 from .doctor_support         import (
     doctor_consult, doctor_consult_stream,
@@ -40,8 +40,8 @@ def _pd(request):
     return request.data.get("patient_data") or {}
 
 
-def _gemini_ok() -> bool:
-    return bool(getattr(settings, "GEMINI_API_KEY", None))
+def _claude_ok() -> bool:
+    return bool(getattr(settings, "ANTHROPIC_API_KEY", None))
 
 
 def _err(code: int, msg: str):
@@ -50,7 +50,7 @@ def _err(code: int, msg: str):
 
 
 def _ai_not_configured():
-    return _err(503, "AI xizmati sozlanmagan. Iltimos, GEMINI_API_KEY ni .env faylga kiriting.")
+    return _err(503, "AI xizmati sozlanmagan. Iltimos, ANTHROPIC_API_KEY ni .env faylga kiriting.")
 
 
 def _run_filter(patient_data: dict) -> Response | None:
@@ -94,7 +94,7 @@ def run_consilium_view(request):
 
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor shikoyatlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return _ai_not_configured()
 
     # Physiology / Logic Gate filter
@@ -144,7 +144,7 @@ def doctor_support_view(request):
 
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor shikoyatlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return _ai_not_configured()
     if task_type not in _VALID_TASKS:
         return _err(400, f"Noto'g'ri task_type: {task_type}")
@@ -176,7 +176,7 @@ def doctor_support_stream_view(request):
 
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor shikoyatlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return _ai_not_configured()
 
     blocked = _run_filter(patient_data)
@@ -200,25 +200,25 @@ def doctor_support_stream_view(request):
 
 
 # ---------------------------------------------------------------------------
-# Debug: test Gemini (GET /api/ai/test-gemini/)  -  haqiqiy xatolikni ko'rish
+# Debug: test Claude (GET /api/ai/test-claude/)
 # ---------------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def test_gemini(request):
-    """Test Gemini API; returns ok + message or error detail for debugging."""
-    key = (getattr(settings, "GEMINI_API_KEY", None) or "").strip()
+def test_claude(request):
+    """Test Claude API; returns ok + message or error detail for debugging."""
+    key = (getattr(settings, "ANTHROPIC_API_KEY", None) or "").strip()
     if not key:
-        return Response({"ok": False, "error": "GEMINI_API_KEY .env da yo'q yoki bo'sh"}, status=503)
+        return Response({"ok": False, "error": "ANTHROPIC_API_KEY .env da yo'q yoki bo'sh"}, status=503)
     try:
-        from .gemini_utils import _get_client, _call_gemini, GEMINI_FLASH
+        from .claude_utils import _get_client, _call_claude, CLAUDE_FAST
         client = _get_client()
         if not client:
             return Response({"ok": False, "error": "Client yaratib bo'lmadi (import/key)"}, status=503)
-        text = _call_gemini("Javobingiz: salom. Faqat shu so'zni yozing.", GEMINI_FLASH, response_mime_type=None)
-        return Response({"ok": True, "message": "Gemini ishlayapti", "sample": (text or "")[:200]})
+        text = _call_claude("Javobingiz: salom. Faqat shu so'zni yozing.", CLAUDE_FAST, response_mime_type=None)
+        return Response({"ok": True, "message": "Claude ishlayapti", "sample": (text or "")[:200]})
     except Exception as e:
-        logger.exception("test_gemini: %s", e)
+        logger.exception("test_claude: %s", e)
         return Response({"ok": False, "error": str(e)}, status=500)
 
 
@@ -232,10 +232,10 @@ def generate_clarifying_questions(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor shikoyatlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return Response({"success": True, "data": [], "warning": "AI backend da sozlanmagan."})
     try:
-        questions = gemini_utils.generate_clarifying_questions(patient_data)
+        questions = claude_utils.generate_clarifying_questions(patient_data)
         return Response({"success": True, "data": questions})
     except Exception as exc:
         logger.exception("Clarifying questions error: %s", exc)
@@ -249,7 +249,7 @@ def recommend_specialists(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor ma'lumotlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return Response({"success": True, "data": {"recommendations": []}, "warning": "AI backend da sozlanmagan."})
     try:
         dd = request.data.get("differential_diagnoses") or request.data.get("diagnoses")
@@ -268,7 +268,7 @@ def generate_diagnoses(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor ma'lumotlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return Response({"success": True, "data": [], "warning": "AI backend da sozlanmagan."})
 
     blocked = _run_filter(patient_data)
@@ -276,7 +276,7 @@ def generate_diagnoses(request):
         return blocked
 
     try:
-        data = gemini_utils.generate_diagnoses(patient_data)
+        data = claude_utils.generate_diagnoses(patient_data)
         if not data:
             return Response({"success": True, "data": [], "warning": "AI tashxis qaytarmadi."})
         return Response({"success": True, "data": data})
@@ -296,7 +296,7 @@ def generate_autonomous_protocol(request):
     language     = request.data.get("language", "uz-L")
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor ma'lumotlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return _ai_not_configured()
     try:
         return Response({"success": True, "data": autonomous_generator.generate_autonomous_protocol(patient_data, language)})
@@ -312,7 +312,7 @@ def make_clinical_decision(request):
     language     = request.data.get("language", "uz-L")
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor ma'lumotlari kiritilmagan")
-    if not _gemini_ok():
+    if not _claude_ok():
         return _ai_not_configured()
     try:
         return Response({"success": True, "data": clinical_decision_engine.make_autonomous_decision(patient_data, language)})

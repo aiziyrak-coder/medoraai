@@ -531,7 +531,7 @@ export const uzC: TranslationSet = {
   final_report_nutrition_summary_intro: "Овқатланиш ва профилактика бўйича тавсиялар қуйидаги алоҳида бўлимда келтирилган.",
   final_report_nutrition_summary_footer: "Батафсил — овқатланиш ва профилактика бўлимида.",
   // Specialist Names and Specialties — барча мутахассислар ўзбекча (кирилл)
-  specialist_name_gemini: 'Кардиолог АИ (Гемини)',
+  specialist_name_gemini: 'Кардиолог АИ (Claude)',
   specialty_gemini: 'Кардиология',
   specialist_name_claude: 'Невролог АИ (Слауде)',
   specialty_claude: 'Неврология',

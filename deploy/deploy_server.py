@@ -45,33 +45,38 @@ FIX_FJSTI_NGINX = os.environ.get("DEPLOY_FIX_FJSTI_NGINX", "1").strip().lower() 
 CERTBOT_EMAIL = os.environ.get("DEPLOY_CERTBOT_EMAIL", "").strip()
 CERT_PATH = "/etc/letsencrypt/live/aidoktor.uz/fullchain.pem"
 
-# Optional: rotate Gemini key on server + bake to frontend build env (Vite).
-# SECURITY: key repo'ga yozilmaydi, faqat deploy vaqtida env orqali beriladi.
-DEPLOY_BACKEND_GEMINI_API_KEY = (os.environ.get("DEPLOY_BACKEND_GEMINI_API_KEY") or "").strip()
-DEPLOY_VITE_GEMINI_API_KEY = (
-    (os.environ.get("DEPLOY_VITE_GEMINI_API_KEY") or "").strip()
-    or DEPLOY_BACKEND_GEMINI_API_KEY
+# Optional: Anthropic key on server + bake to frontend build env (Vite).
+DEPLOY_BACKEND_ANTHROPIC_API_KEY = (
+    os.environ.get("DEPLOY_BACKEND_ANTHROPIC_API_KEY")
+    or os.environ.get("DEPLOY_BACKEND_GEMINI_API_KEY")
+    or ""
+).strip()
+DEPLOY_VITE_ANTHROPIC_API_KEY = (
+    (os.environ.get("DEPLOY_VITE_ANTHROPIC_API_KEY") or "").strip()
+    or (os.environ.get("DEPLOY_VITE_GEMINI_API_KEY") or "").strip()
+    or DEPLOY_BACKEND_ANTHROPIC_API_KEY
 )
 
 
-def _set_backend_env_key_if_needed(client: "paramiko.SSHClient", remote_dir: str, key: str) -> bool:
-    """backend/.env ga GEMINI_API_KEY ni xavfsiz yozadi (bo'lmasa qo'shadi)."""
-    if not key:
+def _set_backend_env_kv(client: "paramiko.SSHClient", remote_dir: str, var_name: str, value: str) -> bool:
+    """backend/.env ga bitta o'zgaruvchini yozadi."""
+    if not value:
         return True
     env_path = shlex.quote(f"{remote_dir}/backend/.env")
-    key_q = shlex.quote(key)
+    var_q = shlex.quote(var_name)
+    val_q = shlex.quote(value)
     shell = f"""set -e
 ENV_FILE={env_path}
-KEY={key_q}
+VAR={var_q}
+VAL={val_q}
 mkdir -p "$(dirname "$ENV_FILE")"
 touch "$ENV_FILE"
-if grep -qE '^GEMINI_API_KEY=' "$ENV_FILE" 2>/dev/null; then
-  # replace existing line
-  sed -i "s/^GEMINI_API_KEY=.*/GEMINI_API_KEY=$KEY/" "$ENV_FILE"
+if grep -qE "^${{VAR}}=" "$ENV_FILE" 2>/dev/null; then
+  sed -i "s/^${{VAR}}=.*/${{VAR}}=${{VAL}}/" "$ENV_FILE"
 else
-  echo "GEMINI_API_KEY=$KEY" >> "$ENV_FILE"
+  echo "${{VAR}}=${{VAL}}" >> "$ENV_FILE"
 fi
-echo OK_GEMINI_ENV
+echo OK_ENV_${{VAR}}
 """
     stdin, stdout, stderr = client.exec_command(shell, timeout=30)
     out = stdout.read().decode("utf-8", errors="replace")
@@ -79,10 +84,40 @@ echo OK_GEMINI_ENV
     code = stdout.channel.recv_exit_status()
     if err.strip():
         print(f"    backend/.env update stderr: {err.strip()[-1000:]}")
-    if code != 0 or "OK_GEMINI_ENV" not in out:
-        print("[X] backend/.env ga GEMINI_API_KEY yozib bo'lmadi.")
+    ok_tag = f"OK_ENV_{var_name}"
+    if code != 0 or ok_tag not in out:
+        print(f"[X] backend/.env ga {var_name} yozib bo'lmadi.")
         return False
-    print("[OK] backend/.env GEMINI_API_KEY yangilandi")
+    print(f"[OK] backend/.env {var_name} yangilandi")
+    return True
+
+
+def _configure_claude_env(client: "paramiko.SSHClient", remote_dir: str) -> bool:
+    """Anthropic kalit va Claude modellari; eski GEMINI_* qatorlarini olib tashlaydi."""
+    key = DEPLOY_BACKEND_ANTHROPIC_API_KEY
+    if not key:
+        return True
+    env_path = shlex.quote(f"{remote_dir}/backend/.env")
+    shell = f"""set -e
+ENV_FILE={env_path}
+touch "$ENV_FILE"
+sed -i '/^GEMINI_API_KEY=/d;/^GEMINI_MODEL_/d;/^AI_MODEL_DEFAULT=gemini/d' "$ENV_FILE" 2>/dev/null || true
+echo OK_STRIP_GEMINI
+"""
+    stdin, stdout, stderr = client.exec_command(shell, timeout=30)
+    out = stdout.read().decode("utf-8", errors="replace")
+    code = stdout.channel.recv_exit_status()
+    if code != 0 or "OK_STRIP_GEMINI" not in out:
+        print("[X] Eski GEMINI sozlamalarini o'chirib bo'lmadi.")
+        return False
+    for var, val in (
+        ("ANTHROPIC_API_KEY", key),
+        ("CLAUDE_MODEL_PRO", "claude-opus-4-7"),
+        ("CLAUDE_MODEL_FAST", "claude-sonnet-4-6"),
+        ("AI_MODEL_DEFAULT", "claude-opus-4-7"),
+    ):
+        if not _set_backend_env_kv(client, remote_dir, var, val):
+            return False
     return True
 
 
@@ -272,24 +307,59 @@ def deploy():
         # Small delay
         time.sleep(1)
 
-        # Step 2.5: Update backend Gemini key (optional)
-        if DEPLOY_BACKEND_GEMINI_API_KEY:
-            print("[2.5/7] Updating backend GEMINI_API_KEY...")
-            if not _set_backend_env_key_if_needed(client, REMOTE_DIR, DEPLOY_BACKEND_GEMINI_API_KEY):
+        # Step 2.5: Claude API kaliti
+        if DEPLOY_BACKEND_ANTHROPIC_API_KEY:
+            print("[2.5/7] Updating backend ANTHROPIC_API_KEY (Claude)...")
+            if not _configure_claude_env(client, REMOTE_DIR):
                 return False
             print()
 
+        # pip install yangi backend deps
+        print("[2.6/7] Installing backend dependencies (anthropic)...")
+        pip_cmd = (
+            f"cd {REMOTE_DIR}/backend && "
+            "source venv/bin/activate && "
+            "pip install -q 'anthropic>=0.49.0,<1.0.0' && "
+            "pip uninstall -y google-genai 2>/dev/null || true && "
+            "pip install -q -r requirements.txt"
+        )
+        stdin, stdout, stderr = client.exec_command(pip_cmd, timeout=300)
+        pip_out = stdout.read().decode("utf-8", errors="replace")
+        pip_err = stderr.read().decode("utf-8", errors="replace")
+        pip_code = stdout.channel.recv_exit_status()
+        if pip_out.strip():
+            print(pip_out[-1500:])
+        if pip_code != 0:
+            print(f"[X] pip install failed: {pip_err[-2000:]}")
+            return False
+        print("[OK] Backend dependencies updated")
+        print()
+
+        # migrate
+        print("[2.7/7] Running migrations...")
+        mig_cmd = f"cd {REMOTE_DIR}/backend && source venv/bin/activate && python manage.py migrate --noinput"
+        stdin, stdout, stderr = client.exec_command(mig_cmd, timeout=120)
+        print(stdout.read().decode("utf-8", errors="replace")[-2000:])
+        if stdout.channel.recv_exit_status() != 0:
+            print(stderr.read().decode("utf-8", errors="replace")[-1000:])
+        print("[OK] Migrations done")
+        print()
+
         # Step 2: Build frontend (serverda to'g'ri API domeni bilan)
         vite_api = os.environ.get(
-            "DEPLOY_VITE_API_BASE_URL", "https://api.aidoktor.uz/api"
+            "DEPLOY_VITE_API_BASE_URL", "https://api.aidoktor.fargana.uz/api"
         )
         build_cmd = (
             f"cd {REMOTE_DIR}/frontend && "
             f"export VITE_API_BASE_URL={shlex.quote(vite_api)}"
-            + (f" VITE_GEMINI_API_KEY={shlex.quote(DEPLOY_VITE_GEMINI_API_KEY)}" if DEPLOY_VITE_GEMINI_API_KEY else "")
-            + " && npm run build"
+            + (
+                f" VITE_ANTHROPIC_API_KEY={shlex.quote(DEPLOY_VITE_ANTHROPIC_API_KEY)}"
+                if DEPLOY_VITE_ANTHROPIC_API_KEY
+                else ""
+            )
+            + " && npm ci && npm run build"
         )
-        extra = " + VITE_GEMINI_API_KEY" if DEPLOY_VITE_GEMINI_API_KEY else ""
+        extra = " + VITE_ANTHROPIC_API_KEY" if DEPLOY_VITE_ANTHROPIC_API_KEY else ""
         print(f"[3/7] Building frontend (VITE_API_BASE_URL={vite_api}{extra})...")
         stdin, stdout, stderr = client.exec_command(build_cmd, timeout=180)
         output = stdout.read().decode('utf-8')

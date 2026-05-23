@@ -255,7 +255,7 @@ export const recommendSpecialists = async (
       ...response,
       data: {
         recommendations: recs.map((rec: { model?: string; reason?: string }) => ({
-          model:  (rec?.model ?? 'Gemini') as AIModel,
+          model:  (rec?.model ?? 'Claude') as AIModel,
           reason: typeof rec?.reason === 'string' ? rec.reason : '',
         })),
       },

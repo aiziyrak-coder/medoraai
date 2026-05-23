@@ -563,7 +563,7 @@ export const en = {
   final_report_nutrition_summary_footer: 'See details in the nutrition and prevention section.',
 
   // Specialist Names and Specialties
-  specialist_name_gemini: 'Cardiologist AI (Gemini)',
+  specialist_name_gemini: 'Cardiologist AI (Claude)',
   specialty_gemini: 'Cardiology',
   specialist_name_claude: 'Neurologist AI (Claude)',
   specialty_claude: 'Neurology',

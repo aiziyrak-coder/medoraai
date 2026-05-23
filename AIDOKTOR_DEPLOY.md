@@ -49,7 +49,7 @@ Javob:
 
 ### **Backend:**
 - ✅ settings.py: ALLOWED_HOSTS yangilandi
-- ✅ .env: GEMINI_API_KEY va boshqa sozlamalar
+- ✅ .env: ANTHROPIC_API_KEY va boshqa sozlamalar (Claude Opus 4.7)
 - ✅ Barcha Python fayllarida "MEDORA"  ->  "AiDoktor"
 - ✅ Middleware va URL konfiguratsiyalari
 
