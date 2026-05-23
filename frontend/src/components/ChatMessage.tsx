@@ -3,6 +3,7 @@ import { AIModel, type ChatMessage as ChatMessageProps } from '../types';
 import { AI_SPECIALISTS } from '../constants';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 import { resolveSpecialistI18nKey, stripAiParentheticals } from '../utils/specialistDisplay';
+import LinkifiedText from './common/LinkifiedText';
 import AIAvatar from './AIAvatar';
 import SpinnerIcon from './icons/SpinnerIcon';
 import InformationCircleIcon from './icons/InformationCircleIcon';
@@ -48,7 +49,12 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
             <div className={`animate-fade-in-up text-center ${compact ? 'my-2' : 'my-6'}`} style={{ animationDelay }}>
                  <div className={`inline-block max-w-2xl ${compact ? 'px-2 py-1 rounded-lg' : 'px-4 py-2 rounded-xl'}`}>
                     <p className={`text-text-secondary font-semibold ${compact ? 'text-[10px]' : 'text-xs'}`}>{isUserIntervention ? "Sizning aralashuvingiz" : specialistName}</p>
-                    {content && <p className={`text-text-secondary italic text-center break-words ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}>{content}</p>}
+                    {content && (
+                        <LinkifiedText
+                            text={content}
+                            className={`text-text-secondary italic text-center ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}
+                        />
+                    )}
                 </div>
             </div>
         );
@@ -80,7 +86,7 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
                         </div>
                     ) : (
                         <>
-                            <p className={`whitespace-pre-wrap text-text-primary break-words ${compact ? 'text-xs' : ''}`}>{content}</p>
+                            <LinkifiedText text={content} className={`text-text-primary ${compact ? 'text-xs' : 'text-sm'}`} />
                             {evidenceLevel && !compact && (
                                 <div className="mt-3 pt-2 border-t border-slate-300/50">
                                     <EvidenceBadge level={evidenceLevel} />

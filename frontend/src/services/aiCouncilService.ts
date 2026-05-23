@@ -40,6 +40,7 @@ import {
     maxAttachmentsForDiagnosis,
     shouldSkipPrognosisLlm,
     shouldSkipReportFallbackLlm,
+    useBatchConsiliumDebate,
     useLiteSystemPrompt,
 } from '../config/aiCost';
 import { formatDebateForPrompt } from '../utils/debatePrompt';
@@ -1382,6 +1383,94 @@ Bemor: ${JSON.stringify(cleanData)}`;
     }
 };
 
+type ConsiliumBatchResult = {
+    professorOpening: string;
+    specialistMessages: ChatMessage[];
+};
+
+/** Professor + barcha mutaxassislar — bitta API chaqiruv (N+1 o'rniga 1). */
+async function runConsiliumDebateBatch(
+    limitedSpecialists: { role: AIModel }[],
+    patientSummary: string,
+    diagnoses: Diagnosis[],
+    language: Language,
+    systemInstrDebate: string,
+): Promise<ConsiliumBatchResult> {
+    const rolesSpec = limitedSpecialists.map((spec) => {
+        const specialist = AI_SPECIALISTS[spec.role];
+        return {
+            role: String(spec.role),
+            name: stripAiParentheticals(specialist?.name || String(spec.role)),
+            title: specialist?.title || 'mutaxassis',
+        };
+    });
+
+    const schema = {
+        type: 'object',
+        properties: {
+            professorOpening: { type: 'string' },
+            specialists: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        role: { type: 'string' },
+                        content: { type: 'string' },
+                    },
+                    required: ['role', 'content'],
+                },
+            },
+        },
+        required: ['professorOpening', 'specialists'],
+    };
+
+    const prompt = `Siz tibbiy konsilium koordinatorisiz. Faqat JSON qaytaring.
+
+professorOpening: Konsilium Professori — uzluksiz matn (klinik qisqa xulosa + mavzu + mutaxassislarga yo'naltirish). Bemor ismi/yosh faqat bir marta boshida. Rasmiy salomlashuv yo'q. Muhim da'volar uchun 1–2 ta to'liq https:// URL.
+
+specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). Har bir content: 4–6 qisqa jumla — asosiy tashxis, 2 differensial, tavsiya. Oxirgi qator alohida: "Manba: https://..." (to'liq, bosiladigan URL; PubMed bo'lsa https://pubmed.ncbi.nlm.nih.gov/?term=...).
+
+role maydoni quyidagi ro'l bilan AYNAN mos kelishi shart.
+
+TIL: ${langMap[language]}.
+
+--- BEMOR ---
+${patientSummary}
+--- TUGADI ---
+
+Dastlabki tashxislar: ${diagnoses.map((d) => d.name).join(', ') || '-'}.
+
+MUTAXASSISLAR:
+${rolesSpec.map((r) => `- role="${r.role}" — ${r.name} (${r.title})`).join('\n')}`;
+
+    const raw = (await callClaude(
+        prompt,
+        DEPLOY_FAST,
+        schema,
+        false,
+        systemInstrDebate,
+        true,
+        getMaxTokens('batch'),
+    )) as { professorOpening?: string; specialists?: Array<{ role?: string; content?: string }> };
+
+    const professorOpening = (raw?.professorOpening || '').trim();
+    const specialistMessages: ChatMessage[] = [];
+
+    for (const item of raw?.specialists || []) {
+        const roleKey = String(item?.role || '').trim();
+        const content = String(item?.content || '').trim();
+        if (!content) continue;
+        const mapped = mapApiSpecialistToAIModel(roleKey);
+        specialistMessages.push({
+            id: `${mapped}-${Date.now()}-${specialistMessages.length}`,
+            author: mapped,
+            content,
+        });
+    }
+
+    return { professorOpening, specialistMessages };
+}
+
 export const runCouncilDebate = async (
     patientData: PatientData,
     diagnoses: Diagnosis[],
@@ -1434,8 +1523,29 @@ ${longitudinalLine}
 
 QOIDA: Ob'ektiv ko'rik va (agar bor bo'lsa) yuklangan laboratoriya/diagnostika hujjatlari berilgan; shifokordan ularni so'ramang. Barcha ma'lumotlardan to'liq foydalaning va mutaxassislarga aniq yetkazing.`;
 
-    // Bitta Professor xabari: takrorlanmasin, ikki marta shu bemor haqida kirish yozilmasin. To'liq yakuniy gaplar (token limiti katta).
-    const professorOpeningPrompt = `Siz Konsilium Professori. Bitta uzluksiz matn yozing (bir nechta paragraf bo'lishi mumkin).
+    const limitedSpecialists = specialistsConfig.slice(0, getMaxDebateSpecialists());
+    const batchDebate = useBatchConsiliumDebate();
+    let currentTopic = '';
+    let batchSpecialistMessages: ChatMessage[] = [];
+
+    if (batchDebate) {
+        try {
+            const batch = await runConsiliumDebateBatch(
+                limitedSpecialists,
+                patientSummaryForRais,
+                diagnoses,
+                language,
+                systemInstrDebate,
+            );
+            currentTopic = batch.professorOpening;
+            batchSpecialistMessages = batch.specialistMessages;
+        } catch (e) {
+            logger.warn('Batch consilium failed, falling back to per-call debate', e);
+        }
+    }
+
+    if (!currentTopic) {
+        const professorOpeningPrompt = `Siz Konsilium Professori. Bitta uzluksiz matn yozing (bir nechta paragraf bo'lishi mumkin).
 
 QAT'IY:
 - Bemor ism-familiyasi va yoshni FAQAT bir marta, matning boshida qisqa eslatib o'ting; keyin takrorlamang.
@@ -1448,9 +1558,18 @@ QAT'IY:
 - Javobni TO'LIQ yakunlang: oxirgi jumla nuqta bilan tugasin; jumla yarmida, so'z yarmida TO'XTAMANG. Agar joy yetmasa, qisqaroq yozing, lekin har bir jumla to'liq bo'lsin.
 
 ${patientSummaryForRais}`;
-    // Professor: matn-only (rasm faqat yakuniy tashxisda) — token tejash
-    let currentTopic = (await callClaude(professorOpeningPrompt, MODEL_DIAGNOSIS, undefined, false, systemInstrDiagnosis, true, getMaxTokens('medium'))) as string;
-    currentTopic = (currentTopic || '').trim();
+        currentTopic = (
+            (await callClaude(
+                professorOpeningPrompt,
+                MODEL_DIAGNOSIS,
+                undefined,
+                false,
+                systemInstrDiagnosis,
+                true,
+                getMaxTokens('medium'),
+            )) as string
+        ).trim();
+    }
 
     const orchestratorIntro: ChatMessage = {
         id: `sys-intro-${Date.now()}`,
@@ -1497,7 +1616,42 @@ ${patientSummaryForRais}`;
             // Professorning to'liq matni allaqachon yuqorida bitta xabar sifatida yuborilgan — shu yerda qayta yubormaymiz (takror va yarim gaplar oldini olish).
         }
 
-        const limitedSpecialists = specialistsConfig.slice(0, getMaxDebateSpecialists());
+        if (batchSpecialistMessages.length > 0) {
+            for (const msg of batchSpecialistMessages) {
+                onProgress({ type: 'thinking', model: msg.author });
+                onProgress({ type: 'message', message: msg });
+                debateHistory.push(msg);
+                await sleep(120);
+            }
+            batchSpecialistMessages = [];
+            if (round < DEBATE_ROUNDS) {
+                const debateSummary = debateHistory
+                    .slice(-10)
+                    .map(
+                        (m) =>
+                            `[${m.author === AIModel.SYSTEM ? 'Professor' : m.author}]: ${(m.content || '').trim().slice(0, 300)}`,
+                    )
+                    .join('\n');
+                const summarizationPrompt = `Siz - Konsilium professori. QOIDA: Hech qanday oldindan kiritilgan matn bo'lmasin — faqat quyidagi suhbatni o'qib, o'zingiz keyingi mavzuni yozing. "Hurmatli hamkasblar" va boshqa rasmiy salomlashuv YOZMANG; to'g'ridan-to'g'ri mavzu va kasallik/tashxisga e'tibor. Ob'ektiv ko'rik (vital), laboratoriya va yuklangan hujjatlar allaqachon berilgan — shifokordan ularni qayta so'ramang.
+
+--- ${round}-BOSQICH SUHBATI (o'qing, keyin o'zingiz yozing) ---
+${debateSummary}
+--- TUGADI ---
+
+VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matnini TO'LIQ yozing — bo'sh qoldirmang. Rasmiy mulozamat yo'q; mazmun — tashxis va kasallik. FOYDALANUVCHI UCHUN SAVOLni faqat tashxis yoki shoshilinch qaror uchun mutlaqo zarur bo'lsagina ishlating (juda kam); aksincha keyingi mavzuni aniq jumla bilan yozing. Javobni oxirigacha yozing. TIL: ${langMap[language]}.`;
+                currentTopic = (await callClaude(
+                    summarizationPrompt,
+                    MODEL_FINAL,
+                    undefined,
+                    false,
+                    systemInstrDebate,
+                    true,
+                    getMaxTokens('medium'),
+                )) as string;
+            }
+            continue;
+        }
+
         const recentDebate = debateHistory.slice(-14);
         const fullDebateText = recentDebate
             .map(m => {

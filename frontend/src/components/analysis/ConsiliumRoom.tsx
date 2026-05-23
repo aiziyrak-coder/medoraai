@@ -9,6 +9,7 @@ import AIAvatar from '../AIAvatar';
 import { AI_SPECIALISTS } from '../../constants';
 import { useTranslation, type TranslationKey } from '../../hooks/useTranslation';
 import { resolveSpecialistI18nKey, stripAiParentheticals } from '../../utils/specialistDisplay';
+import LinkifiedText from '../common/LinkifiedText';
 
 const SPEAKER_DURATION_MS = 7000;
 const TABLE_R = 28;
@@ -95,7 +96,7 @@ export const ConsiliumRoom: React.FC<ConsiliumRoomProps> = ({ debateHistory, sel
               {isSpeaking && bubbleContent && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-[220px] max-w-[90vw] animate-fade-in-up z-20">
                   <div className="rounded-2xl rounded-bl-md bg-white/95 text-slate-800 shadow-xl border border-slate-200 p-3 text-sm leading-relaxed">
-                    <p className="whitespace-pre-wrap max-h-20 overflow-y-auto text-left">{bubbleContent}</p>
+                    <LinkifiedText text={bubbleContent} className="max-h-20 overflow-y-auto text-left text-sm" />
                   </div>
                   <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white/95" />
                 </div>
