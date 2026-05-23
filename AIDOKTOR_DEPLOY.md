@@ -136,6 +136,32 @@ git reset --hard origin/main
 
 ---
 
+## 💰 AI xarajat (1000+ foydalanuvchi / minglab konsilium)
+
+Default **scale** — **Claude Haiku 4.5** (eng arzon, ~$0.25/1M token; Sonnetdan 10–20× arzon):
+
+```bash
+# backend/.env
+AI_COST_MODE=scale
+CLAUDE_MODEL_HAIKU=claude-haiku-4-5-20251001
+CLAUDE_MODEL_FAST=claude-haiku-4-5-20251001
+CLAUDE_MODEL_PRO=claude-haiku-4-5-20251001
+
+# frontend build
+VITE_AI_COST_MODE=scale
+VITE_CLAUDE_MODEL_HAIKU=claude-haiku-4-5-20251001
+```
+
+Tashxis sifati: to'liq klinik prompt + `diagnosisQuality` qoidalari Haiku bilan ham ishlaydi.
+
+Agar tashxis uchun Sonnet kerak bo'lsa (qimmatroq): `CLAUDE_USE_SONNET_DIAGNOSIS=true` (backend) yoki `VITE_CLAUDE_USE_SONNET_DIAGNOSIS=true` (frontend).
+
+Yuqori sifat: `AI_COST_MODE=balanced` (Sonnet) yoki `quality` (Opus).
+
+Deploy: `npm ci && npm run build`, `systemctl restart aidoktorfjsti-backend`.
+
+---
+
 ## ✨ Keyingi Qadamlar
 
 1. ✅ Serverga deploy qilish

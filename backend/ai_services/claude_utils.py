@@ -2,30 +2,81 @@
 Anthropic Claude API helpers for AI Services.
 Uses anthropic SDK. API key from settings.ANTHROPIC_API_KEY.
 """
+import hashlib
 import json
 import logging
 import re
 
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
 _client = None
 
+def _ai_cost_mode():
+    return (getattr(settings, "AI_COST_MODE", "scale") or "scale").strip().lower()
+
+
+def _default_max_tokens():
+    return {
+        "scale": 2048,
+        "economy": 2048,
+        "balanced": 3072,
+        "quality": 8192,
+    }.get(_ai_cost_mode(), 2048)
+
+
+def _haiku_model():
+    return getattr(settings, "CLAUDE_MODEL_HAIKU", "claude-haiku-4-5-20251001")
+
+
+def _use_sonnet_diagnosis():
+    return bool(getattr(settings, "CLAUDE_USE_SONNET_DIAGNOSIS", False))
+
+
 def _model_fast():
+    haiku = _haiku_model()
+    if _ai_cost_mode() in ("scale", "economy"):
+        return haiku
     return getattr(settings, "CLAUDE_MODEL_FAST", "claude-sonnet-4-6")
 
 
 def _model_pro():
-    return getattr(settings, "CLAUDE_MODEL_PRO", "claude-opus-4-7")
+    mode = _ai_cost_mode()
+    if mode == "quality":
+        return getattr(settings, "CLAUDE_MODEL_PRO", "claude-opus-4-7")
+    if mode == "balanced":
+        return getattr(settings, "CLAUDE_MODEL_FAST", "claude-sonnet-4-6")
+    if _use_sonnet_diagnosis() and mode == "scale":
+        return getattr(settings, "CLAUDE_MODEL_FAST", "claude-sonnet-4-6")
+    return _haiku_model()
+
+
+def _model_diagnosis():
+    """Default: Haiku (arzon). Sonnet faqat CLAUDE_USE_SONNET_DIAGNOSIS=true."""
+    return _model_pro()
+
+
+def _cache_key(prefix: str, text: str) -> str:
+    digest = hashlib.sha256((text or "").encode("utf-8", errors="ignore")).hexdigest()[:32]
+    return f"claude:{prefix}:{digest}"
 
 
 # Module-level aliases (resolved at call time via helpers)
 CLAUDE_FAST = "claude-sonnet-4-6"
 CLAUDE_PRO = "claude-opus-4-7"
 
+SPECIALIST_ALIASES = {
+    "Claude-Cardio": "Cardiologist",
+    "Claude": "Neurologist",
+    "GPT-4o": "Radiologist",
+    "Llama 3": "Oncologist",
+    "Grok": "Endocrinologist",
+}
+
 SPECIALIST_NAMES = [
-    "Claude", "Claude-Cardio", "GPT-4o", "Llama 3", "Grok",
+    "Cardiologist", "Neurologist", "Radiologist", "Oncologist", "Endocrinologist",
     "Allergist", "Anesthesiology", "Dermatologist", "Emergency", "Family Medicine",
     "Gastroenterologist", "Geneticist", "Geriatrician", "Hematologist", "Infectious",
     "Internal Medicine", "Nephrologist", "ObGyn", "Ophthalmologist", "Orthopedic",
@@ -36,7 +87,15 @@ SPECIALIST_NAMES = [
     "Immunologist", "Hepatologist", "Epidemiologist", "Dentist", "Maxillofacial",
     "Proctologist", "Mammologist", "Phthisiatrician", "Narcologist", "Psychotherapist",
     "Sexologist", "Vertebrologist",
+    "Andrologist", "Angiologist", "Palliative Care", "Transfusiologist", "Microbiologist",
+    "Occupational Medicine", "Reproductive Medicine", "Clinical Biochemist",
+    "Physical Therapist", "Speech Therapist",
 ]
+
+
+def _normalize_specialist_model(model: str) -> str:
+    m = (model or "").strip()
+    return SPECIALIST_ALIASES.get(m, m)
 
 
 def _get_client():
@@ -108,9 +167,11 @@ def _call_claude(
     prompt,
     model_name=CLAUDE_FAST,
     response_mime_type=None,
-    max_output_tokens=8192,
+    max_output_tokens=None,
     system=None,
 ):
+    if max_output_tokens is None:
+        max_output_tokens = _default_max_tokens()
     """Call Claude Messages API. Returns response text."""
     client = _get_client()
     if not client:
@@ -148,6 +209,10 @@ def generate_clarifying_questions(patient_data):
             "Claude API kaliti sozlanmagan. ANTHROPIC_API_KEY ni backend/.env ga kiriting."
         )
     text = _patient_text(patient_data)
+    cache_key = _cache_key("clarify", text)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
     prompt = f"""Siz tibbiy yordamchi AI siz. Bemor ma'lumotlari:
 {text}
 
@@ -157,12 +222,15 @@ TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmaga
 3–5 ta qisqa savol. Javobni faqat JSON massiv: ["Savol 1?", "Savol 2?"]. O'zbek tilida (Lotin)."""
     raw = None
     last_exc = None
-    for model in (CLAUDE_PRO, CLAUDE_FAST):
+    for model in (CLAUDE_FAST, CLAUDE_PRO):
+        if model == CLAUDE_PRO and _ai_cost_mode() != "quality":
+            continue
         try:
             raw = _call_claude(
                 prompt,
                 model,
                 response_mime_type="application/json",
+                max_output_tokens=1024,
             )
             break
         except Exception as e:
@@ -187,10 +255,14 @@ TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmaga
         else:
             return []
     if isinstance(data, list):
-        return [str(q) for q in data if q][:8]
-    if isinstance(data, dict) and "questions" in data:
-        return [str(q) for q in data["questions"] if q][:8]
-    return []
+        out = [str(q) for q in data if q][:8]
+    elif isinstance(data, dict) and "questions" in data:
+        out = [str(q) for q in data["questions"] if q][:8]
+    else:
+        out = []
+    if out:
+        cache.set(cache_key, out, timeout=3600)
+    return out
 
 
 def recommend_specialists(patient_data):
@@ -201,24 +273,27 @@ def recommend_specialists(patient_data):
     prompt = f"""Bemor ma'lumotlari:
 {text}
 
-Ushbu klinik holat uchun 5–6 ta mutaxassis tanlang. Faqat quyidagi nomlardan: {names_str}.
+Ushbu klinik holat uchun 6–8 ta mutaxassis tanlang. Faqat quyidagi nomlardan: {names_str}.
 Har biri uchun qisqa sabab. JSON:
 {{ "recommendations": [ {{ "model": "Nom exactly from list", "reason": "Sabab" }} ] }}
 O'zbek tilida (Lotin)."""
     last_exc = None
-    for model_name in (CLAUDE_PRO, CLAUDE_FAST):
+    for model_name in (CLAUDE_FAST, CLAUDE_PRO):
+        if model_name == CLAUDE_PRO and _ai_cost_mode() != "quality":
+            continue
         try:
             raw = _call_claude(
                 prompt,
                 model_name,
                 response_mime_type="application/json",
+                max_output_tokens=1536,
             )
             raw = (raw or "").replace("```json", "").replace("```", "").strip()
             data = json.loads(raw)
             recs = (data or {}).get("recommendations") or []
             out = []
             for r in recs:
-                model = (r.get("model") or "").strip()
+                model = _normalize_specialist_model((r.get("model") or "").strip())
                 if model not in SPECIALIST_NAMES:
                     for n in SPECIALIST_NAMES:
                         if n.lower() in model.lower() or model.lower() in n.lower():
@@ -250,10 +325,9 @@ Javobni faqat JSON massiv:
 [ {{ "name": "...", "probability": 70, "justification": "...", "evidenceLevel": "High", "reasoningChain": ["..."], "uzbekProtocolMatch": "..." }} ]
 O'zbek tilida (Lotin)."""
 
-    model_order = []
-    for m in (CLAUDE_PRO, CLAUDE_FAST, "claude-opus-4-6", "claude-sonnet-4-6"):
-        if m and m not in model_order:
-            model_order.append(m)
+    model_order = [_model_diagnosis()]
+    if _ai_cost_mode() in ("quality", "balanced") and _model_fast() not in model_order:
+        model_order.append(_model_fast())
 
     for model_name in model_order:
         try:
@@ -261,7 +335,7 @@ O'zbek tilida (Lotin)."""
                 prompt,
                 model_name,
                 response_mime_type="application/json",
-                max_output_tokens=4096,
+                max_output_tokens=min(_default_max_tokens(), 3072),
             )
             raw = (raw or "").replace("```json", "").replace("```", "").strip()
             try:

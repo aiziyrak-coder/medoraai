@@ -1,11 +1,11 @@
 
 export enum AIModel {
-  // --- Core / Common ---
-  GEMINI = 'Claude-Cardio', // Cardiologist (Claude Opus)
-  CLAUDE = 'Claude', // Neurologist
-  GPT = 'GPT-4o', // Radiologist
-  LLAMA = 'Llama 3', // Oncologist
-  GROK = 'Grok', // Endocrinologist
+  // --- Asosiy mutaxassislar (tibbiy nom; AI nomi UI da ko'rsatilmaydi) ---
+  GEMINI = 'Cardiologist',
+  CLAUDE = 'Neurologist',
+  GPT = 'Radiologist',
+  LLAMA = 'Oncologist',
+  GROK = 'Endocrinologist',
   
   // --- Expanded Specialties ---
   ALLERGIST = 'Allergist',
@@ -60,6 +60,18 @@ export enum AIModel {
   PSYCHOTHERAPIST = 'Psychotherapist',
   SEXOLOGIST = 'Sexologist',
   VERTEBROLOGIST = 'Vertebrologist',
+
+  // --- Qo'shimcha mutaxassislar ---
+  ANDROLOGIST = 'Andrologist',
+  ANGIOLOGIST = 'Angiologist',
+  PALLIATIVE = 'Palliative Care',
+  TRANSFUSIOLOGIST = 'Transfusiologist',
+  MICROBIOLOGIST = 'Microbiologist',
+  OCCUPATIONAL_MEDICINE = 'Occupational Medicine',
+  REPRODUCTIVE_MEDICINE = 'Reproductive Medicine',
+  CLINICAL_BIOCHEMIST = 'Clinical Biochemist',
+  PHYSICAL_THERAPIST = 'Physical Therapist',
+  LOGOPEDIST = 'Speech Therapist',
   
   // --- System ---
   SYSTEM = 'Orchestrator'

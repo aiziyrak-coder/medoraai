@@ -48,6 +48,14 @@ from .azure_utils import (
     patient_text,
     Deployments,
 )
+from .consilium_cost import (
+    compact_phase1,
+    compact_phase2,
+    dumps_compact,
+    phase1_max_tokens,
+    phase2_max_tokens,
+    phase3_max_tokens,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +144,11 @@ ORCHESTRATOR = Agent(
 
 _AGENT_ID_MAP: dict[str, Agent] = {a.id: a for a in AGENTS}
 
+
+def _active_agents() -> list[Agent]:
+    """Barcha konsilium agentlari (4 ta professor) — kamaytirilmaydi."""
+    return list(AGENTS)
+
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Result container
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
@@ -211,7 +224,7 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.15, max_tokens=2000)  # Reduced from 2500
+                            response_json=True, temperature=0.15, max_tokens=phase1_max_tokens())
         result = parse_json(raw, f"p1_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -227,10 +240,11 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
 
 
 def run_phase1(patient_str: str) -> list[dict]:
-    """4 agent parallel  -  independent diagnosis. Optimized for speed."""
-    order = {a.id: i for i, a in enumerate(AGENTS)}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        futures = {pool.submit(_phase1_single, a, patient_str): a for a in AGENTS}
+    """Mustaqil tahlil — faol agentlar parallel."""
+    agents = _active_agents()
+    order = {a.id: i for i, a in enumerate(agents)}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
+        futures = {pool.submit(_phase1_single, a, patient_str): a for a in agents}
         results = []
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
@@ -326,7 +340,7 @@ def _phase2_single(agent: Agent, patient_str: str,
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.2, max_tokens=2400)  # Reduced from 3000
+                            response_json=True, temperature=0.2, max_tokens=phase2_max_tokens())
         result = parse_json(raw, f"p2_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -341,12 +355,13 @@ def _phase2_single(agent: Agent, patient_str: str,
 
 
 def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
-    """4 agent parallel  -  cross-examination + refutation. Optimized for speed."""
-    order      = {a.id: i for i, a in enumerate(AGENTS)}
+    """Bahslashuv — faol agentlar parallel."""
+    agents = _active_agents()
+    order      = {a.id: i for i, a in enumerate(agents)}
     id_to_p1   = {r.get("agent_id"): r for r in p1}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
         futures = {}
-        for agent in AGENTS:
+        for agent in agents:
             own    = id_to_p1.get(agent.id, {})
             others = [r for r in p1 if r.get("agent_id") != agent.id]
             futures[pool.submit(_phase2_single, agent, patient_str, own, others)] = agent
@@ -372,7 +387,7 @@ def _score_refutations(p2: list[dict]) -> dict[str, float]:
     STRONG refutation qilgan agent +0.3, WEAK в€’0.1 oladi.
     Kimning tashxisi ko'p inkor qilinsa, weight'i kamayadi.
     """
-    weights: dict[str, float] = {a.id: 1.0 for a in AGENTS}
+    weights: dict[str, float] = {a.id: 1.0 for a in _active_agents()}
 
     for resp in p2:
         agent_id   = resp.get("agent_id", "")
@@ -498,11 +513,10 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
 
 def run_phase3(patient_str: str, p1: list[dict],
                p2: list[dict], weights: dict[str, float]) -> dict:
-    """Orchestrator  -  weighted consensus."""
-    import json as _json
-    p1_text = _json.dumps(p1, ensure_ascii=False, indent=2)
-    p2_text = _json.dumps(p2, ensure_ascii=False, indent=2)
-    w_text  = _json.dumps(weights, ensure_ascii=False, indent=2)
+    """Orchestrator  -  weighted consensus (Sonnet, qisqa kontekst)."""
+    p1_text = dumps_compact(compact_phase1(p1))
+    p2_text = dumps_compact(compact_phase2(p2))
+    w_text  = dumps_compact(weights)
 
     system = _P3_SYSTEM.format(persona=ORCHESTRATOR.persona)
     user   = _P3_USER.format(patient=patient_str,
@@ -513,7 +527,7 @@ def run_phase3(patient_str: str, p1: list[dict],
     try:
         raw    = call_model(ORCHESTRATOR.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.05, max_tokens=6000)
+                            response_json=True, temperature=0.05, max_tokens=phase3_max_tokens())
         result = parse_json(raw, "p3_consensus")
         result = result if isinstance(result, dict) else {}
         result["agent_weights_used"] = weights

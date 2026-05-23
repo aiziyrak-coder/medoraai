@@ -8,6 +8,7 @@ import { AIModel } from '../../types';
 import AIAvatar from '../AIAvatar';
 import { AI_SPECIALISTS } from '../../constants';
 import { useTranslation, type TranslationKey } from '../../hooks/useTranslation';
+import { resolveSpecialistI18nKey, stripAiParentheticals } from '../../utils/specialistDisplay';
 
 const SPEAKER_DURATION_MS = 7000;
 const TABLE_R = 28;
@@ -77,7 +78,8 @@ export const ConsiliumRoom: React.FC<ConsiliumRoomProps> = ({ debateHistory, sel
         {/* O'rindiqlar va avatarlar */}
         {seats.map(({ author, x, y }) => {
           const isSpeaking = currentAuthor === author;
-          const name = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || AI_SPECIALISTS[author]?.name || String(author);
+          const nameKey = resolveSpecialistI18nKey(String(author));
+          const name = t(`specialist_name_${nameKey}` as TranslationKey) || stripAiParentheticals(AI_SPECIALISTS[author]?.name || '') || String(author);
           return (
             <div
               key={author}

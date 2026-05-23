@@ -9,6 +9,7 @@
 import { apiPost, API_BASE_URL, type ApiResponse } from './api';
 import { API_CONFIG } from '../config/api';
 import type { PatientData, Diagnosis, AIModel } from '../types';
+import { mapApiSpecialistToAIModel } from '../utils/specialistDisplay';
 
 // ---
 export const TASK_QUICK_CONSULT  = 'quick_consult';
@@ -255,7 +256,7 @@ export const recommendSpecialists = async (
       ...response,
       data: {
         recommendations: recs.map((rec: { model?: string; reason?: string }) => ({
-          model:  (rec?.model ?? 'Claude') as AIModel,
+          model: mapApiSpecialistToAIModel(rec?.model ?? 'Internal Medicine'),
           reason: typeof rec?.reason === 'string' ? rec.reason : '',
         })),
       },

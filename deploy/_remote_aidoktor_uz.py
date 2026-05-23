@@ -52,10 +52,14 @@ set_kv CSRF_TRUSTED_ORIGINS "https://aidoktor.uz,https://www.aidoktor.uz,https:/
 set_kv SECURE_SSL_REDIRECT "True"
 if [ -n "$KEY" ]; then
   set_kv ANTHROPIC_API_KEY "$KEY"
-  set_kv CLAUDE_MODEL_PRO "claude-opus-4-7"
-  set_kv CLAUDE_MODEL_FAST "claude-sonnet-4-6"
-  set_kv AI_MODEL_DEFAULT "claude-opus-4-7"
 fi
+set_kv AI_COST_MODE "scale"
+set_kv CONSILIUM_AGENT_LIMIT "4"
+set_kv CLAUDE_MODEL_HAIKU "claude-haiku-4-5-20251001"
+set_kv CLAUDE_MODEL_FAST "claude-haiku-4-5-20251001"
+set_kv CLAUDE_MODEL_PRO "claude-haiku-4-5-20251001"
+set_kv CLAUDE_USE_SONNET_DIAGNOSIS "False"
+set_kv AI_MODEL_DEFAULT "claude-haiku-4-5-20251001"
 sed -i '/^GEMINI_/d;/^AI_MODEL_DEFAULT=gemini/d' "$ENV" 2>/dev/null || true
 
 # frontend production API
@@ -86,6 +90,8 @@ ln -sf "$NGX_AVAIL" "$NGX_EN"
 
 cd "$ROOT/frontend"
 export VITE_API_BASE_URL=https://api.aidoktor.uz/api
+export VITE_AI_COST_MODE=scale
+export VITE_CLAUDE_MODEL_HAIKU=claude-haiku-4-5-20251001
 [ -n "$KEY" ] && export VITE_ANTHROPIC_API_KEY="$KEY"
 npm ci
 npm run build
@@ -136,7 +142,10 @@ def main() -> int:
     stdin, stdout, stderr = c.exec_command(REMOTE, get_pty=True, timeout=900)
     out, code = _pump(stdout)
     out = re.sub(r"\x1b\[[0-9;]*m", "", out)
-    sys.stdout.write(out)
+    try:
+        sys.stdout.write(out)
+    except UnicodeEncodeError:
+        sys.stdout.buffer.write(out.encode("utf-8", errors="replace"))
     c.close()
     return 0 if "OK_AIDOKTOR_UZ" in out else (code or 1)
 

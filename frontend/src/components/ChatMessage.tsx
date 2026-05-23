@@ -2,6 +2,7 @@ import React from 'react';
 import { AIModel, type ChatMessage as ChatMessageProps } from '../types';
 import { AI_SPECIALISTS } from '../constants';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
+import { resolveSpecialistI18nKey, stripAiParentheticals } from '../utils/specialistDisplay';
 import AIAvatar from './AIAvatar';
 import SpinnerIcon from './icons/SpinnerIcon';
 import InformationCircleIcon from './icons/InformationCircleIcon';
@@ -35,7 +36,11 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     const config = AI_SPECIALISTS[author];
 
     if (isThinking && !content) return null;
-    const specialistName = t(`specialist_name_${String(author).toLowerCase()}` as TranslationKey) || config?.name || (author === 'Orchestrator' ? 'Konsilium Professori' : String(author));
+    const nameKey = resolveSpecialistI18nKey(String(author));
+    const specialistName =
+        t(`specialist_name_${nameKey}` as TranslationKey) ||
+        stripAiParentheticals(config?.name || '') ||
+        (author === 'Orchestrator' ? 'Konsilium professori' : String(author));
     const animationDelay = `${Math.random() * 0.3}s`;
     
     if (isSystemMessage || isUserIntervention) {

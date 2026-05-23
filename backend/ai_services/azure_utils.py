@@ -131,12 +131,12 @@ def mini_client():
 # ---------------------------------------------------------------------------
 
 def _deployment_to_claude_model(deployment_name: str):
-    """Map Azure deployment name to Claude model (opus or sonnet)."""
+    """Map deployment role → Claude tier (Haiku munozara, Sonnet konsensus)."""
     from . import claude_utils
     n = (deployment_name or "").lower()
-    if "mini" in n or "flash" in n or "deepseek" in n:
-        return claude_utils._model_fast()
-    return claude_utils._model_pro()
+    if "gpt4o" in n and "mini" not in n:
+        return claude_utils._model_diagnosis()
+    return claude_utils._model_fast()
 
 
 def call_model(
@@ -168,7 +168,11 @@ def call_model(
         model = _deployment_to_claude_model(deployment_name)
         mime = "application/json" if response_json else None
         return claude_utils._call_claude(
-            prompt, model_name=model, response_mime_type=mime, system=system
+            prompt,
+            model_name=model,
+            response_mime_type=mime,
+            system=system,
+            max_output_tokens=max_tokens,
         )
 
     # Legacy Azure path
@@ -365,7 +369,7 @@ def recommend_specialists_fast(patient_data: dict) -> list[dict]:
     # Kasallik bo'yicha mutaxassislar xaritasi
     keyword_map = [
         # Yurak-qon tomir
-        (['yurak', 'qon bosimi', 'puls', 'aritmiya', 'infarkt', 'kardiolog', 'gipertoniya', 'stenokardiya'], ['GPT-4o']),
+        (['yurak', 'qon bosimi', 'puls', 'aritmiya', 'infarkt', 'kardiolog', 'gipertoniya', 'stenokardiya'], ['Cardiologist']),
         # Nerv tizimi
         (['bosh og\'riq', 'bosh ogriq', 'nevrolog', 'falaj', 'epilepsiya', 'migren', 'insult'], ['DeepSeek']),
         # Radiologiya
@@ -427,7 +431,7 @@ def recommend_specialists_fast(patient_data: dict) -> list[dict]:
     
     # Agar 6 tadan kam bo'lsa, qolganlarini qo'shish
     if len(result) < 6:
-        default_models = ['GPT-4o', 'Internal Medicine', 'Family Medicine', 'Pharmacologist', 'Psychiatrist', 'Emergency']
+        default_models = ['Cardiologist', 'Internal Medicine', 'Family Medicine', 'Pharmacologist', 'Psychiatrist', 'Emergency']
         for model in default_models:
             if model not in seen and len(result) < 6:
                 seen.add(model)

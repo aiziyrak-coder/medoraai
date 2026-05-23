@@ -77,11 +77,11 @@ const commonStyle = { bg: 'bg-slate-100', border: 'border-slate-200' };
 
 export const AI_SPECIALISTS = {
     // Core AI Models
-    [AIModel.GEMINI]: { name: 'Cardiologist AI (Claude)', specialty: 'Cardiology', Logo: ClaudeCardioLogo, text: 'text-blue-600', ...commonStyle },
-    [AIModel.CLAUDE]: { name: 'Neurologist AI (Claude)', specialty: 'Neurology', Logo: ClaudeLogo, text: 'text-orange-600', ...commonStyle },
-    [AIModel.GPT]: { name: 'Radiologist AI (GPT)', specialty: 'Radiology', Logo: GptLogo, text: 'text-teal-600', ...commonStyle },
-    [AIModel.LLAMA]: { name: 'Oncologist AI (Llama)', specialty: 'Oncology', Logo: LlamaLogo, text: 'text-rose-600', ...commonStyle },
-    [AIModel.GROK]: { name: 'Endocrinologist AI (Grok)', specialty: 'Endocrinology', Logo: GrokLogo, text: 'text-indigo-600', ...commonStyle },
+    [AIModel.GEMINI]: { name: 'Kardiolog', specialty: 'Cardiology', Logo: ClaudeCardioLogo, text: 'text-blue-600', ...commonStyle },
+    [AIModel.CLAUDE]: { name: 'Nevrolog', specialty: 'Neurology', Logo: ClaudeLogo, text: 'text-orange-600', ...commonStyle },
+    [AIModel.GPT]: { name: 'Radiolog', specialty: 'Radiology', Logo: GptLogo, text: 'text-teal-600', ...commonStyle },
+    [AIModel.LLAMA]: { name: 'Onkolog', specialty: 'Oncology', Logo: LlamaLogo, text: 'text-rose-600', ...commonStyle },
+    [AIModel.GROK]: { name: 'Endokrinolog', specialty: 'Endocrinology', Logo: GrokLogo, text: 'text-indigo-600', ...commonStyle },
     
     // Expanded List with Generic Icons Mapping
     [AIModel.ALLERGIST]: { name: 'Allergist', specialty: 'Allergy & Immunology', Logo: LungsIcon, text: 'text-pink-500', ...commonStyle },
@@ -137,5 +137,16 @@ export const AI_SPECIALISTS = {
     [AIModel.SEXOLOGIST]: { name: 'Sexologist', specialty: 'Sexology', Logo: UserGroupIcon, text: 'text-rose-400', ...commonStyle },
     [AIModel.VERTEBROLOGIST]: { name: 'Vertebrologist', specialty: 'Vertebrology', Logo: BoneIcon, text: 'text-emerald-700', ...commonStyle },
 
-    [AIModel.SYSTEM]: { name: 'Konsilium Chair (Orchestrator)', specialty: 'Moderator', Logo: OrkestratorLogo, text: 'text-slate-700', bg: 'bg-slate-200', border: 'border-slate-300' },
+    [AIModel.ANDROLOGIST]: { name: 'Androlog', specialty: 'Andrology', Logo: UserGroupIcon, text: 'text-blue-700', ...commonStyle },
+    [AIModel.ANGIOLOGIST]: { name: 'Angiolog', specialty: 'Angiology', Logo: BloodIcon, text: 'text-red-600', ...commonStyle },
+    [AIModel.PALLIATIVE]: { name: 'Palliativ tibbiyot mutaxassisi', specialty: 'Palliative Care', Logo: ShieldCheckIcon, text: 'text-slate-600', ...commonStyle },
+    [AIModel.TRANSFUSIOLOGIST]: { name: 'Transfuziolog', specialty: 'Transfusiology', Logo: BloodIcon, text: 'text-rose-500', ...commonStyle },
+    [AIModel.MICROBIOLOGIST]: { name: 'Mikrobiolog', specialty: 'Microbiology', Logo: MicroscopeIcon, text: 'text-emerald-600', ...commonStyle },
+    [AIModel.OCCUPATIONAL_MEDICINE]: { name: 'Mehnat tibbiyoti mutaxassisi', specialty: 'Occupational Medicine', Logo: ShieldCheckIcon, text: 'text-gray-600', ...commonStyle },
+    [AIModel.REPRODUCTIVE_MEDICINE]: { name: 'Reproduktiv tibbiyot mutaxassisi', specialty: 'Reproductive Medicine', Logo: ChildIcon, text: 'text-pink-500', ...commonStyle },
+    [AIModel.CLINICAL_BIOCHEMIST]: { name: 'Klinik biokimyogar', specialty: 'Clinical Biochemistry', Logo: MicroscopeIcon, text: 'text-cyan-700', ...commonStyle },
+    [AIModel.PHYSICAL_THERAPIST]: { name: 'Fizioterapevt', specialty: 'Physical Therapy', Logo: UserGroupIcon, text: 'text-lime-700', ...commonStyle },
+    [AIModel.LOGOPEDIST]: { name: 'Logoped', specialty: 'Speech Therapy', Logo: UserGroupIcon, text: 'text-violet-500', ...commonStyle },
+
+    [AIModel.SYSTEM]: { name: 'Konsilium professori', specialty: 'Moderator', Logo: OrkestratorLogo, text: 'text-slate-700', bg: 'bg-slate-200', border: 'border-slate-300' },
 };

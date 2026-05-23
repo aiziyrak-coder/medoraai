@@ -30,6 +30,21 @@ import { logger } from '../utils/logger';
 import { handleError, getUserFriendlyError } from '../utils/errorHandler';
 import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
+import {
+    getAiCostMode,
+    getClaudeModels,
+    getCheapFallbackModels,
+    getMaxDebateSpecialists,
+    getMaxTokens,
+    includeAttachmentsInAi,
+    maxAttachmentsForDiagnosis,
+    shouldSkipPrognosisLlm,
+    shouldSkipReportFallbackLlm,
+    useLiteSystemPrompt,
+} from '../config/aiCost';
+import { formatDebateForPrompt } from '../utils/debatePrompt';
+import { DIAGNOSIS_ACCURACY_RULES } from '../utils/diagnosisQuality';
+import { mapApiSpecialistToAIModel, resolveSpecialistI18nKey, stripAiParentheticals } from '../utils/specialistDisplay';
 
 // --- Claude AI (Anthropic) ---
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
@@ -76,27 +91,28 @@ async function claudeMessagesCreate(params: {
     return res.json();
 }
 
-const MODEL_FAST =
-    (import.meta.env.VITE_CLAUDE_MODEL_FAST as string | undefined)?.trim() || 'claude-sonnet-4-6';
-const MODEL_PRO =
-    (import.meta.env.VITE_CLAUDE_MODEL_PRO as string | undefined)?.trim() || 'claude-opus-4-7';
+const {
+    fast: MODEL_FAST,
+    pro: MODEL_PRO,
+    final: MODEL_FINAL,
+    diagnosis: MODEL_DIAGNOSIS,
+} = getClaudeModels();
 const DEPLOY_FAST = MODEL_FAST;
 const DEPLOY_PRO = MODEL_PRO;
 
-const CLAUDE_FALLBACK_AFTER_PRO: readonly string[] = [
-    'claude-sonnet-4-6',
-    'claude-opus-4-7',
-    'claude-opus-4-6',
-];
-const CLAUDE_FALLBACK_AFTER_FLASH: readonly string[] = [
-    'claude-sonnet-4-6',
-    'claude-opus-4-7',
-];
-
 function mapModel(modelLabel: string): string {
   const m = (modelLabel || '').toLowerCase();
-  if (m.includes('sonnet') || m.includes('flash') || m.includes('mini') || m.includes('haiku')) return MODEL_FAST;
+  if (m.includes('opus')) {
+    return getAiCostMode() === 'quality' ? MODEL_PRO : MODEL_FINAL;
+  }
+  if (m.includes('sonnet') || m.includes('flash') || m.includes('mini') || m.includes('haiku')) {
+    return MODEL_FAST;
+  }
   return MODEL_PRO;
+}
+
+function getFallbackModels(claudeModel: string): string[] {
+  return getCheapFallbackModels(claudeModel);
 }
 
 const langMap: Record<Language, string> = {
@@ -285,6 +301,24 @@ const getSystemInstruction = (language: Language): string => {
     AMALIY YORDAM (majburiy): Javoblaringiz shifokor darhol qo'llashi mumkin bo'lsin. Dori nomi + aniq doza + kuniga necha marta + davomiyligi; davolash rejasi 1-qadam, 2-qadam tarzida; SSV protokolga havola yoki agar taklif protokoldan farq qilsa — protokoldan voz kechish sababini (dalil asosida) ko'rsating; "darhol qilish kerak" va "keyinroq/kuzatuv" ni ajrating. Umumiy so'zlar o'rniga konkret, amaliy tavsiyalar bering.
     ANIQLIK (majburiy): (1) Faqat kiritilgan ma'lumot va klinik dalillarga asoslangan xulosa chiqaring; ma'lumot yetishmasa "Tasdiqlash uchun ... tekshiruv kerak" deb aniq yozing. (2) Har bir tashxis uchun probability (0-100) ni faqat dalil kuchiga mos RAQAM sifatida bering — KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%, shubhali=<70%. Taxminiy yoki "chiroyli" shablonlar (masalan doim 60/25/20, 50/50, 75/25) ISHLATMANG. Bir nechta differensial tashxis bo'lsa, ular bir-birini istisno qiluvchi bo'lishi uchun probability lar yig'indisi 100% ga yaqin bo'lishi kerak. (3) reasoningChain va justification da "nima uchun shunday" savoliga aniq javob bo'lsin; umumiy iboralardan saqlaning. (4) SSV protokol havolasi yoki protokoldan chetga chiqish sababi (dalil bilan). (5) Taxminiy tashxisni yakuniy deb yozmang; differensial tashxisda eng ehtimolini birinchi qo'ying va dalil asosini ko'rsating.
     \n${strictLanguageRule(language)}`;
+};
+
+/** Qisqa tizim ko'rsatmasi — har bir API chaqiruvida ~2–4k token tejash (economy/balanced). */
+const getSystemInstructionLite = (language: Language): string => {
+    return `${strictLanguageRule(language)}
+Siz tibbiy AI konsilium yordamchisiz. Javob: ${langMap[language]}.
+Dalilli, xavfsiz, O'zbekiston SSV protokollari asosida; dalil bo'lsa innovatsion tavsiya mumkin.
+Vital/lab/yuklangan hujjatlar berilgan — qayta so'ramang. Qisqa va amaliy yozing.
+${strictLanguageRule(language)}`;
+};
+
+type SystemPromptTier = 'debate' | 'diagnosis';
+
+const resolveSystemInstruction = (language: Language, tier: SystemPromptTier = 'debate'): string => {
+    if (tier === 'diagnosis') {
+        return getSystemInstruction(language);
+    }
+    return useLiteSystemPrompt() ? getSystemInstructionLite(language) : getSystemInstruction(language);
 };
 
 // --- HELPER FUNCTIONS ---
@@ -582,19 +616,20 @@ const callClaude = async (
         if (id && !modelsToTry.includes(id)) modelsToTry.push(id);
     };
     pushModel(claudeModel);
-    const extras = claudeModel === MODEL_PRO || claudeModel === DEPLOY_PRO
-        ? CLAUDE_FALLBACK_AFTER_PRO
-        : CLAUDE_FALLBACK_AFTER_FLASH;
-    for (const id of extras) pushModel(id);
+    for (const id of getFallbackModels(claudeModel)) pushModel(id);
 
     const executeCall = async (modelId?: string): Promise<unknown> => {
         const useModel = modelId ?? claudeModel;
         const userContent = buildUserContent();
-        const isPro = claudeModel === MODEL_PRO || claudeModel === DEPLOY_PRO;
+        const isHeavy =
+            claudeModel === MODEL_PRO ||
+            claudeModel === DEPLOY_PRO ||
+            claudeModel === MODEL_FINAL;
 
         const response = await claudeMessagesCreate({
             model: useModel,
-            max_tokens: maxOutputTokens ?? (isPro ? 8192 : 4096),
+            max_tokens:
+                maxOutputTokens ?? (isHeavy ? getMaxTokens('large') : getMaxTokens('medium')),
             temperature: 0.1,
             system: sys,
             messages: [{ role: 'user', content: userContent }],
@@ -696,27 +731,42 @@ const buildMultimodalMessages = (
 ): { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> } => prompt;
 
 // Helper to construct multimodal prompts (Text + Images)
-const buildMultimodalPrompt = (introText: string, data: PatientData, pastCases?: import('../types').AnonymizedCase[]) => {
+const buildMultimodalPrompt = (
+    introText: string,
+    data: PatientData,
+    pastCases?: import('../types').AnonymizedCase[],
+    forDiagnosis = false,
+) => {
     const { attachments, ...rest } = data;
     const textData = JSON.stringify(rest);
     const historyContext = getRelevantHistoryContext(data.complaints, pastCases);
-    
+
     const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-        { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` }
+        { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` },
     ];
 
     if (attachments && attachments.length > 0) {
-        parts[0].text += `\n\n[MAJBURIY]: Bemor ${attachments.length} ta tibbiy hujjat (laboratoriya, rentgen, MRT/CT va h.k.) yuklagan. Ularni TO'LIQ TAHLIL QILING va xulosangizda ishlating. Bu hujjatlardagi ma'lumotlarni shifokordan QAYTA SO'RAMANG — ular allaqachon berilgan.`;
-        attachments.forEach(att => {
-            parts.push({
-                inlineData: {
-                    mimeType: att.mimeType,
-                    data: att.base64Data
-                }
+        const allowImages = includeAttachmentsInAi(forDiagnosis);
+        const maxImg = forDiagnosis ? maxAttachmentsForDiagnosis() : 0;
+        if (allowImages && maxImg > 0) {
+            const slice = attachments.slice(0, maxImg);
+            parts[0].text += `\n\n[MAJBURIY]: ${slice.length}/${attachments.length} ta hujjat tahlil uchun yuborildi. TO'LIQ TAHLIL; qayta so'ramang.`;
+            slice.forEach((att) => {
+                parts.push({
+                    inlineData: {
+                        mimeType: att.mimeType,
+                        data: att.base64Data,
+                    },
+                });
             });
-        });
+            if (attachments.length > maxImg) {
+                parts[0].text += ` Qolgan ${attachments.length - maxImg} ta fayl — matn/lab maydonidan foydalaning.`;
+            }
+        } else {
+            parts[0].text += `\n\n[Eslatma]: ${attachments.length} ta hujjat yuklangan. Lab/ob'ektiv matndan foydalaning (munozarada rasm yuborilmadi).`;
+        }
     }
-    
+
     return { parts };
 };
 
@@ -727,13 +777,15 @@ const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
     const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
         { text: `${introText}\n\nPATIENT: ${textData}` }
     ];
-    if (attachments && attachments.length > 0) {
+    if (attachments && attachments.length > 0 && includeAttachmentsInAi()) {
         parts[0].text += `\nAttachments: ${attachments.length}.`;
         attachments.forEach(att => {
             parts.push({
-                inlineData: { mimeType: att.mimeType, data: att.base64Data }
+                inlineData: { mimeType: att.mimeType, data: att.base64Data },
             });
         });
+    } else if (attachments && attachments.length > 0) {
+        parts[0].text += `\nAttachments: ${attachments.length} (text-only mode).`;
     }
     return { parts };
 };
@@ -869,7 +921,7 @@ export const generateFastDoctorConsultationStream = async (
     language: Language,
     onChunk: (text: string) => void
 ): Promise<FinalReport> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const promptText = `Tez tahlil. Javobni FAQAT quyidagi JSON ko'rinishida bering, boshqa matn yozmang. primaryDiagnosis: { name, probability (0-100, KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%; taxminiy 60/25/75 kabi shablonlar yo'q), justification, reasoningChain, uzbekProtocolMatch }, treatmentPlan: [], medications: [{ name, dosage, frequency, duration, timing, instructions }], recommendedTests: [], criticalFinding: { finding, implication, urgency }. Til: ${langMap[language]}.`;
     const multimodalPrompt = buildMultimodalPrompt(promptText, patientData);
     let fullText = '';
@@ -927,7 +979,7 @@ export const generateFastDoctorConsultationStream = async (
 // --- EXISTING SERVICE IMPLEMENTATIONS ---
 
 export const structureDictatedNotes = async (notes: string, language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Take the following unstructured clinical notes and organize them into clear, standard medical sections (Complaints, History, Objective, etc.). Correct any obvious transcription errors but preserve the original medical meaning. Notes: "${notes}". Output MUST be in ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
@@ -936,7 +988,7 @@ export const getDynamicSuggestions = async (complaintText: string, language: Lan
     if (complaintText.trim().length < 15) {
         return { relatedSymptoms: [], diagnosticQuestions: [] };
     }
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Based on the patient's complaints: "${complaintText}", suggest 3 related symptoms and 3 key diagnostic questions a doctor might ask. Return JSON { "relatedSymptoms": ["..."], "diagnosticQuestions": ["..."] }. Output MUST be in ${langMap[language]}.`;
     const schema = {
         type: 'object',
@@ -956,7 +1008,7 @@ export const runDoctorSupportViaClaude = async (
     const taskType = options.taskType || 'quick_consult';
     const language = (options.language || 'uz-L') as Language;
     const query = options.query || '';
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const langLabel = langMap[language];
     const patientText = [
         `Bemor: ${patientData.firstName || ''} ${patientData.lastName || ''}, ${patientData.age || ''} yosh, ${patientData.gender || ''}.`,
@@ -1110,10 +1162,10 @@ ${patientSummary}`;
 };
 
 export const recommendSpecialists = async (data: PatientData, language: Language): Promise<{ recommendations: { model: AIModel; reason: string }[] }> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const availableSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM).join(', ');
     const prompt = buildMultimodalPrompt(
-        `Analyze the patient's clinical case. Select 5-6 specialists from: [${availableSpecialists}]. For each give ONE short sentence reason (max 10-15 words). Return ONLY valid JSON: { "recommendations": [{ "model": "ExactNameFromList", "reason": "Short reason." }] }. Output Language: ${langMap[language]}.`,
+        `Analyze the patient's clinical case. Select 6-8 most relevant specialists from: [${availableSpecialists}]. For each give ONE short sentence reason (max 10-15 words). Return ONLY valid JSON: { "recommendations": [{ "model": "ExactNameFromList", "reason": "Short reason." }] }. Output Language: ${langMap[language]}.`,
         data
     );
     
@@ -1135,10 +1187,10 @@ export const recommendSpecialists = async (data: PatientData, language: Language
         required: ['recommendations'],
     };
     try {
-        const result = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 4096) as { recommendations?: Array<{ model?: string; reason?: string }> };
+        const result = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, getMaxTokens('short')) as { recommendations?: Array<{ model?: string; reason?: string }> };
         const recs = Array.isArray(result?.recommendations) ? result.recommendations : [];
         const mapped = recs.map(r => ({
-            model: (r?.model && Object.values(AIModel).includes(r.model as AIModel) ? r.model : AIModel.CLAUDE) as AIModel,
+            model: mapApiSpecialistToAIModel(String(r?.model ?? '')),
             reason: typeof r?.reason === 'string' ? r.reason : '',
         })).filter(r => r.model && r.reason);
         return { recommendations: mapped.length > 0 ? mapped : [{ model: AIModel.CLAUDE as AIModel, reason: 'Standart jamoa' }] };
@@ -1149,7 +1201,7 @@ export const recommendSpecialists = async (data: PatientData, language: Language
 };
 
 export const generateInitialDiagnoses = async (data: PatientData, language: Language): Promise<Diagnosis[]> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language, 'diagnosis');
     const prompt = buildMultimodalPrompt(
         `Analyze the patient data. Generate 3-5 most likely differential diagnoses. O'ZBEKISTON KONTEKSTI MAJBURIY.
         MANDATORY FIELDS (keep each string SHORT to avoid truncation):
@@ -1158,8 +1210,11 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
         3. "reasoningChain": 2-3 qisqa qadam: simptom → sabab → tashxis.
         4. "uzbekProtocolMatch": SSV protokol nomi yoki yo'nalishi (qisqa).
         ANIQLIK: probability ni dalil kuchiga mos qo'ying. Eng ehtimolini birinchi qo'ying.
-        Output Language: ${langMap[language]}. Return ONLY valid JSON array.`,
-        data
+        Output Language: ${langMap[language]}. Return ONLY valid JSON array.
+        ${DIAGNOSIS_ACCURACY_RULES}`,
+        data,
+        undefined,
+        true,
     );
 
     const schema = {
@@ -1178,7 +1233,7 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
         },
     };
     try {
-        const raw = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 8192);
+        const raw = await callClaude(prompt, MODEL_DIAGNOSIS, schema, false, systemInstr, true, getMaxTokens('large'));
         const arr = Array.isArray(raw) ? raw : [];
         return arr.map((item: Record<string, unknown>) => ({
             name: String(item?.name ?? ''),
@@ -1283,9 +1338,9 @@ const generatePrognosisUpdate = async (
     language: Language,
     consensusHint?: string
 ): Promise<PrognosisReport | null> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language, 'diagnosis');
     const { attachments, ...cleanData } = patientData;
-    const debateSnippet = debateHistory.slice(-8).map(m => `[${m.author === AIModel.SYSTEM ? 'Professor' : m.author}]: ${(m.content || '').trim().slice(0, 200)}`).join('\n');
+    const debateSnippet = formatDebateForPrompt(debateHistory, 8, 200);
     const consensusBlock = consensusHint && consensusHint.trim()
         ? `\n\nYakuniy konsensus tashxis(lar) (prognozni shu bilan bog'lab yozing): ${consensusHint.trim()}`
         : '';
@@ -1315,11 +1370,11 @@ Bemor: ${JSON.stringify(cleanData)}`;
         }
     };
     try {
-        const raw = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 2048);
+        const raw = await callClaude(prompt, MODEL_DIAGNOSIS, schema, false, systemInstr, true, getMaxTokens('medium'));
         return normalizePrognosisReport(raw);
     } catch (e) {
         try {
-            const rawFast = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, 2048);
+            const rawFast = await callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr, true, getMaxTokens('short'));
             return normalizePrognosisReport(rawFast);
         } catch {
             return null;
@@ -1339,7 +1394,8 @@ export const runCouncilDebate = async (
     userHistory?: AnalysisRecord[]
 ): Promise<void> => {
     const pastCasesForContext = userHistory?.length ? caseService.analysesToAnonymizedCases(userHistory) : undefined;
-    const systemInstr = getSystemInstruction(language);
+    const systemInstrDebate = resolveSystemInstruction(language, 'debate');
+    const systemInstrDiagnosis = resolveSystemInstruction(language, 'diagnosis');
     const introMessages: Record<Language, string> = {
         'uz-L': 'O\'zbekiston yetakchi tibbiyot mutaxassislari yig\'ilmoqda...',
         'uz-C': 'Ўзбекистон етакчи тиббиёт мутахассислари йиғилмоқда...',
@@ -1392,10 +1448,8 @@ QAT'IY:
 - Javobni TO'LIQ yakunlang: oxirgi jumla nuqta bilan tugasin; jumla yarmida, so'z yarmida TO'XTAMANG. Agar joy yetmasa, qisqaroq yozing, lekin har bir jumla to'liq bo'lsin.
 
 ${patientSummaryForRais}`;
-    const professorMultimodal =
-        attachmentCount > 0 ? buildMultimodalPrompt(professorOpeningPrompt, patientData, pastCasesForContext) : professorOpeningPrompt;
-    // Professor yakuniy gaplari uchun keng limit — oxirida kesilmasin
-    let currentTopic = (await callClaude(professorMultimodal, DEPLOY_FAST, undefined, false, systemInstr, true, 8192)) as string;
+    // Professor: matn-only (rasm faqat yakuniy tashxisda) — token tejash
+    let currentTopic = (await callClaude(professorOpeningPrompt, MODEL_DIAGNOSIS, undefined, false, systemInstrDiagnosis, true, getMaxTokens('medium'))) as string;
     currentTopic = (currentTopic || '').trim();
 
     const orchestratorIntro: ChatMessage = {
@@ -1443,8 +1497,7 @@ ${patientSummaryForRais}`;
             // Professorning to'liq matni allaqachon yuqorida bitta xabar sifatida yuborilgan — shu yerda qayta yubormaymiz (takror va yarim gaplar oldini olish).
         }
 
-        /** Eng ko'pi bilan 4 ta mutaxassis; parallel chaqiruv + qisqa javob (umumiy vaqt qisqaroq) */
-        const limitedSpecialists = specialistsConfig.slice(0, 4);
+        const limitedSpecialists = specialistsConfig.slice(0, getMaxDebateSpecialists());
         const recentDebate = debateHistory.slice(-14);
         const fullDebateText = recentDebate
             .map(m => {
@@ -1468,7 +1521,7 @@ ${labForSpec ? `Laboratoriya ma'lumoti: ${labForSpec}` : ''}${attachmentsNoteFor
             limitedSpecialists.map(async (spec, idx) => {
                 onProgress({ type: 'thinking', model: spec.role });
                 const specialist = AI_SPECIALISTS[spec.role];
-                const specName = specialist?.name || String(spec.role);
+                const specName = stripAiParentheticals(specialist?.name || String(spec.role));
                 const specTitle = specialist?.title || 'mutaxassis';
                 const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — suhbat va kasallikni o'qib, o'z fikringizni yozasiz. "Hurmatli professor" yoki boshqa rasmiy salomlashuv YOZMANG — to'g'ridan-to'g'ri tashxis va fikr. Bir-birini rozi qilish yoki mulozamat ko'rsatish maqsad emas; muhimi aniq tashxis va dalilli, CHUQUR tahlil; e'tibor kasallikga. Ob'ektiv ko'rik va laboratoriya/hujjatlar berilgan — shifokordan so'ramang.
 
@@ -1494,9 +1547,8 @@ QOIDALAR:
 JAMI 4–6 QISQA, ANIQ jumla. Ortiqcha tafsilot va tantana YO'Q. TIL: ${langMap[language]}.
 OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
 
-                const specialistMultimodalPrompt = buildMultimodalPrompt(textPrompt, patientData, pastCasesForContext);
                 try {
-                    const responseText = await callClaude(specialistMultimodalPrompt, DEPLOY_FAST, undefined, false, systemInstr, true, 4096) as string;
+                    const responseText = await callClaude(textPrompt, DEPLOY_FAST, undefined, false, systemInstrDebate, true, getMaxTokens('short')) as string;
                     const trimmed = (responseText || '').trim();
                     const specialistMessage: ChatMessage = {
                         id: `${spec.role}-${Date.now()}-${idx}`,
@@ -1527,7 +1579,7 @@ ${debateSummary}
 
 VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matnini TO'LIQ yozing — bo'sh qoldirmang. Rasmiy mulozamat yo'q; mazmun — tashxis va kasallik. FOYDALANUVCHI UCHUN SAVOLni faqat tashxis yoki shoshilinch qaror uchun mutlaqo zarur bo'lsagina ishlating (juda kam); aksincha keyingi mavzuni aniq jumla bilan yozing. Javobni oxirigacha yozing. TIL: ${langMap[language]}.`;
             // Agar yana bosqichlar qo'shilsa, keyingi mavzularni PRO modelda hisoblaymiz
-            currentTopic = await callClaude(summarizationPrompt, DEPLOY_PRO, undefined, false, systemInstr, true, 3072) as string;
+            currentTopic = await callClaude(summarizationPrompt, MODEL_FINAL, undefined, false, systemInstrDebate, true, getMaxTokens('medium')) as string;
         }
     }
 
@@ -1634,18 +1686,24 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         11. JSON kalitlari inglizcha qoladi, lekin HAR BIR string qiymat tanlangan til qoidasiga qat'iy mos bo'lsin.
         ANIQLIK: consensusDiagnosis da har bir element uchun probability — 0-100 oralig'ida, faqat klinik dalil va justification ga mos RAQAM (taxminiy 60/25/20 yoki 75/15 kabi takrorlanuvchi shablonlar YO'Q). Bir nechta tashxis bo'lsa, probability lar yig'indisi 100% bo'lishi kerak (bir-birini istisno qiluvchi differensial ro'yxat). reasoningChain har qadamda "nima uchun" javob bersin (HAR BIR ELEMENT 1-2 JUMLADAN OSHMASIN, qisqa holda yozing - to'liq JSON kesilmasin); uzbekProtocolMatch — aniq protokol nomi/yo'nalishi yoki protokoldan chetga chiqish sababi. Taxminiy tashxisni yakuniy deb yozmang.
         KRITIK TOPILMA: Suhbat (debate history) yoki bemor ma'lumotlarida shoshilinch, hayotga xavf, kritik holat tilga olingan bo'lsa — criticalFinding ni albatta to'ldiring (finding, implication, urgency). Bo'sh qoldirmang.
-        Debate history: ${JSON.stringify(debateHistory)}
+        Munozara (qisqacha):\n${formatDebateForPrompt(debateHistory)}
+        ${DIAGNOSIS_ACCURACY_RULES}
     `;
     
-    const finalReportMultimodalPrompt = buildMultimodalPrompt(finalReportTextPrompt, patientData, pastCasesForContext);
+    const finalReportMultimodalPrompt = buildMultimodalPrompt(
+        finalReportTextPrompt,
+        patientData,
+        pastCasesForContext,
+        true,
+    );
 
-    const runFinalReport = async (maxTok: number, modelLabel: string = DEPLOY_FAST): Promise<FinalReport> => {
+    const runFinalReport = async (maxTok: number, modelLabel: string = MODEL_DIAGNOSIS): Promise<FinalReport> => {
         const raw = await callClaude(
             finalReportMultimodalPrompt,
             modelLabel,
             finalReportSchema,
             false,
-            systemInstr,
+            systemInstrDiagnosis,
             true,
             maxTok,
         ) as FinalReport;
@@ -1659,7 +1717,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         let rawReport: FinalReport;
         try {
             // Yakuniy hisobot uchun kengroq token limiti — kesilmasdan to'liq JSON chiqishi uchun
-            rawReport = await runFinalReport(8192);
+            rawReport = await runFinalReport(getMaxTokens('report'));
         } catch (firstErr) {
             const fp = claudeErrorFingerprint(firstErr).toLowerCase();
             const isParseErr =
@@ -1667,15 +1725,16 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
                 String((firstErr as Error).message).includes('AI_JSON_PARSE_ERROR');
             const isTransientApi =
                 /503|502|504|429|unavailable|overloaded|network|timeout|fetch|failed to fetch|deadline|econnreset|claude \(/.test(fp);
+            const retryModel = getAiCostMode() === 'quality' ? DEPLOY_PRO : MODEL_FINAL;
             if (isParseErr) {
                 logger.warn('Final report JSON kesilgan, qisqaroq reasoningChain bilan qayta urinilmoqda');
                 const shortPrompt = finalReportTextPrompt + '\n\nQISQACHA: reasoningChain da har bir element FAQAT 1 jumla (max 15 so\'z). To\'liq yopilgan JSON qaytaring.';
-                const shortMultimodal = buildMultimodalPrompt(shortPrompt, patientData, pastCasesForContext);
-                const raw = await callClaude(shortMultimodal, DEPLOY_PRO, finalReportSchema, false, systemInstr, true, 8192) as FinalReport;
+                const shortMultimodal = buildMultimodalPrompt(shortPrompt, patientData, pastCasesForContext, true);
+                const raw = await callClaude(shortMultimodal, retryModel, finalReportSchema, false, systemInstrDiagnosis, true, getMaxTokens('report')) as FinalReport;
                 rawReport = { ...raw, consensusDiagnosis: normalizeConsensusDiagnosis(raw.consensusDiagnosis) };
             } else if (isTransientApi) {
-                logger.warn('Yakuniy hisobot: API vaqtinchalik xato, PRO model bilan qayta urinilmoqda');
-                rawReport = await runFinalReport(8192, DEPLOY_PRO);
+                logger.warn('Yakuniy hisobot: API vaqtinchalik xato, qayta urinilmoqda');
+                rawReport = await runFinalReport(getMaxTokens('report'), retryModel);
             } else {
                 throw firstErr;
             }
@@ -1686,16 +1745,16 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             const slimPrompt =
                 finalReportTextPrompt +
                 "\n\n[QAYTA URINISH] Yuklangan skan/rasm fayllarsiz, faqat strukturaviy bemor ma'lumoti va munozaradan consensusDiagnosis (kamida 1 ta), treatmentPlan va medicationRecommendations ni to'ldiring. reasoningChain har elementda 1 qisqa jumla.";
-            const slimMultimodal = buildMultimodalPrompt(slimPrompt, slimPatient, pastCasesForContext);
+            const slimMultimodal = buildMultimodalPrompt(slimPrompt, slimPatient, pastCasesForContext, true);
             try {
                 const raw2 = await callClaude(
                     slimMultimodal,
-                    DEPLOY_PRO,
+                    MODEL_DIAGNOSIS,
                     finalReportSchema,
                     false,
-                    systemInstr,
+                    systemInstrDiagnosis,
                     true,
-                    6144,
+                    getMaxTokens('report'),
                 ) as FinalReport;
                 const dx2 = normalizeConsensusDiagnosis(raw2.consensusDiagnosis);
                 if (dx2.length > 0) {
@@ -1735,12 +1794,12 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             };
         });
         // Agar dori tavsiyalari bo'sh bo'lsa, tashxis asosida o'zimiz aniqlaymiz (fallback)
-        if (medicationRecommendations.length === 0) {
+        if (medicationRecommendations.length === 0 && !shouldSkipReportFallbackLlm()) {
             const diagnosisNames = (normalizeConsensusDiagnosis(rawReport.consensusDiagnosis).map(d => d.name).filter(Boolean)).slice(0, 3);
             if (diagnosisNames.length > 0) {
                 try {
                     const fallbackMedsPrompt = `Tashxis(lar): ${diagnosisNames.join(', ')}. Ushbu tashxis(lar) uchun O'zbekistonda mavjud, bemor uchun eng kerakli 2–5 ta dori tavsiya qiling. Har biri uchun: name (savdo nomi), dosage (aniq doza), notes (qanday ichish, ovqatdan oldin/keyin, kuniga necha marta — qisqa yo'riqnoma), localAvailability. FAQAT JSON massiv: [{"name":"...","dosage":"...","notes":"...","localAvailability":"..."}]. Ortiqcha dori yozmang. TIL: ${langMap[language]}.`;
-                    const fallbackRaw = await callClaude(fallbackMedsPrompt, DEPLOY_FAST, { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' } } } }, false, systemInstr, true, 2048) as unknown;
+                    const fallbackRaw = await callClaude(fallbackMedsPrompt, DEPLOY_FAST, { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' } } } }, false, systemInstrDebate, true, 1024) as unknown;
                     const fallbackArr = Array.isArray(fallbackRaw) ? fallbackRaw : (fallbackRaw && typeof fallbackRaw === 'object' && Array.isArray((fallbackRaw as Record<string, unknown>).medications) ? (fallbackRaw as Record<string, unknown>).medications : []);
                     const fallbackMeds = (Array.isArray(fallbackArr) ? fallbackArr : []).map((m: { name?: string; dosage?: string; notes?: string; localAvailability?: string }) => ({
                         name: String(m?.name ?? '').trim() || 'Dori',
@@ -1775,7 +1834,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
                 .filter(s => s.length > 3)
                 .slice(0, 5)
                 .join('; ');
-            if (diagnosisNames.length > 0 || medHints) {
+            if ((diagnosisNames.length > 0 || medHints) && !shouldSkipReportFallbackLlm()) {
                 try {
                     const fallbackPlanPrompt = `Klinik tashxis(lar): ${diagnosisNames.join(', ') || 'aniq emas'}.
 Tavsiya etilgan dorilar (qisqa): ${medHints || 'kiritilmagan'}.
@@ -1786,7 +1845,7 @@ FAQAT JSON massiv: ["...","..."].`;
                         DEPLOY_FAST,
                         { type: 'array', items: { type: 'string' } },
                         false,
-                        systemInstr,
+                        systemInstrDebate,
                         true,
                         1024,
                     ) as unknown;
@@ -1805,13 +1864,15 @@ FAQAT JSON massiv: ["...","..."].`;
             'ru': 'Формируется прогноз заболевания...',
             'en': 'Generating disease prognosis...',
         };
-        onProgress({ type: 'status', message: prognosisStatusMessages[language] || prognosisStatusMessages['uz-L'] });
         let generatedPrognosis: PrognosisReport | null = null;
-        try {
-            const consensusNames = normalizeConsensusDiagnosis(rawReport.consensusDiagnosis).map(d => d.name).filter(Boolean).join('; ');
-            generatedPrognosis = await generatePrognosisUpdate(debateHistory, patientData, language, consensusNames || undefined);
-        } catch (e) {
-            logger.warn('prognosis generation failed', e);
+        if (!shouldSkipPrognosisLlm()) {
+            onProgress({ type: 'status', message: prognosisStatusMessages[language] || prognosisStatusMessages['uz-L'] });
+            try {
+                const consensusNames = normalizeConsensusDiagnosis(rawReport.consensusDiagnosis).map(d => d.name).filter(Boolean).join('; ');
+                generatedPrognosis = await generatePrognosisUpdate(debateHistory, patientData, language, consensusNames || undefined);
+            } catch (e) {
+                logger.warn('prognosis generation failed', e);
+            }
         }
         const prognosisReport = ensurePrognosisReport(generatedPrognosis, rawReport, patientData, language);
         lastLivePrognosis = prognosisReport;
@@ -1839,7 +1900,7 @@ FAQAT JSON massiv: ["...","..."].`;
 };
 
 export const analyzeEcgImage = async (image: { base64Data: string, mimeType: string }, language: Language): Promise<EcgReport> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const textPart = { text: `Analyze ECG image. Return structured JSON report (rhythm, heartRate, etc.). Output Language: ${langMap[language]}.` };
     const imagePart = { inlineData: { data: image.base64Data, mimeType: image.mimeType } };
     const prompt = { parts: [textPart, imagePart] };
@@ -1979,7 +2040,7 @@ export const analyzeUziUttDocuments = async (
     if (!files.length) {
         throw new Error("Kamida bitta fayl yuklang.");
     }
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const lang = langMap[language] || 'Uzbek';
     const ctx = (clinicalContext ?? '').trim();
     const intro = [
@@ -2049,12 +2110,12 @@ export const analyzeUziUttDocuments = async (
         ],
     };
 
-    const raw = await callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr, true, 12288);
+    const raw = await callClaude(prompt, MODEL_FINAL, schema, false, systemInstr, true, getMaxTokens('report'));
     return normalizeUziUttReport(raw);
 };
 
 export const getIcd10Codes = async (diagnosis: string, language: Language): Promise<Icd10Code[]> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Provide ICD-10 codes for "${diagnosis}". ICD-10 is used in Uzbekistan (O'zbekiston) for official statistics and documentation. Return JSON array [{code, description}]. Output Language: ${langMap[language]}.`;
     const schema = {
         type: 'array',
@@ -2071,7 +2132,7 @@ export const getIcd10Codes = async (diagnosis: string, language: Language): Prom
 };
 
 export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
     // Azure OpenAI doesn't support Google Search grounding - plain text call
     const summary = await callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
@@ -2082,39 +2143,39 @@ export const searchClinicalGuidelines = async (query: string, language: Language
 };
 
 export const interpretLabValue = async (labValue: string, language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Interpret lab value: "${labValue}". Explain clinical significance. Use O'zbekiston LITS (Laboratoriya-indekslar va tibbiy standartlar) va SI birliklariga mos izoh bering; agar birlik ko'rsatilmasa, O'zbekistonda qo'llaniladigan odatiy birliklarni nazarda tuting. Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generatePatientExplanation = async (clinicalText: string, language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Translate clinical text to simple patient language. Text: "${clinicalText}". Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const expandAbbreviation = async (abbreviation: string, language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Expand medical abbreviation "${abbreviation}". Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateDischargeSummary = async (patientData: PatientData, finalReport: FinalReport, language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Generate Discharge Summary. Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateInsurancePreAuth = async (patientData: PatientData, finalReport: FinalReport, procedure: string, language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Write Insurance Pre-Auth letter for "${procedure}". Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const calculatePediatricDose = async (drugName: string, weightKg: number, language: Language): Promise<PediatricDose> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Calculate pediatric dose for ${drugName}, weight ${weightKg}kg. Return JSON {drugName, dose, calculation, warnings}. Output Language: ${langMap[language]}.`;
     const schema = {
         type: 'object',
@@ -2130,7 +2191,7 @@ export const calculatePediatricDose = async (drugName: string, weightKg: number,
 };
 
 export const calculateRiskScore = async (scoreType: string, patientData: PatientData, language: Language): Promise<RiskScore> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Calculate ${scoreType} score. Patient: ${JSON.stringify(rest)}. Return JSON {name, score, interpretation}. Output Language: ${langMap[language]}.`;
     const schema = {
@@ -2146,7 +2207,7 @@ export const calculateRiskScore = async (scoreType: string, patientData: Patient
 };
 
 export const generatePatientEducationContent = async (report: FinalReport, language: Language): Promise<PatientEducationTopic[]> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Create 3-4 patient education topics based on report. Return JSON array [{title, content}]. Output Language: ${langMap[language]}.`;
     const schema = {
         type: 'array',
@@ -2169,7 +2230,7 @@ export const continueDebate = async (
     userIntervention: string,
     language: Language
 ): Promise<ChatMessage> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const promptText = `
         User intervention: "${userIntervention}".
         Role: Council Chair.
@@ -2196,7 +2257,7 @@ export const runScenarioAnalysis = async (
     scenario: string,
     language: Language
 ): Promise<FinalReport> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const promptText = `
         Role: Council Chair.
         Task: Analyze "What if" scenario: "${scenario}". Use SSV klinik protokollari as baseline; if scenario justifies, suggest protocol-deviating or innovative options. Recommend drugs registered and available in Uzbekistan (Nimesil, Sumamed, Augmentin, Metformin va hokazo).
@@ -2224,7 +2285,7 @@ export const runScenarioAnalysis = async (
 };
 
 export const explainRationale = async (message: ChatMessage, patientData: PatientData, debateHistory: ChatMessage[], language: Language): Promise<string> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Explain medical rationale for message: "${message.content}". Reference symptoms and protocols. Include source/protocol/article names and URLs (PubMed/DOI/guideline) for key claims; if the exact URL is unknown, provide a PubMed search URL: https://pubmed.ncbi.nlm.nih.gov/?term=... LANGUAGE: ${langMap[language]}. Patient: ${JSON.stringify(rest)}.`;
     return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
@@ -2232,7 +2293,7 @@ export const explainRationale = async (message: ChatMessage, patientData: Patien
 
 export const suggestCmeTopics = async (history: AnalysisRecord[], language: Language): Promise<CMETopic[]> => {
     if (history.length === 0) return [];
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     const prompt = `Suggest 2-3 CME topics based on history. Return JSON array [{topic, relevance}]. LANGUAGE: ${langMap[language]}. History: ${JSON.stringify(history.map(r => (Array.isArray(r.finalReport?.consensusDiagnosis) ? r.finalReport.consensusDiagnosis : [])[0]?.name))}.`;
     const schema = {
         type: 'array',
@@ -2253,7 +2314,7 @@ export const runResearchCouncilDebate = async (
     onProgress: (update: ResearchProgressUpdate) => void,
     language: Language
 ): Promise<void> => {
-    const systemInstr = getSystemInstruction(language);
+    const systemInstr = resolveSystemInstruction(language);
     onProgress({ type: 'status', message: `Research Topic: "${diseaseName}". Gathering data...` });
 
     const specialists = [AIModel.GPT, AIModel.LLAMA, AIModel.CLAUDE];
@@ -2521,7 +2582,7 @@ Talablar:
 Faqat soddalashtirilgan matn yozing, hech qanday ro'yxat, bullet, JSON yoki kod ishlatmang.
 Javob tili: ${langMap[language]}.
 `;
-                description = await callClaude(descPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
+                description = await callClaude(descPrompt, DEPLOY_FAST, undefined, false, resolveSystemInstruction(language)) as string;
             } catch {
                 description = `Quyidagi dorilar kombinatsiyasi (${drugs.join(', ')}) uchun AI aniq mexanizmni qaytarmadi, lekin xavf darajasi "${severityUz}". Klinik holatga qarab ehtiyotkorlik bilan qo'llash va qo'shimcha manbalarni ko'rib chiqish zarur.`;
             }
@@ -2546,7 +2607,7 @@ Talablar:
 Faqat izoh matnini yozing, ro'yxat va JSON ishlatmang.
 Javob tili: ${langMap[language]}.
 `;
-                clinicalSignificance = await callClaude(signifPrompt, DEPLOY_FAST, undefined, false, getSystemInstruction(language)) as string;
+                clinicalSignificance = await callClaude(signifPrompt, DEPLOY_FAST, undefined, false, resolveSystemInstruction(language)) as string;
             } catch {
                 clinicalSignificance = `Ushbu kombinatsiya (${drugs.join(', ')}) uchun "${severityUz}" xavf darajasi taxmin qilinmoqda. Ayniqsa xavf guruhi hisoblangan bemorlarda (keksa yosh, ko'p dori qabul qiladiganlar, yurak yoki buyrak/jigar yetishmovchiligi borlar) yaqin monitoring va dozani ehtiyotkorlik bilan tanlash zarur.`;
             }

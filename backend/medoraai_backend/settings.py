@@ -357,10 +357,16 @@ def _load_anthropic_key():
     return ''
 
 ANTHROPIC_API_KEY = _load_anthropic_key()
-# Claude modellari: Opus 4.7 (eng kuchli), Sonnet 4.6 (tez)
-CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default='claude-sonnet-4-6')
-CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default='claude-opus-4-7')
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='claude-opus-4-7')
+# AI xarajat: scale (default, 1000+ user) | economy | balanced | quality
+AI_COST_MODE = config('AI_COST_MODE', default='scale')
+CONSILIUM_AGENT_LIMIT = config('CONSILIUM_AGENT_LIMIT', default=4, cast=int)
+# Claude: economy = Haiku + Sonnet; quality = Sonnet + Opus
+# Default: Haiku 4.5 — eng arzon, tibbiy AI uchun yetarli kuchli
+CLAUDE_MODEL_HAIKU = config('CLAUDE_MODEL_HAIKU', default='claude-haiku-4-5-20251001')
+CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default='claude-haiku-4-5-20251001')
+CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default='claude-haiku-4-5-20251001')
+CLAUDE_USE_SONNET_DIAGNOSIS = config('CLAUDE_USE_SONNET_DIAGNOSIS', default=False, cast=bool)
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='claude-haiku-4-5-20251001')
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:
