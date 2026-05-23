@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT="${AIDOKTOR_ROOT:-/root/aidoktorfjsti}"
 BACKEND_PORT="${AIDOKTOR_BACKEND_PORT:-8099}"
-REPO_URL="${AIDOKTOR_REPO_URL:-https://github.com/aiziyrak-coder/aidoktorfjsti.git}"
+REPO_URL="${AIDOKTOR_REPO_URL:-https://github.com/aiziyrak-coder/medoraai.git}"
 BRANCH="${AIDOKTOR_BRANCH:-main}"
 CERT_EMAIL="${DEPLOY_CERTBOT_EMAIL:-admin@aidoktor.uz}"
 
@@ -55,11 +55,13 @@ CSRF_TRUSTED_ORIGINS=https://aidoktor.uz,https://www.aidoktor.uz,https://api.aid
 DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=$ROOT/backend/db.sqlite3
 SECURE_SSL_REDIRECT=True
-GEMINI_API_KEY=
+ANTHROPIC_API_KEY=
+CLAUDE_MODEL_PRO=claude-opus-4-7
+CLAUDE_MODEL_FAST=claude-sonnet-4-6
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_PAYMENT_GROUP_ID=
 EOF
-  echo "Yangi backend/.env yaratildi — GEMINI_API_KEY va boshqalarni to'ldiring."
+  echo "Yangi backend/.env yaratildi — ANTHROPIC_API_KEY va boshqalarni to'ldiring."
 fi
 # Production: doim HTTPS redirect (Nginx orqali TLS)
 if [ -f "$ROOT/backend/.env" ]; then

@@ -347,7 +347,7 @@ def deploy():
 
         # Step 2: Build frontend (serverda to'g'ri API domeni bilan)
         vite_api = os.environ.get(
-            "DEPLOY_VITE_API_BASE_URL", "https://api.aidoktor.fargana.uz/api"
+            "DEPLOY_VITE_API_BASE_URL", "https://api.aidoktor.uz/api"
         )
         build_cmd = (
             f"cd {REMOTE_DIR}/frontend && "

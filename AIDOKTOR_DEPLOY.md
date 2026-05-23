@@ -37,11 +37,11 @@ Javob:
 
 ---
 
-## 🌐 Production URLs (Yangilandi)
+## 🌐 Production URLs
 
-- **Frontend:** https://aidoktor.fargana.uz
-- **Backend API:** https://api.aidoktor.fargana.uz
-- **Admin Panel:** https://api.aidoktor.fargana.uz/admin/
+- **Frontend:** https://aidoktor.uz
+- **Backend API:** https://api.aidoktor.uz
+- **Admin Panel:** https://api.aidoktor.uz/admin/
 
 ---
 
@@ -72,8 +72,8 @@ Javob:
 
 1. **Loyiha nomi:** MEDORA AI  ->  **AiDoktor**
 2. **Tashkilot:** CDC Group  ->  **Farg'ona Jamoat Salomatligi Tibbiyot Instituti**
-3. **Domenlar:** cdcgroup.uz  ->  **fargana.uz**
-4. **API:** medoraapi  ->  **api**
+3. **Domenlar:** **aidoktor.uz** va **api.aidoktor.uz**
+4. **API:** https://api.aidoktor.uz/api
 5. **Logotiplar:**Barcha iconlarda AiDoktor stili
 6. **Hujjatlar:**Barcha README va qo'llanmalar
 
@@ -83,14 +83,19 @@ Javob:
 
 ### **Backend:**
 ```bash
-curl https://api.aidoktor.fargana.uz/health/
+curl https://api.aidoktor.uz/health/
 ```
 
 ### **Frontend:**
-Browser'da oching: https://aidoktor.fargana.uz
+Browser'da oching: https://aidoktor.uz
 
 ### **Admin Panel:**
-https://api.aidoktor.fargana.uz/admin/
+https://api.aidoktor.uz/admin/
+
+### **DNS (majburiy):**
+- `aidoktor.uz` → A → `167.71.53.238`
+- `api.aidoktor.uz` → A → `167.71.53.238`
+- `www.aidoktor.uz` → A yoki CNAME → `aidoktor.uz`
 
 ---
 
