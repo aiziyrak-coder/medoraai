@@ -20,6 +20,12 @@ from typing import Any, Optional
 from django.utils import timezone
 
 from .clinical_context import build_clinical_context
+from .debate_format import (
+    CLINICAL_OUTPUT_RULES,
+    debate_author_fields,
+    format_consilium_debate,
+    format_consilium_initial,
+)
 from .report_fields import (
     extended_consensus_json_instructions,
     merge_enriched_report_fields,
@@ -167,16 +173,20 @@ def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: s
     """One professor's initial diagnosis  -  called in thread pool. Optimized for maximum speed."""
     deployment = DEPLOY_MAP[prof["deployment"]]()
     system = (
-        f"Siz {prof['name']}  -  {prof['title']}. {prof['persona']}\n"
+        f"Siz {prof['title']} mutaxassisisiz. {prof['persona']}\n"
         "Klinik holat tahlil qilib, mustaqil tashxis bildiring. "
         "O'zbekiston SSV klinik protokollariga rioya qiling. "
-        f"Javob tili: {language_hint}. FAQAT JSON. TEZKOR javob bering (30s ichida)."
+        f"Javob tili: {language_hint}. FAQAT JSON.\n"
+        + CLINICAL_OUTPUT_RULES
     )
     user = (
         f"Bemor:\n{patient_text}\n\n"
-        '{"primary_diagnosis": "...", "probability": 80, "reasoning": "...", '
+        '{"primary_diagnosis": "...", "probability": 92, '
+        '"reasoning_chain": ["Fakt + (SSV protokoli, https://lex.uz/...)", "Keyingi fakt + (PubMed, https://pubmed.ncbi.nlm.nih.gov/...)"], '
+        '"supporting_evidence": ["Vital: AB 120/80", "(Manba, https://...)"], '
         '"differential": ["..."], "red_flags": ["..."], '
-        '"recommended_tests": ["..."], "initial_treatment": "..."}'
+        '"recommended_tests": ["..."], "initial_treatment": "...", '
+        '"confidence": "HIGH", "evidence_level": "A"}'
     )
     raw = _chat(deployment, system, user, response_json=True, max_tokens=1000)  # Reduced from 1200
     parsed = _parse_json_response(raw, f"prof_{prof['id']}_initial")
@@ -231,10 +241,11 @@ def _professor_debate(
     deployment = DEPLOY_MAP[prof["deployment"]]()
     other_opinions = [o for o in initial_opinions if o["professor_id"] != prof["id"]]
     system = (
-        f"Siz {prof['name']}  -  {prof['title']}. {prof['persona']}\n"
-        "Boshqa professorlarning fikrlarini tanqid qiling, xatolarini toping "
-        "va o'z pozitsiyangizni ilmiy dalillar bilan himoya qiling. "
-        f"Javob tili: {language_hint}. FAQAT JSON. TEZKOR javob (30s ichida)."
+        f"Siz {prof['title']} mutaxassisisiz. {prof['persona']}\n"
+        "Boshqa mutaxassislarning fikrlarini tanqid qiling — ISM emas, mutaxassislik bilan murojaat. "
+        "Har bir da'vo oxirida manba URL. "
+        f"Javob tili: {language_hint}. FAQAT JSON.\n"
+        + CLINICAL_OUTPUT_RULES
     )
     user = (
         f"Bemor:\n{patient_text}\n\n"
@@ -675,29 +686,21 @@ def _build_final_report(
     for prof in PROFESSORS:
         initial = next((o for o in initial_opinions if o["professor_id"] == prof["id"]), {})
         debate = next((d for d in debate_responses if d["professor_id"] == prof["id"]), {})
+        author_fields = debate_author_fields(prof)
         if initial.get("primary_diagnosis"):
             debate_history.append({
                 "id": f"{prof['id']}-initial",
-                "author": prof["name"],
-                "authorTitle": prof["title"],
-                "content": (
-                    f"**Dastlabki tashxis:** {initial.get('primary_diagnosis', '')}\n"
-                    f"**Ehtimollik:** {initial.get('probability', '')}%\n"
-                    f"**Asoslash:** {initial.get('reasoning', '')}\n"
-                    f"**Qizil bayroqlar:** {', '.join(initial.get('red_flags', []))}"
-                ),
+                "author": author_fields["author"],
+                "authorTitle": author_fields["authorTitle"],
+                "content": format_consilium_initial(initial),
                 "round": "initial",
             })
         if debate.get("critique") or debate.get("defense"):
             debate_history.append({
                 "id": f"{prof['id']}-debate",
-                "author": prof["name"],
-                "authorTitle": prof["title"],
-                "content": (
-                    f"**Tanqid:** {debate.get('critique', '')}\n"
-                    f"**Himoya:** {debate.get('defense', '')}\n"
-                    f"**Yangilangan tashxis:** {debate.get('revised_diagnosis', '')}"
-                ),
+                "author": author_fields["author"],
+                "authorTitle": author_fields["authorTitle"],
+                "content": format_consilium_debate(debate),
                 "round": "debate",
             })
 

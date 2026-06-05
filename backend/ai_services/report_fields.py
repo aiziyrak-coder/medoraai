@@ -12,6 +12,12 @@ def _str_list(val: Any) -> list[str]:
     return [str(x).strip() for x in val if x is not None and str(x).strip()]
 
 
+def _s(val: Any) -> str:
+    if val is None:
+        return ""
+    return str(val).strip()
+
+
 def extended_consensus_json_instructions(language_hint: str = "O'zbek") -> str:
     return f"""
 MANBA FORMATI (majburiy): Muhim klinik da'vo, tashxis, dori yoki tavsiya oxirida qavs ichida: (Manba yoki jurnal/protokol, https://to-liq-url). "Quyida", "pastda", "bo'limda (qisqa)" kabi yo'naltiruvchi matn YO'Q.
@@ -24,7 +30,7 @@ QO'SHIMCHA MAJBURIY MAYDONLAR (til: {language_hint}):
 - severity_assessment: {{ level (critical|urgent|moderate|low), score (1-10), rationale, red_flags[] }}.
 - check_up_recommendations: [{{ screening_name, frequency, reason, priority (high|medium|low) }}] — profilaktik skrining.
 - medications: har birida adverse_effects[] (nojo'ya ta'sirlar), contraindications, monitoring.
-- nutrition_prevention: individual_diet_by_diagnosis[] — har tashxis uchun diagnosis, allowed_foods[], restricted_foods[], meal_plan_notes (individual parhez).
+- nutrition_prevention: individual_diet_by_diagnosis[] MAJBURIY (kamida konsensus tashxisi uchun 1 qator) — har tashxis: diagnosis, allowed_foods[], restricted_foods[], meal_plan_notes (umumiy emas, aniq parhez).
 - adverse_event_risks: [{{ drug, risk, probability (0-1), management }}] — dori xavflari.
 """
 
@@ -412,5 +418,47 @@ def merge_enriched_report_fields(report: dict, consensus: dict) -> dict:
     )
     if check_up:
         report["checkUpRecommendations"] = check_up
+
+    sfe = _s(consensus.get("simplified_family_explanation") or consensus.get("simplifiedFamilyExplanation"))
+    if sfe:
+        report["simplifiedFamilyExplanation"] = sfe
+
+    rr = consensus.get("related_research") or consensus.get("relatedResearch")
+    if isinstance(rr, list) and rr:
+        out_rr = []
+        for item in rr:
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title") or "").strip()
+            if not title:
+                continue
+            out_rr.append({
+                "title": title,
+                "summary": str(item.get("summary") or "").strip(),
+                "url": str(item.get("url") or "").strip(),
+            })
+        if out_rr:
+            report["relatedResearch"] = out_rr
+
+    pharma = consensus.get("pharmacology_warnings") or consensus.get("pharmacologyWarnings")
+    if isinstance(pharma, list) and pharma:
+        existing = report.get("pharmacologyWarnings") or []
+        if not isinstance(existing, list):
+            existing = []
+        merged = list(dict.fromkeys([*existing, *[str(x) for x in pharma if x]]))
+        if merged:
+            report["pharmacologyWarnings"] = merged[:12]
+
+    ped = consensus.get("pediatric_dosing_notes") or consensus.get("pediatricDosingNotes")
+    if isinstance(ped, list) and ped:
+        notes = [str(x).strip() for x in ped if x]
+        if notes:
+            meds = report.get("medicationRecommendations") or []
+            if isinstance(meds, list) and meds and isinstance(meds[0], dict):
+                first = dict(meds[0])
+                extra = _s(first.get("notes"))
+                first["notes"] = (extra + " | " if extra else "") + "Pediatrik: " + "; ".join(notes[:3])
+                meds = [first, *meds[1:]]
+                report["medicationRecommendations"] = meds
 
     return report

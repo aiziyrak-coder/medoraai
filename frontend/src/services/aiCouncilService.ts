@@ -46,7 +46,13 @@ import {
 } from '../config/aiCost';
 import { formatDebateForPrompt } from '../utils/debatePrompt';
 import { DIAGNOSIS_ACCURACY_RULES } from '../utils/diagnosisQuality';
-import { mapApiSpecialistToAIModel, resolveSpecialistI18nKey, stripAiParentheticals } from '../utils/specialistDisplay';
+import {
+  mapApiSpecialistToAIModel,
+  mapConsiliumAgentIdToAIModel,
+  resolveSpecialistI18nKey,
+  stripAiParentheticals,
+} from '../utils/specialistDisplay';
+import { sanitizeClinicalContent } from '../utils/sanitizeClinicalContent';
 import {
     buildClinicalContextText,
     buildPatientSummaryForDebate,
@@ -1559,10 +1565,11 @@ async function runBackendConsilium(
     for (let i = 0; i < debateRaw.length; i++) {
         const m = debateRaw[i];
         const authorName = String(m.author ?? 'Orchestrator');
+        const agentId = String(m.id ?? '').split('-')[0];
         const msg: ChatMessage = {
             id: String(m.id ?? `backend-${i}-${Date.now()}`),
-            author: mapApiSpecialistToAIModel(authorName),
-            content: String(m.content ?? ''),
+            author: mapConsiliumAgentIdToAIModel(agentId) || mapApiSpecialistToAIModel(authorName),
+            content: sanitizeClinicalContent(String(m.content ?? '')),
             isSystemMessage: /professor|orchestrator|konsilium/i.test(authorName),
         };
         chatMessages.push(msg);

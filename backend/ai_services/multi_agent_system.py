@@ -48,6 +48,14 @@ from .azure_utils import (
     patient_text,
     Deployments,
 )
+from .debate_format import (
+    CLINICAL_OUTPUT_RULES,
+    COMPACT_OUTPUT_HINT,
+    debate_author_fields,
+    format_p1_debate_content,
+    format_p2_debate_content,
+    agent_specialty_label as _specialty_from_agent_obj,
+)
 from .consilium_cost import (
     compact_phase1,
     compact_phase2,
@@ -55,7 +63,9 @@ from .consilium_cost import (
     phase1_max_tokens,
     phase2_max_tokens,
     phase3_max_tokens,
+    pharma_max_tokens,
 )
+from .clinical_context import build_clinical_context
 from .report_fields import (
     extended_consensus_json_instructions,
     merge_enriched_report_fields,
@@ -149,6 +159,26 @@ ORCHESTRATOR = Agent(
 )
 
 _AGENT_ID_MAP: dict[str, Agent] = {a.id: a for a in AGENTS}
+_AGENT_ID_MAP[ORCHESTRATOR.id] = ORCHESTRATOR
+
+# Konsilium professor idlari (multi_agent_consilium bilan mos)
+_PROF_ID_ALIASES: dict[str, str] = {
+    "chair": ORCHESTRATOR.id,
+    "reasoning": "deepseek",
+    "encyclopedist": "llama",
+    "standards": "mistral",
+    "pharmacologist": "mini",
+}
+
+
+def _agent_specialty_label(agent_id: str) -> str:
+    """Foydalanuvchiga ko'rinadigan mutaxassislik (ism yoki texnik id emas)."""
+    raw = str(agent_id or "").strip()
+    if not raw:
+        return "Hamkasb mutaxassis"
+    resolved = _PROF_ID_ALIASES.get(raw, raw)
+    agent = _AGENT_ID_MAP.get(resolved)
+    return _specialty_from_agent_obj(agent, resolved)
 
 
 def _active_agents() -> list[Agent]:
@@ -192,11 +222,15 @@ _P1_SYSTEM = """\
 
 MUSTAQIL TAHLIL QOIDALARI:
 1. BOSHQA HECH BIR mutaxassisning fikrini bilmaysiz  -  faqat o'z klinik bilimlaring.
-2. O'zbekiston SSV (Sog'liqni Saqlash Vazirligi) milliy klinik protokollariga rioya qiling.
+2. O'zbekiston SSV milliy klinik protokollariga rioya qiling.
 3. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dori-darmonlarni tavsiya qiling.
-4. Har bir xulosa uchun ilmiy asoslash (reasoning_chain) majburiy.
-5. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%, shubhali = <70%.
-6. FAQAT JSON formatida javob qaytaring."""
+4. Har bir xulosa uchun reasoning_chain majburiy — har band ALOHIDA qadam, strelka YO'Q.
+5. supporting_evidence: aniq klinik FAKTLAR (vital, lab, anamnez) + manba URL.
+6. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%.
+7. FAQAT JSON formatida javob qaytaring.
+8. Shikoyatdan tashqari ob'ektiv, lab va tasvir tahlilini majburiy hisobga oling.
+
+""" + CLINICAL_OUTPUT_RULES + "\n" + COMPACT_OUTPUT_HINT
 
 _P1_USER = """\
 BEMOR MA'LUMOTLARI:
@@ -205,19 +239,23 @@ BEMOR MA'LUMOTLARI:
 Quyidagi JSON formatida MUSTAQIL tashxisingizni bildiring:
 {{
   "primary_diagnosis": "Aniq tashxis nomi (O'zbek tilida)",
-  "probability": 80,
+  "probability": 92,
   "reasoning_chain": [
-    "Belgi/simptom  ->  klinik ahamiyati",
-    "Lab/ob'ektiv  ->  xulosasi",
-    "Differensial  ->  nega bu ehtimolroq"
+    "Tunda apnoe shikoyati OUAS uchun patognomonik belgi (SSV uyqu buzilishlari protokoli, https://lex.uz/...)",
+    "SpO2 98% uyg'onganda normal, ammo tunda gipoksiya mumkin (AHA Sleep Apnea Guideline, https://pubmed.ncbi.nlm.nih.gov/?term=sleep+apnea)",
+    "Differensial: gipertoniya OUAS bilan bog'liq emas — alohida baholanadi (ESC, https://pubmed.ncbi.nlm.nih.gov/?term=hypertension+differential)"
   ],
-  "supporting_evidence": ["Dalil 1", "Dalil 2"],
-  "red_flags": ["Shoshilinch belgi (agar bo'lsa)"],
+  "supporting_evidence": [
+    "Shikoyat: tunda nafas to'xtashi, 6 oy",
+    "Vital: AB 120/80 mmHg, puls 72/min, SpO2 98%",
+    "(SSV klinik protokoli, https://lex.uz/...)"
+  ],
+  "red_flags": ["Tunda nafas to'xtashi — gipoksiya va aritmiya xavfi (SSV, https://lex.uz/...)"],
   "differential": [
-    {{"name": "Alt tashxis", "probability": 20, "reason": "Nega kamroq"}}
+    {{"name": "Alt tashxis", "probability": 20, "reason": "Nega kamroq — faktlar bilan"}}
   ],
-  "recommended_tests": ["Tekshiruv 1"],
-  "initial_treatment_notes": "Qisqa tavsiya",
+  "recommended_tests": ["Polisomnografiya (AASM, https://pubmed.ncbi.nlm.nih.gov/?term=polysomnography)"],
+  "initial_treatment_notes": "Qisqa tavsiya + manba URL",
   "confidence": "HIGH/MEDIUM/LOW",
   "evidence_level": "A/B/C"
 }}"""
@@ -274,20 +312,20 @@ _P2_SYSTEM = """\
 {persona}
 
 DEBATE VA REFUTATION QOIDALARI:
-1. Boshqa professorlarning tashxisini DIQQAT BILAN o'qing.
-2. REFUTATION (Inkor): Agar birining tashxisi noto'g'ri yoki zaif bo'lsa  - 
-   ANIQ va ILMIY asosda inkor qiling. "Bu xato chunki ..." shakli talab qilinadi.
-3. HIMOYA: O'z tashxisingizni yangilangan dalillar bilan QUVVATLANG.
-4. REVIZIYA: Agar boshqa professor kuchli dalil keltirgan bo'lsa, pozitsiyangizni
-   yangilashingiz MUMKIN va KERAK  -  bu ilmiy halollik belgisi.
-5. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%, shubhali = <70%.
-6. FAQAT JSON formatida javob qaytaring."""
+1. Boshqa mutaxassislarning tashxisini DIQQAT BILAN o'qing — ularga ISM bilan emas, mutaxassislik bilan murojaat qiling.
+2. REFUTATION: Noto'g'ri yoki zaif joyni ANIQ faktlar va manba URL bilan inkor qiling.
+3. HIMOYA: O'z tashxisingizni yangilangan dalillar bilan qo'llab-quvvatlang.
+4. Kuchli dalil bo'lsa, pozitsiyangizni yangilang — ilmiy halollik.
+5. refutation matnida shaxsiy ism, AI nomi yoki ichki agent_id KO'RSATILMASIN.
+6. FAQAT JSON formatida javob qaytaring.
+
+""" + CLINICAL_OUTPUT_RULES + "\n" + COMPACT_OUTPUT_HINT
 
 _P2_USER = """\
 BEMOR:
 {patient}
 
-BOSHQA PROFESSORLAR MUSTAQIL TASHXISLARI:
+BOSHQA MUTAXASSISLAR MUSTAQIL TASHXISLARI (agent_id faqat ichki — matnda ishlatmang):
 {others_json}
 
 SIZNING DASTLABKI TASHXISINGIZ:
@@ -297,47 +335,44 @@ Debate javobingizni quyidagi JSON formatida yozing:
 {{
   "refutations": [
     {{
-      "target_agent_id": "deepseek",
+      "target_agent_id": "llama",
       "target_diagnosis": "Ular aytgan tashxis",
-      "refutation": "Bu noto'g'ri/zaif chunki: [ANIQ ILMIY SABAB]",
+      "refutation": "Onkolog mutaxassisi taklifidagi ... zaif, chunki [FAKT + manba URL]",
       "strength": "STRONG/MODERATE/WEAK"
     }}
   ],
   "defense": {{
     "my_diagnosis_stands": true,
-    "argument": "O'z pozitsiyamni himoya qilaman chunki ...",
-    "new_evidence": "Yangi qo'shilgan dalil"
+    "argument": "O'z pozitsiyamni himoya: aniq klinik faktlar ... (manba URL)",
+    "new_evidence": "Yangi dalil: vital/lab qiymat + (Protokol, https://...)"
   }},
-  "revised_diagnosis": "Yangilangan tashxis (o'zgarmasa, dastlabki tashxisni yozing)",
-  "revised_probability": 85,
+  "revised_diagnosis": "Yangilangan tashxis",
+  "revised_probability": 92,
   "accepted_from_others": [
-    {{"agent_id": "llama", "point": "Bu professorda to'g'ri nuqta: ..."}}
+    {{"agent_id": "mistral", "point": "Gastroenterolog mutaxassisining ... fikri to'g'ri: [fakt]"}}
   ],
-  "key_argument": "Eng muhim klinik dalil yoki mantiqiy nuqta"
+  "key_argument": "Eng muhim klinik dalil + (Manba, https://...)"
 }}"""
 
 
 def _phase2_single(agent: Agent, patient_str: str,
                    own: dict, others: list[dict]) -> dict:
-    import json as _json
-    others_text = _json.dumps(
-        [{
-            "agent_id":   o.get("agent_id"),
-            "agent_name": o.get("agent_name"),
-            "diagnosis":  o.get("primary_diagnosis"),
+    others_text = dumps_compact([
+        {
+            "agent_id": o.get("agent_id"),
+            "specialty": _agent_specialty_label(str(o.get("agent_id", ""))),
+            "diagnosis": (o.get("primary_diagnosis") or "")[:160],
             "probability": o.get("probability"),
-            "reasoning":  o.get("reasoning_chain"),
-            "evidence":   o.get("supporting_evidence"),
-        } for o in others],
-        ensure_ascii=False, indent=2,
-    )
-    own_text = _json.dumps({
-        "diagnosis":   own.get("primary_diagnosis"),
+            "reasoning": (o.get("reasoning_chain") or [])[:2],
+        }
+        for o in others
+    ])
+    own_text = dumps_compact({
+        "diagnosis": own.get("primary_diagnosis"),
         "probability": own.get("probability"),
-        "reasoning":   own.get("reasoning_chain"),
-        "evidence":    own.get("supporting_evidence"),
-        "confidence":  own.get("confidence"),
-    }, ensure_ascii=False, indent=2)
+        "reasoning": (own.get("reasoning_chain") or [])[:2],
+        "confidence": own.get("confidence"),
+    })
 
     system = _P2_SYSTEM.format(persona=agent.persona)
     user   = _P2_USER.format(patient=patient_str,
@@ -426,13 +461,16 @@ _P3_SYSTEM = """\
 {persona}
 
 KONSENSUS QAROR QOIDALARI:
-1. Har bir agentga berilgan WEIGHT (og'irlik koeffitsienti) e'tiborga oling.
-   Kuchli refutation qilgan agent  -  yuqori weight  ->  uning tashxisiga ko'proq ishon.
-2. Eng kuchli dalillar bilan qo'llab-quvvatlangan tashxisni tanlang.
-3. O'zbekiston SSV milliy klinik protokollariga to'liq muvofiqlikni ta'minlang.
-4. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dorilar tavsiya qiling.
-5. EHTIMOLLIK (probability): Agar dalillar KUCHLI bo'lsa, 90-97% bering. 85-89% faqat o'rtacha dalillar uchun. 70-84% zaif dalillar uchun. 70% dan past faqat shubhali holatlarda.
-6. FAQAT JSON formatida javob qaytaring."""
+1. Har bir agentga berilgan WEIGHT e'tiborga oling — kuchli dalil ustun.
+2. Eng kuchli faktlar bilan qo'llab-quvvatlangan tashxisni tanlang.
+3. O'zbekiston SSV protokollariga to'liq muvofiqlik.
+4. Faqat O'zbekistonda ro'yxatdan o'tgan dorilar.
+5. justification va reasoning_chain: har band alohida, manba URL bilan.
+6. Shaxsiy ism yoki AI nomi ISHLATMANG — mutaxassislik yoki "konsilium" deb yozing.
+7. FAQAT JSON formatida javob qaytaring.
+8. individual_diet_by_diagnosis — har bir asosiy tashxis uchun alohida parhez.
+
+""" + CLINICAL_OUTPUT_RULES + "\n" + COMPACT_OUTPUT_HINT
 
 _P3_USER = """\
 BEMOR:
@@ -455,15 +493,14 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
     "probability": 94,
     "justification": "Barcha dalillarni hisobga olgan xulosaning asosi ...",
     "evidence_level": "A",
-    "reasoning_chain": ["Qadam 1 ...", "Qadam 2 ..."],
-    "uzbek_protocol_match": "SSV buyrug'i/protokol nomi",
-    "strongest_supporter": "deepseek"
+    "reasoning_chain": ["Aniq fakt + (SSV protokoli, https://lex.uz/...)", "Keyingi fakt + (PubMed, https://pubmed.ncbi.nlm.nih.gov/...)"],
+    "uzbek_protocol_match": "SSV buyrug'i/protokol nomi (https://lex.uz/...)"
   }},
   "differential_diagnoses": [
     {{"name": "Alt tashxis", "probability": 6, "reason": "Nega kam ehtimol"}}
   ],
   "rejected_hypotheses": [
-    {{"name": "Rad etilgan tashxis", "reason": "Kim nima asosida rad etdi"}}
+    {{"name": "Rad etilgan tashxis", "reason": "Nevrolog mutaxassisi dalillari asosida rad etildi — faktlar"}}
   ],
   "treatment_plan": [
     "1-qadam: ...",
@@ -640,45 +677,27 @@ def _build_final_report(consensus: dict, p1: list[dict],
         p2r = id_to_p2.get(agent.id, {})
         w   = round(weights.get(agent.id, 1.0), 2)
 
+        author_fields = debate_author_fields(agent)
         if p1r.get("primary_diagnosis"):
             debate_log.append({
                 "id":          f"{agent.id}-p1",
-                "author":      agent.name,
-                "authorTitle": agent.title,
+                "author":      author_fields["author"],
+                "authorTitle": author_fields["authorTitle"],
                 "phase":       "independent",
                 "weight":      w,
-                "content": (
-                    f"**Tashxis:** {p1r.get('primary_diagnosis','')}\n"
-                    f"**Ehtimollik:** {p1r.get('probability','')}%  "
-                    f"**Ishonch:** {p1r.get('confidence','')}  "
-                    f"**Dalil darajasi:** {p1r.get('evidence_level','')}\n"
-                    f"**Reasoning:** {'  ->  '.join(p1r.get('reasoning_chain') or [])}\n"
-                    f"**Qizil bayroqlar:** {', '.join(p1r.get('red_flags') or [])}"
-                ),
+                "content":     format_p1_debate_content(p1r),
             })
 
         reftns = p2r.get("refutations") or []
         if reftns or p2r.get("defense"):
-            ref_text = "\n".join(
-                f"  в†і [{r.get('strength','?')}] {r.get('target_agent_id','?')}: {r.get('refutation','')}"
-                for r in reftns
-            )
-            accepted = ", ".join(
-                a.get("point", "") for a in (p2r.get("accepted_from_others") or [])
-            )
+            p2_content = format_p2_debate_content(p2r, _agent_specialty_label)
             debate_log.append({
                 "id":          f"{agent.id}-p2",
-                "author":      agent.name,
-                "authorTitle": agent.title,
+                "author":      author_fields["author"],
+                "authorTitle": author_fields["authorTitle"],
                 "phase":       "debate",
                 "weight":      w,
-                "content": (
-                    f"**Refutation'lar:**\n{ref_text}\n\n"
-                    f"**Himoya:** {p2r.get('defense', {}).get('argument','')}\n"
-                    f"**Yangilangan tashxis:** {p2r.get('revised_diagnosis','')}\n"
-                    f"**Boshqalardan qabul:** {accepted}\n"
-                    f"**Asosiy dalil:** {p2r.get('key_argument','')}"
-                ),
+                "content":     p2_content,
             })
 
     cf = consensus.get("critical_finding") or {}
@@ -699,7 +718,6 @@ def _build_final_report(consensus: dict, p1: list[dict],
                 "evidenceLevel":      str(cd.get("evidence_level") or "Moderate"),
                 "reasoningChain":     cd.get("reasoning_chain") or [],
                 "uzbekProtocolMatch": str(cd.get("uzbek_protocol_match", "")),
-                "strongestSupporter": str(cd.get("strongest_supporter", "")),
             }
         ] + [
             {
@@ -748,14 +766,70 @@ def _build_final_report(consensus: dict, p1: list[dict],
         **({"folkMedicine": folk_medicine} if folk_medicine else {}),
         **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
-    return merge_enriched_report_fields(report, consensus)
+    merged = merge_enriched_report_fields(report, consensus)
+    comp = consensus.get("_clinical_completeness")
+    if isinstance(comp, dict):
+        merged["clinicalCompleteness"] = comp
+    return merged
 
 
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Main entry point
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
+def _merge_imaging_into_consensus(consensus: dict, patient_data: dict) -> dict:
+    """Vision natijasini imaging_interpretation ga qo'shadi."""
+    structured = patient_data.get("imagingStructured") or patient_data.get("imaging_structured")
+    if not isinstance(structured, dict) or not structured:
+        return consensus
+    imaging = consensus.get("imaging_interpretation") or consensus.get("imagingInterpretation")
+    if not isinstance(imaging, dict):
+        imaging = {}
+    for key, block in structured.items():
+        if key not in imaging or not imaging.get(key):
+            imaging[key] = block
+    consensus["imaging_interpretation"] = imaging
+    return consensus
+
+
+def _merge_protocol_audit(consensus: dict, patient_data: dict, completeness: dict) -> dict:
+    from .protocol_audit import rule_protocol_gaps, rule_care_quality_audit
+
+    rule_gaps = rule_protocol_gaps(patient_data)
+    ai_gaps = consensus.get("protocol_compliance_gaps") or consensus.get("protocolComplianceGaps") or []
+    if not isinstance(ai_gaps, list):
+        ai_gaps = []
+    seen = {str(g.get("gap", "")).lower()[:40] for g in ai_gaps if isinstance(g, dict)}
+    for g in rule_gaps:
+        sig = str(g.get("gap", "")).lower()[:40]
+        if sig and sig not in seen:
+            ai_gaps.append(g)
+            seen.add(sig)
+    if ai_gaps:
+        consensus["protocol_compliance_gaps"] = ai_gaps
+
+    audit = consensus.get("care_quality_audit") or consensus.get("careQualityAudit")
+    rule_audit = rule_care_quality_audit(patient_data, completeness)
+    if not isinstance(audit, dict) or not audit.get("overall_score"):
+        consensus["care_quality_audit"] = rule_audit
+    else:
+        try:
+            ai_score = int(audit.get("overall_score") or 0)
+        except (TypeError, ValueError):
+            ai_score = 0
+        rule_score = int(rule_audit.get("overall_score") or 0)
+        audit["overall_score"] = min(ai_score, rule_score) if ai_score else rule_score
+        if not audit.get("errors") and rule_audit.get("errors"):
+            audit["errors"] = rule_audit["errors"]
+        consensus["care_quality_audit"] = audit
+    return consensus
+
+
+def run_consilium(
+    patient_data: dict,
+    language: str = "uz-L",
+    extra: Optional[dict] = None,
+) -> dict:
     """
     Full 3-phase Multi-Agent Medical Consilium.
 
@@ -763,10 +837,12 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
     """
     from .imaging_analysis import merge_imaging_into_context
     from .clinical_red_flags import evaluate_red_flags
+    from .clinical_completeness import score_clinical_completeness
     from .pharmacology_review import run_pharmacology_review
 
     patient_data = merge_imaging_into_context(dict(patient_data or {}), language)
     red_flags = evaluate_red_flags(patient_data)
+    completeness = score_clinical_completeness(patient_data)
 
     t_start = time.monotonic()
     now     = timezone.now()
@@ -776,22 +852,25 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
         started_at  = now.isoformat(),
         language    = language,
         professors  = [
-            {"id": a.id, "name": a.name, "title": a.title,
-             "specialty": a.specialty, "deployment": a.deployment}
+            {"id": a.id, "name": a.name, "title": a.title, "specialty": a.specialty}
             for a in [ORCHESTRATOR] + AGENTS
         ],
     )
 
-    ptext = patient_text(patient_data)
+    ctx_extra = extra or {}
+    ptext = build_clinical_context(patient_data, ctx_extra, language=language)
+    ptext_compact = build_clinical_context(
+        patient_data, ctx_extra, compact=True, include_uz_protocols=False, language=language
+    )
 
     # Phase 1
     logger.info("[%s] Phase 1: Independent analysis started", result.session_id)
     p1 = run_phase1(ptext)
     result.phases["phase1_independent"] = p1
 
-    # Phase 2
+    # Phase 2 — qisqa kontekst (token tejash)
     logger.info("[%s] Phase 2: Cross-examination started", result.session_id)
-    p2 = run_phase2(ptext, p1)
+    p2 = run_phase2(ptext_compact, p1)
     result.phases["phase2_debate"] = p2
 
     # Refutation scoring
@@ -800,14 +879,26 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
 
     # Phase 3
     logger.info("[%s] Phase 3: Weighted consensus started", result.session_id)
-    consensus = run_phase3(ptext, p1, p2, weights)
+    consensus = run_phase3(ptext_compact, p1, p2, weights)
+    consensus = _merge_imaging_into_consensus(consensus, patient_data)
+    consensus = _merge_protocol_audit(consensus, patient_data, completeness)
+    consensus["_clinical_completeness"] = completeness
     result.phases["phase3_consensus_raw"] = consensus
 
-    # Pharmacology review
-    pharma = run_pharmacology_review(ptext, consensus, language)
+    # Pharmacology + DDI review
+    pharma = run_pharmacology_review(patient_data, consensus, language, max_tokens=pharma_max_tokens())
     result.phases["pharmacology_review"] = pharma
     if pharma.get("warnings"):
         consensus["pharmacology_warnings"] = pharma.get("warnings")
+
+    # Tashxis asosida klinik vositalar (ICD-10, qo'llanma, DDI, bemor tushuntirishi)
+    from .diagnosis_enrichment import enrich_consensus_with_diagnosis_tools
+    consensus = enrich_consensus_with_diagnosis_tools(consensus, patient_data, language)
+    result.phases["diagnosis_enrichment"] = {
+        "icd10": (consensus.get("consensus_diagnosis") or {}).get("icd10"),
+        "has_family_explanation": bool(consensus.get("simplified_family_explanation")),
+        "research_count": len(consensus.get("related_research") or []),
+    }
 
     # Final report
     result.final_report = _build_final_report(consensus, p1, p2, weights)
@@ -825,8 +916,10 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
     result.completed_at = timezone.now().isoformat()
     result.duration_sec = time.monotonic() - t_start
     result.phases["clinical_red_flags"] = red_flags
+    result.phases["clinical_completeness"] = completeness
 
     logger.info("[%s] Completed in %.1fs", result.session_id, result.duration_sec)
     out = result.to_dict()
     out["clinical_red_flags"] = red_flags
+    out["clinical_completeness"] = completeness
     return out

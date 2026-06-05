@@ -3,7 +3,7 @@ import { AIModel, type ChatMessage as ChatMessageProps } from '../types';
 import { AI_SPECIALISTS } from '../constants';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 import { resolveSpecialistI18nKey, stripAiParentheticals } from '../utils/specialistDisplay';
-import LinkifiedText from './common/LinkifiedText';
+import ClinicalDebateContent from './common/ClinicalDebateContent';
 import AIAvatar from './AIAvatar';
 import SpinnerIcon from './icons/SpinnerIcon';
 import InformationCircleIcon from './icons/InformationCircleIcon';
@@ -41,16 +41,16 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     const specialistName =
         t(`specialist_name_${nameKey}` as TranslationKey) ||
         stripAiParentheticals(config?.name || '') ||
-        (author === 'Orchestrator' ? 'Konsilium professori' : String(author));
+        (author === 'Orchestrator' ? t('chat_consilium_professor') : String(author));
     const animationDelay = `${Math.random() * 0.3}s`;
     
     if (isSystemMessage || isUserIntervention) {
         return (
             <div className={`animate-fade-in-up text-center ${compact ? 'my-2' : 'my-6'}`} style={{ animationDelay }}>
                  <div className={`inline-block max-w-2xl ${compact ? 'px-2 py-1 rounded-lg' : 'px-4 py-2 rounded-xl'}`}>
-                    <p className={`text-text-secondary font-semibold ${compact ? 'text-[10px]' : 'text-xs'}`}>{isUserIntervention ? "Sizning aralashuvingiz" : specialistName}</p>
+                    <p className={`text-text-secondary font-semibold ${compact ? 'text-[10px]' : 'text-xs'}`}>{isUserIntervention ? t('chat_user_intervention') : specialistName}</p>
                     {content && (
-                        <LinkifiedText
+                        <ClinicalDebateContent
                             text={content}
                             className={`text-text-secondary italic text-center ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}
                         />
@@ -86,7 +86,7 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
                         </div>
                     ) : (
                         <>
-                            <LinkifiedText text={content} className={`text-text-primary ${compact ? 'text-xs' : 'text-sm'}`} />
+                            <ClinicalDebateContent text={content} className={`text-text-primary ${compact ? 'text-xs' : 'text-sm'}`} />
                             {evidenceLevel && !compact && (
                                 <div className="mt-3 pt-2 border-t border-slate-300/50">
                                     <EvidenceBadge level={evidenceLevel} />

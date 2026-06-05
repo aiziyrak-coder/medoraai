@@ -453,7 +453,14 @@ const FinalReportCard: React.FC<{
                         {normalizeConsensusDiagnosis(report.consensusDiagnosis).map((diag, index) => (
                             <div key={index} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 mb-4 last:mb-0">
                                 <div className="flex justify-between items-start gap-2">
-                                    <span className="text-base font-bold text-slate-900">{diag.name}</span>
+                                    <div className="min-w-0">
+                                        <span className="text-base font-bold text-slate-900">{diag.name}</span>
+                                        {diag.icd10 && (
+                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-xs font-mono font-semibold">
+                                                {t('final_report_icd10')}: {diag.icd10}
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded text-sm font-semibold shrink-0">
                                         {Number.isFinite(diag.probability) ? `${diag.probability}%` : '-'}
                                     </span>
@@ -484,6 +491,12 @@ const FinalReportCard: React.FC<{
                             </div>
                         ))}
                     </div>
+                    {report.simplifiedFamilyExplanation && String(report.simplifiedFamilyExplanation).trim() && (
+                        <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/60">
+                            <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wider mb-2">{t('final_report_family_explanation')}</h3>
+                            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{report.simplifiedFamilyExplanation}</p>
+                        </div>
+                    )}
                 </div>
             </div>
 

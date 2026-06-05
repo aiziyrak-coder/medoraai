@@ -145,7 +145,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         if (!report) return;
         setPdfLoading(true);
         try {
-            await generateUziUttPdf(report, undefined, (key) => t(key as TranslationKey));
+            await generateUziUttPdf(report, undefined, (key) => t(key as TranslationKey), language);
         } catch {
             setError(t('alert_error_generic'));
         } finally {

@@ -99,7 +99,7 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
                             style={{ background: 'linear-gradient(180deg,#6366f1,#0891b2)' }}
                         />
                         <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">
-                            {t('dashboard_analytics_title') || 'Analitika Hub'}
+                            {t('dashboard_analytics_title')}
                         </h2>
                     </div>
                     <p className="text-[11px] md:text-sm text-slate-500 leading-relaxed pl-3 border-l-2 border-sky-100">

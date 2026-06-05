@@ -3,6 +3,8 @@ import type { FinalReport, PatientData } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { logger } from '../utils/logger';
 import type { InstituteBranding } from './pdfGenerator';
+import type { Language } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translationKeys';
 import {
     prepareExportReport,
     buildImagingExportLines,
@@ -13,6 +15,7 @@ import {
     buildRiskExportLines,
     buildCheckUpExportLines,
 } from '../utils/exportReportSections';
+import { createExportTr, formatExportDate, pdfText } from '../utils/exportI18n';
 
 // Helper functions to create document elements
 const createHeading1 = (text: string) => new Paragraph({ text, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } });
@@ -63,12 +66,9 @@ export const generateDocxReport = async (
     patientData: PatientData,
     branding?: InstituteBranding,
     t?: (key: string) => string,
+    language: Language = 'uz-L',
 ) => {
-    const tr = (key: string, fallback: string): string => {
-        if (!t) return fallback;
-        const translated = t(key);
-        return translated === key ? fallback : translated;
-    };
+    const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
     report = prepareExportReport(report);
     const children: Paragraph[] = [];
 
@@ -102,8 +102,7 @@ export const generateDocxReport = async (
         children.push(new Paragraph({ text: "" }));
     }
 
-    const reportDate = new Date();
-    const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const dateStr = formatExportDate(language);
     const genderText =
         patientData.gender === 'male'
             ? tr('pdf_gender_male', 'Erkak')
@@ -126,7 +125,7 @@ export const generateDocxReport = async (
 
         createHeading1(tr('pdf_patient_info', "Bemor Ma'lumotlari")),
         createKeyValue(tr('pdf_patient', 'Bemor'), `${patientData.firstName} ${patientData.lastName}`),
-        createKeyValue(tr('pdf_age', 'Yoshi'), patientData.age),
+        createKeyValue(tr('pdf_age', 'Yoshi'), pdfText(patientData.age)),
         createKeyValue(tr('pdf_gender', 'Jinsi'), genderText),
         createKeyValue(tr('docx_complaints_history', 'Shikoyatlar va Anamnez'), patientData.complaints),
         createKeyValue(tr('docx_medical_history', 'Kasallik Tarixi'), patientData.history),

@@ -12,13 +12,23 @@ const AUTHOR_I18N_KEY: Record<string, string> = {
   Oncologist: 'oncologist',
   Grok: 'endocrinologist',
   Endocrinologist: 'endocrinologist',
+  deepseek: 'neurologist',
+  llama: 'oncologist',
+  mistral: 'gastroenterologist',
+  gpt4o: 'cardiologist',
+  mini: 'pharmacologist',
+  chair: 'cardiologist',
+  reasoning: 'neurologist',
+  encyclopedist: 'oncologist',
+  standards: 'gastroenterologist',
+  pharmacologist: 'pharmacologist',
   [AIModel.SYSTEM]: 'system',
 };
 
 /** Qavs ichidagi AI/platforma nomlarini olib tashlash */
 export function stripAiParentheticals(name: string): string {
   return name
-    .replace(/\s*\([^)]*(?:AI|Claude|GPT|Llama|Grok|Opus|Sonnet|Haiku|Orkestrator|Orchestrator)[^)]*\)/gi, '')
+    .replace(/\s*\([^)]*(?:AI|Claude|GPT|Llama|Grok|Opus|Sonnet|Haiku|DeepSeek|Mistral|Orkestrator|Orchestrator)[^)]*\)/gi, '')
     .replace(/\s*AI\s*$/i, '')
     .trim();
 }
@@ -46,6 +56,25 @@ export function mapApiSpecialistToAIModel(model: string): AIModel {
     (v) => resolveSpecialistI18nKey(v) === key || v.toLowerCase().replace(/[\s-]+/g, '_') === key,
   );
   return byKey ?? AIModel.INTERNAL_MEDICINE;
+}
+
+/** Backend konsilium agent id → UI avatar/mutaxassis */
+export const CONSILIUM_AGENT_TO_MODEL: Record<string, AIModel> = {
+  deepseek: AIModel.CLAUDE,
+  reasoning: AIModel.CLAUDE,
+  llama: AIModel.LLAMA,
+  encyclopedist: AIModel.LLAMA,
+  mistral: AIModel.GASTRO,
+  standards: AIModel.GASTRO,
+  mini: AIModel.PHARMACOLOGIST,
+  pharmacologist: AIModel.PHARMACOLOGIST,
+  gpt4o: AIModel.SYSTEM,
+  chair: AIModel.SYSTEM,
+};
+
+export function mapConsiliumAgentIdToAIModel(agentId: string): AIModel {
+  const id = String(agentId || '').split('-')[0].toLowerCase();
+  return CONSILIUM_AGENT_TO_MODEL[id] ?? AIModel.INTERNAL_MEDICINE;
 }
 
 export function resolveSpecialistI18nKey(author: string | AIModel): string {

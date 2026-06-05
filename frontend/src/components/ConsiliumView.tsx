@@ -13,6 +13,7 @@ import { generateDocxReport } from '../services/docxGenerator';
 import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../constants/brand';
 import { useTranslation } from '../hooks/useTranslation';
 import LinkifiedText from './common/LinkifiedText';
+import ClinicalDebateContent from './common/ClinicalDebateContent';
 
 async function getInstituteLogoDataUrl(): Promise<string | undefined> {
   try {
@@ -43,28 +44,6 @@ interface PhaseState {
   independent: PhaseStatus;
   debate:      PhaseStatus;
   consensus:   PhaseStatus;
-}
-
-const PHASE_LABELS: Record<string, Record<string, string>> = {
-  'uz-L': {
-    independent: '1-Faza: Mustaqil Tahlil',
-    debate:      '2-Faza: Bahslar (Cross-Examination)',
-    consensus:   '3-Faza: Konsensus Xulosasi',
-  },
-  ru: {
-    independent: 'Фаза 1: Независимый анализ',
-    debate:      'Фаза 2: Дебаты',
-    consensus:   'Фаза 3: Консенсус',
-  },
-  en: {
-    independent: 'Phase 1: Independent Analysis',
-    debate:      'Phase 2: Cross-Examination',
-    consensus:   'Phase 3: Consensus',
-  },
-};
-
-function getPhaseLabels(lang: string) {
-  return PHASE_LABELS[lang] || PHASE_LABELS['uz-L'];
 }
 
 const PROFESSOR_COLORS: Record<string, string> = {
@@ -120,29 +99,37 @@ function DebateCard({ msg, t }: { msg: DebateMessage; t: (key: string) => string
         </span>
         <div>
           <p className="text-sm font-semibold text-white leading-none">{msg.author}</p>
-          <p className="text-xs text-slate-400">{msg.authorTitle}</p>
+          {msg.authorTitle && msg.authorTitle !== msg.author && (
+            <p className="text-xs text-slate-400">{msg.authorTitle}</p>
+          )}
         </div>
         <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${isDebate ? 'bg-amber-600 text-white' : 'bg-slate-600 text-slate-200'}`}>
           {isDebate ? t('consilium_debate_round') : t('consilium_independent')}
         </span>
       </div>
       <div className="text-sm text-slate-300 leading-relaxed">
-        <LinkifiedText text={msg.content} />
+        <ClinicalDebateContent text={msg.content} />
       </div>
     </div>
   );
 }
 
 export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport, onError }) => {
-  const { t } = useTranslation();
+  const { t, language: uiLanguage } = useTranslation();
   const [loading,   setLoading]   = useState(false);
+  const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [result,    setResult]    = useState<ConsiliumResult | null>(null);
   const [phases,    setPhases]    = useState<PhaseState>({ independent: 'waiting', debate: 'waiting', consensus: 'waiting' });
   const [activeTab, setActiveTab] = useState<'debate' | 'report'>('debate');
   const [elapsed,   setElapsed]   = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debateRef = useRef<HTMLDivElement>(null);
-  const labels = getPhaseLabels(language);
+  const phaseLabels = {
+    independent: t('consilium_phase_independent'),
+    debate: t('consilium_phase_debate'),
+    consensus: t('consilium_phase_consensus'),
+  };
 
   const start = async () => {
     setLoading(true);
@@ -159,13 +146,17 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       const p2Timeout = setTimeout(() =>
         setPhases(p => ({ ...p, debate: 'done', consensus: 'running' })), 8000);
 
-      const resp = await runConsilium(patientData, language);
+      const resp = await runConsilium(patientData, language, {
+        regionalContext: patientData.regionalContext,
+        specialistDebateSummary: patientData.specialistDebateSummary,
+        allowIncomplete: patientData.allowIncompleteClinical,
+      });
 
       clearTimeout(p1Timeout);
       clearTimeout(p2Timeout);
 
       if (!resp.success || !resp.data) {
-        throw new Error((resp as { error?: { message?: string } }).error?.message || 'Konsilium xatosi');
+        throw new Error((resp as { error?: { message?: string } }).error?.message || t('consilium_error'));
       }
 
       setPhases({ independent: 'done', debate: 'done', consensus: 'done' });
@@ -233,9 +224,9 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
 
       {/* Phase progress */}
       <div className="flex flex-wrap gap-2">
-        <PhaseIndicator label={labels.independent} status={phases.independent} />
-        <PhaseIndicator label={labels.debate}      status={phases.debate}      />
-        <PhaseIndicator label={labels.consensus}   status={phases.consensus}   />
+        <PhaseIndicator label={phaseLabels.independent} status={phases.independent} />
+        <PhaseIndicator label={phaseLabels.debate}      status={phases.debate}      />
+        <PhaseIndicator label={phaseLabels.consensus}   status={phases.consensus}   />
       </div>
 
       {/* Start button */}
@@ -370,35 +361,62 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               {/* Umumiy konsilium xulosasini yuklab olish */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-600/50">
                 <span className="text-slate-400 text-sm w-full">{t('consilium_final_conclusion')}</span>
+                {exportError && (
+                  <p className="text-xs text-red-400 w-full" role="alert">{exportError}</p>
+                )}
                 <button
                   type="button"
+                  disabled={exporting !== null}
                   onClick={async () => {
-                    const logoDataUrl = await getInstituteLogoDataUrl();
-                    await generatePdfReport(
-                      result.final_report as unknown as FinalReport,
-                      patientData,
-                      { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
-                      t
-                    );
+                    setExportError(null);
+                    setExporting('pdf');
+                    try {
+                      const logoDataUrl = await getInstituteLogoDataUrl();
+                      const exportReport = enrichFinalReport(result.final_report as unknown as FinalReport);
+                      await generatePdfReport(
+                        exportReport,
+                        patientData,
+                        { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
+                        t,
+                        uiLanguage,
+                      );
+                    } catch (err) {
+                      console.error('Consilium PDF export failed:', err);
+                      setExportError(t('export_download_error'));
+                    } finally {
+                      setExporting(null);
+                    }
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-sm"
+                  className="px-3 py-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-60 text-white text-sm"
                 >
-                  {t('consilium_download_pdf')}
+                  {exporting === 'pdf' ? t('export_downloading') : t('consilium_download_pdf')}
                 </button>
                 <button
                   type="button"
+                  disabled={exporting !== null}
                   onClick={async () => {
-                    const logoDataUrl = await getInstituteLogoDataUrl();
-                    await generateDocxReport(
-                      result.final_report as unknown as FinalReport,
-                      patientData,
-                      { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
-                      t
-                    );
+                    setExportError(null);
+                    setExporting('docx');
+                    try {
+                      const logoDataUrl = await getInstituteLogoDataUrl();
+                      const exportReport = enrichFinalReport(result.final_report as unknown as FinalReport);
+                      await generateDocxReport(
+                        exportReport,
+                        patientData,
+                        { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
+                        t,
+                        uiLanguage,
+                      );
+                    } catch (err) {
+                      console.error('Consilium DOCX export failed:', err);
+                      setExportError(t('export_download_error'));
+                    } finally {
+                      setExporting(null);
+                    }
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-sm"
+                  className="px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-600 disabled:opacity-60 text-white text-sm"
                 >
-                  {t('consilium_download_docx')}
+                  {exporting === 'docx' ? t('export_downloading') : t('consilium_download_docx')}
                 </button>
               </div>
             </div>

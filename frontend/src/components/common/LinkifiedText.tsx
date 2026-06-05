@@ -1,4 +1,5 @@
 import React from 'react';
+import { sanitizeClinicalContent } from '../../utils/sanitizeClinicalContent';
 
 /** Matndagi markdown havolalar, qavs ichidagi manbalar va http(s) URL larni bosiladigan havolaga aylantiradi */
 const TOKEN_RE =
@@ -27,15 +28,16 @@ function renderLink(href: string, label: string, key: string) {
 export const LinkifiedText: React.FC<{ text: string; className?: string }> = ({ text, className = '' }) => {
   if (!text) return null;
 
+  const safeText = sanitizeClinicalContent(text);
   const nodes: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   TOKEN_RE.lastIndex = 0;
 
-  while ((match = TOKEN_RE.exec(text)) !== null) {
+  while ((match = TOKEN_RE.exec(safeText)) !== null) {
     if (match.index > lastIndex) {
       nodes.push(
-        <React.Fragment key={`t-${lastIndex}`}>{text.slice(lastIndex, match.index)}</React.Fragment>,
+        <React.Fragment key={`t-${lastIndex}`}>{safeText.slice(lastIndex, match.index)}</React.Fragment>,
       );
     }
 
@@ -61,8 +63,8 @@ export const LinkifiedText: React.FC<{ text: string; className?: string }> = ({ 
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < text.length) {
-    nodes.push(<React.Fragment key={`t-end`}>{text.slice(lastIndex)}</React.Fragment>);
+  if (lastIndex < safeText.length) {
+    nodes.push(<React.Fragment key={`t-end`}>{safeText.slice(lastIndex)}</React.Fragment>);
   }
 
   return <span className={`whitespace-pre-wrap break-words ${className}`}>{nodes}</span>;

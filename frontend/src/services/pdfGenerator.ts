@@ -3,6 +3,8 @@ import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { PDF_PRODUCT_PUBLIC_URL, PDF_PRODUCT_WEBSITE_DISPLAY } from '../constants/brand';
+import type { Language } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translationKeys';
 import {
     prepareExportReport,
     buildImagingExportLines,
@@ -14,18 +16,19 @@ import {
     buildRiskExportLines,
     buildCheckUpExportLines,
 } from '../utils/exportReportSections';
-
-interface jsPDFInternal {
-    pages: unknown[];
-    pageSize: {
-        height: number;
-        width: number;
-    };
-}
+import {
+    createExportTr,
+    exportFileSlug,
+    formatExportDate,
+    pdfText,
+    sanitizeExportFilename,
+} from '../utils/exportI18n';
+import { sanitizeClinicalContent } from '../utils/sanitizeClinicalContent';
 
 const PDF_FONT = 'times' as const;
 const PDF_UNICODE_FONT = 'AiDoktorSans';
 const PDF_UNICODE_FONT_URL = '/fonts/AiDoktorSans.ttf';
+const PDF_FONT_CDN = 'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf';
 const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
 const FOOTER_RESERVE = 12;
@@ -46,19 +49,22 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 async function setupPdfFont(doc: jsPDF): Promise<string> {
-    try {
-        const res = await fetch(PDF_UNICODE_FONT_URL, { cache: 'force-cache' });
-        if (!res.ok) return PDF_FONT;
-        const fontBase64 = arrayBufferToBase64(await res.arrayBuffer());
-        doc.addFileToVFS(`${PDF_UNICODE_FONT}.ttf`, fontBase64);
-        doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'normal');
-        doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'bold');
-        doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'italic');
-        doc.setFont(PDF_UNICODE_FONT, 'normal');
-        return PDF_UNICODE_FONT;
-    } catch {
-        return PDF_FONT;
+    for (const url of [PDF_UNICODE_FONT_URL, PDF_FONT_CDN]) {
+        try {
+            const res = await fetch(url, { cache: 'force-cache' });
+            if (!res.ok) continue;
+            const fontBase64 = arrayBufferToBase64(await res.arrayBuffer());
+            doc.addFileToVFS(`${PDF_UNICODE_FONT}.ttf`, fontBase64);
+            doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'normal');
+            doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'bold');
+            doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'italic');
+            doc.setFont(PDF_UNICODE_FONT, 'normal');
+            return PDF_UNICODE_FONT;
+        } catch {
+            // try next font source
+        }
     }
+    return PDF_FONT;
 }
 
 export const generatePdfReport = async (
@@ -66,16 +72,9 @@ export const generatePdfReport = async (
     patientData: PatientData,
     _branding?: InstituteBranding,
     t?: (key: string) => string,
+    language: Language = 'uz-L',
 ) => {
-    // Translation helper - returns key if translation not found
-    const tr = (key: string, fallback: string): string => {
-        if (t) {
-            const translated = t(key);
-            // If translation equals key (not found), use fallback
-            return translated === key ? fallback : translated;
-        }
-        return fallback;
-    };
+    const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
     report = prepareExportReport(report);
     const doc = new jsPDF();
     const fontName = await setupPdfFont(doc);
@@ -192,7 +191,7 @@ export const generatePdfReport = async (
             doc.text(col.label + ':', xPos, y);
             doc.setFont(fontName, 'normal');
             doc.setTextColor(40, 40, 40);
-            doc.text(col.value, xPos + doc.getTextWidth(col.label + ': ') + 2, y);
+            doc.text(pdfText(col.value), xPos + doc.getTextWidth(col.label + ': ') + 2, y);
             xPos += col.width;
         });
         y += COMPACT_LINE + 1;
@@ -205,7 +204,7 @@ export const generatePdfReport = async (
         doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         const indent = MARGIN + 4;
-        const splitText = doc.splitTextToSize(text, pageWidth - MARGIN * 2 - 8);
+        const splitText = doc.splitTextToSize(sanitizeClinicalContent(text), pageWidth - MARGIN * 2 - 8);
         splitText.forEach((line: string, i: number) => {
             ensureSpace(COMPACT_LINE + 1);
             if (i === 0) doc.text('\u2022', MARGIN + 2, y);
@@ -272,8 +271,7 @@ export const generatePdfReport = async (
     doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati - doktor tavsiyasi sifatida. Faqat ma'lumot uchun."), MARGIN, y);
-    const reportDate = new Date();
-    const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const dateStr = formatExportDate(language);
     doc.text(`${tr('pdf_date', 'Sana')}: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
     
     // QR code label (positioned below QR code)
@@ -337,7 +335,7 @@ export const generatePdfReport = async (
     doc.text(tr('pdf_age', "Yoshi:") + ' ', MARGIN + 2, y + 4);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(40, 40, 40);
-    doc.text(patientData.age, MARGIN + 24, y + 4);
+    doc.text(pdfText(patientData.age), MARGIN + 24, y + 4);
 
     doc.setFont(fontName, 'bold');
     doc.setTextColor(80, 80, 80);
@@ -415,7 +413,7 @@ export const generatePdfReport = async (
         doc.setFont(fontName, 'bold');
         doc.setTextColor(180, 50, 50);
         doc.text(tr('pdf_critical_finding', "Muhim topilma (Shoshilinch):"), MARGIN + 3, boxY + 4);
-        doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${report.criticalFinding.urgency}`, pageWidth - MARGIN - 3, boxY + 4, { align: 'right' });
+        doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${pdfText(report.criticalFinding.urgency)}`, pageWidth - MARGIN - 3, boxY + 4, { align: 'right' });
         doc.setFont(fontName, 'normal');
         doc.setTextColor(80, 40, 40);
         y = boxY + 9;
@@ -691,7 +689,10 @@ export const generatePdfReport = async (
             doc.setFont(fontName, 'normal');
             doc.setTextColor(40, 40, 40);
             const mgmt = risk.management ? ` — ${risk.management}` : '';
-            doc.text(`\u2022 ${risk.drug}: ${risk.risk} (~${Math.round(risk.probability * 100)}%)${mgmt}`, MARGIN + 2, y);
+            const prob = Number.isFinite(risk.probability)
+                ? Math.round(risk.probability <= 1 ? risk.probability * 100 : risk.probability)
+                : 0;
+            doc.text(`\u2022 ${pdfText(risk.drug)}: ${pdfText(risk.risk)} (~${prob}%)${mgmt}`, MARGIN + 2, y);
             y += COMPACT_LINE;
         });
     }
@@ -738,8 +739,8 @@ export const generatePdfReport = async (
         ? tr('pdf_footer_legislative', "O'zbekiston Respublikasi SSV protokollariga muvofiq. Faqat ma'lumot uchun.")
         : tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
     
-    const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
-    
+    const pageCount = doc.getNumberOfPages();
+
     // Platform promo text for last page (rasmiy AiDoktor blanka — FJSTI emas)
     const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
     const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
@@ -781,8 +782,8 @@ export const generatePdfReport = async (
     // Row 2: Two phone numbers
     doc.setTextColor(60, 60, 60);
     doc.setFont(fontName, 'normal');
-    doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
-    
+    doc.text(`${tr('pdf_tel_label', 'Tel')}: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
+
     // Row 3: Mahsulot veb-sayti (AiDoktor)
     doc.setFont(fontName, 'italic');
     doc.setTextColor(30, 100, 180);
@@ -810,7 +811,10 @@ export const generatePdfReport = async (
         { align: 'right' },
     );
 
-    doc.save(`Konsilium_${patientData.lastName}_${patientData.firstName}.pdf`);
+    const fileSlug = exportFileSlug(language);
+    const lastName = sanitizeExportFilename(pdfText(patientData.lastName));
+    const firstName = sanitizeExportFilename(pdfText(patientData.firstName));
+    doc.save(`${fileSlug}_${lastName}_${firstName}.pdf`);
 };
 
 /** UTT/UZI AI xulosasi — konsilium PDF bilan bir xil pastki qism va brending */
@@ -818,14 +822,9 @@ export const generateUziUttPdf = async (
     report: UziUttReport,
     _branding?: InstituteBranding,
     t?: (key: string) => string,
+    language: Language = 'uz-L',
 ) => {
-    const tr = (key: string, fallback: string): string => {
-        if (t) {
-            const translated = t(key);
-            return translated === key ? fallback : translated;
-        }
-        return fallback;
-    };
+    const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
     const doc = new jsPDF();
     const fontName = await setupPdfFont(doc);
     const pageHeight = doc.internal.pageSize.height;
@@ -928,8 +927,7 @@ export const generateUziUttPdf = async (
     const subLines = doc.splitTextToSize(subtitle, pageWidth - MARGIN * 2 - (qrSize + 6));
     doc.text(subLines[0] || '', headerTextX, y);
 
-    const reportDate = new Date();
-    const dateStr = reportDate.toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const dateStr = formatExportDate(language);
     doc.text(`${tr('pdf_date', 'Sana')}: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
 
     if (qrDataUrl) {
@@ -947,7 +945,7 @@ export const generateUziUttPdf = async (
     doc.setFontSize(9);
     doc.setTextColor(60, 60, 70);
     const urgLabel = tr('pdf_uzi_utt_urgency', 'Shoshilinchlik');
-    doc.text(`${urgLabel}: ${report.urgencyLevel}`, MARGIN, y);
+    doc.text(`${urgLabel}: ${pdfText(report.urgencyLevel)}`, MARGIN, y);
     y += 6;
 
     addParagraph(tr('pdf_uzi_utt_study_type', 'Tekshiruv turi'), report.studyType);
@@ -976,7 +974,7 @@ export const generateUziUttPdf = async (
     }
 
     const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
-    const pageCount = (doc.internal as unknown as jsPDFInternal).pages.length;
+    const pageCount = doc.getNumberOfPages();
     const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
     const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
     const promoPhone = "+998 99 575 11 11";
@@ -1007,7 +1005,7 @@ export const generateUziUttPdf = async (
     doc.setTextColor(30, 100, 180);
     doc.text(promoLink, MARGIN + 70, promoY + 2);
     doc.setTextColor(60, 60, 60);
-    doc.text(`Tel: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
+    doc.text(`${tr('pdf_tel_label', 'Tel')}: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
     doc.setFont(fontName, 'italic');
     doc.setTextColor(30, 100, 180);
     doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);

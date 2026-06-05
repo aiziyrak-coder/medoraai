@@ -20,8 +20,6 @@ export type AppView =
   | 'tumor_board'
   | 'longitudinal_view'
   | 'subscription'
-  | 'uzi_utt'
-  | 'tools'
   | 'check_up'
   | 'telemedicine'
   | 'patient_portal';
@@ -215,6 +213,14 @@ export interface PatientData {
   userDiagnosisFeedback?: Record<string, DiagnosisFeedback>;
   /** Avvalgi tahlillar bo'yicha AI uchun qisqa dinamika (ichki, konsilium promptiga qo'shiladi) */
   longitudinalClinicalNotes?: string;
+  /** Mintaqaviy kontekst (epidemiologiya, mavsumiy kasalliklar) */
+  regionalContext?: string;
+  /** Oldingi mutaxassislar munozarasi xulosasi */
+  specialistDebateSummary?: string;
+  /** Konsilium oldidan differensial tashxislar (matn) */
+  differentialDiagnosesNotes?: string;
+  /** Faqat shikoyat bilan davom etish (klinik minimum ogohlantirilgan) */
+  allowIncompleteClinical?: boolean;
 }
 
 export interface ChatMessage {
@@ -233,6 +239,7 @@ export interface Diagnosis {
   probability: number;
   justification: string;
   evidenceLevel: string;
+  icd10?: string;
   isUserInjected?: boolean;
   // NEW: Deep reasoning fields
   reasoningChain?: string[]; // Step-by-step logic
@@ -534,13 +541,15 @@ export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
     const pNorm = Number.isFinite(pRaw)
       ? (pRaw >= 0 && pRaw <= 1 ? pRaw * 100 : pRaw)
       : 0;
+    const icdRaw = item?.icd10 ?? item?.icd_10;
     return {
       name: String(item?.name ?? item?.diagnosis ?? ''),
       probability: Math.max(0, Math.round(pNorm)),
       justification: String(item?.justification ?? item?.reasoningChain ?? ''),
       evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
+      ...(icdRaw ? { icd10: String(icdRaw).trim() } : {}),
       reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : (typeof item?.reasoningChain === 'string' ? [item.reasoningChain] : []),
-      uzbekProtocolMatch: String(item?.uzbekProtocolMatch ?? ''),
+      uzbekProtocolMatch: String(item?.uzbekProtocolMatch ?? item?.uzbek_protocol_match ?? ''),
     } as Diagnosis;
   });
 

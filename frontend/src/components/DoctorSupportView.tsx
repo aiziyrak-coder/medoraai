@@ -26,16 +26,8 @@ interface Props {
   onError:     (msg: string) => void;
 }
 
-const TASK_OPTIONS: Array<{ value: DoctorTaskType; label: string; icon: string; desc: string }> = [
-  { value: TASK_QUICK_CONSULT,  icon: '', label: 'Tezkor Maslahat',    desc: 'Tez tashxis va choralar' },
-  { value: TASK_DIAGNOSIS,      icon: '', label: 'Differensial Tashxis', desc: '3 - 5 ta tashxis + ehtimollik' },
-  { value: TASK_TREATMENT,      icon: '', label: 'Davolash Rejasi',     desc: 'To\'liq SSV protokol rejasi' },
-  { value: TASK_DRUG_CHECK,     icon: '', label: 'Dori Tekshiruvi',     desc: 'O\'zaro ta\'sir + xavfsizlik' },
-  { value: TASK_LAB_INTERPRET,  icon: '', label: 'Lab Tahlili',         desc: 'Laboratoriya natijalarini izohlash' },
-  { value: TASK_FOLLOW_UP,      icon: '', label: 'Kuzatuv Rejasi',      desc: 'Keyingi qabul va ogohlantirishlar' },
-];
-
 function ResultCard({ result }: { result: DoctorSupportResult }) {
+  const { t } = useTranslation();
   const task = result._task_type;
 
   if (result.error) {
@@ -51,7 +43,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Critical Alert */}
       {result.critical_alert?.present && (
         <div className="rounded-2xl bg-red-950/50 border border-red-500/60 p-4">
-          <p className="font-bold text-red-300 mb-1">! Shoshilinch Holat</p>
+          <p className="font-bold text-red-300 mb-1">! {t('doctor_support_urgent')}</p>
           <p className="text-red-200 text-sm">{result.critical_alert.message}</p>
         </div>
       )}
@@ -61,11 +53,11 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
         <>
           {result.summary && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-sky-300 mb-2">Xulosa</h4>
+              <h4 className="font-semibold text-sky-300 mb-2">{t('doctor_support_summary')}</h4>
               <p className="text-slate-200 text-sm">{result.summary}</p>
               {result.primary_diagnosis && (
                 <p className="mt-2 text-white font-medium">
-                  Tashxis: {result.primary_diagnosis}
+                  {t('doctor_support_diagnosis_label')} {result.primary_diagnosis}
                   <span className="ml-2 text-emerald-400 text-sm">{result.probability}%</span>
                 </p>
               )}
@@ -73,7 +65,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
           )}
           {result.immediate_actions && result.immediate_actions.length > 0 && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-amber-300 mb-2">Darhol Choralar</h4>
+              <h4 className="font-semibold text-amber-300 mb-2">{t('doctor_support_immediate_actions')}</h4>
               <ol className="space-y-1">
                 {result.immediate_actions.map((a, i) => (
                   <li key={i} className="text-slate-200 text-sm flex gap-2">
@@ -89,7 +81,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Diagnosis */}
       {task === TASK_DIAGNOSIS && result.diagnoses && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-sky-300 mb-3">Differensial Tashxislar</h4>
+          <h4 className="font-semibold text-sky-300 mb-3">{t('doctor_support_ddx_title')}</h4>
           <div className="space-y-3">
             {result.diagnoses.map((d, i) => (
               <div key={i} className="p-3 rounded-xl bg-slate-700/50">
@@ -106,7 +98,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
           </div>
           {result.red_flags && result.red_flags.length > 0 && (
             <div className="mt-3 p-2 rounded-xl bg-red-950/40 border border-red-500/30">
-              <p className="text-red-300 text-xs font-semibold">Qizil Bayroqlar:</p>
+              <p className="text-red-300 text-xs font-semibold">{t('doctor_support_red_flags')}</p>
               {result.red_flags.map((f, i) => <p key={i} className="text-red-200 text-xs">· {f}</p>)}
             </div>
           )}
@@ -118,7 +110,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
         <>
           {result.treatment_plan && result.treatment_plan.length > 0 && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-emerald-300 mb-2">Davolash Rejasi</h4>
+              <h4 className="font-semibold text-emerald-300 mb-2">{t('doctor_support_treatment_plan')}</h4>
               <ol className="space-y-1">
                 {result.treatment_plan.map((step, i) => (
                   <li key={i} className="text-slate-200 text-sm flex gap-2">
@@ -144,12 +136,12 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
                                                       'bg-red-950/40 border border-red-500/40 text-red-300'
             }`}>
               {result.overall_safety === 'SAFE' ? '[OK] ' : '[!] '}
-              Umumiy xavfsizlik: {result.overall_safety}
+              {t('doctor_support_overall_safety')} {result.overall_safety}
             </div>
           )}
           {result.interactions && result.interactions.length > 0 && (
             <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-              <h4 className="font-semibold text-amber-300 mb-2">O'zaro Ta'sirlar</h4>
+              <h4 className="font-semibold text-amber-300 mb-2">{t('doctor_support_interactions')}</h4>
               {result.interactions.map((it, i) => (
                 <div key={i} className="mb-2 p-2 rounded-lg bg-slate-700/50">
                   <p className="text-white text-xs font-medium">{it.drugs.join(' + ')}</p>
@@ -169,7 +161,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Medications (shared) */}
       {result.medications && result.medications.length > 0 && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-white mb-2">Dori-darmonlar</h4>
+          <h4 className="font-semibold text-white mb-2">{t('doctor_support_medications')}</h4>
           <div className="space-y-2">
             {result.medications.map((med, i) => (
               <div key={i} className="p-2 rounded-lg bg-slate-700/50">
@@ -185,7 +177,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Recommended tests */}
       {result.recommended_tests && result.recommended_tests.length > 0 && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-sky-300 mb-2">Tavsiya Etilgan Tekshiruvlar</h4>
+          <h4 className="font-semibold text-sky-300 mb-2">{t('doctor_support_recommended_tests')}</h4>
           {result.recommended_tests.map((t, i) => (
             <p key={i} className="text-slate-300 text-sm">· {t}</p>
           ))}
@@ -195,7 +187,7 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
       {/* Follow-up */}
       {result.follow_up && (
         <div className="rounded-2xl bg-slate-800/60 border border-slate-600/30 p-4">
-          <h4 className="font-semibold text-slate-300 mb-1">Kuzatuv</h4>
+          <h4 className="font-semibold text-slate-300 mb-1">{t('doctor_support_followup')}</h4>
           <p className="text-slate-400 text-sm">{result.follow_up}</p>
         </div>
       )}
@@ -205,6 +197,14 @@ function ResultCard({ result }: { result: DoctorSupportResult }) {
 
 export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onError }) => {
   const { t } = useTranslation();
+  const taskOptions: Array<{ value: DoctorTaskType; label: string; icon: string; desc: string }> = [
+    { value: TASK_QUICK_CONSULT, icon: '', label: t('doctor_task_quick_label'), desc: t('doctor_task_quick_desc') },
+    { value: TASK_DIAGNOSIS, icon: '', label: t('doctor_task_diagnosis_label'), desc: t('doctor_task_diagnosis_desc') },
+    { value: TASK_TREATMENT, icon: '', label: t('doctor_task_treatment_label'), desc: t('doctor_task_treatment_desc') },
+    { value: TASK_DRUG_CHECK, icon: '', label: t('doctor_task_drug_label'), desc: t('doctor_task_drug_desc') },
+    { value: TASK_LAB_INTERPRET, icon: '', label: t('doctor_task_lab_label'), desc: t('doctor_task_lab_desc') },
+    { value: TASK_FOLLOW_UP, icon: '', label: t('doctor_task_followup_label'), desc: t('doctor_task_followup_desc') },
+  ];
   const [taskType,    setTaskType]    = useState<DoctorTaskType>(TASK_QUICK_CONSULT);
   const [query,       setQuery]       = useState('');
   const [loading,     setLoading]     = useState(false);
@@ -225,10 +225,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           return;
         }
         if (!isBrowserClaudeConfigured()) {
-          onError(
-            resp.error?.message ||
-              "AI javobi kelmadi. Serverda DEEPSEEK_API_KEY (backend/.env) yoki frontend build uchun VITE_DEEPSEEK_API_KEY ni tekshiring.",
-          );
+          onError(resp.error?.message || t('doctor_support_api_key_error'));
           return;
         }
         const claudeResult = await runDoctorSupportViaClaude(patientData, { query, taskType, language });
@@ -236,9 +233,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
         return;
       }
       if (!isBrowserClaudeConfigured()) {
-        onError(
-          'DeepSeek AI xizmati sozlanmagan. Iltimos, VITE_DEEPSEEK_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
-        );
+        onError(t('doctor_support_not_configured'));
         return;
       }
       const claudeResult = await runDoctorSupportViaClaude(patientData, { query, taskType, language });
@@ -248,7 +243,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
     } finally {
       setLoading(false);
     }
-  }, [patientData, query, taskType, language, onError]);
+  }, [patientData, query, taskType, language, onError, t]);
 
   const handleStream = useCallback(() => {
     setStreaming(true);
@@ -268,7 +263,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
             setResult(parsed);
             setStreamText('');
           } catch {
-            setResult({ _task_type: taskType, _language: language, error: 'JSON parse xatosi' });
+            setResult({ _task_type: taskType, _language: language, error: t('doctor_support_json_error') });
           }
         },
         (err) => {
@@ -290,9 +285,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
 
     if (!isBrowserClaudeConfigured()) {
       setStreaming(false);
-      onError(
-        'DeepSeek AI xizmati sozlanmagan. Iltimos, VITE_DEEPSEEK_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
-      );
+      onError(t('doctor_support_not_configured'));
       cancelStreamRef.current = () => { setStreaming(false); };
       return;
     }
@@ -306,7 +299,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
         onError(err instanceof Error ? err.message : String(err));
       });
     cancelStreamRef.current = () => { setStreaming(false); };
-  }, [patientData, query, taskType, language, onError]);
+  }, [patientData, query, taskType, language, onError, t]);
 
   const handleStop = () => {
     cancelStreamRef.current?.();
@@ -317,15 +310,13 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
     <div className="flex flex-col gap-4">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-white">Doktor Yordamchi</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
-          Claude · O'zbekiston SSV Protokollari · Tezkor tahlil
-        </p>
+        <h2 className="text-xl font-bold text-white">{t('doctor_support_title')}</h2>
+        <p className="text-sm text-slate-400 mt-0.5">{t('doctor_support_subtitle')}</p>
       </div>
 
       {/* Task selector */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {TASK_OPTIONS.map(opt => (
+        {taskOptions.map(opt => (
           <button
             key={opt.value}
             onClick={() => setTaskType(opt.value)}
@@ -359,7 +350,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           className="flex-1 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500
                      text-white font-semibold transition-all active:scale-95 disabled:opacity-50"
         >
-          {streaming ? '... Javob kelmoqda...' : 'Streaming Tahlil'}
+          {streaming ? `... ${t('doctor_support_streaming_progress')}` : t('doctor_support_streaming')}
         </button>
         <button
           onClick={handleSync}
@@ -374,7 +365,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
             onClick={handleStop}
 className="px-4 py-3 rounded-2xl bg-red-700 hover:bg-red-600 text-white transition-all"
           >
-            To&apos;xtatish
+            {t('doctor_support_stop')}
           </button>
         )}
       </div>
@@ -382,7 +373,7 @@ className="px-4 py-3 rounded-2xl bg-red-700 hover:bg-red-600 text-white transiti
       {/* Streaming text output */}
       {streamText && (
         <div className="rounded-2xl bg-slate-900/80 border border-slate-600/30 p-4 max-h-64 overflow-y-auto">
-          <p className="text-xs text-slate-500 mb-2 font-mono">Javob kelmoqda...</p>
+          <p className="text-xs text-slate-500 mb-2 font-mono">{t('doctor_support_streaming_progress')}</p>
           <pre className="text-slate-300 text-xs whitespace-pre-wrap font-mono leading-relaxed">
             {streamText}
           </pre>

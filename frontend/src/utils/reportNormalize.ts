@@ -264,10 +264,10 @@ export function enrichFinalReport(raw: FinalReport): FinalReport {
   if (imaging) {
     out.imagingInterpretation = imaging;
     const parts: string[] = [];
-    if (imaging.ecg?.summary) parts.push(`EKG: ${imaging.ecg.summary}`);
-    if (imaging.ultrasound?.summary) parts.push(`UZI: ${imaging.ultrasound.summary}`);
-    if (imaging.xray?.summary) parts.push(`Rengen: ${imaging.xray.summary}`);
-    if (imaging.ct?.summary) parts.push(`KT: ${imaging.ct.summary}`);
+    if (imaging.ecg?.summary) parts.push(`ECG: ${imaging.ecg.summary}`);
+    if (imaging.ultrasound?.summary) parts.push(`US: ${imaging.ultrasound.summary}`);
+    if (imaging.xray?.summary) parts.push(`XR: ${imaging.xray.summary}`);
+    if (imaging.ct?.summary) parts.push(`CT: ${imaging.ct.summary}`);
     if (imaging.mri?.summary) parts.push(`MRI: ${imaging.mri.summary}`);
     if (parts.length) {
       out.imageAnalysis = {
@@ -284,15 +284,7 @@ export function enrichFinalReport(raw: FinalReport): FinalReport {
   if (np) out.nutritionPrevention = np;
 
   if (Array.isArray(out.medicationRecommendations)) {
-    out.medicationRecommendations = out.medicationRecommendations.map((m) => {
-      const med = m as typeof m & { adverseEffects?: string[]; contraindications?: string; monitoring?: string };
-      const ae = med.adverseEffects ?? [];
-      let notes = med.notes || '';
-      if (ae.length && !/nojo'ya|побочн|adverse/i.test(notes)) {
-        notes = `${notes}${notes ? ' | ' : ''}Nojo'ya ta'sirlar: ${ae.join('; ')}`.trim();
-      }
-      return { ...med, notes };
-    });
+    out.medicationRecommendations = out.medicationRecommendations.map((m) => ({ ...m }));
   }
 
   const routing = normalizePatientRouting(r.patientRouting ?? r.patient_routing);

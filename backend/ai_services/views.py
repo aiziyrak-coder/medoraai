@@ -106,14 +106,38 @@ def run_consilium_view(request):
         return blocked
 
     try:
+        from .clinical_completeness import validate_consilium_minimum, score_clinical_completeness
         from .clinical_red_flags import evaluate_red_flags
-        from .imaging_analysis import merge_imaging_into_context
-        patient_data = merge_imaging_into_context(dict(patient_data), language)
+
+        allow_incomplete = bool(request.data.get("allow_incomplete"))
+        validation = validate_consilium_minimum(patient_data, allow_incomplete=allow_incomplete)
+        completeness = validation.get("completeness") or score_clinical_completeness(patient_data)
+        if not validation.get("ok"):
+            msg = validation.get("blocked_reason") or "; ".join(validation.get("errors") or [])
+            return _err(400, msg or "Klinik ma'lumotlar yetarli emas")
+
+        extra = {
+            "differential_diagnoses": request.data.get("differential_diagnoses"),
+            "specialist_debate_summary": (
+                request.data.get("specialist_debate_summary")
+                or patient_data.get("specialistDebateSummary")
+            ),
+            "regional_context": (
+                request.data.get("regional_context")
+                or patient_data.get("regionalContext")
+            ),
+        }
+
         red_flags = evaluate_red_flags(patient_data)
-        result = run_consilium(patient_data, language)
+        result = run_consilium(patient_data, language, extra=extra)
         if red_flags and isinstance(result, dict):
             result.setdefault("clinical_red_flags", red_flags)
-        return Response({"success": True, "data": result, "clinical_red_flags": red_flags})
+        return Response({
+            "success": True,
+            "data": result,
+            "clinical_red_flags": red_flags,
+            "clinical_completeness": completeness,
+        })
     except Exception as exc:
         logger.exception("Consilium error: %s", exc)
         return _err(500, f"Konsilium xatosi: {exc}")

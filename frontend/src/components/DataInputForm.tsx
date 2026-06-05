@@ -11,6 +11,7 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import { validateFileSize, validateFileType, validateAge, validateRequired, validateVitalSign } from '../utils/validation';
 import { handleError } from '../utils/errorHandler';
 import { validatePatientDataSmart, getSmartValidationMessage } from '../utils/smartValidation';
+import { scoreClinicalCompleteness } from '../utils/clinicalCompleteness';
 import { groupRecentPatientsFromHistory } from '../utils/longitudinalContext';
 import { getPatients, convertPatientToPatientData, type Patient } from '../services/apiPatientService';
 import { getAuthToken } from '../services/api';
@@ -612,7 +613,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         currentMedications: '',
         familyHistory: '',
         additionalInfo: '',
+        labResults: '',
+        regionalContext: '',
+        differentialDiagnosesNotes: '',
     });
+    const [allowIncompleteClinical, setAllowIncompleteClinical] = useState(false);
     const [selectedSpecialty, setSelectedSpecialty] = useState<SpecialtyKey | ''>('');
     const [selectedComplaintIdx, setSelectedComplaintIdx] = useState<number | ''>('');
     const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | ''>('');
@@ -649,7 +654,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             currentMedications: pd.currentMedications || '',
             familyHistory: pd.familyHistory || '',
             additionalInfo: pd.additionalInfo || '',
+            labResults: pd.labResults || '',
+            regionalContext: pd.regionalContext || '',
+            differentialDiagnosesNotes: pd.differentialDiagnosesNotes || '',
         });
+        setAllowIncompleteClinical(!!pd.allowIncompleteClinical);
         const parsed = parseVitalsFromObjective(pd.objectiveData);
         setVitals({ ...emptyVitals(), ...parsed });
         setVitalErrors({});
@@ -715,16 +724,40 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         onLinkedPatientChange?.(null);
     }, [onLinkedPatientChange]);
 
+  const buildObjectivePreview = useCallback((): string | undefined => {
+    if (!vitals.bpSystolic && !vitals.heartRate && !vitals.temperature && !vitals.spO2) return undefined;
+    return [
+      `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
+      `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
+      `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} °C`,
+      `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
+      `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
+    ].join('\n');
+  }, [vitals, t]);
+
     // Aqlli validatsiya: form ma'lumotlari o'zgarganda maslahat/warning yangilash
     React.useEffect(() => {
         const payload: Partial<PatientData> = {
             ...formData,
-            objectiveData: vitals.bpSystolic || vitals.heartRate ? t('data_form_vitals_entered') : undefined,
+            objectiveData: buildObjectivePreview(),
+            attachments: attachments.length
+                ? attachments.map(f => ({ name: f.name, base64Data: 'x', mimeType: f.type }))
+                : undefined,
         };
         const res = validatePatientDataSmart(payload);
         const msg = getSmartValidationMessage(res, t);
         setSmartMessage(msg);
-    }, [formData, vitals.bpSystolic, vitals.heartRate, t]);
+    }, [formData, attachments, buildObjectivePreview, t]);
+
+    const completenessLive = React.useMemo(() => {
+        return scoreClinicalCompleteness({
+            ...formData,
+            objectiveData: buildObjectivePreview(),
+            attachments: attachments.length
+                ? attachments.map(f => ({ name: f.name, base64Data: 'x', mimeType: f.type }))
+                : undefined,
+        });
+    }, [formData, attachments, buildObjectivePreview]);
 
     const appendToField = (field: 'complaints' | 'history', text: string) => {
         setFormData(prev => {
@@ -918,13 +951,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         }
         
         // Construct Objective Data String from Vitals (translated labels)
-        const objectiveString = [
-            `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
-            `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
-            `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} °C`,
-            `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
-            `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
-        ].join('\n');
+        const objectiveString = buildObjectivePreview() || '';
 
         let attachmentData: PatientData['attachments'] = [];
         if (attachments.length > 0) {
@@ -963,15 +990,25 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             currentMedications: formData.currentMedications || undefined,
             familyHistory: formData.familyHistory || undefined,
             additionalInfo: formData.additionalInfo || '',
-            objectiveData: objectiveString,
-            labResults: attachments.length > 0 ? t('data_form_lab_uploaded') : undefined,
+            objectiveData: objectiveString || undefined,
+            labResults: (formData.labResults || '').trim()
+                || (attachments.length > 0 ? t('data_form_lab_uploaded') : undefined),
+            regionalContext: (formData.regionalContext || '').trim() || undefined,
+            differentialDiagnosesNotes: (formData.differentialDiagnosesNotes || '').trim() || undefined,
+            allowIncompleteClinical: allowIncompleteClinical || undefined,
             attachments: attachmentData.length > 0 ? attachmentData : undefined,
         };
 
         const smartRes = validatePatientDataSmart(fullPatientData);
-        if (!smartRes.valid && smartRes.missingCritical.length > 0) {
-            setFormErrors(prev => ({ ...prev, _smart: smartRes.missingCritical.join('. ') }));
+        if (!smartRes.valid && smartRes.missingCriticalKeys.length > 0) {
+            const fields = smartRes.missingCriticalKeys.map((k) => t(k)).join(', ');
+            setFormErrors(prev => ({ ...prev, _smart: t('smart_validation_critical_list', { fields }) }));
             return;
+        }
+        if (smartRes.completeness.complaintOnly && !allowIncompleteClinical) {
+            const proceed = window.confirm(t('data_form_completeness_confirm'));
+            if (!proceed) return;
+            fullPatientData.allowIncompleteClinical = true;
         }
 
         onSubmit(fullPatientData);
@@ -984,10 +1021,30 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             <form onSubmit={handleSubmit} className="flex flex-col w-full max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-1">
                 
                 {/* Header & Submit Button */}
-                <div className="flex-shrink-0 flex justify-between items-center mb-2 px-1">
-                    <div>
+                <div className="flex-shrink-0 flex justify-between items-center mb-2 px-1 gap-2">
+                    <div className="min-w-0 flex-1">
                         <h2 className="text-sm font-bold text-slate-800">{t('data_form_new_case')}</h2>
                         <p className="text-[10px] text-text-secondary">{t('data_form_subtitle')}</p>
+                        <div className="mt-1.5 flex items-center gap-2">
+                            <div className="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden max-w-[140px]">
+                                <div
+                                    className={`h-full transition-all ${
+                                        completenessLive.level === 'high'
+                                            ? 'bg-emerald-500'
+                                            : completenessLive.level === 'medium'
+                                              ? 'bg-amber-500'
+                                              : 'bg-rose-500'
+                                    }`}
+                                    style={{ width: `${completenessLive.score}%` }}
+                                />
+                            </div>
+                            <span className="text-[9px] font-semibold text-slate-600">
+                                {t('data_form_completeness')}: {completenessLive.score}%
+                            </span>
+                        </div>
+                        {smartMessage && (
+                            <p className="text-[9px] text-amber-700 mt-0.5 leading-snug">{smartMessage}</p>
+                        )}
                     </div>
                     <button 
                         type="submit" 
@@ -1106,11 +1163,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             <div>
                                 <Input
                                     id="fatherName"
-                                    label={t('data_input_patient_fathername') || "Otasining ismi"}
+                                    label={t('data_input_patient_fathername')}
                                     type="text"
                                     value={formData.fatherName || ''}
                                     onChange={e => handleChange('fatherName', e.target.value)}
-                                    placeholder={t('data_input_placeholder_fathername') || "Masalan: Otabek o'g'li"}
+                                    placeholder={t('data_input_placeholder_fathername')}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-1.5">
@@ -1164,7 +1221,23 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 placeholder={t('data_form_extra_notes_placeholder')}
                                 value={formData.additionalInfo || ''} 
                                 onChange={e => handleChange('additionalInfo', e.target.value)} 
-                                className="max-lg:min-h-[100px] lg:flex-grow"
+                                className="max-lg:min-h-[80px]"
+                            />
+                            <Textarea
+                                id="regionalContext"
+                                label={t('data_form_regional_context')}
+                                placeholder={t('data_form_regional_context_ph')}
+                                value={formData.regionalContext || ''}
+                                onChange={e => handleChange('regionalContext', e.target.value)}
+                                className="max-lg:min-h-[60px]"
+                            />
+                            <Textarea
+                                id="differentialDiagnosesNotes"
+                                label={t('data_form_ddx_notes')}
+                                placeholder={t('data_form_ddx_notes_ph')}
+                                value={formData.differentialDiagnosesNotes || ''}
+                                onChange={e => handleChange('differentialDiagnosesNotes', e.target.value)}
+                                className="max-lg:min-h-[60px]"
                             />
                         </div>
                     </div>
@@ -1353,6 +1426,17 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     {t('data_form_upload_hint')}
                                 </p>
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
+                            </div>
+
+                            <div className="mt-2 flex-shrink-0">
+                                <Textarea
+                                    id="labResults"
+                                    label={t('data_form_lab_results')}
+                                    placeholder={t('data_form_lab_results_ph')}
+                                    value={formData.labResults || ''}
+                                    onChange={e => handleChange('labResults', e.target.value)}
+                                    className="min-h-[72px]"
+                                />
                             </div>
 
                             {/* File List */}

@@ -101,11 +101,19 @@ def _format_user_feedback(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _truncate_field(val: str, limit: int) -> str:
+    v = val.strip()
+    if len(v) <= limit:
+        return v
+    return v[: limit - 3] + "..."
+
+
 def build_clinical_context(
     patient_data: dict | None,
     extra: Optional[dict] = None,
     *,
     include_uz_protocols: bool = True,
+    compact: bool = False,
     language: str = "uz-L",
 ) -> str:
     """Bemor + qo'shimcha kontekst (mutaxassislar, DDX, mintaqa)."""
@@ -148,6 +156,8 @@ def build_clinical_context(
                 continue
             if key.endswith("_results") and _s(d.get("labResults")):
                 continue
+            if compact:
+                val = _truncate_field(val, 600)
             parts.append(f"{label}: {val}")
 
     struct_labs = _format_structured_labs(d)
@@ -164,7 +174,8 @@ def build_clinical_context(
 
     long_notes = _s(d.get("longitudinalClinicalNotes") or d.get("longitudinal_clinical_notes"))
     if long_notes:
-        parts.append(f"OLDINGI TAHLILLAR / DINAMIKA:\n{long_notes[:5000]}")
+        cap = 1200 if compact else 5000
+        parts.append(f"OLDINGI TAHLILLAR / DINAMIKA:\n{long_notes[:cap]}")
 
     att_meta = _format_attachments_meta(d)
     if att_meta:
@@ -198,24 +209,32 @@ def build_clinical_context(
 
     debate = _s(ex.get("specialist_debate_summary") or ex.get("specialistDebateSummary"))
     if debate:
-        parts.append(f"MUTAXASSISLAR MUNOZARASI (xulosa):\n{debate[:6000]}")
+        cap = 2000 if compact else 6000
+        parts.append(f"MUTAXASSISLAR MUNOZARASI (xulosa):\n{debate[:cap]}")
 
     region = _s(ex.get("regional_context") or ex.get("regionalContext"))
+    if not region:
+        region = _s(d.get("regionalContext") or d.get("regional_context"))
     if region:
         parts.append(f"LOKAL / MINTAQAVIY HOLAT: {region}")
 
-    if include_uz_protocols:
+    ddx_notes = _s(d.get("differentialDiagnosesNotes") or d.get("differential_diagnoses_notes"))
+    if ddx_notes:
+        parts.append(f"DIFFERENSIAL TASHXISLAR (shifokor): {ddx_notes}")
+
+    if include_uz_protocols and not compact:
         complaints = _s(d.get("complaints"))
         try:
             parts.append(get_uz_context(complaints, include_protocols=True))
         except Exception:
             pass
 
-    parts.append(
-        "\nMUHIM: Xulosa FAQAT shikoyat va anamnezga emas — ob'ektiv, lab, "
-        "yuklangan tasvirlar (EKG/UZI/rengen), mutaxassislar fikri, differensial "
-        "tashxislar va oldingi tahlillarni birgalikda sintez qiling."
-    )
+    if not compact:
+        parts.append(
+            "\nMUHIM: Xulosa FAQAT shikoyat va anamnezga emas — ob'ektiv, lab, "
+            "yuklangan tasvirlar (EKG/UZI/rengen), mutaxassislar fikri, differensial "
+            "tashxislar va oldingi tahlillarni birgalikda sintez qiling."
+        )
     return "\n\n".join(parts)
 
 

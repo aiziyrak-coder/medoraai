@@ -9,8 +9,6 @@ interface DashboardProps {
     userName: string;
     onNewAnalysis: () => void;
     onViewHistory: () => void;
-    onOpenUziUtt?: () => void;
-    onOpenTools?: () => void;
     onOpenCheckUp?: () => void;
     onOpenTelemedicine?: () => void;
     onOpenResearch?: () => void;
@@ -75,54 +73,11 @@ const glass: React.CSSProperties = {
 };
 
 const Dashboard: React.FC<DashboardProps> = ({
-    userName, onNewAnalysis, onViewHistory, onOpenUziUtt,
-    onOpenTools, onOpenCheckUp, onOpenTelemedicine, onOpenResearch, onOpenPatientPortal,
+    userName, onNewAnalysis, onViewHistory,
+    onOpenCheckUp, onOpenTelemedicine, onOpenResearch, onOpenPatientPortal,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t, language } = useTranslation();
-
-    const uziStripFallback: Record<'uz-L' | 'uz-C' | 'ru' | 'en' | 'kaa', { badge: string; title: string; subtitle: string; open: string }> = {
-        'uz-L': {
-            badge: 'Tasvirlash',
-            title: 'UTT / UZI — chuqur AI tahlil',
-            subtitle: 'Rasm yoki PDF • tizimli professional xulosa',
-            open: 'Ochish',
-        },
-        'uz-C': {
-            badge: 'Тасвирлаш',
-            title: 'УТТ / УЗИ — чуқур AI таҳлил',
-            subtitle: 'Расм ёки PDF • тизимли профессионал хулоса',
-            open: 'Очиш',
-        },
-        ru: {
-            badge: 'Визуализация',
-            title: 'УЗД / УЗИ — глубокий AI-разбор',
-            subtitle: 'Снимки или PDF • структурированное заключение',
-            open: 'Открыть',
-        },
-        en: {
-            badge: 'Imaging',
-            title: 'UTT / UZI — deep AI read',
-            subtitle: 'Images or PDF • subspecialty-style structured report',
-            open: 'Open',
-        },
-        kaa: {
-            badge: 'Taswirlaw',
-            title: 'UTT / UZI — teren AI tahlil',
-            subtitle: 'Súwret yamasa PDF • sistemalıq xulosa',
-            open: 'Ashıw',
-        },
-    };
-
-    const trSafe = (key: 'uzi_utt_badge' | 'uzi_utt_strip_title' | 'uzi_utt_strip_subtitle' | 'uzi_utt_open') => {
-        const v = t(key);
-        if (v !== key) return v;
-        const fb = uziStripFallback[language] ?? uziStripFallback['uz-L'];
-        if (key === 'uzi_utt_badge') return fb.badge;
-        if (key === 'uzi_utt_strip_title') return fb.title;
-        if (key === 'uzi_utt_strip_subtitle') return fb.subtitle;
-        return fb.open;
-    };
 
     const avatarGrads = [
         'linear-gradient(135deg,#06b6d4,#10b981)',
@@ -276,16 +231,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 {/* Modullar — tezkor kirish */}
-                {(onOpenTools || onOpenCheckUp || onOpenTelemedicine || onOpenResearch || onOpenPatientPortal) && (
+                {(onOpenCheckUp || onOpenTelemedicine || onOpenResearch || onOpenPatientPortal) && (
                     <div className="lg:col-span-12">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                            {onOpenTools && (
-                                <button type="button" onClick={onOpenTools} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
-                                    <p className="text-lg mb-1" aria-hidden>🧰</p>
-                                    <p className="text-xs font-bold text-slate-800 leading-tight">{t('mod_tools_title')}</p>
-                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{t('mod_tools_desc')}</p>
-                                </button>
-                            )}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                             {onOpenCheckUp && (
                                 <button type="button" onClick={onOpenCheckUp} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
                                     <p className="text-lg mb-1" aria-hidden>🩺</p>
@@ -315,70 +263,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 </button>
                             )}
                         </div>
-                    </div>
-                )}
-
-                {/* UTT/UZI — hero va analitikadan keyin, so‘nggi tahlillardan oldin */}
-                {onOpenUziUtt && (
-                    <div className="lg:col-span-12">
-                        <button
-                            type="button"
-                            onClick={() => onOpenUziUtt()}
-                            className="group w-full text-left rounded-xl overflow-hidden relative px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4 transition-all duration-200"
-                            style={{
-                                background: 'linear-gradient(135deg, rgba(7,19,34,0.96) 0%, rgba(10,28,52,0.94) 45%, rgba(8,40,72,0.92) 100%)',
-                                border: '1px solid rgba(0,210,255,0.32)',
-                                boxShadow: '0 0 28px rgba(0,210,255,0.08), 0 8px 24px rgba(0,0,0,0.2)',
-                            }}
-                        >
-                            <div
-                                className="absolute inset-0 opacity-[0.07] pointer-events-none hex-grid-bg"
-                                aria-hidden
-                            />
-                            <span
-                                className="relative z-[1] flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-lg sm:text-xl"
-                                style={{
-                                    background: 'rgba(0,210,255,0.12)',
-                                    border: '1px solid rgba(0,210,255,0.4)',
-                                    boxShadow: '0 0 16px rgba(0,210,255,0.15)',
-                                }}
-                                aria-hidden
-                            >
-                                📡
-                            </span>
-                            <div className="relative z-[1] flex-1 min-w-0">
-                                <p
-                                    className="text-[11px] font-mono font-bold tracking-wider uppercase leading-none mb-0.5"
-                                    style={{ color: '#5eead4' }}
-                                >
-                                    {trSafe('uzi_utt_badge')}
-                                </p>
-                                <p
-                                    className="text-sm sm:text-base font-bold leading-tight"
-                                    style={{
-                                        background: 'linear-gradient(135deg,#ffffff 0%,#b0e8ff 55%,#5eead4 100%)',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent',
-                                    }}
-                                >
-                                    {trSafe('uzi_utt_strip_title')}
-                                </p>
-                                <p
-                                    className="text-[10px] sm:text-xs leading-snug mt-0.5 line-clamp-2 sm:line-clamp-none"
-                                    style={{ color: 'rgba(180,220,245,0.82)' }}
-                                >
-                                    {trSafe('uzi_utt_strip_subtitle')}
-                                </p>
-                            </div>
-                            <span
-                                className="relative z-[1] flex-shrink-0 inline-flex items-center gap-0.5 text-xs sm:text-sm font-bold text-cyan-300 group-hover:text-cyan-200 transition-colors"
-                            >
-                                {trSafe('uzi_utt_open')}
-                                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                            </span>
-                        </button>
                     </div>
                 )}
 

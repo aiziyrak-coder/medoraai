@@ -1,15 +1,17 @@
 /**
  * Aqlli validatsiya: bemor ma'lumotlari uchun tekshiruv va maslahatlar.
- * Platformani kuchli va aqlli qilish uchun.
  */
 
 import type { PatientData } from '../types';
+import type { TranslationKey } from '../i18n/translationKeys';
+import { scoreClinicalCompleteness, type ClinicalCompletenessResult } from './clinicalCompleteness';
 
 export interface SmartValidationResult {
   valid: boolean;
-  warnings: string[];
-  missingCritical: string[];
-  suggestions: string[];
+  warningKeys: TranslationKey[];
+  missingCriticalKeys: TranslationKey[];
+  suggestionKeys: TranslationKey[];
+  completeness: ClinicalCompletenessResult;
 }
 
 const EMPTY = (v: string | undefined) => !v || String(v).trim() === '';
@@ -18,54 +20,55 @@ const EMPTY = (v: string | undefined) => !v || String(v).trim() === '';
  * Bemor ma'lumotlarini aqlli tekshiradi: kritik bo'sh maydonlar, ogohlantirishlar, maslahatlar.
  */
 export function validatePatientDataSmart(data: Partial<PatientData> | null): SmartValidationResult {
+  const completeness = scoreClinicalCompleteness(data);
   const result: SmartValidationResult = {
     valid: true,
-    warnings: [],
-    missingCritical: [],
-    suggestions: [],
+    warningKeys: [],
+    missingCriticalKeys: [],
+    suggestionKeys: [],
+    completeness,
   };
 
   if (!data) {
     result.valid = false;
-    result.missingCritical.push('Bemor ma\'lumotlari kiritilmagan');
+    result.missingCriticalKeys.push('smart_validation_field_patient_data');
     return result;
   }
 
-  // Kritik maydonlar
   if (EMPTY(data.complaints)) {
-    result.missingCritical.push('Shikoyatlar');
+    result.missingCriticalKeys.push('smart_validation_field_complaints');
     result.valid = false;
   }
   if (EMPTY(data.firstName) || EMPTY(data.lastName)) {
-    result.missingCritical.push('Bemor ismi/familiyasi');
+    result.missingCriticalKeys.push('smart_validation_field_name');
     result.valid = false;
   }
   if (EMPTY(data.age)) {
-    result.warnings.push('Yosh kiritilmagan  -  dozani hisoblashda muhim');
+    result.warningKeys.push('smart_validation_missing_age');
   }
 
-  // Xavfsizlik: allergiya va dori-darmonlar
-  // Allergiya maydoni bo'sh bo'lsa, endi xato EMAS (\"yo'q\" yozish majburiy emas).
-  // Faqat tavsiya sifatida, dori yozishdan oldin tekshirish mantiqida ishlatiladi.
   if (EMPTY(data.allergies)) {
-    result.warnings.push('Allergiya kiritilmagan - agar maʼlum bo‘lsa, dori tanlashda xavfsizlik uchun ko‘rsatish foydali.');
+    result.warningKeys.push('smart_validation_missing_allergies');
   }
   if (EMPTY(data.currentMedications)) {
-    result.warnings.push('Joriy dori-darmonlar  -  aralashuv xavfi uchun kiritish tavsiya etiladi');
+    result.warningKeys.push('smart_validation_missing_medications');
   }
 
-  // Aqlli maslahatlar
+  if (completeness.complaintOnly) {
+    result.warningKeys.push('smart_validation_complaint_only');
+  }
+
   if (data.complaints && data.complaints.length > 10 && EMPTY(data.history)) {
-    result.suggestions.push('Anamnez qo\'shilsa tashxis aniqroq bo\'ladi');
+    result.suggestionKeys.push('smart_validation_suggest_history');
   }
-  if (data.complaints && /og'riq|ogriq|pain/i.test(data.complaints) && EMPTY(data.objectiveData)) {
-    result.suggestions.push('Ob\'ektiv tekshiruv (JAR, palpatsiya) natijasini qo\'shing');
+  if (data.complaints && /og'riq|ogriq|pain|og'riq|боль/i.test(data.complaints) && EMPTY(data.objectiveData)) {
+    result.suggestionKeys.push('smart_validation_suggest_objective');
   }
-  if (data.complaints && /isitma|temperatura|fever/i.test(data.complaints)) {
-    result.suggestions.push('Harorat va pulsni ko\'rsatish foydali');
+  if (data.complaints && /isitma|temperatura|fever|лих/i.test(data.complaints)) {
+    result.suggestionKeys.push('smart_validation_suggest_fever_vitals');
   }
   if (data.age && parseInt(data.age, 10) < 18 && EMPTY(data.familyHistory)) {
-    result.suggestions.push('Bolalar uchun oilaviy anamnez muhim bo\'lishi mumkin');
+    result.suggestionKeys.push('smart_validation_suggest_pediatric_family');
   }
 
   return result;
@@ -76,61 +79,55 @@ export function validatePatientDataSmart(data: Partial<PatientData> | null): Sma
  */
 export function getSmartValidationMessage(
   res: SmartValidationResult,
-  t: (key: string) => string
+  t: (key: TranslationKey, replacements?: { [key: string]: string | number }) => string,
 ): string | null {
-  if (res.missingCritical.length > 0) {
-    return t('smart_validation_critical') || `Quyidagilarni to'ldiring: ${res.missingCritical.join(', ')}`;
+  if (res.missingCriticalKeys.length > 0) {
+    const fields = res.missingCriticalKeys.map((k) => t(k)).join(', ');
+    return t('smart_validation_critical_list', { fields });
   }
-  if (res.warnings.length > 0) {
-    return res.warnings[0];
+  if (res.warningKeys.length > 0) {
+    return t(res.warningKeys[0]);
   }
-  if (res.suggestions.length > 0) {
-    return (t('smart_validation_suggestion') || 'Maslahat: ') + res.suggestions[0];
+  if (res.suggestionKeys.length > 0) {
+    return t('smart_validation_suggestion') + t(res.suggestionKeys[0]);
   }
   return null;
 }
 
 export interface ComplaintConsistencyResult {
   consistent: boolean;
-  message?: string;
+  messageKey?: TranslationKey;
+  messageParams?: Record<string, string | number>;
 }
 
 /**
  * Bemor ma'lumotlari (yosh, jins) va shikoyat matnidagi tavsifni solishtiradi.
- * Agar shikoyatda "56 yoshli ayol" yozilsa, forma esa erkak 35 yosh ko'rsatsa — mos emas.
  */
 export function checkPatientComplaintConsistency(data: Partial<PatientData> | null): ComplaintConsistencyResult {
   if (!data?.complaints?.trim()) return { consistent: true };
   const complaint = data.complaints.trim();
   const formAge = data.age ? parseInt(String(data.age).replace(/\D/g, ''), 10) : null;
-  const formGender = data.gender; // 'male' | 'female' | 'other' | ''
+  const formGender = data.gender;
 
-  // Shikoyatdan yosh: "35 yosh", "35 yoshda", "56 yoshli", "o'n ikki yoshli" va h.k.
   const ageMatch = complaint.match(/(\d{1,3})\s*yosh(li|da)?/i) || complaint.match(/yosh\s*[:\-]?\s*(\d{1,3})/i);
   const mentionedAge = ageMatch ? parseInt(ageMatch[1], 10) : null;
   if (mentionedAge != null && Number.isFinite(mentionedAge) && formAge != null && Number.isFinite(formAge)) {
     if (Math.abs(mentionedAge - formAge) > 5) {
       return {
         consistent: false,
-        message: `Shikoyatda bemor "${mentionedAge} yosh" deb yozilgan, forma esa ${formAge} yosh ko'rsatmoqda. Iltimos, yoshni yoki shikoyat matnini to'g'rilang.`,
+        messageKey: 'validation_complaint_age_mismatch',
+        messageParams: { mentioned: String(mentionedAge), form: String(formAge) },
       };
     }
   }
 
-  // Shikoyatdan jins: "ayol", "erkak", "yoshli ayol", "yoshli erkak"
-  const mentionsFemale = /\b(ayol|ayollik|qiz)\b/i.test(complaint);
-  const mentionsMale = /\b(erkak|erkaklik|o'g'il)\b/i.test(complaint);
+  const mentionsFemale = /\b(ayol|ayollik|qiz|аёл|женщин)/i.test(complaint);
+  const mentionsMale = /\b(erkak|erkaklik|o'g'il|эркак|мужчин)/i.test(complaint);
   if (mentionsFemale && formGender === 'male') {
-    return {
-      consistent: false,
-      message: 'Shikoyatda bemor "ayol" deb tavsiflangan, forma esa Erkak tanlangan. Ma\'lumotlarni yoki shikoyatni to\'g\'rilang.',
-    };
+    return { consistent: false, messageKey: 'validation_complaint_gender_female' };
   }
   if (mentionsMale && formGender === 'female') {
-    return {
-      consistent: false,
-      message: 'Shikoyatda bemor "erkak" deb tavsiflangan, forma esa Ayol tanlangan. Ma\'lumotlarni yoki shikoyatni to\'g\'rilang.',
-    };
+    return { consistent: false, messageKey: 'validation_complaint_gender_male' };
   }
 
   return { consistent: true };

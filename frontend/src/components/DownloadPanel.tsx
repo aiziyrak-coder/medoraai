@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { AnalysisRecord, FinalReport } from '../types';
 import { generatePdfReport } from '../services/pdfGenerator';
 import { generateDocxReport } from '../services/docxGenerator';
@@ -10,14 +10,14 @@ import { API_BASE_URL } from '../services/api';
 import { getAuthToken } from '../services/api';
 
 /** Minimal report when analysis ended with error — PDF/DOCX still export patient + debate. */
-function getMinimalReportForExport(): FinalReport {
+function getMinimalReportForExport(t: (key: TranslationKey) => string): FinalReport {
     return {
         consensusDiagnosis: [],
         rejectedHypotheses: [],
         recommendedTests: [],
         treatmentPlan: [],
         medicationRecommendations: [],
-        unexpectedFindings: "Tahlil xato bilan tugadi. Quyida faqat bemor ma'lumotlari va konsilium munozarasi keltirilgan.",
+        unexpectedFindings: t('export_partial_fallback_message' as TranslationKey),
     };
 }
 
@@ -45,27 +45,46 @@ interface DownloadPanelProps {
 }
 
 const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
+    const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
+    const [exportError, setExportError] = useState<string | null>(null);
+
     if (!record.patientData) {
         return null;
     }
 
-    const report: FinalReport = record.finalReport ?? getMinimalReportForExport();
+    const report: FinalReport = record.finalReport ?? getMinimalReportForExport(t);
+    const branding = {
+        instituteName: INSTITUTE_NAME_FULL,
+        instituteLogoDataUrl: undefined as string | undefined,
+    };
 
     const handlePdfDownload = async () => {
-        const logoDataUrl = await getInstituteLogoDataUrl();
-        await generatePdfReport(report, record.patientData!, {
-            instituteName: INSTITUTE_NAME_FULL,
-            instituteLogoDataUrl: logoDataUrl,
-        }, t);
+        setExportError(null);
+        setExporting('pdf');
+        try {
+            branding.instituteLogoDataUrl = await getInstituteLogoDataUrl();
+            await generatePdfReport(report, record.patientData!, branding, t, language);
+        } catch (err) {
+            console.error('PDF export failed:', err);
+            setExportError(t('export_download_error' as TranslationKey));
+        } finally {
+            setExporting(null);
+        }
     };
 
     const handleDocxDownload = async () => {
-        const logoDataUrl = await getInstituteLogoDataUrl();
-        await generateDocxReport(report, record.patientData!, {
-            instituteName: INSTITUTE_NAME_FULL,
-            instituteLogoDataUrl: logoDataUrl,
-        }, t);
+        setExportError(null);
+        setExporting('docx');
+        try {
+            branding.instituteLogoDataUrl = await getInstituteLogoDataUrl();
+            await generateDocxReport(report, record.patientData!, branding, t, language);
+        } catch (err) {
+            console.error('DOCX export failed:', err);
+            setExportError(t('export_download_error' as TranslationKey));
+        } finally {
+            setExporting(null);
+        }
     };
 
     const handleFhirExport = async () => {
@@ -95,22 +114,39 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
                     {t('export_partial_note' as TranslationKey)}
                 </p>
             )}
+            {exportError && (
+                <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+                    {exportError}
+                </p>
+            )}
             <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-600">
                 <h4 className="font-bold text-text-primary mb-3">{t('export_report_title' as TranslationKey)}</h4>
                 <div className="flex flex-col sm:flex-row gap-3">
                     <button
-                        onClick={handlePdfDownload}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-xl transition-colors border border-slate-600"
+                        type="button"
+                        disabled={exporting !== null}
+                        onClick={() => void handlePdfDownload()}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors border border-slate-600"
                     >
                         <DownloadIcon className="w-4 h-4" />
-                        <span>{t('export_download_pdf' as TranslationKey)}</span>
+                        <span>
+                            {exporting === 'pdf'
+                                ? t('export_downloading' as TranslationKey)
+                                : t('export_download_pdf' as TranslationKey)}
+                        </span>
                     </button>
                     <button
-                        onClick={handleDocxDownload}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 rounded-xl transition-colors border border-slate-600"
+                        type="button"
+                        disabled={exporting !== null}
+                        onClick={() => void handleDocxDownload()}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors border border-slate-600"
                     >
                         <DownloadIcon className="w-4 h-4" />
-                        <span>{t('export_download_word' as TranslationKey)}</span>
+                        <span>
+                            {exporting === 'docx'
+                                ? t('export_downloading' as TranslationKey)
+                                : t('export_download_word' as TranslationKey)}
+                        </span>
                     </button>
                     {canFhir && (
                         <button

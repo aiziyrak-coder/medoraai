@@ -31,13 +31,11 @@ import DataInputForm from './components/DataInputForm';
 const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
 const ResearchView = lazy(() => import('./components/ResearchView'));
-const ToolsDashboard = lazy(() => import('./components/ToolsDashboard'));
 const CheckUpModule = lazy(() => import('./components/CheckUpModule'));
 const TelemedicineHub = lazy(() => import('./components/TelemedicineHub'));
 const PatientPortalView = lazy(() => import('./components/PatientPortalView'));
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
-import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
 const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
@@ -566,8 +564,8 @@ const AppContent: React.FC = () => {
 
     const handleDataSubmit = async (data: PatientData) => {
         const consistency = checkPatientComplaintConsistency(data);
-        if (!consistency.consistent) {
-            setError(consistency.message ?? 'Bemor ma\'lumotlari va shikoyat matni mos kelmadi.');
+        if (!consistency.consistent && consistency.messageKey) {
+            setError(t(consistency.messageKey, consistency.messageParams));
             return;
         }
         setError(null);
@@ -949,8 +947,6 @@ const AppContent: React.FC = () => {
                             userName={currentUser!.name}
                             onNewAnalysis={() => handleNavigation('new_analysis')}
                             onViewHistory={() => setAppView('history')}
-                            onOpenUziUtt={() => setAppView('uzi_utt')}
-                            onOpenTools={() => setAppView('tools')}
                             onOpenCheckUp={() => setAppView('check_up')}
                             onOpenTelemedicine={() => setAppView('telemedicine')}
                             onOpenResearch={() => setAppView('research')}
@@ -1056,32 +1052,6 @@ const AppContent: React.FC = () => {
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
                                 <CaseLibraryView onBack={() => setAppView('history')} analyses={userHistory} />
-                            </Suspense>
-                        </ScrollWrapper>
-                    </div>
-                );
-
-            case 'uzi_utt':
-                return (
-                    <div className="min-h-full flex flex-col min-w-0">
-                        <BackBar
-                            title={t('uzi_utt_page_title')}
-                            subtitle={t('uzi_utt_page_subtitle')}
-                            onBack={() => handleNavigation('dashboard')}
-                        />
-                        <ScrollWrapper>
-                            <UziUttAnalyzer />
-                        </ScrollWrapper>
-                    </div>
-                );
-
-            case 'tools':
-                return (
-                    <div className="min-h-full flex flex-col min-w-0">
-                        <BackBar title={t('tools_page_title')} subtitle={t('tools_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
-                        <ScrollWrapper>
-                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <ToolsDashboard />
                             </Suspense>
                         </ScrollWrapper>
                     </div>

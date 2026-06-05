@@ -1,6 +1,5 @@
 /**
- * Tahlil xato bilan tugaganda o'ng panelda ko'rsatiladi — avvalgidek to'liq hisobot tuzilishi (bo'limlar) saqlanadi.
- * Davolash, dori-darmonlar, yakuniy xulosa bo'limlari bo'sh/placeholder bilan chiqadi.
+ * Tahlil xato bilan tugaganda o'ng panelda ko'rsatiladi.
  */
 
 import React from 'react';
@@ -8,6 +7,7 @@ import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import PillIcon from './icons/PillIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
+import { useTranslation } from '../hooks/useTranslation';
 
 const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -24,47 +24,42 @@ const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.
 );
 
 interface ErrorReportPlaceholderProps {
-    /** Qisqa xato xabari (sarlavha ostida ko'rsatiladi) */
     message?: string;
 }
 
 const ErrorReportPlaceholder: React.FC<ErrorReportPlaceholderProps> = ({ message }) => {
-    const defaultMessage = "Tahlil xato bilan tugadi. To'liq konsensus hisoboti olinmadi. Bemor ma'lumotlari va munozarani PDF/Word orqali yuklab olish mumkin.";
+    const { t } = useTranslation();
 
     return (
         <div className="animate-fade-in-up mt-4 space-y-6">
             <div className="mb-6">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-800">YAKUNIY KLINIK XULOSA</h1>
-                <p className="text-sm text-slate-500 mt-1">Konsilium — xato tufayli to'liq hisobot tayyorlanmadi</p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-800">{t('error_report_title')}</h1>
+                <p className="text-sm text-slate-500 mt-1">{t('error_report_subtitle')}</p>
             </div>
 
-            {/* Asosiy xulosa — xato xabari */}
             <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/50 shadow-md overflow-hidden">
                 <div className="px-6 py-4 bg-amber-700 text-white">
-                    <h2 className="text-lg font-bold uppercase tracking-wide">Asosiy xulosa</h2>
-                    <p className="text-amber-100 text-sm mt-0.5">Tahlil jarayonida xato yuz berdi</p>
+                    <h2 className="text-lg font-bold uppercase tracking-wide">{t('error_report_main_heading')}</h2>
+                    <p className="text-amber-100 text-sm mt-0.5">{t('error_report_main_sub')}</p>
                 </div>
                 <div className="p-6">
                     <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-amber-200">
                         <AlertTriangleIcon className="w-8 h-8 text-amber-600 flex-shrink-0" />
-                        <p className="text-sm text-slate-700">{message || defaultMessage}</p>
+                        <p className="text-sm text-slate-700">{message || t('error_report_default_message')}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Davolash rejasi — placeholder */}
-            <Section title="Tavsiya Etilgan Davolash Rejasi" icon={<BrainCircuitIcon className="w-6 h-6" />}>
-                <p className="text-slate-500 text-sm italic">To'liq hisobot olinmadi. Konsiliumni qayta ishga tushiring yoki PDF/Word da bemor ma'lumotlari va munozarani yuklab oling.</p>
+            <Section title={t('error_report_treatment_title')} icon={<BrainCircuitIcon className="w-6 h-6" />}>
+                <p className="text-slate-500 text-sm italic">{t('error_report_treatment_placeholder')}</p>
             </Section>
 
-            {/* Dori-darmonlar — placeholder */}
-            <Section title="Dori-Darmonlar bo'yicha Tavsiyalar" icon={<PillIcon className="w-6 h-6" />}>
-                <p className="text-slate-500 text-sm italic">Tahlil xato bilan tugadi. To&apos;liq hisobotda tashxis asosida dori tavsiyalari (doza, qanday ichish) kiritiladi. Konsiliumni qayta ishga tushiring yoki PDF/Word orqali ma&apos;lumotni yuklab oling.</p>
+            <Section title={t('error_report_meds_title')} icon={<PillIcon className="w-6 h-6" />}>
+                <p className="text-slate-500 text-sm italic">{t('error_report_meds_placeholder')}</p>
             </Section>
 
-            {/* Qo'shimcha tekshiruvlar — placeholder */}
-            <Section title="Tavsiya Etiladigan Qo'shimcha Tekshiruvlar" icon={<DocumentTextIcon className="w-6 h-6" />}>
-                <p className="text-slate-500 text-sm italic">Ma'lumot kiritilmagan.</p>
+            <Section title={t('error_report_tests_title')} icon={<DocumentTextIcon className="w-6 h-6" />}>
+                <p className="text-slate-500 text-sm italic">{t('error_report_tests_placeholder')}</p>
             </Section>
         </div>
     );

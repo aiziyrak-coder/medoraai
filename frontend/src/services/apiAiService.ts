@@ -120,16 +120,28 @@ export interface FilteredError {
 
 // ---
 
+export type ConsiliumContextExtra = {
+  differentialDiagnoses?: Diagnosis[];
+  specialistDebateSummary?: string;
+  regionalContext?: string;
+  allowIncomplete?: boolean;
+};
+
 /** Multi-Agent Medical Consilium (3 faza: Independent  ->  Debate  ->  Consensus) */
 export const runConsilium = async (
   patientData: PatientData,
   language: string = 'uz-L',
+  contextExtra?: ConsiliumContextExtra,
 ): Promise<ApiResponse<ConsiliumResult>> => {
   return apiPost<ConsiliumResult>(
     '/ai/consilium/',
     {
       patient_data: patientData,
       language,
+      allow_incomplete: contextExtra?.allowIncomplete ?? patientData.allowIncompleteClinical ?? false,
+      differential_diagnoses: contextExtra?.differentialDiagnoses,
+      specialist_debate_summary: contextExtra?.specialistDebateSummary ?? patientData.specialistDebateSummary,
+      regional_context: contextExtra?.regionalContext ?? patientData.regionalContext,
     },
     API_CONFIG.AI_TIMEOUT_MS,
   );
