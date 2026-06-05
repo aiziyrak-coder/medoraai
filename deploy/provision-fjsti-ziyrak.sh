@@ -28,7 +28,14 @@ git reset --hard "origin/$BRANCH"
 echo "GIT: $(git log -1 --oneline)"
 
 cd "$ROOT/frontend"
-echo "VITE_API_BASE_URL=https://${API_HOST}/api" > .env.production
+DS_KEY="${DEEPSEEK_API_KEY:-${ANTHROPIC_API_KEY:-}}"
+{
+  echo "VITE_API_BASE_URL=https://${API_HOST}/api"
+  if [ -n "$DS_KEY" ]; then
+    echo "VITE_DEEPSEEK_API_KEY=$DS_KEY"
+    echo "VITE_DEEPSEEK_BASE_URL=https://api.deepseek.com"
+  fi
+} > .env.production
 npm ci
 export NODE_ENV=production
 npm run build
@@ -51,13 +58,14 @@ CSRF_TRUSTED_ORIGINS=https://${FRONT_HOST},https://${API_HOST}
 DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=$ROOT/backend/db.sqlite3
 SECURE_SSL_REDIRECT=True
-ANTHROPIC_API_KEY=
-CLAUDE_MODEL_PRO=claude-opus-4-7
-CLAUDE_MODEL_FAST=claude-sonnet-4-6
+DEEPSEEK_API_KEY=
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL_FAST=deepseek-chat
+DEEPSEEK_MODEL_PRO=deepseek-reasoner
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_PAYMENT_GROUP_ID=
 EOF
-  echo "Yangi backend/.env — ANTHROPIC_API_KEY ni to'ldiring."
+  echo "Yangi backend/.env — DEEPSEEK_API_KEY ni to'ldiring."
 fi
 
 # Mavjud .env da FJSTI domenlarini yangilash
@@ -73,6 +81,9 @@ set_kv ALLOWED_HOSTS "${FRONT_HOST},${API_HOST},127.0.0.1,localhost"
 set_kv CORS_ALLOWED_ORIGINS "https://${FRONT_HOST},http://${FRONT_HOST}"
 set_kv CSRF_TRUSTED_ORIGINS "https://${FRONT_HOST},https://${API_HOST}"
 set_kv SECURE_SSL_REDIRECT "True"
+if [ -n "${DEEPSEEK_API_KEY:-}" ]; then
+  set_kv DEEPSEEK_API_KEY "$DEEPSEEK_API_KEY"
+fi
 
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput

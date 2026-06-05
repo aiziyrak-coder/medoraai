@@ -11,7 +11,8 @@ import { LIMITS } from '../constants/timeouts';
 
 export type AiCostMode = 'scale' | 'economy' | 'balanced' | 'quality';
 
-const HAIKU_DEFAULT = 'claude-haiku-4-5-20251001';
+const DEEPSEEK_CHAT_DEFAULT = 'deepseek-chat';
+const DEEPSEEK_REASONER_DEFAULT = 'deepseek-reasoner';
 
 export function getAiCostMode(): AiCostMode {
   const raw = (import.meta.env.VITE_AI_COST_MODE as string | undefined)?.trim().toLowerCase();
@@ -34,13 +35,16 @@ export function getClaudeModels(): {
   diagnosis: string;
 } {
   const haiku =
-    (import.meta.env.VITE_CLAUDE_MODEL_HAIKU as string | undefined)?.trim() || HAIKU_DEFAULT;
+    (import.meta.env.VITE_DEEPSEEK_MODEL_FAST as string | undefined)?.trim() ||
+    (import.meta.env.VITE_CLAUDE_MODEL_HAIKU as string | undefined)?.trim() ||
+    DEEPSEEK_CHAT_DEFAULT;
   const sonnet =
+    (import.meta.env.VITE_DEEPSEEK_MODEL_PRO as string | undefined)?.trim() ||
     (import.meta.env.VITE_CLAUDE_MODEL_FAST as string | undefined)?.trim() ||
-    'claude-sonnet-4-6';
+    DEEPSEEK_REASONER_DEFAULT;
   const opus =
     (import.meta.env.VITE_CLAUDE_MODEL_PRO as string | undefined)?.trim() ||
-    'claude-opus-4-7';
+    DEEPSEEK_REASONER_DEFAULT;
 
   const mode = getAiCostMode();
   if (mode === 'quality') {
@@ -124,8 +128,8 @@ export function getCheapFallbackModels(primaryModel: string): string[] {
     return [];
   }
   if (mode === 'balanced') {
-    return primaryModel.includes('haiku') ? ['claude-sonnet-4-6'] : [];
+    return primaryModel.includes('chat') ? [DEEPSEEK_REASONER_DEFAULT] : [];
   }
-  return ['claude-sonnet-4-6', 'claude-opus-4-7'];
+  return [DEEPSEEK_REASONER_DEFAULT];
 }
-
+

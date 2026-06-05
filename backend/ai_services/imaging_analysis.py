@@ -61,8 +61,7 @@ def analyze_attachments(patient_data: dict, language: str = "uz-L") -> str:
 
     try:
         from . import claude_utils
-        client = claude_utils._get_client()
-        if not client:
+        if claude_utils._get_client() is None:
             return ""
     except Exception:
         return ""
@@ -79,37 +78,26 @@ def analyze_attachments(patient_data: dict, language: str = "uz-L") -> str:
     for img in images:
         kind = _classify_kind(img["name"])
         system = (
-            f"Siz tajribali radiolog/kardiolog. {kind} tasvirini klinik tahlil qiling. "
-            f"Til: {lang_note}. Qisqa, aniq: topilmalar, shoshilinchlik, cheklovlar."
+            f"Siz tajribali radiolog/kardiolog. {kind} tasvir fayli yuklangan. "
+            f"Tasvir piksellarini ko'ra olmaysiz — fayl nomi, turi va bemor shikoyatiga asoslanib "
+            f"ehtimoliy klinik yo'nalish va keyingi qadamlarni qisqa yozing. "
+            f"Til: {lang_note}. Qisqa, aniq: taxminiy yo'nalish, shoshilinchlik, cheklovlar."
         )
         user_text = (
-            f"Fayl: {img['name']}. Bemor konteksti (qisqa): "
-            f"{(patient_data.get('complaints') or '')[:500]}"
+            f"Fayl: {img['name']} ({kind}, {img['mime']}). "
+            f"Bemor shikoyati: {(patient_data.get('complaints') or '')[:500]}"
         )
-        content: list[dict[str, Any]] = [
-            {"type": "text", "text": user_text},
-            {
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": img["mime"],
-                    "data": img["data"],
-                },
-            },
-        ]
         try:
-            resp = client.messages.create(
-                model=claude_utils._model_fast(),
-                max_tokens=1200,
-                temperature=0.1,
+            text = claude_utils._call_claude(
+                user_text,
+                claude_utils.CLAUDE_FAST,
                 system=system,
-                messages=[{"role": "user", "content": content}],
+                max_output_tokens=1200,
             )
-            text = claude_utils._response_text(resp)
             if text:
                 blocks.append(f"[{kind}] {img['name']}:\n{text}")
         except Exception as exc:
-            logger.warning("Vision tahlil xatosi (%s): %s", img["name"], exc)
+            logger.warning("Tasvir tahlil xatosi (%s): %s", img["name"], exc)
             blocks.append(f"[{kind}] {img['name']}: tahlil vaqtincha mavjud emas.")
 
     if not blocks:

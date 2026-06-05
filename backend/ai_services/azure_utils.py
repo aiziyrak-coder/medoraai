@@ -1,5 +1,5 @@
 """
-AI backend: Claude (Anthropic) when ANTHROPIC_API_KEY is set; else legacy Azure.
+AI backend: DeepSeek when DEEPSEEK_API_KEY is set; else legacy Azure.
 """
 
 from __future__ import annotations
@@ -12,8 +12,10 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# When True, all AI calls use Claude (claude_utils).
-USE_CLAUDE = bool(getattr(settings, "ANTHROPIC_API_KEY", None))
+# When True, all AI calls use DeepSeek (claude_utils shim).
+USE_CLAUDE = bool(
+    getattr(settings, "DEEPSEEK_API_KEY", None) or getattr(settings, "ANTHROPIC_API_KEY", None)
+)
 USE_GEMINI = USE_CLAUDE  # backwards-compat alias (deprecated)
 
 # ---------------------------------------------------------------------------
@@ -60,7 +62,7 @@ def _make_client(endpoint: str, api_key: str, api_version: str):
 def _get_client(deployment_key: str) -> "AzureOpenAI":  # type: ignore[name-defined]
     """Return a cached AzureOpenAI client. Not used when USE_CLAUDE."""
     if USE_CLAUDE:
-        raise RuntimeError("Azure is disabled; Claude is used. Set ANTHROPIC_API_KEY in .env")
+        raise RuntimeError("Azure is disabled; DeepSeek is used. Set DEEPSEEK_API_KEY in .env")
     if deployment_key not in _clients:
         endpoint   = _require_cfg("AZURE_OPENAI_ENDPOINT")
         api_key    = _require_cfg("AZURE_OPENAI_API_KEY")
@@ -148,7 +150,7 @@ def call_model(
     stream: bool = False,
 ) -> str:
     """
-    Call AI model. When ANTHROPIC_API_KEY is set, uses Claude; otherwise Azure (legacy).
+    Call AI model. When DEEPSEEK_API_KEY is set, uses DeepSeek; otherwise Azure (legacy).
     """
     if USE_CLAUDE:
         from . import claude_utils

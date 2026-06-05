@@ -1,6 +1,6 @@
 """
-Anthropic Claude API helpers for AI Services.
-Uses anthropic SDK. API key from settings.ANTHROPIC_API_KEY.
+AI helpers — DeepSeek API (OpenAI-compatible).
+API key from settings.DEEPSEEK_API_KEY (legacy: ANTHROPIC_API_KEY alias).
 """
 import hashlib
 import json
@@ -13,6 +13,17 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 _client = None
+
+CLAUDE_FAST = "deepseek-chat"
+CLAUDE_PRO = "deepseek-reasoner"
+
+
+def _api_key() -> str:
+    return (
+        (getattr(settings, "DEEPSEEK_API_KEY", None) or "")
+        or (getattr(settings, "ANTHROPIC_API_KEY", None) or "")
+    ).strip()
+
 
 def _ai_cost_mode():
     return (getattr(settings, "AI_COST_MODE", "scale") or "scale").strip().lower()
@@ -27,45 +38,49 @@ def _default_max_tokens():
     }.get(_ai_cost_mode(), 2048)
 
 
-def _haiku_model():
-    return getattr(settings, "CLAUDE_MODEL_HAIKU", "claude-haiku-4-5-20251001")
+def _fast_model():
+    return getattr(settings, "DEEPSEEK_MODEL_FAST", None) or getattr(
+        settings, "CLAUDE_MODEL_HAIKU", "deepseek-chat"
+    )
 
 
-def _use_sonnet_diagnosis():
+def _pro_model():
+    return getattr(settings, "DEEPSEEK_MODEL_PRO", None) or getattr(
+        settings, "CLAUDE_MODEL_PRO", "deepseek-reasoner"
+    )
+
+
+def _use_reasoner_diagnosis():
     return bool(getattr(settings, "CLAUDE_USE_SONNET_DIAGNOSIS", False))
 
 
 def _model_fast():
-    haiku = _haiku_model()
+    fast = _fast_model()
     if _ai_cost_mode() in ("scale", "economy"):
-        return haiku
-    return getattr(settings, "CLAUDE_MODEL_FAST", "claude-sonnet-4-6")
+        return fast
+    return getattr(settings, "CLAUDE_MODEL_FAST", fast) or fast
 
 
 def _model_pro():
     mode = _ai_cost_mode()
+    pro = _pro_model()
     if mode == "quality":
-        return getattr(settings, "CLAUDE_MODEL_PRO", "claude-opus-4-7")
+        return pro
     if mode == "balanced":
-        return getattr(settings, "CLAUDE_MODEL_FAST", "claude-sonnet-4-6")
-    if _use_sonnet_diagnosis() and mode == "scale":
-        return getattr(settings, "CLAUDE_MODEL_FAST", "claude-sonnet-4-6")
-    return _haiku_model()
+        return getattr(settings, "CLAUDE_MODEL_FAST", pro) or pro
+    if _use_reasoner_diagnosis() and mode == "scale":
+        return getattr(settings, "CLAUDE_MODEL_FAST", pro) or pro
+    return _fast_model()
 
 
 def _model_diagnosis():
-    """Default: Haiku (arzon). Sonnet faqat CLAUDE_USE_SONNET_DIAGNOSIS=true."""
     return _model_pro()
 
 
 def _cache_key(prefix: str, text: str) -> str:
     digest = hashlib.sha256((text or "").encode("utf-8", errors="ignore")).hexdigest()[:32]
-    return f"claude:{prefix}:{digest}"
+    return f"deepseek:{prefix}:{digest}"
 
-
-# Module-level aliases (resolved at call time via helpers)
-CLAUDE_FAST = "claude-sonnet-4-6"
-CLAUDE_PRO = "claude-opus-4-7"
 
 SPECIALIST_ALIASES = {
     "Claude-Cardio": "Cardiologist",
@@ -102,30 +117,23 @@ def _get_client():
     global _client
     if _client is not None:
         return _client
-    key = (getattr(settings, "ANTHROPIC_API_KEY", None) or "").strip()
+    key = _api_key()
     if not key:
         return None
     try:
-        import anthropic
-        _client = anthropic.Anthropic(api_key=key)
+        from openai import OpenAI
+
+        base_url = getattr(settings, "DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+        _client = OpenAI(api_key=key, base_url=base_url)
         return _client
     except ImportError:
-        logger.warning("anthropic not installed: pip install anthropic")
+        logger.warning("openai not installed: pip install openai")
         return None
 
 
 def _patient_text(patient_data, extra=None):
     from .clinical_context import build_clinical_context
     return build_clinical_context(patient_data, extra)
-
-
-def _response_text(response):
-    parts = []
-    for block in getattr(response, "content", None) or []:
-        text = getattr(block, "text", None)
-        if text:
-            parts.append(str(text))
-    return "".join(parts).strip()
 
 
 def _resolve_model(model_name):
@@ -143,41 +151,44 @@ def _call_claude(
 ):
     if max_output_tokens is None:
         max_output_tokens = _default_max_tokens()
-    """Call Claude Messages API. Returns response text."""
     client = _get_client()
     if not client:
-        raise RuntimeError("Claude API kaliti sozlanmagan. ANTHROPIC_API_KEY ni .env ga kiriting.")
+        raise RuntimeError(
+            "DeepSeek API kaliti sozlanmagan. DEEPSEEK_API_KEY ni backend/.env ga kiriting."
+        )
 
     user_content = prompt
     if response_mime_type == "application/json" and isinstance(prompt, str):
         if "faqat json" not in prompt.lower() and "only json" not in prompt.lower():
             user_content = f"{prompt}\n\nMuhim: Javobni FAQAT toza JSON formatida qaytaring."
 
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": user_content})
+
     kwargs = {
         "model": _resolve_model(model_name),
-        "max_tokens": max_output_tokens,
+        "messages": messages,
         "temperature": 0.1,
-        "messages": [{"role": "user", "content": user_content}],
+        "max_tokens": max_output_tokens,
     }
-    if system:
-        kwargs["system"] = system
-
     try:
-        response = client.messages.create(**kwargs)
+        response = client.chat.completions.create(**kwargs)
     except Exception as e:
-        logger.exception("Claude API xatosi: %s", e)
+        logger.exception("DeepSeek API xatosi: %s", e)
         raise
 
-    text = _response_text(response)
+    text = (response.choices[0].message.content or "").strip()
     if not text:
-        raise ValueError("Claude bo'sh javob qaytardi")
+        raise ValueError("DeepSeek bo'sh javob qaytardi")
     return text
 
 
 def generate_clarifying_questions(patient_data):
     if _get_client() is None:
         raise RuntimeError(
-            "Claude API kaliti sozlanmagan. ANTHROPIC_API_KEY ni backend/.env ga kiriting."
+            "DeepSeek API kaliti sozlanmagan. DEEPSEEK_API_KEY ni backend/.env ga kiriting."
         )
     text = _patient_text(patient_data)
     cache_key = _cache_key("clarify", text)
@@ -206,7 +217,7 @@ TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmaga
             break
         except Exception as e:
             last_exc = e
-            logger.warning("Claude clarifying_questions (model=%s) failed: %s", model, e)
+            logger.warning("DeepSeek clarifying_questions (model=%s) failed: %s", model, e)
     if not raw and last_exc is not None:
         raise last_exc
     if not raw:
@@ -216,7 +227,7 @@ TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmaga
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        logger.warning("Claude clarifying_questions: invalid JSON (error=%s), raw=%s", e, raw[:500])
+        logger.warning("DeepSeek clarifying_questions: invalid JSON (error=%s), raw=%s", e, raw[:500])
         match = re.search(r"\[[\s\S]*\]", raw)
         if match:
             try:
@@ -238,7 +249,9 @@ TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmaga
 
 def recommend_specialists(patient_data):
     if _get_client() is None:
-        raise RuntimeError("Claude API kaliti sozlanmagan. ANTHROPIC_API_KEY ni .env ga kiriting.")
+        raise RuntimeError(
+            "DeepSeek API kaliti sozlanmagan. DEEPSEEK_API_KEY ni .env ga kiriting."
+        )
     text = _patient_text(patient_data)
     names_str = ", ".join(SPECIALIST_NAMES[:40])
     prompt = f"""Bemor ma'lumotlari:
@@ -276,7 +289,7 @@ O'zbek tilida (Lotin)."""
                 return out[:8]
         except Exception as e:
             last_exc = e
-            logger.warning("Claude recommend_specialists (model=%s) failed: %s", model_name, e)
+            logger.warning("DeepSeek recommend_specialists (model=%s) failed: %s", model_name, e)
     if last_exc is not None:
         raise last_exc
     return []
@@ -343,5 +356,5 @@ O'zbek tilida (Lotin)."""
             if out:
                 return out
         except Exception as e:
-            logger.warning("Claude generate_diagnoses (model=%s) failed: %s", model_name, e)
+            logger.warning("DeepSeek generate_diagnoses (model=%s) failed: %s", model_name, e)
     return []

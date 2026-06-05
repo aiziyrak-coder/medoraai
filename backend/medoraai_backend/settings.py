@@ -328,34 +328,39 @@ AZURE_DEPLOY_LLAMA = config('AZURE_DEPLOY_LLAMA', default='FJSTI-llama')
 AZURE_DEPLOY_MISTRAL = config('AZURE_DEPLOY_MISTRAL', default='FJSTI-mistral')
 AZURE_DEPLOY_MINI = config('AZURE_DEPLOY_MINI', default='FJSTI-mini')
 
-# AI: Anthropic Claude (kalit .env dan; backend/.env dan aniq o'qish fallback)
-def _load_anthropic_key():
-    key = (config('ANTHROPIC_API_KEY', default='') or '').strip()
-    if key:
-        return key
+# AI: DeepSeek (OpenAI-compatible API)
+def _load_deepseek_key():
+    for env_name in ('DEEPSEEK_API_KEY', 'ANTHROPIC_API_KEY'):
+        key = (config(env_name, default='') or '').strip()
+        if key:
+            return key
     env_file = BASE_DIR / '.env'
     if env_file.exists():
         try:
             with open(env_file, 'r', encoding='utf-8') as f:
                 for line in f:
-                    if line.strip().startswith('ANTHROPIC_API_KEY='):
-                        key = line.split('=', 1)[1].strip().strip('"').strip("'").strip()
-                        return key
+                    for env_name in ('DEEPSEEK_API_KEY', 'ANTHROPIC_API_KEY'):
+                        if line.strip().startswith(f'{env_name}='):
+                            key = line.split('=', 1)[1].strip().strip('"').strip("'").strip()
+                            return key
         except Exception:
             pass
     return ''
 
-ANTHROPIC_API_KEY = _load_anthropic_key()
+DEEPSEEK_API_KEY = _load_deepseek_key()
+DEEPSEEK_BASE_URL = config('DEEPSEEK_BASE_URL', default='https://api.deepseek.com')
+DEEPSEEK_MODEL_FAST = config('DEEPSEEK_MODEL_FAST', default='deepseek-chat')
+DEEPSEEK_MODEL_PRO = config('DEEPSEEK_MODEL_PRO', default='deepseek-reasoner')
+# Legacy aliases (eski kod va deploy skriptlari uchun)
+ANTHROPIC_API_KEY = DEEPSEEK_API_KEY
 # AI xarajat: scale (default, 1000+ user) | economy | balanced | quality
 AI_COST_MODE = config('AI_COST_MODE', default='scale')
 CONSILIUM_AGENT_LIMIT = config('CONSILIUM_AGENT_LIMIT', default=4, cast=int)
-# Claude: economy = Haiku + Sonnet; quality = Sonnet + Opus
-# Default: Haiku 4.5 — eng arzon, tibbiy AI uchun yetarli kuchli
-CLAUDE_MODEL_HAIKU = config('CLAUDE_MODEL_HAIKU', default='claude-haiku-4-5-20251001')
-CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default='claude-haiku-4-5-20251001')
-CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default='claude-haiku-4-5-20251001')
+CLAUDE_MODEL_HAIKU = DEEPSEEK_MODEL_FAST
+CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default=DEEPSEEK_MODEL_FAST)
+CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default=DEEPSEEK_MODEL_PRO)
 CLAUDE_USE_SONNET_DIAGNOSIS = config('CLAUDE_USE_SONNET_DIAGNOSIS', default=False, cast=bool)
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default='claude-haiku-4-5-20251001')
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default=DEEPSEEK_MODEL_FAST)
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:

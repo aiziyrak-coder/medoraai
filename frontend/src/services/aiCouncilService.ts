@@ -58,11 +58,21 @@ import { isApiConfigured } from '../config/api';
 import { apiPost } from './api';
 import { API_CONFIG } from '../config/api';
 
-// --- Claude AI (Anthropic) ---
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
-const validKey = !!(ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'your-anthropic-api-key-here');
+// --- DeepSeek AI (OpenAI-compatible) ---
+const DEEPSEEK_API_KEY =
+  import.meta.env.VITE_DEEPSEEK_API_KEY ||
+  import.meta.env.VITE_ANTHROPIC_API_KEY ||
+  '';
+const DEEPSEEK_BASE_URL =
+  (import.meta.env.VITE_DEEPSEEK_BASE_URL as string | undefined)?.trim() ||
+  'https://api.deepseek.com';
+const validKey = !!(
+  DEEPSEEK_API_KEY &&
+  DEEPSEEK_API_KEY !== 'your-deepseek-api-key-here' &&
+  DEEPSEEK_API_KEY !== 'your-anthropic-api-key-here'
+);
 
-/** Client-side Claude (Vite build-time key). Backend `ANTHROPIC_API_KEY` alone does not enable browser AI. */
+/** Client-side DeepSeek (Vite build-time key). Backend `DEEPSEEK_API_KEY` alone does not enable browser AI. */
 export function isBrowserClaudeConfigured(): boolean {
   return validKey;
 }
@@ -79,6 +89,21 @@ type ClaudeMessageContent =
         | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
       >;
 
+function flattenUserContent(content: ClaudeMessageContent): string {
+  if (typeof content === 'string') return content;
+  const parts: string[] = [];
+  for (const block of content) {
+    if (block.type === 'text') {
+      parts.push(block.text);
+    } else if (block.type === 'image') {
+      parts.push(
+        `[Rasm biriktilgan (${block.source.media_type}) — avtomatik vision tahlil mavjud emas; mavjud klinik matn asosida javob bering.]`
+      );
+    }
+  }
+  return parts.join('\n\n');
+}
+
 async function claudeMessagesCreate(params: {
     model: string;
     max_tokens: number;
@@ -86,21 +111,33 @@ async function claudeMessagesCreate(params: {
     system?: string;
     messages: Array<{ role: 'user'; content: ClaudeMessageContent }>;
 }): Promise<{ content: Array<{ type: string; text?: string }> }> {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const messages: Array<{ role: string; content: string }> = [];
+    if (params.system) {
+      messages.push({ role: 'system', content: params.system });
+    }
+    for (const msg of params.messages) {
+      messages.push({ role: 'user', content: flattenUserContent(msg.content) });
+    }
+    const res = await fetch(`${DEEPSEEK_BASE_URL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
+            Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify({
+          model: params.model,
+          messages,
+          max_tokens: params.max_tokens,
+          temperature: params.temperature ?? 0.1,
+        }),
     });
     if (!res.ok) {
         const errBody = await res.text().catch(() => '');
-        throw new Error(`Claude API ${res.status}: ${errBody.slice(0, 400)}`);
+        throw new Error(`DeepSeek API ${res.status}: ${errBody.slice(0, 400)}`);
     }
-    return res.json();
+    const data = await res.json();
+    const text = (data?.choices?.[0]?.message?.content || '').trim();
+    return { content: [{ type: 'text', text }] };
 }
 
 const {
@@ -114,10 +151,10 @@ const DEPLOY_PRO = MODEL_PRO;
 
 function mapModel(modelLabel: string): string {
   const m = (modelLabel || '').toLowerCase();
-  if (m.includes('opus')) {
+  if (m.includes('reasoner') || m.includes('opus')) {
     return getAiCostMode() === 'quality' ? MODEL_PRO : MODEL_FINAL;
   }
-  if (m.includes('sonnet') || m.includes('flash') || m.includes('mini') || m.includes('haiku')) {
+  if (m.includes('chat') || m.includes('sonnet') || m.includes('flash') || m.includes('mini') || m.includes('haiku')) {
     return MODEL_FAST;
   }
   return MODEL_PRO;
@@ -1594,7 +1631,7 @@ export const runCouncilDebate = async (
     } else if (!isBrowserClaudeConfigured()) {
         onProgress({
             type: 'error',
-            message: 'AI xizmati sozlanmagan. Server API yoki brauzer Claude kalitini sozlang.',
+            message: 'AI xizmati sozlanmagan. Server API yoki brauzer DeepSeek kalitini sozlang.',
         });
         return;
     }

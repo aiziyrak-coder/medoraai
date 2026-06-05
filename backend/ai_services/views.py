@@ -42,7 +42,9 @@ def _pd(request):
 
 
 def _claude_ok() -> bool:
-    return bool(getattr(settings, "ANTHROPIC_API_KEY", None))
+    return bool(
+        getattr(settings, "DEEPSEEK_API_KEY", None) or getattr(settings, "ANTHROPIC_API_KEY", None)
+    )
 
 
 def _err(code: int, msg: str):
@@ -51,7 +53,7 @@ def _err(code: int, msg: str):
 
 
 def _ai_not_configured():
-    return _err(503, "AI xizmati sozlanmagan. Iltimos, ANTHROPIC_API_KEY ni .env faylga kiriting.")
+    return _err(503, "AI xizmati sozlanmagan. Iltimos, DEEPSEEK_API_KEY ni .env faylga kiriting.")
 
 
 def _run_filter(patient_data: dict) -> Response | None:
@@ -272,16 +274,18 @@ def test_claude(request):
     if not getattr(settings, "DEBUG", False):
         if not getattr(request.user, "is_authenticated", False) or not getattr(request.user, "is_staff", False):
             return Response({"ok": False, "error": "Forbidden"}, status=403)
-    key = (getattr(settings, "ANTHROPIC_API_KEY", None) or "").strip()
+    key = (
+        getattr(settings, "DEEPSEEK_API_KEY", None) or getattr(settings, "ANTHROPIC_API_KEY", None) or ""
+    ).strip()
     if not key:
-        return Response({"ok": False, "error": "ANTHROPIC_API_KEY .env da yo'q yoki bo'sh"}, status=503)
+        return Response({"ok": False, "error": "DEEPSEEK_API_KEY .env da yo'q yoki bo'sh"}, status=503)
     try:
         from .claude_utils import _get_client, _call_claude, CLAUDE_FAST
         client = _get_client()
         if not client:
             return Response({"ok": False, "error": "Client yaratib bo'lmadi (import/key)"}, status=503)
         text = _call_claude("Javobingiz: salom. Faqat shu so'zni yozing.", CLAUDE_FAST, response_mime_type=None)
-        return Response({"ok": True, "message": "Claude ishlayapti", "sample": (text or "")[:200]})
+        return Response({"ok": True, "message": "DeepSeek ishlayapti", "sample": (text or "")[:200]})
     except Exception as e:
         logger.exception("test_claude: %s", e)
         return Response({"ok": False, "error": str(e)}, status=500)

@@ -35,9 +35,9 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "Internet aloqasi bilan muammo. Iltimos, internetni tekshiring va qayta urinib ko'ring.";
     }
     
-    // Anthropic API key invalid
-    if (message.includes('api key not valid') || message.includes('api_key_invalid') || message.includes('invalid_argument') || message.includes('authentication_error') || message.includes('invalid x-api-key')) {
-      return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: Anthropic Console dan yangi kalit yarating va serverda ANTHROPIC_API_KEY ni yangilang, keyin frontendni qayta build qiling.";
+    // DeepSeek / AI API key invalid
+    if (message.includes('api key not valid') || message.includes('api_key_invalid') || message.includes('invalid_argument') || message.includes('authentication_error') || message.includes('invalid x-api-key') || message.includes('invalid_api_key') || message.includes('incorrect api key')) {
+      return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: DeepSeek platformasidan yangi kalit yarating va serverda DEEPSEEK_API_KEY ni yangilang, keyin frontendni qayta build qiling.";
     }
 
     // 503 / model overloaded / UNAVAILABLE
@@ -68,7 +68,9 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
     // Missing AI env / admin setup — must stay explicit (VITE_* and server .env)
     if (
       message.includes('sozlanmagan') ||
+      message.includes('vite_deepseek') ||
       message.includes('vite_anthropic') ||
+      message.includes('deepseek_api_key') ||
       message.includes('anthropic_api_key') ||
       (message.includes('.env') && (message.includes('kiriting') || message.includes('qoying')))
     ) {

@@ -227,7 +227,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
         if (!isBrowserClaudeConfigured()) {
           onError(
             resp.error?.message ||
-              "AI javobi kelmadi. Serverda ANTHROPIC_API_KEY (backend/.env) yoki frontend build uchun VITE_ANTHROPIC_API_KEY ni tekshiring.",
+              "AI javobi kelmadi. Serverda DEEPSEEK_API_KEY (backend/.env) yoki frontend build uchun VITE_DEEPSEEK_API_KEY ni tekshiring.",
           );
           return;
         }
@@ -237,7 +237,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
       }
       if (!isBrowserClaudeConfigured()) {
         onError(
-          'Claude AI xizmati sozlanmagan. Iltimos, VITE_ANTHROPIC_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
+          'DeepSeek AI xizmati sozlanmagan. Iltimos, VITE_DEEPSEEK_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
         );
         return;
       }
@@ -291,7 +291,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
     if (!isBrowserClaudeConfigured()) {
       setStreaming(false);
       onError(
-        'Claude AI xizmati sozlanmagan. Iltimos, VITE_ANTHROPIC_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
+        'DeepSeek AI xizmati sozlanmagan. Iltimos, VITE_DEEPSEEK_API_KEY ni .env faylga kiriting yoki API ulanishini yoqing.',
       );
       cancelStreamRef.current = () => { setStreaming(false); };
       return;
