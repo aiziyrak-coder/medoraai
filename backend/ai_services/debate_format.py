@@ -22,7 +22,27 @@ KONSILIUM USLUBI (MAJBURIY — buzish MUMKIN EMAS):
 8. Ob'ektiv, lab va tasvir (EKG/UZI/rengen) mavjud bo'lsa — ularni shikoyatdan ustun qo'llang.
 """
 
-COMPACT_OUTPUT_HINT = "Javobni QISQA va JSONda qaytaring — ortiqcha tushuntirish yo'q."
+DENSE_JSON_HINT = (
+    "Javob FAQAT JSON. Matn ZICH: har bandda aniq klinik qiymat (raqam+birlik). "
+    "Bo'sh gap, 'ehtimol', 'ko'rib chiqildi' kabi so'zlarsiz. Ortiqcha tushuntirish YO'Q."
+)
+
+DEBATE_INTENSITY_RULES = """
+KONSILIUM CHANGI (MAJBURIY):
+1. Boshqa mutaxassis tashxisi boshqacha bo'lsa — KAMIDA 1 ta STRONG yoki MODERATE refutation yozing.
+2. Boshqa mutaxassis dalili kuchli bo'lsa — accepted_from_others da aniq FAKT bilan qo'llab-quvvatlang.
+3. Har refutation: bemorning ANIQ ko'rsatkichi (masalan SpO2 88%, TSH 8.2) + nima uchun zaif/noto'g'ri.
+4. Himoya: o'z pozitsiyangizni yangi FAKT yoki lab/tasvir bilan mustahkamlang; zaif bo'lsa revised_diagnosis yangilang.
+5. key_argument: eng muhim 1 ta klinik dalil + manba URL — qisqa va aniq.
+"""
+
+P1_DENSITY_RULES = """
+PHASE 1 ZICHLIK (MAJBURIY):
+- reasoning_chain: kamida 4 qadam, har biri bemor fakti + manba URL.
+- supporting_evidence: kamida 4 ta — vital, lab, anamnez yoki tasvirdan aniq qiymatlar.
+- differential: kamida 2 ta alternativ tashxis + ehtimollik + qisqa sabab.
+- recommended_tests: kamida 2 ta + nima uchun (klinik indikatsiya).
+"""
 
 
 def _conf_label_uz(conf: str) -> str:
@@ -85,6 +105,20 @@ def format_p1_debate_content(p1r: dict) -> str:
     if evidence:
         sections.append(f"▸ TASDIQLOVCHI FAKTLAR\n{evidence}")
 
+    diff_lines: list[str] = []
+    for d in p1r.get("differential") or []:
+        if not isinstance(d, dict):
+            continue
+        nm = _clean_step_text(d.get("name", ""))
+        if not nm:
+            continue
+        prob = d.get("probability")
+        prob_s = f" ({prob}%)" if prob is not None else ""
+        rs = _clean_step_text(d.get("reason", ""))
+        diff_lines.append(f"  • {nm}{prob_s}" + (f" — {rs}" if rs else ""))
+    if diff_lines:
+        sections.append("▸ FARQLANUVCHI TASHXISLAR\n" + "\n".join(diff_lines))
+
     tests = format_bullet_items(p1r.get("recommended_tests"))
     if tests:
         sections.append(f"▸ TAVSIYA ETILGAN TEKSHIRUVLAR\n{tests}")
@@ -112,8 +146,14 @@ def format_p2_debate_content(
             continue
         target = specialty_resolver(str(r.get("target_agent_id", "")))
         body = _clean_step_text(r.get("refutation", ""))
+        strength = str(r.get("strength", "")).strip().upper()
+        tag = f"[{strength}] " if strength in ("STRONG", "MODERATE", "WEAK") else ""
+        target_dx = _clean_step_text(r.get("target_diagnosis", ""))
+        prefix = f"{target}"
+        if target_dx:
+            prefix = f"{target} («{target_dx}»)"
         if body:
-            ref_lines.append(f"  • {target}: {body}")
+            ref_lines.append(f"  • {tag}{prefix}: {body}")
     if ref_lines:
         sections.append("▸ TANQID VA JAVOB\n" + "\n".join(ref_lines))
 
@@ -147,6 +187,29 @@ def format_p2_debate_content(
     if key_arg:
         sections.append(f"▸ ASOSIY KLINIK DALIL\n{key_arg}")
 
+    endorse = format_bullet_items(p2r.get("endorsements"))
+    if endorse:
+        sections.append(f"▸ QO'LLAB-QUVVATLASH\n{endorse}")
+
+    return "\n\n".join(sections)
+
+
+def format_debate_synthesis(synthesis: dict) -> str:
+    """Rais yakuniy munozara xulosasi."""
+    if not isinstance(synthesis, dict):
+        return ""
+    sections: list[str] = []
+    for key, title in (
+        ("key_agreements", "KELISHUVLAR"),
+        ("key_disputes_resolved", "HAL QILINGAN BAHSLAR"),
+        ("winning_arguments", "G'OLIB DALILLAR"),
+    ):
+        block = format_bullet_items(synthesis.get(key))
+        if block:
+            sections.append(f"▸ {title}\n{block}")
+    summary = _clean_step_text(synthesis.get("summary", ""))
+    if summary:
+        sections.insert(0, f"▸ KENGASH XULOSASI\n{summary}")
     return "\n\n".join(sections)
 
 

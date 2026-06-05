@@ -30,8 +30,8 @@ const UsefulnessFeedbackCard: React.FC<UsefulnessFeedbackCardProps> = ({ analysi
 
   if (sent) {
     return (
-      <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
-        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+      <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+        <p className="text-sm font-medium text-emerald-800">
           {t('usefulness_feedback_thanks')}
         </p>
       </div>
@@ -39,17 +39,17 @@ const UsefulnessFeedbackCard: React.FC<UsefulnessFeedbackCardProps> = ({ analysi
   }
 
   return (
-    <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-      <h4 className="font-bold text-text-primary mb-2">{t('usefulness_feedback_title')}</h4>
-      <p className="text-xs text-text-secondary mb-3">{t('usefulness_feedback_subtitle')}</p>
+    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+      <h4 className="font-bold text-slate-900 mb-1">{t('usefulness_feedback_title')}</h4>
+      <p className="text-xs text-slate-600 mb-4">{t('usefulness_feedback_subtitle')}</p>
       <div className="flex gap-2 mb-3">
         <button
           type="button"
           onClick={() => setUseful(true)}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors border-2 ${
             useful === true
-              ? 'bg-green-600 text-white'
-              : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-text-primary hover:bg-slate-50 dark:hover:bg-slate-600'
+              ? 'bg-emerald-600 text-white border-emerald-600'
+              : 'bg-white text-slate-800 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50'
           }`}
         >
           {t('usefulness_feedback_yes')}
@@ -57,10 +57,10 @@ const UsefulnessFeedbackCard: React.FC<UsefulnessFeedbackCardProps> = ({ analysi
         <button
           type="button"
           onClick={() => setUseful(false)}
-          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors border-2 ${
             useful === false
-              ? 'bg-red-600 text-white'
-              : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-text-primary hover:bg-slate-50 dark:hover:bg-slate-600'
+              ? 'bg-rose-600 text-white border-rose-600'
+              : 'bg-white text-slate-800 border-slate-300 hover:border-rose-400 hover:bg-rose-50'
           }`}
         >
           {t('usefulness_feedback_no')}
@@ -70,14 +70,14 @@ const UsefulnessFeedbackCard: React.FC<UsefulnessFeedbackCardProps> = ({ analysi
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder={t('usefulness_feedback_comment_placeholder')}
-        className="w-full common-input text-sm mb-3 min-h-[60px]"
+        className="w-full rounded-lg border border-slate-300 bg-white text-slate-900 text-sm px-3 py-2 mb-3 min-h-[72px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500"
         maxLength={2000}
       />
       <button
         type="button"
         onClick={handleSubmit}
         disabled={useful === null || sending}
-        className="w-full py-2 px-3 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full py-2.5 px-3 rounded-lg text-sm font-bold text-white animated-gradient-button disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
         {sending ? t('usefulness_feedback_sending') : t('usefulness_feedback_submit')}
       </button>

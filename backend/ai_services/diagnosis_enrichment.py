@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ def enrich_consensus_with_diagnosis_tools(
     patient_data: dict,
     language: str = "uz-L",
 ) -> dict:
-    """Konsensus tayyor bo'lgach — tashxisga mos vositalar (token tejash: faqat keraklilari)."""
+    """Konsensus tayyor bo'lgach — parallel vositalar (tezlik)."""
     if not isinstance(consensus, dict):
         return consensus
 
@@ -109,76 +110,86 @@ def enrich_consensus_with_diagnosis_tools(
         logger.warning("Clinical tools import failed: %s", exc)
         return consensus
 
-    # ICD-10 → konsensus tashxis
-    try:
+    drugs = _collect_drug_names(patient_data, consensus)
+    ctx = f"Tashxis: {diag_name}. {_s(cd.get('justification'))[:600]}"
+
+    def _run_icd10() -> dict:
         codes = icd10_codes(diag_name, language)
         if codes and isinstance(codes[0], dict):
-            code = _s(codes[0].get("code"))
-            desc = _s(codes[0].get("description"))
-            if code:
-                cd["icd10"] = code
-                if desc and not _s(cd.get("justification")).startswith(code):
-                    cd["icd10_description"] = desc
-                consensus["consensus_diagnosis"] = cd
-    except Exception as exc:
-        logger.warning("ICD-10 enrichment failed: %s", exc)
+            return {"code": _s(codes[0].get("code")), "desc": _s(codes[0].get("description"))}
+        return {}
 
-    # Qo'llanma → related_research + protokol izohi
-    try:
+    def _run_guideline() -> dict:
         gl = guideline_search(diag_name, language)
-        if isinstance(gl, dict):
-            summary = _s(gl.get("summary"))
-            if summary and not _s(cd.get("uzbek_protocol_match")):
-                cd["uzbek_protocol_match"] = summary[:500]
-                consensus["consensus_diagnosis"] = cd
-            sources = gl.get("sources") or []
-            research_items = []
-            if isinstance(sources, list):
-                for s in sources[:5]:
-                    if isinstance(s, dict):
-                        research_items.append({
-                            "title": s.get("title"),
-                            "summary": s.get("snippet"),
-                            "url": s.get("url"),
-                        })
-            _merge_research(consensus, research_items)
-    except Exception as exc:
-        logger.warning("Guideline enrichment failed: %s", exc)
+        return gl if isinstance(gl, dict) else {}
 
-    # DDI → farmakologiya ogohlantirishlari
-    drugs = _collect_drug_names(patient_data, consensus)
-    if len(drugs) >= 2:
-        try:
-            ddi = drug_interactions(drugs, language)
-            if isinstance(ddi, dict):
-                desc = _s(ddi.get("description"))
-                sev = _s(ddi.get("severity"))
-                if desc:
-                    note = f"DDI ({sev}): {desc}" if sev else desc
-                    warnings = list(consensus.get("pharmacology_warnings") or [])
-                    if note not in warnings:
-                        warnings.append(note[:400])
-                    consensus["pharmacology_warnings"] = warnings[:10]
-                for rec in (ddi.get("recommendations") or [])[:3]:
-                    r = _s(rec)
-                    if r:
-                        warnings = list(consensus.get("pharmacology_warnings") or [])
-                        if r not in warnings:
-                            warnings.append(r[:300])
-                        consensus["pharmacology_warnings"] = warnings[:10]
-        except Exception as exc:
-            logger.warning("DDI enrichment failed: %s", exc)
+    def _run_ddi() -> dict:
+        if len(drugs) < 2:
+            return {}
+        ddi = drug_interactions(drugs, language)
+        return ddi if isinstance(ddi, dict) else {}
 
-    # Bemor uchun sodda tushuntirish
-    try:
-        ctx = f"Tashxis: {diag_name}. { _s(cd.get('justification'))[:600]}"
-        text = patient_explain(ctx, language)
-        if text:
-            consensus["simplified_family_explanation"] = text[:4000]
-    except Exception as exc:
-        logger.warning("Patient explain enrichment failed: %s", exc)
+    def _run_explain() -> str:
+        return patient_explain(ctx, language) or ""
 
-    # Pediatrik doza (tashxis + yosh asosida)
+    results: dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futs = {
+            pool.submit(_run_icd10): "icd10",
+            pool.submit(_run_guideline): "guideline",
+            pool.submit(_run_ddi): "ddi",
+            pool.submit(_run_explain): "explain",
+        }
+        for fut in as_completed(futs, timeout=45):
+            key = futs[fut]
+            try:
+                results[key] = fut.result()
+            except Exception as exc:
+                logger.warning("Enrichment %s failed: %s", key, exc)
+
+    icd = results.get("icd10") or {}
+    if isinstance(icd, dict) and icd.get("code"):
+        cd["icd10"] = icd["code"]
+        if icd.get("desc"):
+            cd["icd10_description"] = icd["desc"]
+        consensus["consensus_diagnosis"] = cd
+
+    gl = results.get("guideline") or {}
+    if isinstance(gl, dict):
+        summary = _s(gl.get("summary"))
+        if summary and not _s(cd.get("uzbek_protocol_match")):
+            cd["uzbek_protocol_match"] = summary[:500]
+            consensus["consensus_diagnosis"] = cd
+        research_items = []
+        for s in (gl.get("sources") or [])[:5]:
+            if isinstance(s, dict):
+                research_items.append({
+                    "title": s.get("title"),
+                    "summary": s.get("snippet"),
+                    "url": s.get("url"),
+                })
+        _merge_research(consensus, research_items)
+
+    ddi = results.get("ddi") or {}
+    if isinstance(ddi, dict) and ddi:
+        desc = _s(ddi.get("description"))
+        sev = _s(ddi.get("severity"))
+        warnings = list(consensus.get("pharmacology_warnings") or [])
+        if desc:
+            note = f"DDI ({sev}): {desc}" if sev else desc
+            if note not in warnings:
+                warnings.append(note[:400])
+        for rec in (ddi.get("recommendations") or [])[:3]:
+            r = _s(rec)
+            if r and r not in warnings:
+                warnings.append(r[:300])
+        if warnings:
+            consensus["pharmacology_warnings"] = warnings[:10]
+
+    explain = results.get("explain")
+    if explain:
+        consensus["simplified_family_explanation"] = str(explain)[:4000]
+
     age = _patient_age(patient_data)
     if age is not None and age < 18 and drugs:
         ped_notes: list[str] = []

@@ -61,9 +61,9 @@ const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubm
                             <p className="font-semibold text-accent-color-blue">{t('follow_up_your_question')}</p>
                             <p className="mt-1 text-text-primary whitespace-pre-wrap">{item.question}</p>
                         </div>
-                        <div className="mt-2 p-4 rounded-lg bg-slate-100 border border-border-color">
-                            <p className="font-semibold text-text-primary">{t('follow_up_chair_answer')}</p>
-                            <p className="mt-1 text-text-secondary whitespace-pre-wrap">{item.answer}</p>
+                        <div className="mt-2 p-4 rounded-lg bg-white border border-slate-200">
+                            <p className="font-semibold text-slate-800">{t('follow_up_chair_answer')}</p>
+                            <p className="mt-1 text-slate-700 whitespace-pre-wrap leading-relaxed">{item.answer}</p>
                         </div>
                     </div>
                 ))}
@@ -74,7 +74,7 @@ const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubm
                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center animate-fade-in-up">
                         <p className="font-semibold text-text-primary mb-4">{t('follow_up_more_questions_prompt')}</p>
                         <div className="flex justify-center gap-4">
-                            <button onClick={handleContinue} className="px-5 py-2 text-sm font-semibold text-accent-color-blue bg-slate-100 border border-border-color rounded-lg hover:bg-slate-200 transition-colors">
+                            <button onClick={handleContinue} className="px-5 py-2 text-sm font-semibold text-cyan-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
                                 {t('follow_up_btn_yes')}
                             </button>
                             <button onClick={handleFinalize} className="px-5 py-2 text-sm font-semibold text-white bg-accent-color-blue border border-accent-color-blue/50 rounded-lg hover:bg-accent-color-blue/80 transition-colors">

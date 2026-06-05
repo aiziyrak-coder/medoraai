@@ -33,14 +33,14 @@ def default_max_tokens() -> int:
 
 
 def phase1_max_tokens() -> int:
-    return {"scale": 1200, "economy": 1400, "balanced": 1800, "quality": 2500}.get(
-        ai_cost_mode(), 1200
+    return {"scale": 1500, "economy": 1600, "balanced": 2000, "quality": 2800}.get(
+        ai_cost_mode(), 1500
     )
 
 
 def phase2_max_tokens() -> int:
-    return {"scale": 1300, "economy": 1500, "balanced": 2000, "quality": 3000}.get(
-        ai_cost_mode(), 1300
+    return {"scale": 1600, "economy": 1700, "balanced": 2200, "quality": 3200}.get(
+        ai_cost_mode(), 1600
     )
 
 
@@ -56,24 +56,42 @@ def pharma_max_tokens() -> int:
     )
 
 
+def _str_clip(val: Any, n: int) -> str:
+    return str(val or "")[:n]
+
+
 def compact_phase1(rows: list[dict]) -> list[dict[str, Any]]:
+    """P3 uchun zich, lekin dalilni saqlagan xulosa."""
     out = []
     for r in rows:
         if not isinstance(r, dict):
             continue
         rc = r.get("reasoning_chain") or r.get("reasoningChain") or []
         if isinstance(rc, list):
-            rc = [str(x)[:140] for x in rc[:2]]
-        out.append(
-            {
-                "agent_id": r.get("agent_id"),
-                "primary_diagnosis": (r.get("primary_diagnosis") or "")[:160],
-                "probability": r.get("probability"),
-                "reasoning_chain": rc,
-                "red_flags": (r.get("red_flags") or [])[:2],
-                "confidence": r.get("confidence"),
-            }
-        )
+            rc = [_str_clip(x, 180) for x in rc[:4]]
+        evidence = r.get("supporting_evidence") or []
+        if isinstance(evidence, list):
+            evidence = [_str_clip(x, 130) for x in evidence[:4]]
+        diff = []
+        for d in (r.get("differential") or [])[:3]:
+            if not isinstance(d, dict):
+                continue
+            diff.append({
+                "name": _str_clip(d.get("name"), 90),
+                "p": d.get("probability"),
+                "reason": _str_clip(d.get("reason"), 100),
+            })
+        out.append({
+            "agent_id": r.get("agent_id"),
+            "primary_diagnosis": _str_clip(r.get("primary_diagnosis"), 180),
+            "probability": r.get("probability"),
+            "reasoning_chain": rc,
+            "supporting_evidence": evidence,
+            "differential": diff,
+            "red_flags": [_str_clip(x, 120) for x in (r.get("red_flags") or [])[:3]],
+            "confidence": r.get("confidence"),
+            "evidence_level": r.get("evidence_level"),
+        })
     return out
 
 
@@ -83,25 +101,39 @@ def compact_phase2(rows: list[dict]) -> list[dict[str, Any]]:
         if not isinstance(r, dict):
             continue
         refs = []
-        for ref in (r.get("refutations") or [])[:3]:
+        for ref in (r.get("refutations") or [])[:4]:
             if not isinstance(ref, dict):
                 continue
-            refs.append(
-                {
-                    "target": ref.get("target_agent_id"),
-                    "strength": ref.get("strength"),
-                    "refutation": str(ref.get("refutation") or "")[:140],
-                }
-            )
-        out.append(
-            {
-                "agent_id": r.get("agent_id"),
-                "revised_diagnosis": (r.get("revised_diagnosis") or "")[:160],
-                "revised_probability": r.get("revised_probability"),
-                "refutations": refs,
-                "key_argument": str(r.get("key_argument") or "")[:140],
-            }
-        )
+            refs.append({
+                "target": ref.get("target_agent_id"),
+                "target_dx": _str_clip(ref.get("target_diagnosis"), 100),
+                "strength": ref.get("strength"),
+                "refutation": _str_clip(ref.get("refutation"), 200),
+            })
+        defense = r.get("defense") or {}
+        def_arg = ""
+        def_ev = ""
+        if isinstance(defense, dict):
+            def_arg = _str_clip(defense.get("argument"), 180)
+            def_ev = _str_clip(defense.get("new_evidence"), 150)
+        accepted = []
+        for a in (r.get("accepted_from_others") or [])[:3]:
+            if not isinstance(a, dict):
+                continue
+            accepted.append({
+                "from": a.get("agent_id"),
+                "point": _str_clip(a.get("point"), 150),
+            })
+        out.append({
+            "agent_id": r.get("agent_id"),
+            "revised_diagnosis": _str_clip(r.get("revised_diagnosis"), 180),
+            "revised_probability": r.get("revised_probability"),
+            "refutations": refs,
+            "defense": def_arg,
+            "new_evidence": def_ev,
+            "accepted": accepted,
+            "key_argument": _str_clip(r.get("key_argument"), 180),
+        })
     return out
 
 

@@ -50,10 +50,13 @@ from .azure_utils import (
 )
 from .debate_format import (
     CLINICAL_OUTPUT_RULES,
-    COMPACT_OUTPUT_HINT,
+    DENSE_JSON_HINT,
+    DEBATE_INTENSITY_RULES,
+    P1_DENSITY_RULES,
     debate_author_fields,
     format_p1_debate_content,
     format_p2_debate_content,
+    format_debate_synthesis,
     agent_specialty_label as _specialty_from_agent_obj,
 )
 from .consilium_cost import (
@@ -230,7 +233,7 @@ MUSTAQIL TAHLIL QOIDALARI:
 7. FAQAT JSON formatida javob qaytaring.
 8. Shikoyatdan tashqari ob'ektiv, lab va tasvir tahlilini majburiy hisobga oling.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + COMPACT_OUTPUT_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + DENSE_JSON_HINT
 
 _P1_USER = """\
 BEMOR MA'LUMOTLARI:
@@ -319,7 +322,7 @@ DEBATE VA REFUTATION QOIDALARI:
 5. refutation matnida shaxsiy ism, AI nomi yoki ichki agent_id KO'RSATILMASIN.
 6. FAQAT JSON formatida javob qaytaring.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + COMPACT_OUTPUT_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + DEBATE_INTENSITY_RULES + "\n" + DENSE_JSON_HINT
 
 _P2_USER = """\
 BEMOR:
@@ -351,6 +354,9 @@ Debate javobingizni quyidagi JSON formatida yozing:
   "accepted_from_others": [
     {{"agent_id": "mistral", "point": "Gastroenterolog mutaxassisining ... fikri to'g'ri: [fakt]"}}
   ],
+  "endorsements": [
+    "Farmakolog mutaxassisi dori rejasi bilan kelishaman: [fakt + manba]"
+  ],
   "key_argument": "Eng muhim klinik dalil + (Manba, https://...)"
 }}"""
 
@@ -361,16 +367,21 @@ def _phase2_single(agent: Agent, patient_str: str,
         {
             "agent_id": o.get("agent_id"),
             "specialty": _agent_specialty_label(str(o.get("agent_id", ""))),
-            "diagnosis": (o.get("primary_diagnosis") or "")[:160],
+            "diagnosis": (o.get("primary_diagnosis") or "")[:180],
             "probability": o.get("probability"),
-            "reasoning": (o.get("reasoning_chain") or [])[:2],
+            "reasoning": (o.get("reasoning_chain") or [])[:3],
+            "evidence": (o.get("supporting_evidence") or [])[:4],
+            "differential": (o.get("differential") or [])[:2],
+            "red_flags": (o.get("red_flags") or [])[:2],
         }
         for o in others
     ])
     own_text = dumps_compact({
         "diagnosis": own.get("primary_diagnosis"),
         "probability": own.get("probability"),
-        "reasoning": (own.get("reasoning_chain") or [])[:2],
+        "reasoning": (own.get("reasoning_chain") or [])[:3],
+        "evidence": (own.get("supporting_evidence") or [])[:4],
+        "differential": (own.get("differential") or [])[:2],
         "confidence": own.get("confidence"),
     })
 
@@ -469,8 +480,10 @@ KONSENSUS QAROR QOIDALARI:
 6. Shaxsiy ism yoki AI nomi ISHLATMANG — mutaxassislik yoki "konsilium" deb yozing.
 7. FAQAT JSON formatida javob qaytaring.
 8. individual_diet_by_diagnosis — har bir asosiy tashxis uchun alohida parhez.
+9. rejected_hypotheses: munozarada rad etilgan kamida 2 ta gipoteza + aniq sabab.
+10. debate_synthesis: kelishuvlar, hal qilingan bahslar va g'olib dalillar — qisqa ro'yxat.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + COMPACT_OUTPUT_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + DENSE_JSON_HINT
 
 _P3_USER = """\
 BEMOR:
@@ -528,8 +541,14 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   }},
   "uzbekistan_protocol_note": "O'zbekiston Respublikasi SSV buyrug'i No. XX ...",
   "agreement_level": "HIGH/MEDIUM/LOW",
-  "agreement_summary": "Professorlar kelishuvi haqida qisqa tavsif ...",
-  "dissenting_opinions": ["Farqli fikrlar (agar bo'lsa)"],
+  "agreement_summary": "Munozara natijasi: kim kimga qarshi chiqdi, qaysi dalil g'olib bo'ldi (3-5 jumla, aniq faktlar)",
+  "debate_synthesis": {{
+    "summary": "Kengash raisi munozara xulosasi — 2-3 jumla",
+    "key_agreements": ["Kelishilgan fakt 1", "Kelishilgan fakt 2"],
+    "key_disputes_resolved": ["Bahs: ... Hal qilindi: ..."],
+    "winning_arguments": ["Eng kuchli dalil + manba"]
+  }},
+  "dissenting_opinions": ["Farqli fikr + sabab (kamida 1 ta agar munozara bo'lgan bo'lsa)"],
   "follow_up_plan": "Kuzatuv rejasi ...",
   "folk_medicine": {{
     "intro": "Tanlangan dorivor o'simliklar konservativ davolashga qo'shimcha sifatida qo'llaniladi (WHO Traditional Medicine, https://pubmed.ncbi.nlm.nih.gov/?term=medicinal+plants+evidence)",
@@ -689,16 +708,36 @@ def _build_final_report(consensus: dict, p1: list[dict],
             })
 
         reftns = p2r.get("refutations") or []
-        if reftns or p2r.get("defense"):
+        defense_block = p2r.get("defense")
+        has_defense = isinstance(defense_block, dict) and (
+            defense_block.get("argument") or defense_block.get("new_evidence")
+        )
+        if reftns or has_defense or p2r.get("key_argument") or p2r.get("accepted_from_others"):
             p2_content = format_p2_debate_content(p2r, _agent_specialty_label)
-            debate_log.append({
-                "id":          f"{agent.id}-p2",
-                "author":      author_fields["author"],
-                "authorTitle": author_fields["authorTitle"],
-                "phase":       "debate",
-                "weight":      w,
-                "content":     p2_content,
-            })
+            if p2_content:
+                debate_log.append({
+                    "id":          f"{agent.id}-p2",
+                    "author":      author_fields["author"],
+                    "authorTitle": author_fields["authorTitle"],
+                    "phase":       "debate",
+                    "weight":      w,
+                    "content":     p2_content,
+                })
+
+    synth = consensus.get("debate_synthesis") or consensus.get("debateSynthesis")
+    synth_text = format_debate_synthesis(synth) if synth else ""
+    agreement = str(consensus.get("agreement_summary") or "").strip()
+    chair_content = synth_text or (f"▸ KENGASH XULOSASI\n{agreement}" if agreement else "")
+    if chair_content:
+        chair_fields = debate_author_fields(ORCHESTRATOR)
+        debate_log.append({
+            "id":          "chair-synthesis",
+            "author":      chair_fields["author"],
+            "authorTitle": chair_fields["authorTitle"],
+            "phase":       "consensus",
+            "weight":      1.0,
+            "content":     chair_content,
+        })
 
     cf = consensus.get("critical_finding") or {}
     critical = cf if (isinstance(cf, dict) and cf.get("present")) else None
