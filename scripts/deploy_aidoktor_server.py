@@ -32,8 +32,14 @@ def _pw() -> str:
 
 CMD = """set -e
 cd /root/aidoktorfjsti
-git pull
-cd frontend
+git fetch origin main
+git reset --hard origin/main
+cd backend
+source venv/bin/activate
+pip install -q -r requirements.txt
+python manage.py migrate --noinput
+deactivate
+cd ../frontend
 mkdir -p public/fonts
 if [ ! -s public/fonts/AiDoktorSans.ttf ]; then
   for FONT in \

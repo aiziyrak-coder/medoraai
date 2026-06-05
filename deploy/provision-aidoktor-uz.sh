@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT="${AIDOKTOR_ROOT:-/root/aidoktorfjsti}"
 BACKEND_PORT="${AIDOKTOR_BACKEND_PORT:-8099}"
-REPO_URL="${AIDOKTOR_REPO_URL:-https://github.com/aiziyrak-coder/medoraai.git}"
+REPO_URL="${AIDOKTOR_REPO_URL:-https://github.com/aiziyrak-coder/aidoktorfjsti.git}"
 BRANCH="${AIDOKTOR_BRANCH:-main}"
 CERT_EMAIL="${DEPLOY_CERTBOT_EMAIL:-admin@aidoktor.uz}"
 

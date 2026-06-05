@@ -40,6 +40,15 @@ jobs:
           script_stop: true
           script: |
             set -e
+            # aidoktor.uz (asosiy): /root/aidoktorfjsti
+            if [ -f /root/aidoktorfjsti/deploy/provision-aidoktor-uz.sh ]; then
+              cd /root/aidoktorfjsti
+              git fetch origin main
+              git reset --hard origin/main
+              chmod +x deploy/provision-aidoktor-uz.sh
+              bash deploy/provision-aidoktor-uz.sh
+              exit 0
+            fi
             for APP in /root/medoraai /root/AiDoktorai; do
               if [ -f "$APP/deploy/server-deploy.sh" ]; then
                 cd "$APP"
@@ -49,5 +58,5 @@ jobs:
                 exit 0
               fi
             done
-            echo "XATO: /root/medoraai yoki /root/AiDoktorai ichida deploy/server-deploy.sh topilmadi"
+            echo "XATO: /root/aidoktorfjsti, /root/medoraai yoki /root/AiDoktorai topilmadi"
             exit 1
