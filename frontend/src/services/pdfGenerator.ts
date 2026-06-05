@@ -26,9 +26,17 @@ import {
 import { sanitizeClinicalContent } from '../utils/sanitizeClinicalContent';
 
 const PDF_FONT = 'times' as const;
-const PDF_UNICODE_FONT = 'AiDoktorSans';
-const PDF_UNICODE_FONT_URL = '/fonts/AiDoktorSans.ttf';
-const PDF_FONT_CDN = 'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf';
+const PDF_UNICODE_FONT = 'DejaVuSans';
+const DEJAVU_CDN = 'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf';
+const UNICODE_FONT_VARIANTS: ReadonlyArray<{
+    file: string;
+    style: 'normal' | 'bold' | 'italic' | 'bolditalic';
+}> = [
+    { file: 'DejaVuSans.ttf', style: 'normal' },
+    { file: 'DejaVuSans-Bold.ttf', style: 'bold' },
+    { file: 'DejaVuSans-Oblique.ttf', style: 'italic' },
+    { file: 'DejaVuSans-BoldOblique.ttf', style: 'bolditalic' },
+];
 const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
 const FOOTER_RESERVE = 12;
@@ -48,21 +56,48 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     return btoa(binary);
 }
 
+function isValidTtf(buffer: ArrayBuffer): boolean {
+    if (buffer.byteLength < 12) return false;
+    const u8 = new Uint8Array(buffer);
+    const sig = String.fromCharCode(u8[0], u8[1], u8[2], u8[3]);
+    if (sig === 'true' || sig === 'OTTO' || sig === 'ttcf') return true;
+    return u8[0] === 0x00 && u8[1] === 0x01 && u8[2] === 0x00 && u8[3] === 0x00;
+}
+
+async function fetchTtf(url: string): Promise<ArrayBuffer | null> {
+    try {
+        const res = await fetch(url, { cache: 'force-cache' });
+        if (!res.ok) return null;
+        const buf = await res.arrayBuffer();
+        return isValidTtf(buf) ? buf : null;
+    } catch {
+        return null;
+    }
+}
+
+/** Kirill/O'zbek uchun DejaVu Sans — har bir uslub alohida TTF fayldan */
+async function loadTtfVariant(file: string): Promise<ArrayBuffer | null> {
+    const local = await fetchTtf(`/fonts/${file}`);
+    if (local) return local;
+    return fetchTtf(`${DEJAVU_CDN}/${file}`);
+}
+
 async function setupPdfFont(doc: jsPDF): Promise<string> {
-    for (const url of [PDF_UNICODE_FONT_URL, PDF_FONT_CDN]) {
+    let registered = 0;
+    for (const variant of UNICODE_FONT_VARIANTS) {
+        const buf = await loadTtfVariant(variant.file);
+        if (!buf) continue;
         try {
-            const res = await fetch(url, { cache: 'force-cache' });
-            if (!res.ok) continue;
-            const fontBase64 = arrayBufferToBase64(await res.arrayBuffer());
-            doc.addFileToVFS(`${PDF_UNICODE_FONT}.ttf`, fontBase64);
-            doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'normal');
-            doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'bold');
-            doc.addFont(`${PDF_UNICODE_FONT}.ttf`, PDF_UNICODE_FONT, 'italic');
-            doc.setFont(PDF_UNICODE_FONT, 'normal');
-            return PDF_UNICODE_FONT;
+            doc.addFileToVFS(variant.file, arrayBufferToBase64(buf));
+            doc.addFont(variant.file, PDF_UNICODE_FONT, variant.style);
+            registered += 1;
         } catch {
-            // try next font source
+            // keyingi variant
         }
+    }
+    if (registered > 0) {
+        doc.setFont(PDF_UNICODE_FONT, 'normal');
+        return PDF_UNICODE_FONT;
     }
     return PDF_FONT;
 }
