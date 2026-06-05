@@ -820,6 +820,13 @@ def telegram_webhook(request):
     if not token:
         return Response({'ok': True})
 
+    webhook_secret = (getattr(settings, 'TELEGRAM_WEBHOOK_SECRET', None) or '').strip()
+    if webhook_secret:
+        header_secret = (request.headers.get('X-Telegram-Bot-Api-Secret-Token') or '').strip()
+        if header_secret != webhook_secret:
+            logger.warning('Telegram webhook: noto\'g\'ri yoki yo\'q secret token')
+            return Response({'ok': True})
+
     body = request.data
     callback_query = body.get('callback_query')
     if not callback_query:

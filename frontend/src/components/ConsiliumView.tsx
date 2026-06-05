@@ -6,6 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { PatientData, FinalReport } from '../types';
 import { normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
+import { enrichFinalReport } from '../utils/reportNormalize';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
 import { generatePdfReport } from '../services/pdfGenerator';
 import { generateDocxReport } from '../services/docxGenerator';
@@ -180,18 +181,19 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       };
       const fm = normalizeFolkMedicine(frAny.folkMedicine ?? frAny.folk_medicine);
       const nprev = normalizeNutritionPrevention(frAny.nutritionPrevention ?? frAny.nutrition_prevention);
-      onReport({
+      onReport(enrichFinalReport({
+        ...(fr as FinalReport),
         consensusDiagnosis,
-        rejectedHypotheses:        Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
-        treatmentPlan:             Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
+        rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
+        treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
         medicationRecommendations: (Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : []) as FinalReport['medicationRecommendations'],
-        recommendedTests:          Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
-        unexpectedFindings:        typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : '',
+        recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
+        unexpectedFindings: typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : '',
         uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
-        criticalFinding:           fr.criticalFinding,
+        criticalFinding: fr.criticalFinding,
         ...(fm ? { folkMedicine: fm } : {}),
         ...(nprev ? { nutritionPrevention: nprev } : {}),
-      } as FinalReport);
+      }));
     } catch (err) {
       setPhases(p => ({
         ...p,

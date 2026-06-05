@@ -109,25 +109,25 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
 
                 <div className="grid grid-cols-2 gap-2.5 md:gap-3">
                     <MetricCard
-                        label={t('stats_range_day') || 'Bugun'}
+                        label={t('stats_range_day')}
                         value={today}
                         sub={t('stats_total_analyses')}
                         className="bg-sky-50 border-sky-100/80"
                     />
                     <MetricCard
-                        label={t('stats_range_week') || '7 kun'}
+                        label={t('stats_range_week')}
                         value={week}
                         sub={t('stats_total_analyses')}
                         className="bg-emerald-50 border-emerald-100/80"
                     />
                     <MetricCard
-                        label={t('stats_range_month') || '30 kun'}
+                        label={t('stats_range_month')}
                         value={month}
                         sub={t('stats_total_analyses')}
                         className="bg-indigo-50 border-indigo-100/80"
                     />
                     <MetricCard
-                        label={t('stats_range_all') || 'Umumiy'}
+                        label={t('stats_range_all')}
                         value={total}
                         sub={t('stats_total_analyses')}
                         className="bg-slate-900 text-white border-slate-800"

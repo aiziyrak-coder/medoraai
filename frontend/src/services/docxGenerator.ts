@@ -3,6 +3,16 @@ import type { FinalReport, PatientData } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { logger } from '../utils/logger';
 import type { InstituteBranding } from './pdfGenerator';
+import {
+    prepareExportReport,
+    buildImagingExportLines,
+    buildProtocolGapsLines,
+    buildCareAuditLines,
+    buildIndividualDietLines,
+    buildRoutingExportLines,
+    buildRiskExportLines,
+    buildCheckUpExportLines,
+} from '../utils/exportReportSections';
 
 // Helper functions to create document elements
 const createHeading1 = (text: string) => new Paragraph({ text, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } });
@@ -59,6 +69,7 @@ export const generateDocxReport = async (
         const translated = t(key);
         return translated === key ? fallback : translated;
     };
+    report = prepareExportReport(report);
     const children: Paragraph[] = [];
 
     if (branding?.instituteName || branding?.instituteLogoDataUrl) {
@@ -139,6 +150,42 @@ export const generateDocxReport = async (
             new Paragraph({ text: "" }),
         ]),
 
+        ...(buildImagingExportLines(report, tr).length > 0 ? [
+            createHeading2(tr('final_report_imaging_title', 'Tasvirlash tahlili (EKG / UZI / Rengen)')),
+            ...buildImagingExportLines(report, tr).map((line) => createListItem(line)),
+            new Paragraph({ text: '' }),
+        ] : []),
+
+        ...(buildProtocolGapsLines(report, tr).length > 0 ? [
+            createHeading2(tr('final_report_protocol_gaps_title', 'Klinik protokol kamchiliklari va oqibatlari')),
+            ...buildProtocolGapsLines(report, tr).map((line) => createListItem(line)),
+            new Paragraph({ text: '' }),
+        ] : []),
+
+        ...(buildCareAuditLines(report, tr).length > 0 ? [
+            createHeading2(tr('final_report_quality_audit_title', 'Tibbiy yordam sifati (protokol asosida)')),
+            ...buildCareAuditLines(report, tr).map((line) => createListItem(line)),
+            new Paragraph({ text: '' }),
+        ] : []),
+
+        ...(buildRoutingExportLines(report, tr).length > 0 ? [
+            createHeading2(tr('routing_title', 'Bemor marshrutlash')),
+            ...buildRoutingExportLines(report, tr).map((line) => createListItem(line)),
+            new Paragraph({ text: '' }),
+        ] : []),
+
+        ...(buildRiskExportLines(report, tr).length > 0 ? [
+            createHeading2(tr('risk_factors_title', 'Xavf omillari va og\'irlik')),
+            ...buildRiskExportLines(report, tr).map((line) => createListItem(line)),
+            new Paragraph({ text: '' }),
+        ] : []),
+
+        ...(buildCheckUpExportLines(report, tr).length > 0 ? [
+            createHeading2(tr('final_report_checkup_title', 'Profilaktik tekshiruvlar')),
+            ...buildCheckUpExportLines(report, tr).map((line) => createListItem(line)),
+            new Paragraph({ text: '' }),
+        ] : []),
+
         createHeading2(tr('pdf_treatment_plan', 'Tavsiya Etilgan Davolash Rejasi')),
         ...(Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map((step: unknown) =>
             createListItem(typeof step === 'string' ? step : (step && typeof step === 'object' ? [(step as Record<string, unknown>).step, (step as Record<string, unknown>).details, (step as Record<string, unknown>).text].filter(Boolean).map(String).join(' - ') || JSON.stringify(step) : String(step ?? '')))
@@ -149,9 +196,26 @@ export const generateDocxReport = async (
         ...report.medicationRecommendations.flatMap(med => [
             createKeyValue(tr('docx_med_name', 'Nomi'), med.name),
             createKeyValue(tr('docx_dose', 'Doza'), med.dosage),
-            createKeyValue(tr('docx_note', 'Izoh'), med.notes),
+            createKeyValue(tr('docx_note', 'Izoh'), med.notes || med.instructions),
+            ...(med.adverseEffects?.length
+                ? [createKeyValue(tr('final_report_adverse_effects', "Nojo'ya ta'sirlar"), med.adverseEffects.join('; '))]
+                : []),
+            ...(med.contraindications
+                ? [createKeyValue(tr('final_report_contraindications', 'Kontrendikatsiyalar'), med.contraindications)]
+                : []),
+            ...(med.monitoring
+                ? [createKeyValue(tr('final_report_monitoring', 'Monitoring'), med.monitoring)]
+                : []),
             new Paragraph({ text: "" }),
         ]),
+
+        ...(report.adverseEventRisks && report.adverseEventRisks.length > 0 ? [
+            createHeading2(tr('final_report_adverse_risks_title', "Dori vositalarining nojo'ya ta'sir xavfi")),
+            ...report.adverseEventRisks.map((risk) =>
+                createListItem(`${risk.drug}: ${risk.risk} (~${Math.round(risk.probability * 100)}%)${risk.management ? ` — ${risk.management}` : ''}`),
+            ),
+            new Paragraph({ text: '' }),
+        ] : []),
 
         ...(report.folkMedicine && (report.folkMedicine.items?.length || report.folkMedicine.intro || report.folkMedicine.disclaimer) ? [
             createHeading2(tr('pdf_folk_medicine', "Xalq tabobati va dorivor o'simliklar (qo'shimcha)")),
@@ -171,6 +235,7 @@ export const generateDocxReport = async (
         ...(report.nutritionPrevention &&
             ((report.nutritionPrevention.dietaryGuidelines?.length ?? 0) > 0 ||
                 (report.nutritionPrevention.preventionMeasures?.length ?? 0) > 0 ||
+                (report.nutritionPrevention.individualDietByDiagnosis?.length ?? 0) > 0 ||
                 report.nutritionPrevention.intro ||
                 report.nutritionPrevention.disclaimer)
             ? [
@@ -195,6 +260,13 @@ export const generateDocxReport = async (
                 ...(report.nutritionPrevention.disclaimer
                     ? [createKeyValue(tr('docx_reminder', 'Eslatma'), report.nutritionPrevention.disclaimer)]
                     : []),
+                ...(buildIndividualDietLines(report, tr).length > 0 ? [
+                    new Paragraph({
+                        children: [new TextRun({ text: tr('final_report_individual_diet_title', "Tashxis bo'yicha individual parhez"), bold: true })],
+                        spacing: { before: 200, after: 80 },
+                    }),
+                    ...buildIndividualDietLines(report, tr).map((line) => createListItem(line)),
+                ] : []),
                 new Paragraph({ text: '' }),
             ]
             : []),

@@ -4,6 +4,15 @@ Custom permissions for subscription and usage limits
 from rest_framework import permissions
 
 
+class IsAuthenticatedWithSubscription(permissions.BasePermission):
+    """Autentifikatsiya + faol obuna (staff/superuser ham ruxsat)."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return bool(request.user.has_active_subscription)
+
+
 class HasActiveSubscription(permissions.BasePermission):
     """
     Permission to check if user has active paid subscription (trial yo'q).

@@ -12,7 +12,8 @@ from django.conf import settings
 from django.http import StreamingHttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from accounts.permissions import IsAuthenticatedWithSubscription
 from rest_framework.response import Response
 
 from . import claude_utils
@@ -79,7 +80,7 @@ def _run_filter(patient_data: dict) -> Response | None:
 # ---------------------------------------------------------------------------
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def run_consilium_view(request):
     """
     POST /api/ai/consilium/
@@ -103,8 +104,14 @@ def run_consilium_view(request):
         return blocked
 
     try:
+        from .clinical_red_flags import evaluate_red_flags
+        from .imaging_analysis import merge_imaging_into_context
+        patient_data = merge_imaging_into_context(dict(patient_data), language)
+        red_flags = evaluate_red_flags(patient_data)
         result = run_consilium(patient_data, language)
-        return Response({"success": True, "data": result})
+        if red_flags and isinstance(result, dict):
+            result.setdefault("clinical_red_flags", red_flags)
+        return Response({"success": True, "data": result, "clinical_red_flags": red_flags})
     except Exception as exc:
         logger.exception("Consilium error: %s", exc)
         return _err(500, f"Konsilium xatosi: {exc}")
@@ -112,7 +119,7 @@ def run_consilium_view(request):
 
 # Backwards-compat alias
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def run_council_debate(request):
     return run_consilium_view(request)
 
@@ -128,7 +135,7 @@ _VALID_TASKS = {
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def doctor_support_view(request):
     """
     POST /api/ai/doctor-support/
@@ -163,7 +170,7 @@ def doctor_support_view(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def doctor_support_stream_view(request):
     """
     POST /api/ai/doctor-stream/
@@ -200,13 +207,71 @@ def doctor_support_stream_view(request):
 
 
 # ---------------------------------------------------------------------------
+# Check-up / profilaktika rejasi
+# ---------------------------------------------------------------------------
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
+def check_up_plan_view(request):
+    """
+    POST /api/ai/check-up-plan/
+    Body: { age, gender?, conditions?, language? }
+    """
+    age = str(request.data.get("age", "")).strip()
+    gender = str(request.data.get("gender", "")).strip()
+    conditions = str(request.data.get("conditions", "")).strip()
+    language = request.data.get("language", "uz-L")
+
+    if not age:
+        return _err(400, "Yosh kiritilmagan")
+    if not _claude_ok():
+        return _ai_not_configured()
+
+    lang_map = {
+        "uz-L": "O'zbek (lotin)",
+        "uz-C": "O'zbek (kirill)",
+        "ru": "Rus",
+        "en": "Ingliz",
+        "kaa": "Qoraqalpoq",
+    }
+    g = gender or "noma'lum"
+    c = conditions or "sog'lom"
+    lang_label = lang_map.get(language, lang_map["uz-L"])
+    prompt = (
+        f"Profilaktik check-up rejasi. Yosh: {age}, jins: {g}, holat: {c}. "
+        "O'zbekiston SSV skrining tavsiyalari va xalqaro standartlar. "
+        f"Til: {lang_label}. "
+        'FAQAT JSON: {"recommendations":[{"screeningName":"","frequency":"","reason":"","priority":"high|medium|low"}],'
+        '"preventionMeasures":[],"followUpTimeline":""}'
+    )
+    try:
+        raw = claude_utils._call_claude(
+            prompt,
+            claude_utils.CLAUDE_FAST,
+            response_mime_type="application/json",
+            max_output_tokens=1024,
+        )
+        data = json.loads(raw)
+        return Response({"success": True, "data": data})
+    except json.JSONDecodeError as exc:
+        logger.exception("Check-up JSON parse error: %s", exc)
+        return _err(500, "AI javobi JSON formatida emas")
+    except Exception as exc:
+        logger.exception("Check-up plan error: %s", exc)
+        return _err(500, f"Check-up rejasi xatosi: {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Debug: test Claude (GET /api/ai/test-claude/)
 # ---------------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def test_claude(request):
-    """Test Claude API; returns ok + message or error detail for debugging."""
+    """Test Claude API; faqat DEBUG yoki staff uchun."""
+    if not getattr(settings, "DEBUG", False):
+        if not getattr(request.user, "is_authenticated", False) or not getattr(request.user, "is_staff", False):
+            return Response({"ok": False, "error": "Forbidden"}, status=403)
     key = (getattr(settings, "ANTHROPIC_API_KEY", None) or "").strip()
     if not key:
         return Response({"ok": False, "error": "ANTHROPIC_API_KEY .env da yo'q yoki bo'sh"}, status=503)
@@ -223,11 +288,11 @@ def test_claude(request):
 
 
 # ---------------------------------------------------------------------------
-# Basic AI endpoints (used by analysis flow; AllowAny so flow works before login)
+# Basic AI endpoints (autentifikatsiya + faol obuna talab qilinadi)
 # ---------------------------------------------------------------------------
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def generate_clarifying_questions(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
@@ -244,7 +309,7 @@ def generate_clarifying_questions(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def recommend_specialists(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):
@@ -263,7 +328,7 @@ def recommend_specialists(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
 def generate_diagnoses(request):
     patient_data = _pd(request)
     if not patient_data or not patient_data.get("complaints"):

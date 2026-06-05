@@ -4,7 +4,58 @@ import { AIModel } from './constants/specialists';
 // Original types - some modified for new features
 export { AIModel };
 
-export type AppView = 'dashboard' | 'new_analysis' | 'clarification' | 'team_recommendation' | 'live_analysis' | 'history' | 'view_history_item' | 'case_library' | 'research' | 'live_consultation' | 'prescription' | 'tumor_board' | 'longitudinal_view' | 'subscription' | 'uzi_utt';
+export type AppView =
+  | 'dashboard'
+  | 'new_analysis'
+  | 'clarification'
+  | 'team_recommendation'
+  | 'live_analysis'
+  | 'history'
+  | 'view_history_item'
+  | 'case_library'
+  | 'research'
+  | 'live_consultation'
+  | 'prescription'
+  | 'tumor_board'
+  | 'longitudinal_view'
+  | 'subscription'
+  | 'uzi_utt'
+  | 'tools'
+  | 'check_up'
+  | 'telemedicine'
+  | 'patient_portal';
+
+/** Bemor marshrutlash: mutaxassis, tekshiruv rejasi, statsionar */
+export interface PatientRouting {
+  recommendedSpecialists?: Array<{ specialty: string; reason: string; urgency?: 'urgent' | 'routine' }>;
+  examPlan?: string[];
+  referrals?: Array<{ specialty: string; reason: string; urgency?: 'urgent' | 'routine' }>;
+  disposition?: 'outpatient' | 'observation' | 'inpatient' | 'emergency';
+  dispositionReason?: string;
+  followUpTimeline?: string;
+  hospitalizationIndicated?: boolean;
+  hospitalizationReason?: string;
+}
+
+export interface RiskFactor {
+  factor: string;
+  severity?: 'high' | 'medium' | 'low';
+  mitigation?: string;
+}
+
+export interface SeverityAssessment {
+  level: 'critical' | 'urgent' | 'moderate' | 'low';
+  score?: number;
+  rationale?: string;
+  redFlags?: string[];
+}
+
+export interface CheckUpRecommendation {
+  screeningName: string;
+  frequency?: string;
+  reason?: string;
+  priority?: 'high' | 'medium' | 'low';
+}
 
 export type UserRole = 'clinic';
 
@@ -221,11 +272,58 @@ export interface FolkMedicineSection {
 }
 
 /** Kasalliklarni oldini olish: to'g'ri ovqatlanish va profilaktika (alohida bo'lim). */
+export interface IndividualDietPlan {
+  diagnosis: string;
+  allowedFoods: string[];
+  restrictedFoods: string[];
+  mealPlanNotes?: string;
+}
+
 export interface NutritionPreventionSection {
   intro?: string;
   dietaryGuidelines: string[];
   preventionMeasures: string[];
   disclaimer?: string;
+  /** Tashxis bo'yicha individual parhez */
+  individualDietByDiagnosis?: IndividualDietPlan[];
+}
+
+/** SSV protokoliga nisbatan amaliyotdagi kamchilik */
+export interface ProtocolComplianceGap {
+  gap: string;
+  protocolReference?: string;
+  severity: 'high' | 'medium' | 'low';
+  consequences?: string;
+  recommendedCorrection?: string;
+}
+
+/** Tibbiy yordam sifati audit */
+export interface CareQualityAudit {
+  overallScore?: number;
+  summary?: string;
+  errors: Array<{
+    category: string;
+    description: string;
+    protocolReference?: string;
+    impact?: string;
+  }>;
+  strengths: string[];
+}
+
+export interface ImagingModalityBlock {
+  summary?: string;
+  keyFindings?: string[];
+  clinicalSignificance?: string;
+  limitations?: string;
+}
+
+export interface ImagingInterpretation {
+  ecg?: ImagingModalityBlock;
+  ultrasound?: ImagingModalityBlock;
+  xray?: ImagingModalityBlock;
+  ct?: ImagingModalityBlock;
+  mri?: ImagingModalityBlock;
+  generalCorrelation?: string;
 }
 
 
@@ -253,6 +351,9 @@ export interface FinalReport {
     notes: string;
     localAvailability?: string; // e.g., "O'zbekistonda bor: Nimesil, Nise"
     priceEstimate?: string; // e.g., "~45,000 so'm"
+    adverseEffects?: string[];
+    contraindications?: string;
+    monitoring?: string;
   }[];
   followUpPlan?: FollowUpTask[];
   referrals?: Referral[];
@@ -269,6 +370,31 @@ export interface FinalReport {
   folkMedicine?: FolkMedicineSection;
   /** Alohida: to'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika). */
   nutritionPrevention?: NutritionPreventionSection;
+  /** SSV protokoliga nisbatan kamchiliklar va oqibatlar */
+  protocolComplianceGaps?: ProtocolComplianceGap[];
+  /** Karta bo'yicha tibbiy yordam sifati */
+  careQualityAudit?: CareQualityAudit;
+  /** EKG / UZI / rengen tahlili */
+  imagingInterpretation?: ImagingInterpretation;
+  /** Bemor marshrutlash moduli */
+  patientRouting?: PatientRouting;
+  /** Xavf omillari */
+  riskFactors?: RiskFactor[];
+  /** Holat og'irligi / triaj */
+  severityAssessment?: SeverityAssessment;
+  /** Profilaktik tekshiruv tavsiyalari */
+  checkUpRecommendations?: CheckUpRecommendation[];
+  /** Deterministik klinik qizil bayroqlar (server qoidalari) */
+  clinicalRedFlags?: ClinicalRedFlag[];
+  /** Farmakologiya ogohlantirishlari */
+  pharmacologyWarnings?: string[];
+}
+
+export interface ClinicalRedFlag {
+  severity: string;
+  code: string;
+  message: string;
+  action: string;
 }
 
 /** Returns reasoningChain as a string array (handles API returning string or non-array). */
@@ -319,7 +445,29 @@ export function normalizeNutritionPrevention(raw: unknown): NutritionPreventionS
   const preventionMeasures = _stringList(o.preventionMeasures ?? o.prevention_measures);
   const intro = String(o.intro ?? '').trim() || undefined;
   const disclaimer = String(o.disclaimer ?? '').trim() || undefined;
-  if (dietaryGuidelines.length === 0 && preventionMeasures.length === 0 && !intro && !disclaimer) {
+  const individualRaw = o.individualDietByDiagnosis ?? o.individual_diet_by_diagnosis;
+  const individualDietByDiagnosis: IndividualDietPlan[] = [];
+  if (Array.isArray(individualRaw)) {
+    for (const row of individualRaw) {
+      if (!row || typeof row !== 'object') continue;
+      const r = row as Record<string, unknown>;
+      const diagnosis = String(r.diagnosis ?? '').trim();
+      if (!diagnosis) continue;
+      individualDietByDiagnosis.push({
+        diagnosis,
+        allowedFoods: _stringList(r.allowedFoods ?? r.allowed_foods),
+        restrictedFoods: _stringList(r.restrictedFoods ?? r.restricted_foods),
+        mealPlanNotes: String(r.mealPlanNotes ?? r.meal_plan_notes ?? '').trim() || undefined,
+      });
+    }
+  }
+  if (
+    dietaryGuidelines.length === 0 &&
+    preventionMeasures.length === 0 &&
+    !intro &&
+    !disclaimer &&
+    individualDietByDiagnosis.length === 0
+  ) {
     return undefined;
   }
   return {
@@ -327,6 +475,7 @@ export function normalizeNutritionPrevention(raw: unknown): NutritionPreventionS
     dietaryGuidelines,
     preventionMeasures,
     disclaimer,
+    ...(individualDietByDiagnosis.length ? { individualDietByDiagnosis } : {}),
   };
 }
 
@@ -420,7 +569,7 @@ export type ProgressUpdate =
   | { type: 'differential_diagnosis'; data: Diagnosis[] }
   | { type: 'message'; message: ChatMessage }
   | { type: 'synthesis_update', data: Partial<FinalReport> }
-  | { type: 'report'; data: FinalReport; detectedMedications: DetectedMedication[] }
+  | { type: 'report'; data: FinalReport; detectedMedications: DetectedMedication[]; debateHistory?: ChatMessage[] }
   | { type: 'critical_finding'; data: CriticalFinding }
   | { type: 'user_question'; question: string }
   | { type: 'prognosis_update'; data: PrognosisReport }

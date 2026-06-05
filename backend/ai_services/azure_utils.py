@@ -247,26 +247,10 @@ def parse_json(raw: str, context: str = "") -> dict | list:
 # Patient text builder
 # ---------------------------------------------------------------------------
 
-def patient_text(patient_data: dict) -> str:
+def patient_text(patient_data: dict, extra: dict | None = None) -> str:
     """Build plain-text patient summary (no base64)."""
-    d = patient_data or {}
-    parts = [
-        f"Bemor: {d.get('firstName','')} {d.get('lastName','')}, "
-        f"{d.get('age','')} yosh, {d.get('gender','')}.",
-        f"Shikoyatlar: {d.get('complaints','')}",
-    ]
-    for key, label in [
-        ("history",            "Anamnez"),
-        ("objectiveData",      "Ob'ektiv"),
-        ("labResults",         "Lab"),
-        ("allergies",          "Allergiya"),
-        ("currentMedications", "Dori-darmonlar"),
-        ("familyHistory",      "Oila anamnezi"),
-        ("additionalInfo",     "Qo'shimcha"),
-    ]:
-        if d.get(key):
-            parts.append(f"{label}: {d[key]}")
-    return "\n".join(parts)
+    from .clinical_context import build_clinical_context
+    return build_clinical_context(patient_data, extra)
 
 
 # ---------------------------------------------------------------------------

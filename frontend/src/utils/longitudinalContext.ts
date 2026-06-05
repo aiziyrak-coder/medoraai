@@ -85,6 +85,7 @@ export function buildLongitudinalClinicalNotes(
         'uz-C': 'Бу бемор учун платформада аввал таҳлиллар мавжуд. Қисқа тарих ва ҳозирги қабулни солиштиринг.',
         'ru': 'По этому пациенту уже есть анализы в системе. Ниже краткая история и сравнение с текущим приёмом. Оцените динамику клинически.',
         'en': 'This patient has prior analyses in the system. Below is a brief history and comparison with the current visit. Assess clinical trajectory.',
+        'kaa': 'Bul nawqas ushın platformada aldınǵı analizler bar. Tómende qısqa tariyx hám házirgi qabılmen salıstırıw.',
     };
 
     const lines: string[] = [intro[lang] || intro['uz-L'], ''];

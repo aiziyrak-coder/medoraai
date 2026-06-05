@@ -19,9 +19,15 @@ from typing import Any, Optional
 
 from django.utils import timezone
 
+from .clinical_context import build_clinical_context
+from .report_fields import (
+    extended_consensus_json_instructions,
+    merge_enriched_report_fields,
+    enrich_medications_from_consensus,
+    normalize_nutrition_extended,
+)
 from .azure_utils import (
     get_azure_client,
-    _patient_text,
     _parse_json_response,
     DEPLOY_GPT4O,
     DEPLOY_DEEPSEEK,
@@ -336,6 +342,7 @@ def _final_consensus(
         "nutrition_prevention: MAJBURIY. Tashxis va holatga mos: dietary_guidelines 4-8 ta (to'g'ri ovqatlanish), "
         "prevention_measures 4-8 ta (kasalliklarni oldini olish, profilaktika). O'zbekiston oziq-ovqat realiati va umumiy gigiyena.\n"
         "Barcha matn qiymatlari (critical_finding finding, implication va boshqalar) faqat o'zbek tilida bo'lsin; yulduzcha (*) va inglizcha iboralar ishlatmang."
+        + extended_consensus_json_instructions(language_hint)
     )
     raw = _chat(DEPLOY_GPT4O(), system, user, response_json=True, max_tokens=4000)
     parsed = _parse_json_response(raw, "final_consensus")
@@ -419,7 +426,7 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
         "en": "Inglizcha",
     }
     language_hint = lang_map.get(language, "O'zbek (Lotin)")
-    patient_text = _patient_text(patient_data)
+    patient_text = build_clinical_context(patient_data, language=language)
     patient_data_context = patient_text.split("\n")
 
     result: dict[str, Any] = {
@@ -661,22 +668,7 @@ def _build_final_report(
     cd = consensus.get("consensus_diagnosis") or {}
     meds_raw = consensus.get("medications") or []
 
-    # Build medication list
-    medications = []
-    for m in meds_raw:
-        if not isinstance(m, dict):
-            continue
-        medications.append({
-            "name": str(m.get("name") or ""),
-            "dosage": str(m.get("dosage") or ""),
-            "frequency": str(m.get("frequency") or ""),
-            "duration": str(m.get("duration") or ""),
-            "timing": str(m.get("timing") or ""),
-            "instructions": str(m.get("instructions") or ""),
-            "notes": str(m.get("notes") or ""),
-            "localAvailability": str(m.get("local_availability") or "O'zbekistonda mavjud"),
-            "priceEstimate": "",
-        })
+    medications = enrich_medications_from_consensus(meds_raw)
 
     # Build debate history for frontend consumption
     debate_history = []
@@ -714,9 +706,11 @@ def _build_final_report(
         critical = None
 
     folk_medicine = _folk_medicine_from_consensus(consensus)
-    nutrition_prevention = _nutrition_prevention_from_consensus(consensus)
+    nutrition_prevention = normalize_nutrition_extended(
+        consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
+    ) or _nutrition_prevention_from_consensus(consensus)
 
-    return {
+    report = {
         "consensusDiagnosis": [
             {
                 "name": str(cd.get("name") or "Tashxis aniqlanmadi"),
@@ -774,3 +768,4 @@ def _build_final_report(
         **({"folkMedicine": folk_medicine} if folk_medicine else {}),
         **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
+    return merge_enriched_report_fields(report, consensus)

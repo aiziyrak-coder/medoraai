@@ -3,6 +3,17 @@ import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { PDF_PRODUCT_PUBLIC_URL, PDF_PRODUCT_WEBSITE_DISPLAY } from '../constants/brand';
+import {
+    prepareExportReport,
+    buildImagingExportLines,
+    buildProtocolGapsLines,
+    buildCareAuditLines,
+    buildMedicationExportLine,
+    buildIndividualDietLines,
+    buildRoutingExportLines,
+    buildRiskExportLines,
+    buildCheckUpExportLines,
+} from '../utils/exportReportSections';
 
 interface jsPDFInternal {
     pages: unknown[];
@@ -65,6 +76,7 @@ export const generatePdfReport = async (
         }
         return fallback;
     };
+    report = prepareExportReport(report);
     const doc = new jsPDF();
     const fontName = await setupPdfFont(doc);
     const pageHeight = doc.internal.pageSize.height;
@@ -451,6 +463,51 @@ export const generatePdfReport = async (
         y += 1;
     });
 
+    // Imaging (EKG / UZI / X-ray)
+    const imagingLines = buildImagingExportLines(report, tr);
+    if (imagingLines.length > 0) {
+        y += 2;
+        addSectionTitle(tr('final_report_imaging_title', 'Tasvirlash tahlili (EKG / UZI / Rengen)'));
+        imagingLines.forEach((line) => addBullet(line));
+    }
+
+    // Protocol compliance gaps
+    const gapLines = buildProtocolGapsLines(report, tr);
+    if (gapLines.length > 0) {
+        y += 2;
+        addSectionTitle(tr('final_report_protocol_gaps_title', 'Klinik protokol kamchiliklari va oqibatlari'));
+        gapLines.forEach((line) => addBullet(line));
+    }
+
+    // Care quality audit
+    const auditLines = buildCareAuditLines(report, tr);
+    if (auditLines.length > 0) {
+        y += 2;
+        addSectionTitle(tr('final_report_quality_audit_title', 'Tibbiy yordam sifati (protokol asosida)'));
+        auditLines.forEach((line) => addBullet(line));
+    }
+
+    const routingLines = buildRoutingExportLines(report, tr);
+    if (routingLines.length > 0) {
+        y += 2;
+        addSectionTitle(tr('routing_title', 'Bemor marshrutlash'));
+        routingLines.forEach((line) => addBullet(line));
+    }
+
+    const riskLines = buildRiskExportLines(report, tr);
+    if (riskLines.length > 0) {
+        y += 2;
+        addSectionTitle(tr('risk_factors_title', 'Xavf omillari va og\'irlik'));
+        riskLines.forEach((line) => addBullet(line));
+    }
+
+    const checkUpLines = buildCheckUpExportLines(report, tr);
+    if (checkUpLines.length > 0) {
+        y += 2;
+        addSectionTitle(tr('final_report_checkup_title', 'Profilaktik tekshiruvlar'));
+        checkUpLines.forEach((line) => addBullet(line));
+    }
+
     // Treatment plan
     if (report.treatmentPlan && report.treatmentPlan.length > 0) {
         y += 2;
@@ -469,16 +526,7 @@ export const generatePdfReport = async (
         addSectionTitle(tr('pdf_medications', "Dori Tavsiyalari"));
         const meds = report.medicationRecommendations.slice(0, 6);
         meds.forEach(med => {
-            const medText = [
-                med.name,
-                med.dosage,
-                med.frequency,
-                med.duration,
-                med.timing,
-                med.instructions,
-                med.notes,
-            ].filter(Boolean).join(' — ');
-            addBullet(medText);
+            addBullet(buildMedicationExportLine(med, tr));
         });
     }
 
@@ -601,6 +649,18 @@ export const generatePdfReport = async (
             doc.setFontSize(9);
             doc.setTextColor(40, 40, 40);
         }
+        const dietLines = buildIndividualDietLines(report, tr);
+        if (dietLines.length > 0) {
+            y += 1;
+            doc.setFontSize(9);
+            doc.setFont(fontName, 'bold');
+            doc.setTextColor(30, 80, 120);
+            doc.text(tr('final_report_individual_diet_title', "Tashxis bo'yicha individual parhez"), MARGIN, y);
+            y += COMPACT_LINE;
+            doc.setFont(fontName, 'normal');
+            doc.setTextColor(50, 50, 50);
+            dietLines.forEach((line) => addBullet(line));
+        }
     }
 
     // Recommended tests
@@ -630,7 +690,8 @@ export const generatePdfReport = async (
             doc.setFontSize(8);
             doc.setFont(fontName, 'normal');
             doc.setTextColor(40, 40, 40);
-            doc.text(`\u2022 ${risk.drug}: ${risk.risk} (~${Math.round(risk.probability * 100)}%)`, MARGIN + 2, y);
+            const mgmt = risk.management ? ` — ${risk.management}` : '';
+            doc.text(`\u2022 ${risk.drug}: ${risk.risk} (~${Math.round(risk.probability * 100)}%)${mgmt}`, MARGIN + 2, y);
             y += COMPACT_LINE;
         });
     }

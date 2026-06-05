@@ -5,6 +5,8 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import UploadCloudIcon from './icons/UploadCloudIcon';
 import ChevronRightIcon from './icons/ChevronRightIcon';
 import { useTranslation } from '../hooks/useTranslation';
+import { useSpeechToText } from '../hooks/useSpeechToText';
+import MicrophoneIcon from './icons/MicrophoneIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import { validateFileSize, validateFileType, validateAge, validateRequired, validateVitalSign } from '../utils/validation';
 import { handleError } from '../utils/errorHandler';
@@ -596,6 +598,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     onLinkedPatientChange,
 }) => {
     const { t } = useTranslation();
+    const { isListening, transcript, startListening, stopListening, isSupported } = useSpeechToText();
+    const wasListeningRef = useRef(false);
     const [formData, setFormData] = useState<Partial<PatientData>>({
         firstName: '',
         lastName: '',
@@ -729,6 +733,13 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             return { ...prev, [field]: `${base}${sep}${text}` };
         });
     };
+
+    useEffect(() => {
+        if (wasListeningRef.current && !isListening && transcript.trim()) {
+            appendToField('complaints', transcript.trim());
+        }
+        wasListeningRef.current = isListening;
+    }, [isListening, transcript]);
 
     const handleChange = (field: keyof PatientData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -1137,6 +1148,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             </div>
                             <div>
                                 <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} />
+                                <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} />
                             </div>
                         </div>
 
@@ -1260,9 +1272,27 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                         </div>
                                     </div>
                                     <div className="flex flex-col max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-1">
+                                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                                            <span className="text-[10px] font-bold text-slate-700 uppercase">{t('data_input_complaints_label')}</span>
+                                            {isSupported && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => (isListening ? stopListening() : startListening())}
+                                                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${
+                                                        isListening
+                                                            ? 'bg-red-50 border-red-300 text-red-700'
+                                                            : 'bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100'
+                                                    }`}
+                                                    title={isListening ? t('voice_input_stop') : t('voice_input_start')}
+                                                >
+                                                    <MicrophoneIcon className="w-3.5 h-3.5" isMuted={!isListening} />
+                                                    {isListening ? t('voice_input_stop') : t('voice_input_start')}
+                                                </button>
+                                            )}
+                                        </div>
                                         <Textarea 
                                             id="complaints" 
-                                            label={t('data_input_complaints_label')} 
+                                            label=""
                                             placeholder={t('data_input_complaints_placeholder')}
                                             value={formData.complaints || ''} 
                                             onChange={e => handleChange('complaints', e.target.value)} 

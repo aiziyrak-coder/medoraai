@@ -1,0 +1,1882 @@
+[
+  {
+    "k": "tmpl_cardio_comp_0",
+    "en": "Pressing chest pain, worsens with physical exertion or stress, angina type.",
+    "uzL": "Ko'krakda bosuvchi og'riq, jismoniy zo'riqishda yoki stressda kuchayadi, stenokardiya tipi."
+  },
+  {
+    "k": "tmpl_cardio_comp_1",
+    "en": "Shortness of breath, worsens climbing stairs and lying down, heart failure suspected.",
+    "uzL": "Nafas qisilishi, zinadan chiqishda va yotganda kuchayadi, yurak etishmovchiligi shubha."
+  },
+  {
+    "k": "tmpl_cardio_comp_10",
+    "en": "Angina: chest tightness with physical activity, relieved by rest or nitrates.",
+    "uzL": "Stenokardiya: jismoniy harakatda ko'krak siqilishi, dam olishda yoki nitratdan yaxshilanadi."
+  },
+  {
+    "k": "tmpl_cardio_comp_11",
+    "en": "Heart failure symptoms — swelling, shortness of breath, fatigue.",
+    "uzL": "Yurak etishmovchiligi alomatlari — shish, nafas qisilishi, charchash."
+  },
+  {
+    "k": "tmpl_cardio_comp_12",
+    "en": "Arrhythmia, irregular heartbeat, \"fluttering\" or \"dropping\" sensation.",
+    "uzL": "Aritmiya, yurak urishi notekis, \"qo'tirib qo'yadi\" yoki \"tushib qoladi\" hissi."
+  },
+  {
+    "k": "tmpl_cardio_comp_13",
+    "en": "Acute chest pain, prolonged, MI suspected, urgent evaluation needed.",
+    "uzL": "O'tkir ko'krak og'rig'i, uzoq davom etadi, infarkt ekv. va tez tekshiruv kerak."
+  },
+  {
+    "k": "tmpl_cardio_comp_14",
+    "en": "Stent placed or CABG performed, recent chest pain or shortness of breath.",
+    "uzL": "Stent qo'yilgan yoki ShAKB o'tkazilgan, oxirgi vaqtda yana ko'krak og'rig'i yoki nafas qisilishi."
+  },
+  {
+    "k": "tmpl_cardio_comp_15",
+    "en": "Heart murmur, sound on auscultation, new or changed.",
+    "uzL": "Yurak shovqini, auskultatsiyada ovoz, yangi yoki o'zgargan."
+  },
+  {
+    "k": "tmpl_cardio_comp_16",
+    "en": "Hypertensive crisis: sharply elevated pressure, headache, nausea.",
+    "uzL": "Gipertenziya krizisi: bosim keskin ko'tarilgan, bosh og'rig'i, ko'ngil aynishi."
+  },
+  {
+    "k": "tmpl_cardio_comp_17",
+    "en": "Bradycardia or very slow pulse, fatigue, dizziness.",
+    "uzL": "Bradikardiya yoki puls juda past, charchash, bosh aylanishi."
+  },
+  {
+    "k": "tmpl_cardio_comp_18",
+    "en": "Cardiac syncope: fainting during exertion or suddenly.",
+    "uzL": "Kardiyak sinkop: zo'riqishda yoki to'satdan hushdan ketish."
+  },
+  {
+    "k": "tmpl_cardio_comp_19",
+    "en": "Pericarditis: chest pain worse when lying down.",
+    "uzL": "Perikardit: ko'krak og'rig'i yotganda kuchayadi."
+  },
+  {
+    "k": "tmpl_cardio_comp_2",
+    "en": "Rapid heartbeat, arrhythmia sensation, \"skipping beats\" feeling.",
+    "uzL": "Yurak tez urishi, aritmiya hissi, \"urib qo'yadi\" deb ta'riflaydi."
+  },
+  {
+    "k": "tmpl_cardio_comp_20",
+    "en": "Pleurisy or pneumonia suspected — pain with breathing.",
+    "uzL": "Plevrit yoki pnevmoniya ekv. — nafasda og'riq."
+  },
+  {
+    "k": "tmpl_cardio_comp_21",
+    "en": "Cardiac implant (pacemaker, ICD) in place.",
+    "uzL": "Yurak implant (EKS, ICD) o'rnatilgan."
+  },
+  {
+    "k": "tmpl_cardio_comp_22",
+    "en": "Venous thrombosis or embolism history.",
+    "uzL": "Vena trombozi yoki emboliya tarixi."
+  },
+  {
+    "k": "tmpl_cardio_comp_23",
+    "en": "Cardiac evaluation and stress test needed.",
+    "uzL": "Kardiologik tekshiruv va stress-test kerak."
+  },
+  {
+    "k": "tmpl_cardio_comp_3",
+    "en": "Swelling in lower legs, worsens by evening, both legs.",
+    "uzL": "Pastki oyoqlarda shish, kun oxirida kuchayadi, ikkala oyoqda."
+  },
+  {
+    "k": "tmpl_cardio_comp_4",
+    "en": "Dizziness, fainting episodes, syncope or presyncope.",
+    "uzL": "Bosh aylanishi, hushdan ketish xurujlari, sinkop yoki presinkop."
+  },
+  {
+    "k": "tmpl_cardio_comp_5",
+    "en": "Headache with elevated blood pressure, temporal or diffuse.",
+    "uzL": "Qon bosimi ko'tarilishi bilan bosh og'rig'i, ensa sohasida yoki diffuz."
+  },
+  {
+    "k": "tmpl_cardio_comp_6",
+    "en": "Nocturnal dyspnea, difficulty breathing lying down, sleeps with 2-3 pillows.",
+    "uzL": "Tunda bo'g'ilish, yotganda nafas qiyin, 2-3 yostiqda uxlaydi."
+  },
+  {
+    "k": "tmpl_cardio_comp_7",
+    "en": "Chest pain radiating to left arm, jaw or neck, MI suspected.",
+    "uzL": "Ko'krak og'rig'i chap qo'l, jag' yoki bo'yinga tarqaladi, infarkt ekv."
+  },
+  {
+    "k": "tmpl_cardio_comp_8",
+    "en": "Weakness, easy fatigue, exhaustion, intolerant to physical exertion.",
+    "uzL": "Zaiflik, tez charchash, kuchsizlik, jismoniy zo'riqishga chidamsiz."
+  },
+  {
+    "k": "tmpl_cardio_comp_9",
+    "en": "High blood pressure, consistently high at home, uncontrolled.",
+    "uzL": "Qon bosimi yuqori, uyda o'lchaganda ham barqaror yuqori, nazoratsiz."
+  },
+  {
+    "k": "tmpl_cardio_hist_0",
+    "en": "Hypertension diagnosed several years ago, not following treatment regimen.",
+    "uzL": "Arterial gipertenziya bir necha yil oldin qo'yilgan, davolash rejimiga rioya qilmaydi."
+  },
+  {
+    "k": "tmpl_cardio_hist_1",
+    "en": "Family history of coronary disease, MI or stroke.",
+    "uzL": "Oilada yurak ishemiyasi, infarkt yoki insult bor."
+  },
+  {
+    "k": "tmpl_cardio_hist_10",
+    "en": "Arrhythmia (fibrillation etc.) treated, taking anticoagulants.",
+    "uzL": "Aritmiya (fibrilatsiya va boshqalar) davolangan, antikoagulyantlar qabul qiladi."
+  },
+  {
+    "k": "tmpl_cardio_hist_11",
+    "en": "Heart failure (CHF), on diuretics and other medications.",
+    "uzL": "Yurak etishmovchiligi (XSN), diuretiklar va boshqa dorilar rejimida."
+  },
+  {
+    "k": "tmpl_cardio_hist_12",
+    "en": "ECG or Echo previously showed abnormalities.",
+    "uzL": "EKG yoki EchoKG da ilgari o'zgarishlar aniqlangan."
+  },
+  {
+    "k": "tmpl_cardio_hist_13",
+    "en": "Stent placed or CABG performed, rehabilitation completed.",
+    "uzL": "Stent qo'yilgan yoki ShAKB o'tkazilgan, reabilitatsiya o'tgan."
+  },
+  {
+    "k": "tmpl_cardio_hist_14",
+    "en": "Diabetes or metabolic syndrome together, overweight.",
+    "uzL": "Diabet yoki metabolik sindrom bilan birga, vazn ortiqcha."
+  },
+  {
+    "k": "tmpl_cardio_hist_15",
+    "en": "Sleep apnea suspected or using CPAP.",
+    "uzL": "Uyqu apnoe shubha yoki CPAP ishlatadi."
+  },
+  {
+    "k": "tmpl_cardio_hist_16",
+    "en": "Blood lipids high, taking statins.",
+    "uzL": "Qon lipidlari yuqori, statinlar qabul qiladi."
+  },
+  {
+    "k": "tmpl_cardio_hist_2",
+    "en": "Smoking history over 10 years.",
+    "uzL": "Chekish staji 10 yildan ortiq."
+  },
+  {
+    "k": "tmpl_cardio_hist_3",
+    "en": "Low physical activity, mainly sedentary lifestyle.",
+    "uzL": "Jismoniy faollik kam, asosan o'tirish turmush tarzi."
+  },
+  {
+    "k": "tmpl_cardio_hist_4",
+    "en": "Dyslipidemia identified, taking statins but LDL still high.",
+    "uzL": "Dislipidemiya aniqlangan, statinlar qabul qiladi lekin LDL hali yuqori."
+  },
+  {
+    "k": "tmpl_cardio_hist_5",
+    "en": "Angina or coronary disease under cardiologist monitoring.",
+    "uzL": "Stenokardiya yoki yurak ishemiyasi bo'yicha kardiolog kuzatuvda."
+  },
+  {
+    "k": "tmpl_cardio_hist_6",
+    "en": "Blood pressure not regularly measured at home or consistently high.",
+    "uzL": "Qon bosimi uyda muntazam o'lchanmaydi yoki barqaror yuqori."
+  },
+  {
+    "k": "tmpl_cardio_hist_7",
+    "en": "Cardiac complaints worsened after URI or infection.",
+    "uzL": "O'RVI yoki infeksiyadan keyin yurak sohasida shikoyatlar kuchaygan."
+  },
+  {
+    "k": "tmpl_cardio_hist_8",
+    "en": "Emotional stress triggers chest pain.",
+    "uzL": "Emosional stressda ko'krak og'rig'i paydo bo'ladi."
+  },
+  {
+    "k": "tmpl_cardio_hist_9",
+    "en": "Acute MI experienced, stent placed or conservative treatment.",
+    "uzL": "O'tkir miokard infarkti o'tkazgan, stent qo'yilgan yoki konservativ davolangan."
+  },
+  {
+    "k": "tmpl_derma_comp_0",
+    "en": "Skin rash, itching, redness, various locations.",
+    "uzL": "Terida toshma, qichishish, qizarish, turli joylarda."
+  },
+  {
+    "k": "tmpl_derma_comp_1",
+    "en": "Severe itching, disturbs sleep at night.",
+    "uzL": "Qichishish kuchli, tunda uyqu buziladi."
+  },
+  {
+    "k": "tmpl_derma_comp_10",
+    "en": "Acute or chronic urticaria.",
+    "uzL": "O'tkir yoki surunkali urtikariya."
+  },
+  {
+    "k": "tmpl_derma_comp_11",
+    "en": "Acne, face or body.",
+    "uzL": "Akne, yuzda yoki tanada."
+  },
+  {
+    "k": "tmpl_derma_comp_12",
+    "en": "Psoriasis suspected, plaques, scaling.",
+    "uzL": "Psoriaz shubha, plaklar, qotish."
+  },
+  {
+    "k": "tmpl_derma_comp_13",
+    "en": "Fungal infection (mycosis), foot or nail.",
+    "uzL": "Gribok (mikoz), oyoq yoki tirnoq."
+  },
+  {
+    "k": "tmpl_derma_comp_14",
+    "en": "Dermatological evaluation and biopsy needed.",
+    "uzL": "Dermatologik tekshiruv va biopsiya kerak."
+  },
+  {
+    "k": "tmpl_derma_comp_2",
+    "en": "Pustules or blisters, purulent or fluid-filled.",
+    "uzL": "Pustula yoki pufakchalar, yiringli yoki suyuq."
+  },
+  {
+    "k": "tmpl_derma_comp_3",
+    "en": "Pigmentation changes, dark or light spots.",
+    "uzL": "Pigment o'zgarishi, qorong'u yoki och dog'lar."
+  },
+  {
+    "k": "tmpl_derma_comp_4",
+    "en": "Dry skin, scaling, swelling.",
+    "uzL": "Teri quruq, qotish, shishilish."
+  },
+  {
+    "k": "tmpl_derma_comp_5",
+    "en": "Hair loss, or beard/eyebrows.",
+    "uzL": "Soch to'kilishi, yoki soqol/qosh."
+  },
+  {
+    "k": "tmpl_derma_comp_6",
+    "en": "Nail changes, color, layering, fungus.",
+    "uzL": "Tirnoq o'zgarishi, rang, qatlamlanish, mog'or."
+  },
+  {
+    "k": "tmpl_derma_comp_7",
+    "en": "Wound or eczema prolonged, not responding to treatment.",
+    "uzL": "Yara yoki eksema uzoq davom etadi, davolashga javob bermaydi."
+  },
+  {
+    "k": "tmpl_derma_comp_8",
+    "en": "Allergic dermatitis, contact with allergen.",
+    "uzL": "Allergik dermatit, allergen bilan aloqa."
+  },
+  {
+    "k": "tmpl_derma_comp_9",
+    "en": "Bacterial or infectious agent suspected.",
+    "uzL": "Bakterial yoki qo'zg'atuvchi infektsiya shubha."
+  },
+  {
+    "k": "tmpl_derma_hist_0",
+    "en": "Chronic skin disease, eczema or psoriasis.",
+    "uzL": "Terida surunkali kasallik, ekzema yoki psoriaz."
+  },
+  {
+    "k": "tmpl_derma_hist_1",
+    "en": "Allergy history positive, drug or food.",
+    "uzL": "Allergiya anamnezi, dori yoki ovqatga."
+  },
+  {
+    "k": "tmpl_derma_hist_2",
+    "en": "Working in sun exposure or outdoors for long time.",
+    "uzL": "Quyosh ta'sirida ishlash yoki ko'p vaqt ochiq."
+  },
+  {
+    "k": "tmpl_derma_hist_3",
+    "en": "Dermatologist treated, recurrence or new rash.",
+    "uzL": "Dermatolog davolagan, recidiv yoki yangi toshma."
+  },
+  {
+    "k": "tmpl_derma_hist_4",
+    "en": "Long-term steroid cream use.",
+    "uzL": "Steroid kremlar uzoq ishlatgan."
+  },
+  {
+    "k": "tmpl_endo_comp_0",
+    "en": "Thirst, polydipsia, frequent urination (polyuria), diabetes symptoms.",
+    "uzL": "Chanqash, polidipsiya, tez-tez siyish (poliuriya), diabet alomatlari."
+  },
+  {
+    "k": "tmpl_endo_comp_1",
+    "en": "Weight loss or gain, appetite changes, chronic.",
+    "uzL": "Vazn yo'qotish yoki ortishi, ishtaba o'zgarishi, surunkali."
+  },
+  {
+    "k": "tmpl_endo_comp_10",
+    "en": "Diabetic retinopathy or nephropathy identified, monitoring needed.",
+    "uzL": "Diabetik retinopatiya yoki nefropatiya aniqlangan, nazorat kerak."
+  },
+  {
+    "k": "tmpl_endo_comp_11",
+    "en": "Hormonal imbalance, menstrual and libido changes, fatigue.",
+    "uzL": "Gormon disbalansi, hayz va libido o'zgarishi, charchoq."
+  },
+  {
+    "k": "tmpl_endo_comp_12",
+    "en": "Thyroid nodules or cysts, evaluation or monitoring needed.",
+    "uzL": "Qalqonsimon bez nodullari yoki kistalar, tekshiruv yoki kuzatuv kerak."
+  },
+  {
+    "k": "tmpl_endo_comp_13",
+    "en": "Insulin resistance, metabolic syndrome, with overweight.",
+    "uzL": "Insulin rezistentligi, metabolik sindrom, vazn ortiqcha bilan."
+  },
+  {
+    "k": "tmpl_endo_comp_14",
+    "en": "Adrenal insufficiency suspected, weakness, pigmentation.",
+    "uzL": "Adrenal yetishmovchilik shubha, zaiflik, pigmentatsiya."
+  },
+  {
+    "k": "tmpl_endo_comp_15",
+    "en": "Osteoporosis, fracture risk.",
+    "uzL": "Osteoporoz, suyak sinishi xavfi."
+  },
+  {
+    "k": "tmpl_endo_comp_16",
+    "en": "Cushing or pheochromocytoma suspected.",
+    "uzL": "Cushing yoki feyoxromotsitoma ekv."
+  },
+  {
+    "k": "tmpl_endo_comp_2",
+    "en": "Foot-hand numbness, diabetic neuropathy symptoms, worse at night.",
+    "uzL": "Oyoq-qo'l uvishishi, diabetik neyropatiya alomatlari, kechasi kuchayadi."
+  },
+  {
+    "k": "tmpl_endo_comp_3",
+    "en": "Dry skin, hair loss, nail changes, hormonal or metabolic.",
+    "uzL": "Teri quruqligi, soch to'kilishi, tirnoklar o'zgarishi, gormon yoki metabolik."
+  },
+  {
+    "k": "tmpl_endo_comp_4",
+    "en": "Intolerance to heat or cold, skin changes.",
+    "uzL": "Issiq yoki sovuqqa toqat qilmaslik, teri o'zgarishi."
+  },
+  {
+    "k": "tmpl_endo_comp_5",
+    "en": "Swelling in front of neck, thyroid enlarged, hyperthyroidism or nodule.",
+    "uzL": "Bo'yin oldida bo'rtma, qalqonsimon bez kattalashgan, gipertiroidizm yoki nodul."
+  },
+  {
+    "k": "tmpl_endo_comp_6",
+    "en": "Menstrual cycle disorder, infertility, hormonal imbalance suspected.",
+    "uzL": "Hayz sikli buzilishi, bepushtlik, gormon disbalansi shubha."
+  },
+  {
+    "k": "tmpl_endo_comp_7",
+    "en": "Sleepiness, bradycardia or conversely rapid heartbeat, hypothyroidism/hyperthyroidism.",
+    "uzL": "Uyquchanlik, bradikardiya yoki aksincha yurak tez urishi, gipotireoz/gipertiroidizm."
+  },
+  {
+    "k": "tmpl_endo_comp_8",
+    "en": "High blood sugar, uncontrolled diabetes, high at home too.",
+    "uzL": "Qand qoni yuqori, diabet nazoratsiz, uyda o'lchaganda ham yuqori."
+  },
+  {
+    "k": "tmpl_endo_comp_9",
+    "en": "Hypoglycemia: sweating, tremor, hunger feeling, weakness — quickly improves with food.",
+    "uzL": "Gipoglikemiya: terlash, titroq, ochlik hissi, zaiflik — tez oziq-ovqatdan yaxshilanadi."
+  },
+  {
+    "k": "tmpl_endo_hist_0",
+    "en": "Diabetes diagnosed several years ago, control insufficient.",
+    "uzL": "Qandli diabet bir necha yil oldin qo'yilgan, nazorat yetarli emas."
+  },
+  {
+    "k": "tmpl_endo_hist_1",
+    "en": "Not fully following insulin or oral medication regimen.",
+    "uzL": "Insulin yoki peroral dori rejimiga to'liq rioya qilmaydi."
+  },
+  {
+    "k": "tmpl_endo_hist_10",
+    "en": "Diabetic neuropathy or retinopathy identified, fundus examined.",
+    "uzL": "Diabetik neyropatiya yoki retinopatiya aniqlangan, ko'z tubi tekshirilgan."
+  },
+  {
+    "k": "tmpl_endo_hist_11",
+    "en": "Nephropathy suspected, albuminuria or creatinine elevated.",
+    "uzL": "Nefropatiya shubha, albuminuriya yoki kreatinin oshgan."
+  },
+  {
+    "k": "tmpl_endo_hist_12",
+    "en": "Blood sugar frequently measured at home, results variable.",
+    "uzL": "Qand qoni uyda tez-tez o'lchanadi, natijalar o'zgaruvchan."
+  },
+  {
+    "k": "tmpl_endo_hist_2",
+    "en": "Family history of diabetes, thyroid or other endocrine disease.",
+    "uzL": "Oilada diabet, tiroid yoki boshqa endokrin kasallik bor."
+  },
+  {
+    "k": "tmpl_endo_hist_3",
+    "en": "Thyroid previously evaluated or treated.",
+    "uzL": "Qalqonsimon bez bo'yicha avval tekshiruvdan o'tgan yoki davolangan."
+  },
+  {
+    "k": "tmpl_endo_hist_4",
+    "en": "Weight and appetite changed sharply in recent months.",
+    "uzL": "Oxirgi oylarda vazn va ishtaba keskin o'zgardi."
+  },
+  {
+    "k": "tmpl_endo_hist_5",
+    "en": "Polyuria and polydipsia symptoms gradually appeared.",
+    "uzL": "Poliuriya va polidipsiya simptomlari asta-sekin paydo bo'lgan."
+  },
+  {
+    "k": "tmpl_endo_hist_6",
+    "en": "Hypoglycemia episodes observed, cause not identified.",
+    "uzL": "Gipoglikemiya epizodlari kuzatilgan, sababi aniqlanmagan."
+  },
+  {
+    "k": "tmpl_endo_hist_7",
+    "en": "Women have menstrual cycle disorder or infertility complaint.",
+    "uzL": "Ayollarda hayz sikli buzilishi yoki bepushtlik shikoyati bor."
+  },
+  {
+    "k": "tmpl_endo_hist_8",
+    "en": "Long-term steroid medication use.",
+    "uzL": "Steroid dorilarni uzoq muddat qabul qilgan."
+  },
+  {
+    "k": "tmpl_endo_hist_9",
+    "en": "Thyroid function low (hypothyroidism) or high (hyperthyroidism) treated.",
+    "uzL": "Tiroid funksiyasi past (gipotireoz) yoki yuqori (gipertiroidizm) davolangan."
+  },
+  {
+    "k": "tmpl_ent_comp_0",
+    "en": "Ear pain, in one or both ears.",
+    "uzL": "Quloq og'rig'i, bir yoki ikkala qulochda."
+  },
+  {
+    "k": "tmpl_ent_comp_1",
+    "en": "Ear discharge or noise, hearing decreased.",
+    "uzL": "Quloqdan ajralma yoki shovqin, eshitish pasaygan."
+  },
+  {
+    "k": "tmpl_ent_comp_2",
+    "en": "Throat pain, worsens with swallowing.",
+    "uzL": "Burning og'rig'i, yutishda kuchayadi."
+  },
+  {
+    "k": "tmpl_ent_comp_3",
+    "en": "Nasal congestion, discharge, allergy or infection.",
+    "uzL": "Burun tiqilishi, oqim, allergiya yoki infeksiya."
+  },
+  {
+    "k": "tmpl_ent_comp_4",
+    "en": "Voice changes, hoarseness.",
+    "uzL": "Bosh ovozi o'zgarishi, xirillash."
+  },
+  {
+    "k": "tmpl_ent_comp_5",
+    "en": "Nasal itching or nosebleed.",
+    "uzL": "Burning qichishishi yoki qon ketishi."
+  },
+  {
+    "k": "tmpl_ent_comp_6",
+    "en": "Vertigo, dizziness, ear-related.",
+    "uzL": "Vertigo, bosh aylanishi, quloq bilan bog'liq."
+  },
+  {
+    "k": "tmpl_ent_comp_7",
+    "en": "Tonsillitis: sore throat, fever.",
+    "uzL": "Tonsillit: bo'g'oz og'rig'i, isitma."
+  },
+  {
+    "k": "tmpl_ent_comp_8",
+    "en": "Sinusitis suspected: forehead pain, nasal congestion.",
+    "uzL": "Sinusit shubha: peshana og'rig'i, burun tiqilishi."
+  },
+  {
+    "k": "tmpl_ent_comp_9",
+    "en": "ENT evaluation needed.",
+    "uzL": "LOR tekshiruv kerak."
+  },
+  {
+    "k": "tmpl_ent_hist_0",
+    "en": "Chronic tonsillitis or sinusitis.",
+    "uzL": "Surunkali tonzillit yoki sinusit."
+  },
+  {
+    "k": "tmpl_ent_hist_1",
+    "en": "Hearing decreased, using device.",
+    "uzL": "Eshitish pasaygan, apparat ishlatadi."
+  },
+  {
+    "k": "tmpl_ent_hist_2",
+    "en": "Allergic rhinitis or polyposis.",
+    "uzL": "Allergik rinit yoki polipoz."
+  },
+  {
+    "k": "tmpl_gastro_comp_0",
+    "en": "Abdominal pain, mainly epigastric, worsens after meals and at night on an empty stomach.",
+    "uzL": "Qorin og'riqi, asosan epigastriyada, ovqatdan keyin kuchayadi va kechasi och qoringa og'riq."
+  },
+  {
+    "k": "tmpl_gastro_comp_1",
+    "en": "Nausea, vomiting, loss of appetite, slight weight loss.",
+    "uzL": "Ko'ngil aynishi, qusish, ishtaha yo'q, vazn biroz tushgan."
+  },
+  {
+    "k": "tmpl_gastro_comp_10",
+    "en": "Vomiting blood or black material, upper GI bleeding suspected.",
+    "uzL": "Qusish qon aralash yoki qora, yuqori yo'l qon ketishi shubha."
+  },
+  {
+    "k": "tmpl_gastro_comp_11",
+    "en": "Pancreatitis suspected: abdominal pain radiating to back, vomiting, severe.",
+    "uzL": "Pankreatit shubha: qorin og'rig'i belga tarqaladi, qusish, og'ir."
+  },
+  {
+    "k": "tmpl_gastro_comp_12",
+    "en": "Gastritis or peptic ulcer (PUD) symptoms, improves with PPI.",
+    "uzL": "Gastrit yoki oshqozon yarasi (YAB) alomatlari, PPI dan keyin yaxshilanadi."
+  },
+  {
+    "k": "tmpl_gastro_comp_13",
+    "en": "Gallbladder area pain, gallstone or cholecystitis suspected.",
+    "uzL": "O't pufagi sohasida og'riq, o't toshi yoki xoletsistit shubha."
+  },
+  {
+    "k": "tmpl_gastro_comp_14",
+    "en": "Functional dyspepsia, postprandial fullness, gas.",
+    "uzL": "Funktsional dispepsiya, ovqatdan keyin qorin to'lib qoladi, gaz."
+  },
+  {
+    "k": "tmpl_gastro_comp_15",
+    "en": "Heaviness in liver area, hepatitis or liver disease suspected.",
+    "uzL": "Jigar sohasida og'irlik, gepatit yoki jigar kasalligi ekv."
+  },
+  {
+    "k": "tmpl_gastro_comp_16",
+    "en": "Intestinal peristalsis disorder, abdominal distension, after meals.",
+    "uzL": "Ichak peristaltikasi buzilishi, qorincha shishi, ovqatdan keyin."
+  },
+  {
+    "k": "tmpl_gastro_comp_17",
+    "en": "Loss of appetite, weight loss, chronic GI or general complaint.",
+    "uzL": "Ishtaha yo'qotish, vazn tushishi, surunkali oshqozon-ichak yoki umumiy shikoyat."
+  },
+  {
+    "k": "tmpl_gastro_comp_18",
+    "en": "H. pylori or reflux treated, symptoms returned or monitoring needed.",
+    "uzL": "X.pylori yoki reflyuks davolangan, shikoyatlar qaytgan yoki nazorat kerak."
+  },
+  {
+    "k": "tmpl_gastro_comp_19",
+    "en": "Hemorrhoids, blood in stool, pain during bowel movement.",
+    "uzL": "Gemorroy, najasda qon, og'riq, ichak bo'shishda."
+  },
+  {
+    "k": "tmpl_gastro_comp_2",
+    "en": "Alternating constipation and diarrhea, abdominal bloating, gas.",
+    "uzL": "Qabziyat va ich ketish almashinib turadi, qorin dam bo'lishi, gaz."
+  },
+  {
+    "k": "tmpl_gastro_comp_20",
+    "en": "Intestinal spasms, alternating with constipation.",
+    "uzL": "Ichak burmalari (spazm), qabziyat bilan almashinadi."
+  },
+  {
+    "k": "tmpl_gastro_comp_21",
+    "en": "Peptic ulcer perforation suspected — urgent surgery needed.",
+    "uzL": "Oshqozon yarasi perforatsiyasi ekv. — tez jarrohlik kerak."
+  },
+  {
+    "k": "tmpl_gastro_comp_22",
+    "en": "Bile duct obstruction, yellowing, itching.",
+    "uzL": "O't yo'llari to'silishi, sariq rang, qotish."
+  },
+  {
+    "k": "tmpl_gastro_comp_23",
+    "en": "Acute or chronic pancreatitis, alcohol history.",
+    "uzL": "Pankreatit o'tkir yoki surunkali, alkogol anamnezi."
+  },
+  {
+    "k": "tmpl_gastro_comp_24",
+    "en": "Celiac or food intolerance suspected.",
+    "uzL": "Seliak yoki oziq-ovqat intoleransiyasi shubha."
+  },
+  {
+    "k": "tmpl_gastro_comp_25",
+    "en": "Gastric emptying disorder (gastroparesis).",
+    "uzL": "Oshqozon o'tkazuvchanligi buzilishi (gastroparezi)."
+  },
+  {
+    "k": "tmpl_gastro_comp_26",
+    "en": "Gastroscopy or colonoscopy results available.",
+    "uzL": "Gastroskopiya yoki kolonoskopiya natijasi mavjud."
+  },
+  {
+    "k": "tmpl_gastro_comp_3",
+    "en": "Burning behind sternum, acid reflux, retrosternal burning.",
+    "uzL": "Ko'krak ortida achishish, nordon kekirish, reflyuks alomatlari, sternum ortida kuydiradi."
+  },
+  {
+    "k": "tmpl_gastro_comp_4",
+    "en": "Pressing epigastric pain, worse at night and on empty stomach, peptic ulcer suspected.",
+    "uzL": "Epigastriyada bosuvchi og'riq, kecha va och qoringa xususiy, oshqozon yarasi shubha."
+  },
+  {
+    "k": "tmpl_gastro_comp_5",
+    "en": "Blood or black stool (melena) appeared, hemorrhoids or upper GI bleeding suspected.",
+    "uzL": "Najasda qon yoki qora (melena) paydo bo'ldi, gemorroy yoki yuqori yo'l shubha."
+  },
+  {
+    "k": "tmpl_gastro_comp_6",
+    "en": "Heaviness under right rib cage, dull pain, gallbladder or bile duct related.",
+    "uzL": "O'ng qovurg'a ostida og'irlik, to'qib og'riq, o't pufagi yoki o't yo'llari bilan bog'liq."
+  },
+  {
+    "k": "tmpl_gastro_comp_7",
+    "en": "Gastroesophageal reflux, postprandial discomfort, dyspepsia.",
+    "uzL": "Oshqozon-ichak reflyuksi, ovqatdan keyin noqulaylik, dispepsiya."
+  },
+  {
+    "k": "tmpl_gastro_comp_8",
+    "en": "Difficulty swallowing (dysphagia), with solid food or liquids.",
+    "uzL": "Yutish qiyinlashishi (disfagiya), qattiq ovqatda yoki suyuqlikda."
+  },
+  {
+    "k": "tmpl_gastro_comp_9",
+    "en": "Yellow discoloration, stool color change, liver or bile duct suspected.",
+    "uzL": "Sariq rang, najas rangining o'zgarishi, jigar yoki o't yo'llari shubha."
+  },
+  {
+    "k": "tmpl_gastro_hist_0",
+    "en": "Complaints started about 6 months ago, gradually worsening.",
+    "uzL": "Shikoyatlar taxminan 6 oy oldin boshlangan, asta-sekin kuchayib bormoqda."
+  },
+  {
+    "k": "tmpl_gastro_hist_1",
+    "en": "Dietary irregularities and fatty foods worsen dyspepsia.",
+    "uzL": "Ovqat rejimi buzilganda va yog'li ovqatdan keyin dispepsiya kuchayadi."
+  },
+  {
+    "k": "tmpl_gastro_hist_10",
+    "en": "Reflux esophagitis prolonged, taking PPI.",
+    "uzL": "Reflyuks oezofagit uzoq davom etadi, PPI qabul qiladi."
+  },
+  {
+    "k": "tmpl_gastro_hist_11",
+    "en": "H. pylori identified, eradication treated or needs treatment.",
+    "uzL": "X.pylori aniqlangan, eradikatsiya davolangan yoki davolash kerak."
+  },
+  {
+    "k": "tmpl_gastro_hist_12",
+    "en": "Peptic ulcer (PUD) history, recurrence or healed ulcer.",
+    "uzL": "Oshqozon yarasi (YAB) tarixi, recidiv yoki yara yopilgan."
+  },
+  {
+    "k": "tmpl_gastro_hist_13",
+    "en": "Chronic gastritis or duodenitis, follows diet.",
+    "uzL": "Surunkali gastrit yoki duodenit, parhezga rioya qiladi."
+  },
+  {
+    "k": "tmpl_gastro_hist_14",
+    "en": "Liver, bile duct or pancreas disease history.",
+    "uzL": "Jigar, o't yo'llari yoki pankreas kasalligi anamnezi bor."
+  },
+  {
+    "k": "tmpl_gastro_hist_15",
+    "en": "Long-term antibiotics or PPI use, currently continuing.",
+    "uzL": "Antibiotiklar yoki PPI uzoq qabul qilgan, hozir ham davom etmoqda."
+  },
+  {
+    "k": "tmpl_gastro_hist_16",
+    "en": "Alcohol consumption present, amount and duration.",
+    "uzL": "Alkogol iste'moli mavjud, miqdori va davomiyligi."
+  },
+  {
+    "k": "tmpl_gastro_hist_17",
+    "en": "Weight lost or gained in recent months.",
+    "uzL": "Vazn tushgan yoki ortgan, oxirgi oylarda."
+  },
+  {
+    "k": "tmpl_gastro_hist_18",
+    "en": "Intestinal inflammation (Crohn, UC) suspected or in family.",
+    "uzL": "Ichak yallig'lanishi (Krohn, YABK) ekv. yoki oilada."
+  },
+  {
+    "k": "tmpl_gastro_hist_19",
+    "en": "B12 or iron deficiency identified.",
+    "uzL": "B12 yoki temir yetishmovchiligi aniqlangan."
+  },
+  {
+    "k": "tmpl_gastro_hist_2",
+    "en": "Previously treated for GI disease, complete remission not achieved.",
+    "uzL": "Ilgari oshqozon-ichak kasalliklari bo'yicha davolangan, to'liq remissiya bo'lmagan."
+  },
+  {
+    "k": "tmpl_gastro_hist_20",
+    "en": "Diet: fatty, fried foods excessive.",
+    "uzL": "Parhez: yog'li, qovurilgan ovqat ko'p."
+  },
+  {
+    "k": "tmpl_gastro_hist_3",
+    "en": "Long-term use of NSAIDs or pain relievers.",
+    "uzL": "NSAID yoki og'riq qoldiruvchi dorilarni uzoq muddat qabul qilgan."
+  },
+  {
+    "k": "tmpl_gastro_hist_4",
+    "en": "Smoking, excessive tea or coffee consumption.",
+    "uzL": "Chekish, choy yoki kofe ko'p iste'mol qiladi."
+  },
+  {
+    "k": "tmpl_gastro_hist_5",
+    "en": "Family history of peptic ulcer or gallbladder disease.",
+    "uzL": "Oilada oshqozon yarasi yoki o't pufagi kasalligi bor."
+  },
+  {
+    "k": "tmpl_gastro_hist_6",
+    "en": "Appendectomy or other surgical intervention performed.",
+    "uzL": "Appendektomiya yoki boshqa jarrohlik aralashuvi o'tkazilgan."
+  },
+  {
+    "k": "tmpl_gastro_hist_7",
+    "en": "Symptoms clearly worsen during stressful periods.",
+    "uzL": "Stress davrlarida shikoyatlar aniq kuchayadi."
+  },
+  {
+    "k": "tmpl_gastro_hist_8",
+    "en": "Gastroscopy not performed for long time or colonoscopy recommended.",
+    "uzL": "Gastroskopiya uzoq o'tkazilmagan yoki kolonoskopiya tavsiya etilgan."
+  },
+  {
+    "k": "tmpl_gastro_hist_9",
+    "en": "Gallbladder removed (cholecystectomy), changes still present.",
+    "uzL": "O't pufagi olib tashlangan (xoletsistektomiya), keyin ham o'zgarishlar bor."
+  },
+  {
+    "k": "tmpl_gynec_comp_0",
+    "en": "Lower abdominal pain, during menstruation or constant.",
+    "uzL": "Qorin ostida og'riq, hayz davrida yoki doimiy."
+  },
+  {
+    "k": "tmpl_gynec_comp_1",
+    "en": "Menstrual cycle disorder, delay or excessive bleeding.",
+    "uzL": "Hayz sikli buzilishi, kechikish yoki ortiqcha qon ketish."
+  },
+  {
+    "k": "tmpl_gynec_comp_10",
+    "en": "Gynecological evaluation and ultrasound needed.",
+    "uzL": "Ginekologik tekshiruv va USG kerak."
+  },
+  {
+    "k": "tmpl_gynec_comp_2",
+    "en": "Infertility, cannot conceive for long time.",
+    "uzL": "Bepushtlik, uzoq vaqt homilador bo'la olmaydi."
+  },
+  {
+    "k": "tmpl_gynec_comp_3",
+    "en": "Vaginal discharge changes, odor or color.",
+    "uzL": "Vaginal ajralma o'zgarishi, hid yoki rang."
+  },
+  {
+    "k": "tmpl_gynec_comp_4",
+    "en": "Nausea, vomiting, pregnancy suspected.",
+    "uzL": "Ko'ngil aynishi, qusish, homiladorlik shubha."
+  },
+  {
+    "k": "tmpl_gynec_comp_5",
+    "en": "Menopause symptoms: hot flashes, mood changes.",
+    "uzL": "Klimaks alomatlari: issiq basish, kayfiyat o'zgarishi."
+  },
+  {
+    "k": "tmpl_gynec_comp_6",
+    "en": "Breast pain or swelling, before menstruation.",
+    "uzL": "Ko'krak og'rig'i yoki shishi, hayz oldida."
+  },
+  {
+    "k": "tmpl_gynec_comp_7",
+    "en": "Pain during intercourse (dyspareunia).",
+    "uzL": "Jinsiy aloqada og'riq (dispareuniya)."
+  },
+  {
+    "k": "tmpl_gynec_comp_8",
+    "en": "Uterus or appendix area swelling suspected.",
+    "uzL": "Bachadon yoki appendiks sohasida bo'rtma shubha."
+  },
+  {
+    "k": "tmpl_gynec_comp_9",
+    "en": "Endometriosis or fibroid suspected.",
+    "uzL": "Endometrioz yoki mioma shubha."
+  },
+  {
+    "k": "tmpl_gynec_hist_0",
+    "en": "Menstrual cycle irregular or painful.",
+    "uzL": "Hayz sikli notekis yoki og'riqli."
+  },
+  {
+    "k": "tmpl_gynec_hist_1",
+    "en": "Number of pregnancies and deliveries, complications.",
+    "uzL": "Homiladorliklar va tug'ruqlar soni, asoratlar."
+  },
+  {
+    "k": "tmpl_gynec_hist_2",
+    "en": "Infertility treated or evaluation performed.",
+    "uzL": "Bepushtlik davolangan yoki tekshiruv o'tkazilgan."
+  },
+  {
+    "k": "tmpl_gynec_hist_3",
+    "en": "Menopause or HRT taken.",
+    "uzL": "Klimaks yoki GKT qabul qilgan."
+  },
+  {
+    "k": "tmpl_gynec_hist_4",
+    "en": "Gynecological surgery (fibroid etc.) performed.",
+    "uzL": "Ginekologik operatsiya (mioma va h.k.) o'tkazilgan."
+  },
+  {
+    "k": "tmpl_nephro_comp_0",
+    "en": "Pain during urination, frequent urination, burning.",
+    "uzL": "Siydik chiqarishda og'riq, tez-tez siyishga chiqish, kuyish."
+  },
+  {
+    "k": "tmpl_nephro_comp_1",
+    "en": "Blood in urine (hematuria), visible or microscopic.",
+    "uzL": "Siydikda qon (gematuriya), ko'rinadi yoki mikroskopik."
+  },
+  {
+    "k": "tmpl_nephro_comp_10",
+    "en": "Urinary tract infection: fever, burning, frequent urination.",
+    "uzL": "Siydik yo'llari infeksiyasi: isitma, kuyish, tez siyish."
+  },
+  {
+    "k": "tmpl_nephro_comp_11",
+    "en": "Chronic kidney failure monitoring, creatinine elevated.",
+    "uzL": "Surunkali buyrak yetishmovchiligi kuzatuvda, kreatinin oshgan."
+  },
+  {
+    "k": "tmpl_nephro_comp_12",
+    "en": "On dialysis or preparing for dialysis.",
+    "uzL": "Dializda yoki dializga tayyorgarlik."
+  },
+  {
+    "k": "tmpl_nephro_comp_13",
+    "en": "Edema, hypertension and protein in urine — glomerulonephritis.",
+    "uzL": "Oteki, gipertenziya va siydikda oqsil — glomerulonefrit."
+  },
+  {
+    "k": "tmpl_nephro_comp_14",
+    "en": "Nephrology evaluation, urinalysis and creatinine needed.",
+    "uzL": "Nefrologik tekshiruv, siydik tahlili va kreatinin kerak."
+  },
+  {
+    "k": "tmpl_nephro_comp_2",
+    "en": "Swelling in face and legs, worse in face in morning.",
+    "uzL": "Yuz va oyoqlarda shish, ertalab yuzda kuchayadi."
+  },
+  {
+    "k": "tmpl_nephro_comp_3",
+    "en": "Back pain in kidney area, one or both sides.",
+    "uzL": "Orqa bel sohasida og'riq, bir yoki ikkala tomonda."
+  },
+  {
+    "k": "tmpl_nephro_comp_4",
+    "en": "Decreased or stopped urine output, oliguria.",
+    "uzL": "Siydik kam chiqadi yoki to'xtab qoladi, oliguriya."
+  },
+  {
+    "k": "tmpl_nephro_comp_5",
+    "en": "High blood pressure, uncontrolled, with kidney failure.",
+    "uzL": "Qon bosimi yuqori, nazoratsiz, buyrak etishmovchiligi bilan."
+  },
+  {
+    "k": "tmpl_nephro_comp_6",
+    "en": "Weakness, pallor, anemia — chronic kidney disease.",
+    "uzL": "Zaiflik, rangparlik, anemiya — surunkali buyrak kasalligi."
+  },
+  {
+    "k": "tmpl_nephro_comp_7",
+    "en": "Frequent urination (polyuria) and thirst, diabetes or kidney.",
+    "uzL": "Ko'p siyish (poliuriya) va chanqash, diabet yoki buyrak."
+  },
+  {
+    "k": "tmpl_nephro_comp_8",
+    "en": "Nephrotic syndrome: massive edema, protein loss.",
+    "uzL": "Nefrotik sindrom: katta shish, oqsil yo'qotish."
+  },
+  {
+    "k": "tmpl_nephro_comp_9",
+    "en": "Kidney stone suspected: flank pain episode, blood in urine.",
+    "uzL": "Buyrak toshi shubha: belda og'riq xuruji, siydikda qon."
+  },
+  {
+    "k": "tmpl_nephro_hist_0",
+    "en": "Kidney disease or urinary tract infection previously.",
+    "uzL": "Buyrak kasalligi yoki siydik yo'llari infeksiyasi ilgari."
+  },
+  {
+    "k": "tmpl_nephro_hist_1",
+    "en": "High blood pressure for years, uncontrolled.",
+    "uzL": "Qon bosimi yuqori yillab, nazoratsiz."
+  },
+  {
+    "k": "tmpl_nephro_hist_2",
+    "en": "Together with diabetes or heart disease.",
+    "uzL": "Diabet yoki yurak kasalligi bilan birga."
+  },
+  {
+    "k": "tmpl_nephro_hist_3",
+    "en": "Kidney stone experienced or treated.",
+    "uzL": "Buyrak toshi o'tkazgan yoki davolangan."
+  },
+  {
+    "k": "tmpl_nephro_hist_4",
+    "en": "Protein or blood identified in urinalysis.",
+    "uzL": "Siydik tahlilida oqsil yoki qon aniqlangan."
+  },
+  {
+    "k": "tmpl_nephro_hist_5",
+    "en": "Creatinine elevated, nephrologist monitoring.",
+    "uzL": "Kreatinin oshgan, nefrolog kuzatuvda."
+  },
+  {
+    "k": "tmpl_nephro_hist_6",
+    "en": "On dialysis or after transplant.",
+    "uzL": "Dializ rejimida yoki transplantatsiya keyin."
+  },
+  {
+    "k": "tmpl_neuro_comp_0",
+    "en": "Recurring headache, migraine or tension type, frequency increased recently.",
+    "uzL": "Bosh og'rig'i takrorlanadi, migren yoki tension tipi, oxirgi oylarda chastotasi oshgan."
+  },
+  {
+    "k": "tmpl_neuro_comp_1",
+    "en": "Numbness in hands or feet, tingling, \"pins and needles\" sensation, neuropathy suspected.",
+    "uzL": "Qo'l yoki oyoqlarda uvishish, karaxtlik, \"ignaq tegadi\" hissi, neyropatiya shubha."
+  },
+  {
+    "k": "tmpl_neuro_comp_10",
+    "en": "Migraine: one-sided headache, visual disturbance (aura), nausea.",
+    "uzL": "Migren: bosh og'rig'i bir tomonda, ko'rish buzilishi (aura), ko'ngil aynishi."
+  },
+  {
+    "k": "tmpl_neuro_comp_11",
+    "en": "Stroke suspected: paralysis, speech disorder, dizziness — urgent evaluation needed.",
+    "uzL": "Stroke shubha: falaj, nutq buzilishi, bosh aylanishi — tez tekshiruv kerak."
+  },
+  {
+    "k": "tmpl_neuro_comp_12",
+    "en": "Neuropathy: foot-hand numbness, pain, worse at night.",
+    "uzL": "Neyropatiya: oyoq-qo'l uvishishi, og'riq, kechasi kuchayadi."
+  },
+  {
+    "k": "tmpl_neuro_comp_13",
+    "en": "Parkinson suspected: tremor, slowness of movement, rigidity, gait difficulty.",
+    "uzL": "Parkinson shubha: titroq, harakat sekinligi, qotish, yurish qiyin."
+  },
+  {
+    "k": "tmpl_neuro_comp_14",
+    "en": "Disc herniation: neck or back pain, numbness in arm/leg.",
+    "uzL": "Disk herniyasi: bo'yin yoki bel og'rig'i, uvishish qo'l/oyoqda."
+  },
+  {
+    "k": "tmpl_neuro_comp_15",
+    "en": "Traumatic brain injury (TBI) history, follow-up or ongoing headache.",
+    "uzL": "Bosh miya jarohati (YUT) o'tkazgan, keyingi kuzatuv yoki bosh og'rig'i davom etmoqda."
+  },
+  {
+    "k": "tmpl_neuro_comp_16",
+    "en": "Vertigo, dizziness, tinnitus, BPPV or vestibular suspected.",
+    "uzL": "Vertigo, bosh aylanishi, quloq shovqin, BPPV yoki vestibulyar shubha."
+  },
+  {
+    "k": "tmpl_neuro_comp_17",
+    "en": "Tremor, hand shaking, at rest or with movement.",
+    "uzL": "Tremor, qo'l titroqi, dam olishda yoki harakatda."
+  },
+  {
+    "k": "tmpl_neuro_comp_18",
+    "en": "Myasthenia: muscle weakness, fatigue, eyelid drooping.",
+    "uzL": "Miasteniya: mushak zaifligi, charchash, ko'z qopqog'i."
+  },
+  {
+    "k": "tmpl_neuro_comp_19",
+    "en": "Brain tumor suspected, headache, vomiting.",
+    "uzL": "Bosh miya o'simtasi ekv., bosh og'rig'i, qusish."
+  },
+  {
+    "k": "tmpl_neuro_comp_2",
+    "en": "Dizziness, vertigo, unsteady gait, with or without tinnitus.",
+    "uzL": "Bosh aylanishi, vertigo, beqaror yurish, quloq shovqin bilan yoki undan mustasno."
+  },
+  {
+    "k": "tmpl_neuro_comp_20",
+    "en": "Encephalitis or meningitis suspected — urgent evaluation.",
+    "uzL": "Encephalitis yoki meningitis ekv. — tez tekshiruv."
+  },
+  {
+    "k": "tmpl_neuro_comp_21",
+    "en": "Cognitive decline, dementia suspected.",
+    "uzL": "Kognitiv pasayish, demans shubha."
+  },
+  {
+    "k": "tmpl_neuro_comp_22",
+    "en": "Radiculopathy: numbness from back to leg.",
+    "uzL": "Radikulopatiya: beldan oyoqka uvishish."
+  },
+  {
+    "k": "tmpl_neuro_comp_3",
+    "en": "Speech difficulty, tongue deviation, cannot find words, stroke suspected.",
+    "uzL": "Gapirish qiyinlashishi, til chalg'ishi, so'zni topa olmaydi, stroke ekv."
+  },
+  {
+    "k": "tmpl_neuro_comp_4",
+    "en": "Brief loss of consciousness, syncope, painless.",
+    "uzL": "Qisqa muddatli hushdan ketish, sinkop, og'rig'siz."
+  },
+  {
+    "k": "tmpl_neuro_comp_5",
+    "en": "Seizures (epileptic), unconsciousness, brief duration.",
+    "uzL": "Tutilish (epileptik) xurujlari, ongsizlik, qisqa muddat."
+  },
+  {
+    "k": "tmpl_neuro_comp_6",
+    "en": "Vision loss in one eye or one side, optic nerve or brain suspected.",
+    "uzL": "Bir ko'zda yoki bir tomonda ko'rish pasayishi, ko'z o'qi yoki miya shubha."
+  },
+  {
+    "k": "tmpl_neuro_comp_7",
+    "en": "Facial nerve palsy, mimic disorder, one-sided.",
+    "uzL": "Yuz nervi falaji, mimika buzilishi, bir tomonda."
+  },
+  {
+    "k": "tmpl_neuro_comp_8",
+    "en": "Sleep disorder, frequent nighttime awakenings, morning fatigue.",
+    "uzL": "Uyqu buzilishi, tunda tez-tez uyg'onish, ertalab charchoq."
+  },
+  {
+    "k": "tmpl_neuro_comp_9",
+    "en": "Memory decline, cannot concentrate, forgets recent events.",
+    "uzL": "Xotira pasayishi, diqqatni jamlay olmaslik, yaqin vaqt hodisalarini unutadi."
+  },
+  {
+    "k": "tmpl_neuro_hist_0",
+    "en": "Headache recurring for years, frequency increased recently.",
+    "uzL": "Bosh og'rig'i yillab takrorlanib keladi, oxirgi oylarda chastotasi oshgan."
+  },
+  {
+    "k": "tmpl_neuro_hist_1",
+    "en": "Symptoms worsen with sleep deprivation and work stress.",
+    "uzL": "Uyqu yetishmasligi va ish stressi fonida simptomlar kuchayadi."
+  },
+  {
+    "k": "tmpl_neuro_hist_10",
+    "en": "Spinal disc herniation treated, recurrence or new complaint.",
+    "uzL": "Umurtqa pog'onasi disk herniyasi davolangan, recidiv yoki yangi shikoyat."
+  },
+  {
+    "k": "tmpl_neuro_hist_11",
+    "en": "Neuropathy (diabetic or other) history.",
+    "uzL": "Neyropatiya (diabetik yoki boshqa) tarixi bor."
+  },
+  {
+    "k": "tmpl_neuro_hist_12",
+    "en": "Taking anticoagulants or antiaggregants, bleeding risk.",
+    "uzL": "Antikoagulyantlar yoki antiagregantlar qabul qiladi, qon quyilishi xavfi."
+  },
+  {
+    "k": "tmpl_neuro_hist_13",
+    "en": "Brain MRI/CT previously performed or currently needed.",
+    "uzL": "Bosh miya MRT/KT ilgari o'tkazilgan yoki hozir kerak."
+  },
+  {
+    "k": "tmpl_neuro_hist_14",
+    "en": "EEG or EMG results available.",
+    "uzL": "EEG yoki EMG natijalari mavjud."
+  },
+  {
+    "k": "tmpl_neuro_hist_2",
+    "en": "Traumatic brain injury (TBI) history, follow-up.",
+    "uzL": "Bosh miya jarohati (YUT) o'tkazgan, keyingi kuzatuv."
+  },
+  {
+    "k": "tmpl_neuro_hist_3",
+    "en": "Family history of migraine, epilepsy or stroke.",
+    "uzL": "Oilada migren, epilepsiya yoki insult bor."
+  },
+  {
+    "k": "tmpl_neuro_hist_4",
+    "en": "Migraine treated, preventive courses not completed.",
+    "uzL": "Migren bo'yicha davolangan, profilaktika kurslari bajarilmagan."
+  },
+  {
+    "k": "tmpl_neuro_hist_5",
+    "en": "Blood pressure changes accompanied by dizziness.",
+    "uzL": "Qon bosimi o'zgarishi bosh aylanishi bilan birga kuzatiladi."
+  },
+  {
+    "k": "tmpl_neuro_hist_6",
+    "en": "Epilepsy monitoring, following medication regimen.",
+    "uzL": "Epilepsiya kuzatuvda, dori rejimiga rioya qiladi."
+  },
+  {
+    "k": "tmpl_neuro_hist_7",
+    "en": "Long computer work, neck muscle strain.",
+    "uzL": "Kompyuterda uzoq ishlash, bo'yin mushaklari zo'riqishi."
+  },
+  {
+    "k": "tmpl_neuro_hist_8",
+    "en": "Stroke experienced, rehabilitation ongoing.",
+    "uzL": "Stroke (insult) o'tkazgan, reabilitatsiya davom etmoqda."
+  },
+  {
+    "k": "tmpl_neuro_hist_9",
+    "en": "Parkinson or tremor suspected, neurologist not yet seen.",
+    "uzL": "Parkinson yoki tremor shubha, nevrolog hali ko'rmagan."
+  },
+  {
+    "k": "tmpl_ophth_comp_0",
+    "en": "Vision loss, in one or both eyes.",
+    "uzL": "Ko'rish pasayishi, bir yoki ikkala ko'zda."
+  },
+  {
+    "k": "tmpl_ophth_comp_1",
+    "en": "Eye itching, redness, discharge.",
+    "uzL": "Ko'z qichishishi, qizarish, ajralma."
+  },
+  {
+    "k": "tmpl_ophth_comp_2",
+    "en": "Double vision (diplopia).",
+    "uzL": "Bir narsani ikki ko'radi (diplopiya)."
+  },
+  {
+    "k": "tmpl_ophth_comp_3",
+    "en": "Curtain or spot in front of eye.",
+    "uzL": "Ko'z oldida parda yoki chandiq."
+  },
+  {
+    "k": "tmpl_ophth_comp_4",
+    "en": "Increased light sensitivity.",
+    "uzL": "Yorug'likka sezgirlik oshgan."
+  },
+  {
+    "k": "tmpl_ophth_comp_5",
+    "en": "Pain or pressure inside eye.",
+    "uzL": "Ko'z ichida og'riq yoki bosim."
+  },
+  {
+    "k": "tmpl_ophth_comp_6",
+    "en": "Glaucoma monitoring, using eye drops.",
+    "uzL": "Glaukoma kuzatuvda, tomchilar qabul qiladi."
+  },
+  {
+    "k": "tmpl_ophth_comp_7",
+    "en": "Cataract suspected, blurred vision.",
+    "uzL": "Katarakta shubha, xira ko'rish."
+  },
+  {
+    "k": "tmpl_ophth_comp_8",
+    "en": "Diabetic retinopathy, fundus examination done.",
+    "uzL": "Diabetik retinopatiya, ko'z tubi tekshirilgan."
+  },
+  {
+    "k": "tmpl_ophth_comp_9",
+    "en": "Ophthalmological evaluation needed.",
+    "uzL": "Oftalmologik tekshiruv kerak."
+  },
+  {
+    "k": "tmpl_ophth_hist_0",
+    "en": "Eye disease previously, glaucoma or cataract.",
+    "uzL": "Ko'z kasalligi ilgari, glaukoma yoki katarakta."
+  },
+  {
+    "k": "tmpl_ophth_hist_1",
+    "en": "Diabetes or hypertension present, fundus examined.",
+    "uzL": "Diabet yoki gipertenziya bor, ko'z tubi tekshirilgan."
+  },
+  {
+    "k": "tmpl_ophth_hist_2",
+    "en": "Eye surgery performed.",
+    "uzL": "Ko'z operatsiyasi o'tkazilgan."
+  },
+  {
+    "k": "tmpl_ortho_comp_0",
+    "en": "Back pain, worsens with movement, disc herniation suspected.",
+    "uzL": "Bel og'rig'i, harakatda kuchayadi, disk herniyasi shubha."
+  },
+  {
+    "k": "tmpl_ortho_comp_1",
+    "en": "Neck pain, radiating to arm with numbness.",
+    "uzL": "Bo'yin og'rig'i, qo'lga uvishish tarqaladi."
+  },
+  {
+    "k": "tmpl_ortho_comp_10",
+    "en": "After surgery (arthroplasty etc.) rehabilitation.",
+    "uzL": "Jarrohlik (artroplastika va h.k.) keyin reabilitatsiya."
+  },
+  {
+    "k": "tmpl_ortho_comp_11",
+    "en": "Muscle or ligament strain.",
+    "uzL": "Mushak yoki ligament zo'riqishi."
+  },
+  {
+    "k": "tmpl_ortho_comp_12",
+    "en": "Orthopedic evaluation, X-ray or MRI needed.",
+    "uzL": "Ortopedik tekshiruv, rentgen yoki MRT kerak."
+  },
+  {
+    "k": "tmpl_ortho_comp_2",
+    "en": "Knee or hip joint pain, with walking.",
+    "uzL": "Tizza yoki son bo'g'imida og'riq, yurishda."
+  },
+  {
+    "k": "tmpl_ortho_comp_3",
+    "en": "Shoulder pain, limited arm elevation.",
+    "uzL": "Yelka og'rig'i, qo'lni ko'tarishda cheklangan."
+  },
+  {
+    "k": "tmpl_ortho_comp_4",
+    "en": "Bone fracture or sprain, after trauma.",
+    "uzL": "Suyak sinishi yoki chayqalish, travma keyin."
+  },
+  {
+    "k": "tmpl_ortho_comp_5",
+    "en": "Joint swelling, redness, limited movement — arthritis.",
+    "uzL": "Bo'g'im shishi, qizarish, harakat cheklangan — artrit."
+  },
+  {
+    "k": "tmpl_ortho_comp_6",
+    "en": "Prolonged pain in foot or hand.",
+    "uzL": "Oyoq yoki qo'lida uzoq davom etuvchi og'riq."
+  },
+  {
+    "k": "tmpl_ortho_comp_7",
+    "en": "Follow-up after orthosis or cast.",
+    "uzL": "Ortez yoki gipsdan keyin kuzatuv."
+  },
+  {
+    "k": "tmpl_ortho_comp_8",
+    "en": "Osteoporosis, easy bone fracture, weight loss.",
+    "uzL": "Osteoporoz, suyak sinishi oson, vazn tushgan."
+  },
+  {
+    "k": "tmpl_ortho_comp_9",
+    "en": "Pain with rheumatoid arthritis or osteoarthritis.",
+    "uzL": "Revmatoid artrit yoki artroz bilan og'riq."
+  },
+  {
+    "k": "tmpl_ortho_hist_0",
+    "en": "Back or neck surgery performed.",
+    "uzL": "Bel yoki bo'yin operatsiyasi o'tkazilgan."
+  },
+  {
+    "k": "tmpl_ortho_hist_1",
+    "en": "Trauma or bone fracture previously.",
+    "uzL": "Travma yoki suyak sinishi ilgari."
+  },
+  {
+    "k": "tmpl_ortho_hist_2",
+    "en": "Arthritis or osteoarthritis diagnosis.",
+    "uzL": "Artrit yoki artroz tashxisi bor."
+  },
+  {
+    "k": "tmpl_ortho_hist_3",
+    "en": "Osteoporosis identified, taking medications.",
+    "uzL": "Osteoporoz aniqlangan, dorilar qabul qiladi."
+  },
+  {
+    "k": "tmpl_ortho_hist_4",
+    "en": "Heavy physical work, much exertion.",
+    "uzL": "Jismoniy ish og'ir, zo'riqish ko'p."
+  },
+  {
+    "k": "tmpl_psych_comp_0",
+    "en": "Persistent low mood, anhedonia, fatigue for more than 2 weeks — suspected major depression.",
+    "uzL": "2 haftadan ortiq davom etuvchi tushkunlik, hech narsadan zavq olmaslik, charchoq — asosiy depressiya shubhasi."
+  },
+  {
+    "k": "tmpl_psych_comp_1",
+    "en": "Excessive generalized worry, restlessness, palpitations or sweating — suspected anxiety disorder.",
+    "uzL": "Doimiy tashvish, bezovtalik, yurak urishi yoki terlash — bezovtalik buzilishlari shubhasi."
+  },
+  {
+    "k": "tmpl_psych_comp_10",
+    "en": "Intrusive memories, nightmares, hypervigilance after trauma — PTSD features.",
+    "uzL": "Travmadan keyin tasavvurlar, qo'rquvli tushlar, gigervojilantlik — PTSD alomatlari."
+  },
+  {
+    "k": "tmpl_psych_comp_11",
+    "en": "Severe food restriction or binge–purge cycles — suspected eating disorder.",
+    "uzL": "Ovqatni keskin cheklash yoki ovqat yeb keyin qusish tsikllari — ovqatlanish buzilishlari shubhasi."
+  },
+  {
+    "k": "tmpl_psych_comp_12",
+    "en": "Progressive memory loss, disorientation, personality change — possible major neurocognitive disorder.",
+    "uzL": "Xotira yo'qolishi, orientatsiya buzilishi, shaxs o'zgarishi — neyrokognitiv buzilish shubhasi."
+  },
+  {
+    "k": "tmpl_psych_comp_13",
+    "en": "Agitation, aggression, acute confusion — delirium or psychiatric emergency.",
+    "uzL": "Hayajonlanish, agressiya, o'tkir chalkashlik — delirium yoki psixiatrik favqulodda holat."
+  },
+  {
+    "k": "tmpl_psych_comp_14",
+    "en": "Adverse effects of psychotropic drugs or poor adherence — medication review.",
+    "uzL": "Psixotrop dorilar yon ta'siri yoki rejaga rioya qilmaslik — dori maslahati."
+  },
+  {
+    "k": "tmpl_psych_comp_15",
+    "en": "First-episode psychosis — urgent comprehensive psychiatric evaluation.",
+    "uzL": "Birinchi marta psixoz — keng qamrovli psixiatrik baholash shoshilinch."
+  },
+  {
+    "k": "tmpl_psych_comp_16",
+    "en": "Prolonged grief with marked functional impairment — differential from depression.",
+    "uzL": "Uzoq davom etgan qayg'u bilan funksional buzilish — depressiya va qayg'u farqi."
+  },
+  {
+    "k": "tmpl_psych_comp_17",
+    "en": "Child/adolescent: behavioral problems, school refusal, or self-harm — developmental assessment.",
+    "uzL": "Bolada/yosh o'smanda: xulq-atvor muammolari, maktabdan qochish, o'ziga zarar — rivoj bahosi."
+  },
+  {
+    "k": "tmpl_psych_comp_2",
+    "en": "Recurrent panic attacks with palpitations, shortness of breath, fear of dying.",
+    "uzL": "Panik xurujlari: yurak urishi, nafas yetishmasligi, o'lim qo'rquvi."
+  },
+  {
+    "k": "tmpl_psych_comp_3",
+    "en": "Elevated mood, reduced need for sleep, impulsive spending — manic or hypomanic features.",
+    "uzL": "Ko'tarilgan kayfiyat, uyquga ehtiyoj kamayishi, impulsiv xarajatlar — manik yoki gipomanik alomatlar."
+  },
+  {
+    "k": "tmpl_psych_comp_4",
+    "en": "Auditory hallucinations, delusional ideas, social withdrawal — psychosis / possible schizophrenia spectrum disorder.",
+    "uzL": "Ovozlar eshitish (akkustik gallutsinatsiya), debiya, ijtimoiy chekinish — psixoz / shizofreniya spektri shubhasi."
+  },
+  {
+    "k": "tmpl_psych_comp_5",
+    "en": "Suicidal ideation, plan, or self-harm urges — urgent safety assessment.",
+    "uzL": "O'z joniga qasd qilish fikrlari, reja yoki o'ziga zarar yetkazish xohishi — xavfsizlikni baholash, shoshilinch."
+  },
+  {
+    "k": "tmpl_psych_comp_6",
+    "en": "Insomnia, early morning awakening, non-restorative sleep.",
+    "uzL": "Uyqu buzilishi, erta uyg'onish, uyqudan keyin tiklanmaslik hissi."
+  },
+  {
+    "k": "tmpl_psych_comp_7",
+    "en": "Alcohol or substance use with craving, withdrawal symptoms, or inability to cut down.",
+    "uzL": "Alkogol yoki moddalarni boshqarolmaslik, sustlashish, yoki ulardan qat'iy kamaytira olmaslik."
+  },
+  {
+    "k": "tmpl_psych_comp_8",
+    "en": "Poor concentration, decline in work or school performance — adult ADHD vs stress-related cognitive symptoms.",
+    "uzL": "Diqqatni jamlashda qiyinchilik, ish yoki o'qishda pasayish — kattalarda ADHD yoki stressga bog'liq kognitiv alomatlar."
+  },
+  {
+    "k": "tmpl_psych_comp_9",
+    "en": "Obsessions and compulsive rituals interfering with daily life — OCD features.",
+    "uzL": "Majburiy fikrlar va kunlik hayotga xalaqit beradigan ritual — OCD alomatlari."
+  },
+  {
+    "k": "tmpl_psych_hist_0",
+    "en": "Prior psychiatric diagnosis (depression, bipolar disorder, schizophrenia spectrum, etc.).",
+    "uzL": "Oldin qo'yilgan psixiatrik tashxis (depressiya, bipolyar buzilish, shizofreniya spektri va h.k.)."
+  },
+  {
+    "k": "tmpl_psych_hist_1",
+    "en": "Previous psychiatric hospitalization or suicide attempt.",
+    "uzL": "Oldin psixiatrik statsionarda bo'lgan yoki o'ziga qasd urinish tarixi."
+  },
+  {
+    "k": "tmpl_psych_hist_2",
+    "en": "Family history of mental illness or suicide.",
+    "uzL": "Oilada ruhiy kasallik yoki o'ziga qasd tarixi."
+  },
+  {
+    "k": "tmpl_psych_hist_3",
+    "en": "Current psychotropic medications (names, doses, adherence).",
+    "uzL": "Hozirgi psixotrop dorilar (nomlari, dozalari, qabul qilish intizomi)."
+  },
+  {
+    "k": "tmpl_psych_hist_4",
+    "en": "Substance use (alcohol, cannabis, stimulants) — pattern and frequency.",
+    "uzL": "Modda ishlatish (alkogol, kanabinoidlar, stimulyatorlar) — naqsh va chastota."
+  },
+  {
+    "k": "tmpl_psych_hist_5",
+    "en": "Major psychosocial stressors — loss, conflict, financial strain.",
+    "uzL": "Psixosotsial og'ir stressorlar — yo'qotish, nizo, moliyaviy qiyinchilik."
+  },
+  {
+    "k": "tmpl_psych_hist_6",
+    "en": "Somatic conditions affecting mental state (thyroid disease, B12 deficiency, epilepsy).",
+    "uzL": "Kayfiyat va fikrlashga ta'sir qiluvchi somatik kasalliklar (qalqon bezi, B12 yetishmovchiligi, epilepsiya)."
+  },
+  {
+    "k": "tmpl_psych_hist_7",
+    "en": "Prior psychotherapy, TMS, or ECT.",
+    "uzL": "Oldin psixoterapiya, TMS yoki EKT o'tkazilgan."
+  },
+  {
+    "k": "tmpl_pulmo_comp_0",
+    "en": "Prolonged cough, dry or productive, worse at night.",
+    "uzL": "Yo'tal uzoq davom etadi, quruq yoki balg'amli, kechasi kuchayadi."
+  },
+  {
+    "k": "tmpl_pulmo_comp_1",
+    "en": "Shortness of breath, worsens with physical activity, climbing stairs.",
+    "uzL": "Nafas qisilishi, jismoniy harakatda kuchayadi, zinadan chiqishda."
+  },
+  {
+    "k": "tmpl_pulmo_comp_10",
+    "en": "Chest tightness, angina suspected or pleurisy.",
+    "uzL": "Ko'krak qafasida siqilish, stenokardiya ekv. yoki plevrit."
+  },
+  {
+    "k": "tmpl_pulmo_comp_11",
+    "en": "Acute bronchitis: fever, cough, after URI.",
+    "uzL": "O'tkir bronxit: isitma, yo'tal, O'RVI dan keyin."
+  },
+  {
+    "k": "tmpl_pulmo_comp_12",
+    "en": "Allergic cough, seasonal or dust-related.",
+    "uzL": "Allergik yo'tal, mavsumiy yoki changdan."
+  },
+  {
+    "k": "tmpl_pulmo_comp_13",
+    "en": "Pneumonia history, ongoing shortness of breath after.",
+    "uzL": "Pnevmoniya o'tkazgan, keyin nafas qisilishi davom etadi."
+  },
+  {
+    "k": "tmpl_pulmo_comp_14",
+    "en": "Tuberculosis suspected: prolonged cough, weight loss, night sweats.",
+    "uzL": "Tuberkulyoz ekv.: uzoq yo'tal, vazn tushishi, kecha terlash."
+  },
+  {
+    "k": "tmpl_pulmo_comp_15",
+    "en": "Pleural effusion suspected, shortness of breath and chest pain.",
+    "uzL": "Plevral effuziya shubha, nafas qisilishi va ko'krak og'rig'i."
+  },
+  {
+    "k": "tmpl_pulmo_comp_16",
+    "en": "Asthma: episodes, with allergen or exertion.",
+    "uzL": "Astma: xurujlar, allergen yoki zo'riqishda."
+  },
+  {
+    "k": "tmpl_pulmo_comp_17",
+    "en": "Interstitial lung disease suspected.",
+    "uzL": "Interstitsial o'pka kasalligi shubha."
+  },
+  {
+    "k": "tmpl_pulmo_comp_18",
+    "en": "Pulmonary evaluation, X-ray or CT needed.",
+    "uzL": "Pulmonologik tekshiruv, rentgen yoki KT kerak."
+  },
+  {
+    "k": "tmpl_pulmo_comp_2",
+    "en": "Chest pain, worsens with breathing, pleurisy or muscle.",
+    "uzL": "Ko'krak og'rig'i, nafas olishda kuchayadi, plevrit yoki mushak."
+  },
+  {
+    "k": "tmpl_pulmo_comp_3",
+    "en": "Air hunger, suffocation feeling, with stress or at rest.",
+    "uzL": "Havo yetishmasligi, bo'g'ilish hissi, stressda yoki dam olishda."
+  },
+  {
+    "k": "tmpl_pulmo_comp_4",
+    "en": "Sputum production, color change, green or yellow.",
+    "uzL": "Balg'am ajralishi, rang o'zgarishi, yashil yoki sariq."
+  },
+  {
+    "k": "tmpl_pulmo_comp_5",
+    "en": "Fever, cough, shortness of breath together, pneumonia suspected.",
+    "uzL": "Isitma, yo'tal, nafas qisilishi bilan birga, pnevmoniya shubha."
+  },
+  {
+    "k": "tmpl_pulmo_comp_6",
+    "en": "Wheezing, expiratory wheeze, bronchial asthma.",
+    "uzL": "Vizillik, nafas chiqarishda xirillash, bronxial astma."
+  },
+  {
+    "k": "tmpl_pulmo_comp_7",
+    "en": "Bloody cough, pleural or bronchial suspected.",
+    "uzL": "Qon aralash yo'tal, plevra yoki bronxial shubha."
+  },
+  {
+    "k": "tmpl_pulmo_comp_8",
+    "en": "Chronic cough, smoking history, COPD suspected.",
+    "uzL": "Surunkali yo'tal, chekish anamnezi, KOAB shubha."
+  },
+  {
+    "k": "tmpl_pulmo_comp_9",
+    "en": "Nocturnal apnea, episodes, sleep apnea.",
+    "uzL": "Tunda nafas to'xtashi, xurujlar, uyqu apnoe."
+  },
+  {
+    "k": "tmpl_pulmo_hist_0",
+    "en": "Long smoking history, still smoking or quit.",
+    "uzL": "Chekish staji uzoq, hozir ham chekadi yoki to'xtatgan."
+  },
+  {
+    "k": "tmpl_pulmo_hist_1",
+    "en": "Chronic bronchitis or COPD diagnosis, bronchodilators.",
+    "uzL": "Surunkali bronxit yoki KOAB tashxisi bor, bronxodilatatorlar."
+  },
+  {
+    "k": "tmpl_pulmo_hist_2",
+    "en": "Pneumonia experienced several times.",
+    "uzL": "Pnevmoniya bir necha marta o'tkazgan."
+  },
+  {
+    "k": "tmpl_pulmo_hist_3",
+    "en": "Tuberculosis suspected or in family, evaluation performed.",
+    "uzL": "Tuberkulyoz ekv. yoki oilada bor, tekshiruv o'tkazilgan."
+  },
+  {
+    "k": "tmpl_pulmo_hist_4",
+    "en": "Asthma from childhood or later, allergen known.",
+    "uzL": "Astma bolalikdan yoki keyinroq, allergen ma'lum."
+  },
+  {
+    "k": "tmpl_pulmo_hist_5",
+    "en": "Allergic rhinitis, seasonal or perennial.",
+    "uzL": "Allergik rinit, mavsumiy yoki doimiy."
+  },
+  {
+    "k": "tmpl_pulmo_hist_6",
+    "en": "Chest X-ray or CT previously performed.",
+    "uzL": "Ko'krak rentgeni yoki KT ilgari o'tkazilgan."
+  },
+  {
+    "k": "tmpl_pulmo_hist_7",
+    "en": "Sleep apnea suspected or CPAP.",
+    "uzL": "Uyquda nafas to'xtashi (apnoe) shubha yoki CPAP."
+  },
+  {
+    "k": "tmpl_reuma_comp_0",
+    "en": "Joint pain and swelling, symmetric in both hands/feet.",
+    "uzL": "Bo'g'imlarda og'riq va shish, ikkala qo'l/oyoqda simmetrik."
+  },
+  {
+    "k": "tmpl_reuma_comp_1",
+    "en": "Morning stiffness, improves with movement.",
+    "uzL": "Ertalab qotish, harakatdan keyin yaxshilanadi."
+  },
+  {
+    "k": "tmpl_reuma_comp_2",
+    "en": "Skin rash, on face or with sun exposure.",
+    "uzL": "Terida toshma, yuzda yoki quyosh ta'sirida."
+  },
+  {
+    "k": "tmpl_reuma_comp_3",
+    "en": "General weakness, fatigue, subfebrile fever.",
+    "uzL": "Umumiy zaiflik, charchash, isitma subfebril."
+  },
+  {
+    "k": "tmpl_reuma_comp_4",
+    "en": "Rheumatoid arthritis monitoring, MTX or other drugs.",
+    "uzL": "Revmatoid artrit kuzatuvda, MTX yoki boshqa dorilar."
+  },
+  {
+    "k": "tmpl_reuma_comp_5",
+    "en": "Osteoarthritis: knee or hip joint pain.",
+    "uzL": "Artroz: tizza yoki son bo'g'imida og'riq."
+  },
+  {
+    "k": "tmpl_reuma_comp_6",
+    "en": "Osteoporosis, fracture risk.",
+    "uzL": "Osteoporoz, suyak sinishi xavfi."
+  },
+  {
+    "k": "tmpl_reuma_comp_7",
+    "en": "Behcet or other vasculitis suspected.",
+    "uzL": "Behchet yoki boshqa vaskulit shubha."
+  },
+  {
+    "k": "tmpl_reuma_comp_8",
+    "en": "Rheumatological evaluation and blood test needed.",
+    "uzL": "Revmatologik tekshiruv va qon tahlili kerak."
+  },
+  {
+    "k": "tmpl_reuma_hist_0",
+    "en": "Rheumatoid arthritis or other autoimmune disease.",
+    "uzL": "Revmatoid artrit yoki boshqa autoimmun kasallik."
+  },
+  {
+    "k": "tmpl_reuma_hist_1",
+    "en": "Joint surgery or endoprosthesis.",
+    "uzL": "Bo'g'im jarrohligi yoki endoprotez."
+  },
+  {
+    "k": "tmpl_reuma_hist_2",
+    "en": "Taking corticosteroids or MTX.",
+    "uzL": "Kortikosteroidlar yoki MTX qabul qilgan."
+  },
+  {
+    "k": "tmpl_therapist_comp_0",
+    "en": "General malaise, easy fatigue, no fever or subfebrile.",
+    "uzL": "Umumiy holsizlik, tez charchash, isitma yo'q yoki subfebril."
+  },
+  {
+    "k": "tmpl_therapist_comp_1",
+    "en": "Prolonged fever, with cough or other infection signs.",
+    "uzL": "Isitma uzoq davom etadi, yo'tal yoki boshqa infeksiya belgilari bilan."
+  },
+  {
+    "k": "tmpl_therapist_comp_10",
+    "en": "URI: fever, cough, runny nose, sore throat.",
+    "uzL": "O'RVI: isitma, yo'tal, burun oqishi, bo'g'oz og'rig'i."
+  },
+  {
+    "k": "tmpl_therapist_comp_11",
+    "en": "Breathing difficulty, chest tightness, worsens with physical activity.",
+    "uzL": "Nafas olish qiyin, ko'krak siqilishi, jismoniy harakatda kuchayadi."
+  },
+  {
+    "k": "tmpl_therapist_comp_12",
+    "en": "Chest pain, worsens with breathing, pleurisy or muscle pain.",
+    "uzL": "Ko'krak og'rig'i, nafas olishda kuchayadi, plevrit yoki mushak og'rig'i."
+  },
+  {
+    "k": "tmpl_therapist_comp_13",
+    "en": "Enlarged lymph nodes, neck or elsewhere, painful or painless.",
+    "uzL": "Lymph tugunlari kattalashgan, bo'yin yoki boshqa joyda, og'riqli yoki og'riqsiz."
+  },
+  {
+    "k": "tmpl_therapist_comp_14",
+    "en": "Pneumonia suspected: fever, cough, shortness of breath, chest pain.",
+    "uzL": "Pnevmoniya shubha: isitma, yo'tal, nafas qisilishi, ko'krak og'rig'i."
+  },
+  {
+    "k": "tmpl_therapist_comp_15",
+    "en": "Chronic bronchitis or COPD, cough and sputum prolonged.",
+    "uzL": "Surunkali bronxit yoki KOAB, yo'tal va balg'am uzoq davom etadi."
+  },
+  {
+    "k": "tmpl_therapist_comp_16",
+    "en": "Allergic rhinitis, bronchial asthma, seasonal or perennial.",
+    "uzL": "Allergik rinit, bronxial astma, mavsumiy yoki doimiy."
+  },
+  {
+    "k": "tmpl_therapist_comp_17",
+    "en": "General check-up, preventive examination, no specific complaints.",
+    "uzL": "Umumiy tekshiruv, profilaktik ko'rik, hech qanday aniq shikoyat yo'q."
+  },
+  {
+    "k": "tmpl_therapist_comp_18",
+    "en": "Blood clot or thrombosis history.",
+    "uzL": "Qon quyqasi yoki tromboz tarixi."
+  },
+  {
+    "k": "tmpl_therapist_comp_19",
+    "en": "Immunity decreased, frequent infections.",
+    "uzL": "Immunitet pasaygan, tez-tez infeksiya."
+  },
+  {
+    "k": "tmpl_therapist_comp_2",
+    "en": "Loss of appetite, weight loss, weakness — chronic or new.",
+    "uzL": "Ishtaha yo'q, vazn tushdi, zaiflik — surunkali yoki yangi."
+  },
+  {
+    "k": "tmpl_therapist_comp_20",
+    "en": "Heaviness in liver or gallbladder area.",
+    "uzL": "Jigar yoki o't sohasida og'irilik."
+  },
+  {
+    "k": "tmpl_therapist_comp_21",
+    "en": "Kidney or urinary tract complaints.",
+    "uzL": "Buyrak yoki siydik yo'llari shikoyatlari."
+  },
+  {
+    "k": "tmpl_therapist_comp_22",
+    "en": "X-ray or CT results available.",
+    "uzL": "Rentgen yoki KT natijalari mavjud."
+  },
+  {
+    "k": "tmpl_therapist_comp_3",
+    "en": "Joint pain and stiffness, swelling, worse with movement.",
+    "uzL": "Bo'g'imlarda og'riq va qotish, shish, harakatda kuchayadi."
+  },
+  {
+    "k": "tmpl_therapist_comp_4",
+    "en": "Dry or productive cough, shortness of breath, URI or bronchitis.",
+    "uzL": "Yo'tal quruq yoki balg'amli, nafas qisilishi, O'RVI yoki bronxit."
+  },
+  {
+    "k": "tmpl_therapist_comp_5",
+    "en": "Skin rash, itching, allergic reaction or infection suspected.",
+    "uzL": "Terida toshmalar, qichishish, allergik reaksiya yoki infektsiya shubha."
+  },
+  {
+    "k": "tmpl_therapist_comp_6",
+    "en": "Sleep and mood disorder, depression or anxiety suspected.",
+    "uzL": "Uyqu va kayfiyat buzilishi, depressiya yoki bezovtalik shubha."
+  },
+  {
+    "k": "tmpl_therapist_comp_7",
+    "en": "Variable blood pressure, headache, high or low pressure.",
+    "uzL": "Qon bosimi o'zgaruvchan, bosh og'rig'i, bosim yuqori yoki past."
+  },
+  {
+    "k": "tmpl_therapist_comp_8",
+    "en": "Anemia: weakness, pallor, dizziness, pale lips.",
+    "uzL": "Anemiya: zaiflik, rangparlik, bosh aylanishi, lablar oq."
+  },
+  {
+    "k": "tmpl_therapist_comp_9",
+    "en": "Condition worsened on chronic disease background, compensation disrupted.",
+    "uzL": "Surunkali kasallik fonida ahvol yomonlashdi, kompensatsiya buzilgan."
+  },
+  {
+    "k": "tmpl_therapist_hist_0",
+    "en": "General condition worsened in recent month on chronic disease background.",
+    "uzL": "Surunkali kasalliklar fonida so'nggi oyda umumiy ahvol yomonlashgan."
+  },
+  {
+    "k": "tmpl_therapist_hist_1",
+    "en": "Frequent URI in last 2-3 months.",
+    "uzL": "So'nggi 2–3 oy davomida tez-tez O'RVI bilan og'rigan."
+  },
+  {
+    "k": "tmpl_therapist_hist_10",
+    "en": "Tuberculosis suspected or in family, evaluation recommended.",
+    "uzL": "Tuberkulyoz ekv. yoki oilada bor, tekshiruv tavsiya etilgan."
+  },
+  {
+    "k": "tmpl_therapist_hist_11",
+    "en": "Physical activity insufficient, sleep regimen disrupted.",
+    "uzL": "Jismoniy faollik yetarli emas, uyqu rejimi buzilgan."
+  },
+  {
+    "k": "tmpl_therapist_hist_12",
+    "en": "Complete blood count and biochemistry needed.",
+    "uzL": "Qon umumiy tahlili va biokimyosi kerak."
+  },
+  {
+    "k": "tmpl_therapist_hist_13",
+    "en": "Chest X-ray or CT previously performed.",
+    "uzL": "Ko'krak rentgeni yoki KT ilgari o'tkazilgan."
+  },
+  {
+    "k": "tmpl_therapist_hist_2",
+    "en": "Dietary regimen disrupted, daily ration unbalanced.",
+    "uzL": "Ovqatlanish tartibi buzilgan, kunlik ratsion balanssiz."
+  },
+  {
+    "k": "tmpl_therapist_hist_3",
+    "en": "Self-treatment at home, medications taken without control.",
+    "uzL": "Uyda o'z-o'zini davolash, dorilarni nazoratsiz qabul qilgan."
+  },
+  {
+    "k": "tmpl_therapist_hist_4",
+    "en": "Not attending preventive check-ups for long time.",
+    "uzL": "Profilaktik ko'riklarga uzoq vaqtdan beri qatnashmagan."
+  },
+  {
+    "k": "tmpl_therapist_hist_5",
+    "en": "Allergic history positive, seasonal rhinitis or rashes.",
+    "uzL": "Allergik anamnez ijobiy, mavsumiy rinit yoki toshmalar."
+  },
+  {
+    "k": "tmpl_therapist_hist_6",
+    "en": "Anemia previously identified with laboratory changes.",
+    "uzL": "Anemiya bo'yicha ilgari laborator o'zgarishlar aniqlangan."
+  },
+  {
+    "k": "tmpl_therapist_hist_7",
+    "en": "Vaccinations not according to schedule or not performed.",
+    "uzL": "Emlashlar kalendarga mos emas yoki o'tkazilmagan."
+  },
+  {
+    "k": "tmpl_therapist_hist_8",
+    "en": "Chronic bronchitis or COPD, taking bronchodilators.",
+    "uzL": "Surunkali bronxit yoki KOAB, bronxodilatatorlar qabul qiladi."
+  },
+  {
+    "k": "tmpl_therapist_hist_9",
+    "en": "Pneumonia experienced, X-ray improved, follow-up.",
+    "uzL": "Pnevmoniya o'tkazgan, rentgen da yaxshilangan, keyingi kuzatuv."
+  },
+  {
+    "k": "tmpl_uro_comp_0",
+    "en": "Pain or burning during urination.",
+    "uzL": "Siydik chiqarishda og'riq yoki kuyish."
+  },
+  {
+    "k": "tmpl_uro_comp_1",
+    "en": "Frequent urination (pollakiuria), also at night.",
+    "uzL": "Tez-tez siyishga chiqish (pollakiuriya), kechasi ham."
+  },
+  {
+    "k": "tmpl_uro_comp_10",
+    "en": "Urological evaluation and ultrasound needed.",
+    "uzL": "Urologik tekshiruv va USG kerak."
+  },
+  {
+    "k": "tmpl_uro_comp_2",
+    "en": "Blood in urine, macro or microscopic hematuria.",
+    "uzL": "Siydikda qon, makro yoki mikro gematuriya."
+  },
+  {
+    "k": "tmpl_uro_comp_3",
+    "en": "Suprapubic pain, sudden urge, incontinence.",
+    "uzL": "Peshnobda og'riq, to'satdan xohish, inkontinensiya."
+  },
+  {
+    "k": "tmpl_uro_comp_4",
+    "en": "Back pain in kidney area, one-sided, kidney stone suspected.",
+    "uzL": "Orqa belda og'riq, bir tomonda, buyrak toshi ekv."
+  },
+  {
+    "k": "tmpl_uro_comp_5",
+    "en": "Weak or interrupted urine stream, prostate suspected.",
+    "uzL": "Peshnob oqimi zaif yoki uziladi, prostata shubha."
+  },
+  {
+    "k": "tmpl_uro_comp_6",
+    "en": "Cannot hold urine in bed.",
+    "uzL": "Toshakda peshnobni ushlab turolmaydi."
+  },
+  {
+    "k": "tmpl_uro_comp_7",
+    "en": "Sexual dysfunction, erectile dysfunction.",
+    "uzL": "Jinsiy funksiya buzilishi, erectil disfunktsiya."
+  },
+  {
+    "k": "tmpl_uro_comp_8",
+    "en": "Enlarged prostate, LUTS symptoms.",
+    "uzL": "Prostata kattalashgan, LUTS alomatlari."
+  },
+  {
+    "k": "tmpl_uro_comp_9",
+    "en": "Kidney stone or urinary tract infection treated.",
+    "uzL": "Buyrak toshi yoki siydik yo'llari infeksiyasi davolangan."
+  },
+  {
+    "k": "tmpl_uro_hist_0",
+    "en": "Urinary tract infections recur.",
+    "uzL": "Siydik yo'llari infeksiyasi takrorlanadi."
+  },
+  {
+    "k": "tmpl_uro_hist_1",
+    "en": "Kidney stone or prostate disease present.",
+    "uzL": "Buyrak toshi yoki prostata kasalligi bor."
+  },
+  {
+    "k": "tmpl_uro_hist_2",
+    "en": "Prostate surgery or LUTS treated.",
+    "uzL": "Prostata operatsiyasi yoki LUTS davolangan."
+  },
+  {
+    "k": "tmpl_uro_hist_3",
+    "en": "Urologist evaluation and ultrasound performed.",
+    "uzL": "Urolog tekshiruv va USG o'tkazilgan."
+  }
+]

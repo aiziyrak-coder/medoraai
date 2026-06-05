@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from accounts.permissions import IsAuthenticatedWithSubscription
 from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from accounts.group_scope import clinic_peer_user_ids
@@ -18,7 +19,7 @@ from .serializers import (
 class PatientViewSet(viewsets.ModelViewSet):
     """Patient CRUD operations"""
     queryset = Patient.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['gender']
     search_fields = ['first_name', 'last_name', 'phone', 'complaints']

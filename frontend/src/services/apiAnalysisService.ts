@@ -363,3 +363,11 @@ export const getAnalysisAuditLog = async (analysisId: number): Promise<ApiRespon
   }
   return res as ApiResponse<AuditLogEntry[]>;
 };
+
+/** Shifokor yakuniy hisobotni klinik tasdiqlash */
+export const physicianSignAnalysis = async (
+  analysisId: number,
+  note = '',
+): Promise<ApiResponse<{ signed_at: string; signed_by: string }>> => {
+  return apiPost(`/analyses/${analysisId}/physician-sign/`, { note });
+};

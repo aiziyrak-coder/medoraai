@@ -3,12 +3,18 @@ import type { AnalysisRecord, UserStats } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import AnalyticsHubPanel from './dashboard/AnalyticsHubPanel';
 import { useTranslation } from '../hooks/useTranslation';
+import type { Language } from '../i18n/LanguageContext';
 
 interface DashboardProps {
     userName: string;
     onNewAnalysis: () => void;
     onViewHistory: () => void;
     onOpenUziUtt?: () => void;
+    onOpenTools?: () => void;
+    onOpenCheckUp?: () => void;
+    onOpenTelemedicine?: () => void;
+    onOpenResearch?: () => void;
+    onOpenPatientPortal?: () => void;
     recentAnalyses: AnalysisRecord[];
     allAnalyses: AnalysisRecord[];
     onSelectAnalysis: (record: AnalysisRecord) => void;
@@ -43,11 +49,17 @@ const EcgLine: React.FC = () => (
     </svg>
 );
 
-function getDateStr() {
-    const d = new Date();
-    const days   = ['Yak', 'Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sha'];
-    const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Nov', 'Dek'];
-    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+const DATE_LOCALE: Record<Language, string> = {
+    'uz-L': 'uz-Latn-UZ',
+    'uz-C': 'uz-Cyrl-UZ',
+    ru: 'ru-RU',
+    en: 'en-GB',
+    kaa: 'kk-KZ',
+};
+
+function getDateStr(language: Language) {
+    const locale = DATE_LOCALE[language] ?? 'en-GB';
+    return new Date().toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 function getTimeStr() {
     return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -64,11 +76,12 @@ const glass: React.CSSProperties = {
 
 const Dashboard: React.FC<DashboardProps> = ({
     userName, onNewAnalysis, onViewHistory, onOpenUziUtt,
+    onOpenTools, onOpenCheckUp, onOpenTelemedicine, onOpenResearch, onOpenPatientPortal,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t, language } = useTranslation();
 
-    const uziStripFallback: Record<'uz-L' | 'uz-C' | 'ru' | 'en', { badge: string; title: string; subtitle: string; open: string }> = {
+    const uziStripFallback: Record<'uz-L' | 'uz-C' | 'ru' | 'en' | 'kaa', { badge: string; title: string; subtitle: string; open: string }> = {
         'uz-L': {
             badge: 'Tasvirlash',
             title: 'UTT / UZI — chuqur AI tahlil',
@@ -93,12 +106,18 @@ const Dashboard: React.FC<DashboardProps> = ({
             subtitle: 'Images or PDF • subspecialty-style structured report',
             open: 'Open',
         },
+        kaa: {
+            badge: 'Taswirlaw',
+            title: 'UTT / UZI — teren AI tahlil',
+            subtitle: 'Súwret yamasa PDF • sistemalıq xulosa',
+            open: 'Ashıw',
+        },
     };
 
     const trSafe = (key: 'uzi_utt_badge' | 'uzi_utt_strip_title' | 'uzi_utt_strip_subtitle' | 'uzi_utt_open') => {
         const v = t(key);
         if (v !== key) return v;
-        const fb = uziStripFallback[language];
+        const fb = uziStripFallback[language] ?? uziStripFallback['uz-L'];
         if (key === 'uzi_utt_badge') return fb.badge;
         if (key === 'uzi_utt_strip_title') return fb.title;
         if (key === 'uzi_utt_strip_subtitle') return fb.subtitle;
@@ -121,17 +140,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div>
                     <p className="text-xs font-mono font-bold tracking-[0.22em] uppercase mb-2"
                        style={{ color: '#0891b2' }}>
-                        {getDateStr()}
+                        {getDateStr(language)}
                     </p>
                     <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight leading-tight sm:leading-none">
-                        <span className="text-slate-700">Salom Doktor </span>
+                        <span className="text-slate-700">{t('dashboard_hello_doctor')}</span>
                         <span style={{
                             background: 'linear-gradient(90deg, #0891b2 0%, #059669 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             filter: 'drop-shadow(0 0 8px rgba(8,145,178,0.25))',
                         }}>
-                            {userName || 'Hamkasb!'}
+                            {userName || t('dashboard_colleague_fallback')}
                         </span>
                     </h1>
                 </div>
@@ -147,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <span className="w-2.5 h-2.5 rounded-full animate-dot-pulse"
                               style={{ background: '#059669', boxShadow: '0 0 8px #059669' }} />
                         <span className="text-xs font-mono font-black tracking-widest uppercase text-emerald-700">
-                            AI ONLINE
+                            {t('dashboard_ai_online')}
                         </span>
                     </div>
                     <div className="px-3 py-2 rounded-full text-xs font-mono font-bold text-sky-700"
@@ -255,6 +274,49 @@ const Dashboard: React.FC<DashboardProps> = ({
                         <AnalyticsHubPanel stats={stats} allAnalyses={allAnalyses} />
                     </div>
                 </div>
+
+                {/* Modullar — tezkor kirish */}
+                {(onOpenTools || onOpenCheckUp || onOpenTelemedicine || onOpenResearch || onOpenPatientPortal) && (
+                    <div className="lg:col-span-12">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+                            {onOpenTools && (
+                                <button type="button" onClick={onOpenTools} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
+                                    <p className="text-lg mb-1" aria-hidden>🧰</p>
+                                    <p className="text-xs font-bold text-slate-800 leading-tight">{t('mod_tools_title')}</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{t('mod_tools_desc')}</p>
+                                </button>
+                            )}
+                            {onOpenCheckUp && (
+                                <button type="button" onClick={onOpenCheckUp} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
+                                    <p className="text-lg mb-1" aria-hidden>🩺</p>
+                                    <p className="text-xs font-bold text-slate-800 leading-tight">{t('mod_checkup_title')}</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{t('mod_checkup_desc')}</p>
+                                </button>
+                            )}
+                            {onOpenTelemedicine && (
+                                <button type="button" onClick={onOpenTelemedicine} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
+                                    <p className="text-lg mb-1" aria-hidden>📹</p>
+                                    <p className="text-xs font-bold text-slate-800 leading-tight">{t('mod_telemedicine_title')}</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{t('mod_telemedicine_desc')}</p>
+                                </button>
+                            )}
+                            {onOpenResearch && (
+                                <button type="button" onClick={onOpenResearch} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
+                                    <p className="text-lg mb-1" aria-hidden>🔬</p>
+                                    <p className="text-xs font-bold text-slate-800 leading-tight">{t('mod_research_title')}</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{t('mod_research_desc')}</p>
+                                </button>
+                            )}
+                            {onOpenPatientPortal && (
+                                <button type="button" onClick={onOpenPatientPortal} className="text-left p-3 rounded-xl transition-all hover:shadow-md" style={glass}>
+                                    <p className="text-lg mb-1" aria-hidden>👤</p>
+                                    <p className="text-xs font-bold text-slate-800 leading-tight">{t('mod_patient_portal_title')}</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{t('mod_patient_portal_desc')}</p>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* UTT/UZI — hero va analitikadan keyin, so‘nggi tahlillardan oldin */}
                 {onOpenUziUtt && (

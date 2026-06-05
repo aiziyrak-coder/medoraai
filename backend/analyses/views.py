@@ -6,6 +6,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from accounts.permissions import IsAuthenticatedWithSubscription
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from accounts.group_scope import clinic_peer_user_ids
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 class AnalysisRecordViewSet(viewsets.ModelViewSet):
     """Analysis Record CRUD operations"""
     queryset = AnalysisRecord.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['patient']
     search_fields = ['patient__first_name', 'patient__last_name', 'external_patient_id']
@@ -92,6 +93,26 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 'extra': log.extra,
             })
         return Response({'success': True, 'data': data})
+
+    @action(detail=True, methods=['post'], url_path='physician-sign')
+    def physician_sign(self, request, pk=None):
+        """Shifokor yakuniy hisobotni klinik jihatdan tasdiqlaydi."""
+        from django.utils import timezone as dj_tz
+        analysis = self.get_object()
+        note = (request.data.get('note') or '').strip()[:2000]
+        analysis.physician_signed_at = dj_tz.now()
+        analysis.physician_signed_by = request.user
+        analysis.physician_sign_note = note
+        analysis.save(update_fields=['physician_signed_at', 'physician_signed_by', 'physician_sign_note', 'updated_at'])
+        self._log_audit(analysis, 'updated', extra={'physician_sign': True, 'note': note[:200]})
+        return Response({
+            'success': True,
+            'message': 'Hisobot tasdiqlandi',
+            'data': {
+                'signed_at': analysis.physician_signed_at.isoformat(),
+                'signed_by': getattr(request.user, 'name', None) or str(request.user),
+            },
+        })
 
     @action(detail=True, methods=['post'], url_path='usefulness-feedback')
     def usefulness_feedback(self, request, pk=None):
@@ -166,7 +187,7 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             'count_last_7d': 0,
             'count_last_30d': 0,
             'common_diagnoses': [],
-            'feedback_accuracy': 0.96,
+            'feedback_accuracy': None,
         }
 
         try:
@@ -206,13 +227,19 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 )[:8]
             ]
 
+            from .models import AnalysisUsefulnessFeedback
+            fb_qs = AnalysisUsefulnessFeedback.objects.filter(analysis__in=queryset)
+            fb_total = fb_qs.count()
+            fb_positive = fb_qs.filter(useful=True).count()
+            feedback_accuracy = round(fb_positive / fb_total, 3) if fb_total > 0 else None
+
             data = {
                 'total_analyses': total_analyses,
                 'count_last_24h': count_last_24h,
                 'count_last_7d': count_last_7d,
                 'count_last_30d': count_last_30d,
                 'common_diagnoses': common_diagnoses_list,
-                'feedback_accuracy': 0.96,
+                'feedback_accuracy': feedback_accuracy,
             }
 
             try:

@@ -31,10 +31,13 @@ import DataInputForm from './components/DataInputForm';
 const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
 const ResearchView = lazy(() => import('./components/ResearchView'));
+const ToolsDashboard = lazy(() => import('./components/ToolsDashboard'));
+const CheckUpModule = lazy(() => import('./components/CheckUpModule'));
+const TelemedicineHub = lazy(() => import('./components/TelemedicineHub'));
+const PatientPortalView = lazy(() => import('./components/PatientPortalView'));
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
 import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
-import LiveConsultationView from './components/LiveConsultationView';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
 const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
@@ -221,6 +224,9 @@ const AppContent: React.FC = () => {
     const [recommendedTeam, setRecommendedTeam] = useState<{ model: AIModel; reason: string }[] | null>([]);
     const [socraticQuestion, setSocraticQuestion] = useState<string | null>(null);
     const [livePrognosis, setLivePrognosis] = useState<PrognosisReport | null>(null);
+    const [followUpHistory, setFollowUpHistory] = useState<{ question: string; answer: string }[]>([]);
+    const [isFollowUpAnalyzing, setIsFollowUpAnalyzing] = useState(false);
+    const [isFollowUpFinalized, setIsFollowUpFinalized] = useState(false);
 
     const [userHistory, setUserHistory] = useState<AnalysisRecord[]>([]);
     const [dashboardStats, setDashboardStats] = useState<UserStats | null>(null);
@@ -232,7 +238,17 @@ const AppContent: React.FC = () => {
     const [clarificationQuestions, setClarificationQuestions] = useState<string[] | null>([]);
     
     const debateScrollRef = useRef<HTMLDivElement>(null);
+    const debateHistoryRef = useRef<ChatMessage[]>([]);
+    const livePrognosisRef = useRef<PrognosisReport | null>(null);
     const { apiHealthy, healthStatus, checkNow } = useApiHealth();
+
+    useEffect(() => {
+        debateHistoryRef.current = debateHistory;
+    }, [debateHistory]);
+
+    useEffect(() => {
+        livePrognosisRef.current = livePrognosis;
+    }, [livePrognosis]);
 
     useEffect(() => {
         if (debateScrollRef.current) {
@@ -243,15 +259,29 @@ const AppContent: React.FC = () => {
     const handleProgress = useCallback((update: ProgressUpdate) => {
         switch (update.type) {
             case 'status': setStatusMessage(update.message); break;
-            case 'message': setDebateHistory(prev => [...prev, update.message]); break;
+            case 'message': {
+                setDebateHistory(prev => {
+                    const next = [...prev, update.message];
+                    debateHistoryRef.current = next;
+                    return next;
+                });
+                break;
+            }
             case 'critical_finding': setCriticalFinding(update.data); break;
             case 'user_question': setSocraticQuestion(update.question); break;
-            case 'prognosis_update': setLivePrognosis(update.data); break;
+            case 'prognosis_update': {
+                livePrognosisRef.current = update.data;
+                setLivePrognosis(update.data);
+                break;
+            }
             case 'report': {
                 const reportData = update.data;
+                const savedDebate = update.debateHistory ?? debateHistoryRef.current;
+                debateHistoryRef.current = savedDebate;
+                setDebateHistory(savedDebate);
                 const mergedReport: FinalReport = {
                     ...reportData,
-                    prognosisReport: livePrognosis ?? reportData.prognosisReport,
+                    prognosisReport: reportData.prognosisReport ?? livePrognosisRef.current ?? livePrognosis,
                     rejectedHypotheses: Array.isArray(reportData.rejectedHypotheses) && reportData.rejectedHypotheses.length > 0
                         ? reportData.rejectedHypotheses.map((h: { name?: string; reason?: string }) => ({ name: String(h?.name ?? ''), reason: String(h?.reason ?? '') }))
                         : (reportData.rejectedHypotheses ?? []),
@@ -263,11 +293,11 @@ const AppContent: React.FC = () => {
                 const detectedMeds = update.type === 'report' ? (update as { detectedMedications: DetectedMedication[] }).detectedMedications : [];
                 if (currentUser && patientData) {
                     const newRecord: AnalysisRecord = {
-                        id: currentAnalysisRecord?.id || new Date().toISOString(),
+                        id: currentAnalysisRecord?.id || `local-${Date.now()}`,
                         patientId: currentAnalysisRecord?.patientId || `${patientData.lastName}-${patientData.firstName}-${Date.now()}`,
                         date: new Date().toISOString(),
                         patientData,
-                        debateHistory,
+                        debateHistory: savedDebate,
                         finalReport: mergedReport,
                         followUpHistory: [],
                         selectedSpecialists: selectedSpecialistsConfig.map(s => s.role),
@@ -337,13 +367,11 @@ const AppContent: React.FC = () => {
                                     });
                                 } else {
                                     const errCode = createRes.error?.code;
-                                    setError(errCode === 401 ? (t('error_save_server_login') || "Tahlilni serverga saqlash uchun tizimga kiring. Tahlil serverga saqlanmadi.") : (createRes.error?.message || "Tahlil serverga saqlanmadi."));
-                                    applyHistoryAndRecord([], newRecord);
+                                    setError(errCode === 401 ? t('error_save_server_login') : (createRes.error?.message || t('error_save_analysis_failed')));
                                 }
                             }).catch((err: unknown) => {
-                                applyHistoryAndRecord([], newRecord);
                                 const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : null;
-                                setError(msg || "Serverga ulanishda xatolik. Tahlil serverga saqlanmadi.");
+                                setError(msg || t('error_save_connection_failed'));
                             });
                         };
 
@@ -358,7 +386,7 @@ const AppContent: React.FC = () => {
                                     applyHistoryAndRecord([], newRecord);
                                     const errMsg = patientResponse.error?.message;
                                     const errCode = patientResponse.error?.code;
-                                    setError(errCode === 401 ? (t('error_save_server_login') || "Tahlilni serverga saqlash uchun tizimga kiring. Tahlil serverga saqlanmadi.") : (errMsg || "Bemor serverga saqlanmadi."));
+                                    setError(errCode === 401 ? t('error_save_server_login') : (errMsg || t('error_save_patient_failed')));
                                     return;
                                 }
                                 const raw = patientResponse.data as { id?: number; data?: { id?: number } } | undefined;
@@ -367,19 +395,19 @@ const AppContent: React.FC = () => {
                                     : 0;
                                 if (patientId <= 0) {
                                     applyHistoryAndRecord([], newRecord);
-                                    setError("Bemor yaratildi, lekin ID olinmadi. Iltimos, qayta urinib ko'ring.");
+                                    setError(t('error_patient_id_missing'));
                                     return;
                                 }
                                 doCreateAnalysis(patientId);
                             }).catch(() => {
                                 applyHistoryAndRecord([], newRecord);
-                                setError("Bemor yoki tahlil serverga saqlanmadi.");
+                                setError(t('error_save_patient_or_analysis_failed'));
                             });
                         });
                     }).catch((err: unknown) => {
                         applyHistoryAndRecord([], newRecord);
                         const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : null;
-                        setError(msg || "Serverga saqlashda xatolik. Tahlil serverga saqlanmadi.");
+                        setError(msg || t('error_save_generic_failed'));
                     });
                 }
                 break;
@@ -451,6 +479,9 @@ const AppContent: React.FC = () => {
         setRecommendedTeam([]);
         setSocraticQuestion(null);
         setLivePrognosis(null);
+        setFollowUpHistory([]);
+        setIsFollowUpAnalyzing(false);
+        setIsFollowUpFinalized(false);
         setAppView('new_analysis');
     };
 
@@ -630,14 +661,28 @@ const AppContent: React.FC = () => {
                 const n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
                 if (n != null && n > 0) {
                     const res = await updatePatient(n, enrichedPatientData);
-                    if (res?.success !== false) setCreatedPatientId(n);
+                    if (res?.success !== false) {
+                        setCreatedPatientId(n);
+                    } else {
+                        setError(res.error?.message || t('error_patient_update_failed'));
+                        setIsProcessing(false);
+                        return;
+                    }
                 } else {
                     const res = await createPatient(enrichedPatientData);
                     const id = res?.data && (res.data as { id?: number }).id;
-                    if (id != null && Number(id) > 0) setCreatedPatientId(Number(id));
+                    if (res?.success && id != null && Number(id) > 0) {
+                        setCreatedPatientId(Number(id));
+                    } else {
+                        setError(res?.error?.message || t('error_patient_consilium_blocked'));
+                        setIsProcessing(false);
+                        return;
+                    }
                 }
             } catch {
-                // Report paytida qayta urinamiz
+                setError(t('error_patient_consilium_blocked'));
+                setIsProcessing(false);
+                return;
             }
         }
 
@@ -741,6 +786,75 @@ const AppContent: React.FC = () => {
         setDiagnosisFeedback(prev => ({ ...prev, [hypothesis.name]: 'injected-hypothesis' }));
     };
     
+    const persistFollowUpHistory = useCallback((history: { question: string; answer: string }[]) => {
+        if (!currentAnalysisRecord?.id || !patientData) return;
+        const analysisIdNum = parseInt(currentAnalysisRecord.id, 10);
+        if (isNaN(analysisIdNum) || analysisIdNum <= 0) return;
+        import('./services/apiAnalysisService').then(({ updateAnalysis }) => {
+            updateAnalysis(analysisIdNum, {
+                ...currentAnalysisRecord,
+                patientData,
+                followUpHistory: history,
+                finalReport: finalReport ?? currentAnalysisRecord.finalReport,
+                debateHistory,
+            });
+        }).catch(() => null);
+    }, [currentAnalysisRecord, patientData, finalReport, debateHistory]);
+
+    const handleFollowUpSubmit = useCallback(async (question: string) => {
+        if (!patientData || !finalReport) return;
+        setIsFollowUpAnalyzing(true);
+        try {
+            const context = [
+                `Konsilium tashxislari: ${(finalReport.consensusDiagnosis || []).map(d => d.name).join(', ')}`,
+                `Shifokor savoli: ${question}`,
+            ].join('\n');
+            let answer = '';
+            const { isApiConfigured } = await import('./config/api');
+            if (isApiConfigured()) {
+                const { runDoctorSupport, TASK_FOLLOW_UP } = await import('./services/apiAiService');
+                const resp = await runDoctorSupport(patientData, {
+                    query: context,
+                    taskType: TASK_FOLLOW_UP,
+                    language,
+                });
+                if (resp.success && resp.data) {
+                    const d = resp.data as Record<string, unknown>;
+                    const parts: string[] = [];
+                    if (typeof d.follow_up === 'string' && d.follow_up.trim()) parts.push(d.follow_up);
+                    if (typeof d.return_visit === 'string' && d.return_visit.trim()) {
+                        parts.push(`${t('follow_up_return_visit')}: ${d.return_visit}`);
+                    }
+                    for (const key of ['red_flag_symptoms', 'monitoring_at_home', 'repeat_tests', 'lifestyle_advice'] as const) {
+                        const arr = d[key];
+                        if (Array.isArray(arr) && arr.length) {
+                            parts.push(arr.map(String).join('; '));
+                        }
+                    }
+                    if (typeof d.emergency_contact === 'string' && d.emergency_contact.trim()) {
+                        parts.push(d.emergency_contact);
+                    }
+                    answer = parts.filter(Boolean).join('\n\n');
+                }
+            }
+            if (!answer) {
+                answer = t('follow_up_fallback_answer');
+            }
+            const next = [...followUpHistory, { question, answer }];
+            setFollowUpHistory(next);
+            persistFollowUpHistory(next);
+        } catch {
+            setError(t('follow_up_error_generic'));
+        } finally {
+            setIsFollowUpAnalyzing(false);
+        }
+    }, [patientData, finalReport, language, followUpHistory, persistFollowUpHistory, t]);
+
+    const handleFollowUpFinalize = useCallback(() => {
+        setIsFollowUpFinalized(true);
+        persistFollowUpHistory(followUpHistory);
+    }, [followUpHistory, persistFollowUpHistory]);
+
     const handleUpdateReport = useCallback((updatedReport: Partial<FinalReport>) => {
         const baseReport = (currentAnalysisRecord?.finalReport as FinalReport | undefined) ?? finalReport;
         if (!baseReport) return;
@@ -836,6 +950,11 @@ const AppContent: React.FC = () => {
                             onNewAnalysis={() => handleNavigation('new_analysis')}
                             onViewHistory={() => setAppView('history')}
                             onOpenUziUtt={() => setAppView('uzi_utt')}
+                            onOpenTools={() => setAppView('tools')}
+                            onOpenCheckUp={() => setAppView('check_up')}
+                            onOpenTelemedicine={() => setAppView('telemedicine')}
+                            onOpenResearch={() => setAppView('research')}
+                            onOpenPatientPortal={() => setAppView('patient_portal')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
                             onSelectAnalysis={viewHistoryItem}
@@ -891,7 +1010,15 @@ const AppContent: React.FC = () => {
 
             case 'live_analysis':
             case 'view_history_item': {
-                const record = { patientData, debateHistory, finalReport, selectedSpecialists: selectedSpecialistsConfig.map(s => s.role) };
+                const record: Partial<AnalysisRecord> = {
+                    id: currentAnalysisRecord?.id,
+                    patientId: currentAnalysisRecord?.patientId,
+                    patientData: patientData!,
+                    debateHistory,
+                    finalReport: finalReport ?? undefined,
+                    followUpHistory,
+                    selectedSpecialists: selectedSpecialistsConfig.map(s => s.role),
+                };
                 if (!record || !record.patientData) return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
                 const isArchive = appView === 'view_history_item' && !isProcessing && debateHistory.length > 0;
                 return (
@@ -904,7 +1031,7 @@ const AppContent: React.FC = () => {
                             backLabel={isArchive ? t('nav_archive') : t('back_to_home')}
                         />
                         <div className="flex-1 min-h-0 page-px py-3 overflow-hidden">
-                            <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} />
+                            <AnalysisView record={record} isLive={true} statusMessage={statusMessage} isAnalyzing={isProcessing} differentialDiagnoses={differentialDiagnoses} error={error} onDiagnosisFeedback={handleDiagnosisFeedback} diagnosisFeedback={diagnosisFeedback} onStartDebate={handleStartDebate} onInjectHypothesis={handleInjectHypothesis} onUserIntervention={handleUserIntervention} userIntervention={userIntervention} onExplainRationale={handleExplainRationale} socraticQuestion={socraticQuestion} livePrognosis={livePrognosis} onRunScenario={handleRunScenario} onUpdateReport={handleUpdateReport} onRetry={() => setError(null)} followUpHistory={followUpHistory} isFollowUpAnalyzing={isFollowUpAnalyzing} isFollowUpFinalized={isFollowUpFinalized} onFollowUpSubmit={handleFollowUpSubmit} onFollowUpFinalize={handleFollowUpFinalize} />
                         </div>
                     </div>
                 );
@@ -944,6 +1071,66 @@ const AppContent: React.FC = () => {
                         />
                         <ScrollWrapper>
                             <UziUttAnalyzer />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'tools':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('tools_page_title')} subtitle={t('tools_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
+                                <ToolsDashboard />
+                            </Suspense>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'check_up':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('checkup_page_title')} subtitle={t('checkup_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
+                                <CheckUpModule />
+                            </Suspense>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'telemedicine':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('telemedicine_page_title')} subtitle={t('telemedicine_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
+                                <TelemedicineHub lastAnalysis={userHistory[0] ?? null} onBack={() => handleNavigation('dashboard')} />
+                            </Suspense>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'research':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('research_center_title')} subtitle={t('research_view_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
+                                <ResearchView />
+                            </Suspense>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'patient_portal':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('patient_portal_page_title')} subtitle={t('patient_portal_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
+                                <PatientPortalView analyses={userHistory} />
+                            </Suspense>
                         </ScrollWrapper>
                     </div>
                 );

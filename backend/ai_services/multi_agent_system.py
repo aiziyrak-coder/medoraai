@@ -56,6 +56,12 @@ from .consilium_cost import (
     phase2_max_tokens,
     phase3_max_tokens,
 )
+from .report_fields import (
+    extended_consensus_json_instructions,
+    merge_enriched_report_fields,
+    enrich_medications_from_consensus,
+    normalize_nutrition_extended,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -507,6 +513,14 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
     "prevention_measures": ["Muntazam yengil harakat", "Rejalashtirilgan tekshiruvlar"],
     "disclaimer": "Individual parhez uchun mutaxassis bilan maslahat"
   }},
+  "protocol_compliance_gaps": [],
+  "care_quality_audit": {{ "overall_score": 0, "summary": "", "errors": [], "strengths": [] }},
+  "imaging_interpretation": {{ "ecg": null, "ultrasound": null, "xray": null, "ct": null, "mri": null, "general_correlation": "" }},
+  "patient_routing": {{ "recommended_specialists": [], "exam_plan": [], "disposition": "outpatient", "disposition_reason": "", "follow_up_timeline": "", "hospitalization_indicated": false, "hospitalization_reason": "" }},
+  "risk_factors": [],
+  "severity_assessment": {{ "level": "moderate", "score": 5, "rationale": "", "red_flags": [] }},
+  "check_up_recommendations": [],
+  "adverse_event_risks": [],
   "agent_weights_used": {{}}
 }}"""
 
@@ -523,6 +537,7 @@ def run_phase3(patient_str: str, p1: list[dict],
                               weights_json=w_text,
                               phase1_json=p1_text,
                               phase2_json=p2_text)
+    user += extended_consensus_json_instructions()
     t0 = time.monotonic()
     try:
         raw    = call_model(ORCHESTRATOR.deployment,
@@ -615,22 +630,7 @@ def _nutrition_prevention_from_consensus(consensus: dict) -> Optional[dict]:
 def _build_final_report(consensus: dict, p1: list[dict],
                         p2: list[dict], weights: dict[str, float]) -> dict:
     cd   = consensus.get("consensus_diagnosis") or {}
-    meds = [
-        {
-            "name":              str(m.get("name", "")),
-            "generic":           str(m.get("generic", "")),
-            "dosage":            str(m.get("dosage", "")),
-            "frequency":         str(m.get("frequency", "")),
-            "duration":          str(m.get("duration", "")),
-            "timing":            str(m.get("timing", "")),
-            "instructions":      str(m.get("instructions", "")),
-            "notes":             str(m.get("contraindications", "")),
-            "localAvailability": str(m.get("local_availability", "O'zbekistonda mavjud")),
-            "priceEstimate":     "",
-        }
-        for m in (consensus.get("medications") or [])
-        if isinstance(m, dict)
-    ]
+    meds = enrich_medications_from_consensus(consensus.get("medications") or [])
 
     # Build debate timeline
     id_to_p2   = {r.get("agent_id"): r for r in p2}
@@ -685,9 +685,11 @@ def _build_final_report(consensus: dict, p1: list[dict],
     critical = cf if (isinstance(cf, dict) and cf.get("present")) else None
 
     folk_medicine = _folk_medicine_from_consensus(consensus)
-    nutrition_prevention = _nutrition_prevention_from_consensus(consensus)
+    nutrition_prevention = normalize_nutrition_extended(
+        consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
+    ) or _nutrition_prevention_from_consensus(consensus)
 
-    return {
+    report = {
         "consensusDiagnosis": [
             {
                 "name":               str(cd.get("name", "Tashxis aniqlanmadi")),
@@ -746,6 +748,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
         **({"folkMedicine": folk_medicine} if folk_medicine else {}),
         **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
+    return merge_enriched_report_fields(report, consensus)
 
 
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
@@ -758,6 +761,13 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
 
     Returns ConsiliumResult.to_dict() with all phases and final_report.
     """
+    from .imaging_analysis import merge_imaging_into_context
+    from .clinical_red_flags import evaluate_red_flags
+    from .pharmacology_review import run_pharmacology_review
+
+    patient_data = merge_imaging_into_context(dict(patient_data or {}), language)
+    red_flags = evaluate_red_flags(patient_data)
+
     t_start = time.monotonic()
     now     = timezone.now()
 
@@ -793,10 +803,30 @@ def run_consilium(patient_data: dict, language: str = "uz-L") -> dict:
     consensus = run_phase3(ptext, p1, p2, weights)
     result.phases["phase3_consensus_raw"] = consensus
 
+    # Pharmacology review
+    pharma = run_pharmacology_review(ptext, consensus, language)
+    result.phases["pharmacology_review"] = pharma
+    if pharma.get("warnings"):
+        consensus["pharmacology_warnings"] = pharma.get("warnings")
+
     # Final report
     result.final_report = _build_final_report(consensus, p1, p2, weights)
+    if pharma.get("warnings"):
+        result.final_report["pharmacologyWarnings"] = pharma.get("warnings")
+    if red_flags:
+        result.final_report["clinicalRedFlags"] = red_flags
+        critical = [f for f in red_flags if f.get("severity") == "critical"]
+        if critical and not result.final_report.get("criticalFinding"):
+            result.final_report["criticalFinding"] = {
+                "present": True,
+                "finding": critical[0].get("message", ""),
+                "action": critical[0].get("action", "103 chaqiring"),
+            }
     result.completed_at = timezone.now().isoformat()
     result.duration_sec = time.monotonic() - t_start
+    result.phases["clinical_red_flags"] = red_flags
 
     logger.info("[%s] Completed in %.1fs", result.session_id, result.duration_sec)
-    return result.to_dict()
+    out = result.to_dict()
+    out["clinical_red_flags"] = red_flags
+    return out

@@ -12,7 +12,6 @@ const AUTHOR_I18N_KEY: Record<string, string> = {
   Oncologist: 'oncologist',
   Grok: 'endocrinologist',
   Endocrinologist: 'endocrinologist',
-  Orchestrator: 'system',
   [AIModel.SYSTEM]: 'system',
 };
 

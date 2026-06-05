@@ -29,6 +29,18 @@ class AnalysisRecord(models.Model):
     # Detected Medications
     detected_medications = models.JSONField(default=list, blank=True, verbose_name='Aniqlangan dori-darmonlar')
     
+    # Physician attestation
+    physician_signed_at = models.DateTimeField(null=True, blank=True, verbose_name='Shifokor tasdiqlagan vaqt')
+    physician_signed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='signed_analyses',
+        verbose_name='Tasdiqlagan shifokor',
+    )
+    physician_sign_note = models.TextField(blank=True, verbose_name='Tasdiqlash izohi')
+
     # Metadata
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

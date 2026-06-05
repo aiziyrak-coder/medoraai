@@ -8,6 +8,7 @@ from .views import (
     run_consilium_view,
     doctor_support_view,
     doctor_support_stream_view,
+    check_up_plan_view,
     # Legacy
     run_council_debate,
     generate_clarifying_questions,
@@ -33,6 +34,7 @@ urlpatterns = [
     # в”Ђв”Ђ Doctor Support Mode в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     path("doctor-support/",     doctor_support_view,        name="doctor_support"),
     path("doctor-stream/",      doctor_support_stream_view, name="doctor_stream"),
+    path("check-up-plan/",      check_up_plan_view,         name="check_up_plan"),
 
     # в”Ђв”Ђ Basic AI в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     path("clarifying-questions/",  generate_clarifying_questions, name="clarifying_questions"),

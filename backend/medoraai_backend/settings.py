@@ -12,7 +12,7 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # In production (DEBUG=False), SECRET_KEY must be set in env; no default.
@@ -65,6 +65,9 @@ INSTALLED_APPS = [
     'patients',
     'analyses',
     'ai_services',
+    'monitoring',
+    'integrations',
+    'telemedicine',
 ]
 
 MIDDLEWARE = [
@@ -390,6 +393,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Telegram (payment receipts) - set in production .env, never expose to frontend
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 TELEGRAM_PAYMENT_GROUP_ID = config('TELEGRAM_PAYMENT_GROUP_ID', default='')
+TELEGRAM_WEBHOOK_SECRET = config('TELEGRAM_WEBHOOK_SECRET', default='')
+
+# Monitoring gateway ingest (X-API-Key header on POST /api/monitoring/ingest/)
+MONITORING_INGEST_API_KEY = config('MONITORING_INGEST_API_KEY', default='')
 
 # Celery Configuration (for async tasks)
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')

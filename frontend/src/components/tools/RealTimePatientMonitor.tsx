@@ -42,7 +42,7 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
         return (
             <div className="bg-slate-800 p-6 rounded-2xl text-center border-2 border-slate-700">
                 <SpinnerIcon className="w-8 h-8 mx-auto text-accent-color-cyan" />
-                <p className="mt-3 font-semibold text-white">Qurilmaga ulanilmoqda...</p>
+                <p className="mt-3 font-semibold text-white">{t('monitoring_connecting')}</p>
             </div>
         );
     }
@@ -100,16 +100,16 @@ const RealTimePatientMonitor: React.FC<RealTimePatientMonitorProps> = ({
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                         </span>
-                        Ulangan
+                        {t('monitoring_connected')}
                     </p>
                     {captureMessage && <p className="text-xs text-cyan-300 mt-1">{captureMessage}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                      <button onClick={onCapture} className="px-4 py-2 text-sm font-bold text-slate-900 bg-green-400 rounded-lg hover:bg-green-300 transition-colors">
-                        Ma'lumotlarni Saqlash
+                        {t('monitoring_save_data')}
                     </button>
                     <button onClick={onBack || onDisconnect} className="px-4 py-2 text-sm font-semibold text-white bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors">
-                        {onBack ? "Orqaga" : "Uzish"}
+                        {onBack ? t('monitoring_back') : t('monitoring_disconnect')}
                     </button>
                 </div>
             </div>

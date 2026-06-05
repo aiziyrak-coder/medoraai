@@ -14,6 +14,8 @@ import DebateStatusIndicator from './DebateStatusIndicator';
 import { ObjectiveVitalsCards } from './analysis/ObjectiveVitalsCards';
 import ErrorWithRetry from './ErrorWithRetry';
 import UsefulnessFeedbackCard from './UsefulnessFeedbackCard';
+import FollowUpAnalysis from './FollowUpAnalysis';
+import PhysicianSignOffCard from './report/PhysicianSignOffCard';
 import { useTranslation } from '../hooks/useTranslation';
 
 // --- Icons ---
@@ -40,6 +42,11 @@ interface AnalysisViewProps {
     onRunScenario: (scenario: string) => Promise<FinalReport | null>;
     onUpdateReport: (updatedReport: Partial<FinalReport>) => void;
     onRetry?: () => void;
+    followUpHistory?: { question: string; answer: string }[];
+    isFollowUpAnalyzing?: boolean;
+    isFollowUpFinalized?: boolean;
+    onFollowUpSubmit?: (question: string) => void;
+    onFollowUpFinalize?: () => void;
 }
 
 
@@ -48,6 +55,8 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
         record, isLive, statusMessage, isAnalyzing, differentialDiagnoses, error, 
         diagnosisFeedback, onDiagnosisFeedback, onStartDebate, onInjectHypothesis, 
         onUserIntervention, onExplainRationale, socraticQuestion,
+        followUpHistory = [], isFollowUpAnalyzing = false, isFollowUpFinalized = false,
+        onFollowUpSubmit, onFollowUpFinalize,
         livePrognosis, onRunScenario, onUpdateReport, onRetry
     } = props;
     const { t } = useTranslation();
@@ -239,8 +248,21 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                                     <p className="text-sm font-semibold text-text-primary italic">{t('analysis_final_report_after_finish')}</p>
                                 </div>
                             )}
+                            {fr && isLive && !isAnalyzing && onFollowUpSubmit && onFollowUpFinalize && (
+                                <FollowUpAnalysis
+                                    isAnalyzing={isFollowUpAnalyzing}
+                                    onSubmit={onFollowUpSubmit}
+                                    followUpHistory={followUpHistory}
+                                    isFinalized={isFollowUpFinalized}
+                                    onFinalize={onFollowUpFinalize}
+                                    isLive={isLive}
+                                />
+                            )}
                             {record?.id && !isNaN(parseInt(record.id, 10)) && fr && (
                                 <UsefulnessFeedbackCard analysisId={parseInt(record.id, 10)} />
+                            )}
+                            {record?.id && !isNaN(parseInt(record.id, 10)) && fr && !isAnalyzing && (
+                                <PhysicianSignOffCard analysisId={parseInt(record.id, 10)} />
                             )}
                             {showDownloadSection && (
                                 <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-600">

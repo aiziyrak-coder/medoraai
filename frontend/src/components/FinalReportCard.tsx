@@ -1,6 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import type { FinalReport, FolkMedicineSection, NutritionPreventionSection, PatientData } from '../types';
+import type {
+  FinalReport,
+  FolkMedicineSection,
+  NutritionPreventionSection,
+  PatientData,
+  ProtocolComplianceGap,
+  CareQualityAudit,
+  ImagingInterpretation,
+  ImagingModalityBlock,
+} from '../types';
 import { normalizeConsensusDiagnosis, getReasoningChainArray } from '../types';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
@@ -13,8 +22,12 @@ import LightBulbIcon from './icons/LightBulbIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 import FlaskIcon from './icons/FlaskIcon';
 import PrognosisCard from './report/PrognosisCard';
+import ClinicalRedFlagsCard from './report/ClinicalRedFlagsCard';
 import FollowUpPlan from './report/FollowUpPlan';
 import ReferralGenerator from './report/ReferralGenerator';
+import PatientRoutingCard from './report/PatientRoutingCard';
+import RiskFactorsCard from './report/RiskFactorsCard';
+import CheckUpRecommendationsCard from './report/CheckUpRecommendationsCard';
 import GlobeIcon from './icons/GlobeIcon';
 import PencilIcon from './icons/PencilIcon';
 import TrashIcon from './icons/TrashIcon';
@@ -166,12 +179,116 @@ const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section 
     );
 };
 
+const ModalityBlockView: React.FC<{ title: string; block?: ImagingModalityBlock }> = ({ title, block }) => {
+    const { t } = useTranslation();
+    if (!block?.summary && !(block?.keyFindings?.length)) return null;
+    return (
+        <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color space-y-2">
+            <h4 className="font-bold text-slate-800">{title}</h4>
+            {block.summary && <p className="text-sm">{block.summary}</p>}
+            {block.keyFindings && block.keyFindings.length > 0 && (
+                <ul className="list-disc list-inside text-sm text-slate-700">
+                    {block.keyFindings.map((f, i) => <li key={i}>{f}</li>)}
+                </ul>
+            )}
+            {block.clinicalSignificance && (
+                <p className="text-sm"><span className="font-semibold">{t('final_report_imaging_significance')}:</span> {block.clinicalSignificance}</p>
+            )}
+            {block.limitations && (
+                <p className="text-xs text-slate-500 italic">{t('final_report_imaging_limitations')}: {block.limitations}</p>
+            )}
+        </div>
+    );
+};
+
+const ImagingInterpretationCard: React.FC<{ imaging?: ImagingInterpretation }> = ({ imaging }) => {
+    const { t } = useTranslation();
+    if (!imaging) return null;
+    const hasAny = imaging.ecg || imaging.ultrasound || imaging.xray || imaging.ct || imaging.mri || imaging.generalCorrelation;
+    if (!hasAny) return null;
+    return (
+        <Section title={t('final_report_imaging_title')} icon={<ImageIcon className="w-6 h-6"/>}>
+            <ModalityBlockView title={t('final_report_imaging_ecg')} block={imaging.ecg} />
+            <ModalityBlockView title={t('final_report_imaging_uzi')} block={imaging.ultrasound} />
+            <ModalityBlockView title={t('final_report_imaging_xray')} block={imaging.xray} />
+            <ModalityBlockView title={t('final_report_imaging_ct')} block={imaging.ct} />
+            <ModalityBlockView title={t('final_report_imaging_mri')} block={imaging.mri} />
+            {imaging.generalCorrelation && (
+                <p className="text-sm mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                    <span className="font-semibold">{t('final_report_image_correlation')}:</span> {imaging.generalCorrelation}
+                </p>
+            )}
+        </Section>
+    );
+};
+
+const ProtocolComplianceGapsCard: React.FC<{ gaps?: ProtocolComplianceGap[] }> = ({ gaps }) => {
+    const { t } = useTranslation();
+    if (!gaps?.length) return null;
+    const severityClass = (s: string) =>
+        s === 'high' ? 'border-red-400 bg-red-50' : s === 'medium' ? 'border-amber-400 bg-amber-50' : 'border-slate-300 bg-slate-50';
+    return (
+        <Section title={t('final_report_protocol_gaps_title')} icon={<ShieldWarningIcon className="w-6 h-6"/>}>
+            {gaps.map((g, i) => (
+                <div key={i} className={`p-4 rounded-xl border-l-4 ${severityClass(g.severity)}`}>
+                    <p className="font-bold text-slate-900">{g.gap}</p>
+                    {g.protocolReference && (
+                        <p className="text-xs text-slate-600 mt-1">{t('final_report_protocol_ref')}: {g.protocolReference}</p>
+                    )}
+                    {g.consequences && (
+                        <p className="text-sm text-red-800 mt-2"><span className="font-semibold">{t('final_report_consequences')}:</span> {g.consequences}</p>
+                    )}
+                    {g.recommendedCorrection && (
+                        <p className="text-sm text-green-800 mt-2"><span className="font-semibold">{t('final_report_recommended_fix')}:</span> {g.recommendedCorrection}</p>
+                    )}
+                </div>
+            ))}
+        </Section>
+    );
+};
+
+const CareQualityAuditCard: React.FC<{ audit?: CareQualityAudit }> = ({ audit }) => {
+    const { t } = useTranslation();
+    if (!audit) return null;
+    return (
+        <Section title={t('final_report_quality_audit_title')} icon={<ClipboardListIcon className="w-6 h-6"/>}>
+            {audit.overallScore != null && (
+                <p className="text-lg font-bold text-slate-800 mb-2">
+                    {t('final_report_quality_score')}: {audit.overallScore}/100
+                </p>
+            )}
+            {audit.summary && <p className="text-sm text-slate-700 mb-4 whitespace-pre-wrap">{audit.summary}</p>}
+            {audit.errors?.length > 0 && (
+                <div className="space-y-2 mb-4">
+                    <h4 className="text-sm font-bold text-red-800">{t('final_report_quality_errors')}</h4>
+                    {audit.errors.map((e, i) => (
+                        <div key={i} className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm">
+                            <p className="font-semibold">{e.category}: {e.description}</p>
+                            {e.protocolReference && <p className="text-xs mt-1 text-slate-600">{e.protocolReference}</p>}
+                            {e.impact && <p className="text-xs mt-1 text-red-700">{e.impact}</p>}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {audit.strengths?.length > 0 && (
+                <div>
+                    <h4 className="text-sm font-bold text-green-800 mb-2">{t('final_report_quality_strengths')}</h4>
+                    <ul className="list-disc list-inside text-sm text-slate-700">
+                        {audit.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                </div>
+            )}
+        </Section>
+    );
+};
+
 const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }> = ({ section }) => {
     const { t } = useTranslation();
-    const { intro, disclaimer, dietaryGuidelines, preventionMeasures } = section;
+    const { intro, disclaimer, dietaryGuidelines, preventionMeasures, individualDietByDiagnosis } = section;
     const hasDiet = dietaryGuidelines.length > 0;
     const hasPrev = preventionMeasures.length > 0;
-    if (!hasDiet && !hasPrev && !intro?.trim() && !disclaimer?.trim()) return null;
+    const hasIndividual = (individualDietByDiagnosis?.length ?? 0) > 0;
+    if (!hasDiet && !hasPrev && !hasIndividual && !intro?.trim() && !disclaimer?.trim()) return null;
     return (
         <Section title={t('final_report_nutrition_title')} icon={<ChartBarIcon className="h-6 w-6 text-sky-600"/>}>
             {intro?.trim() && <p className="text-sm text-slate-800 whitespace-pre-wrap mb-3">{intro}</p>}
@@ -193,6 +310,25 @@ const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }>
                             <li key={i}>{line}</li>
                         ))}
                     </ul>
+                </div>
+            )}
+            {hasIndividual && (
+                <div className="mt-4 space-y-3">
+                    <h4 className="text-sm font-bold text-slate-700">{t('final_report_individual_diet_title')}</h4>
+                    {individualDietByDiagnosis!.map((plan, i) => (
+                        <div key={i} className="p-4 rounded-xl border border-sky-200 bg-white">
+                            <p className="font-bold text-sky-900">{plan.diagnosis}</p>
+                            {plan.allowedFoods.length > 0 && (
+                                <p className="text-sm mt-2"><span className="font-semibold text-green-700">{t('final_report_allowed_foods')}:</span> {plan.allowedFoods.join('; ')}</p>
+                            )}
+                            {plan.restrictedFoods.length > 0 && (
+                                <p className="text-sm mt-1"><span className="font-semibold text-red-700">{t('final_report_restricted_foods')}:</span> {plan.restrictedFoods.join('; ')}</p>
+                            )}
+                            {plan.mealPlanNotes && (
+                                <p className="text-sm mt-2 text-slate-600">{plan.mealPlanNotes}</p>
+                            )}
+                        </div>
+                    ))}
                 </div>
             )}
             {disclaimer?.trim() && (
@@ -365,7 +501,13 @@ const FinalReportCard: React.FC<{
             {/* Qolgan bo'limlar — alohida hujjat bo'limlari */}
             <div className="space-y-10">
 
-                {report.imageAnalysis?.findings && (
+                <ImagingInterpretationCard imaging={report.imagingInterpretation} />
+
+                <PatientRoutingCard routing={report.patientRouting} />
+                <RiskFactorsCard riskFactors={report.riskFactors} severityAssessment={report.severityAssessment} />
+                <CheckUpRecommendationsCard items={report.checkUpRecommendations} />
+
+                {!report.imagingInterpretation && report.imageAnalysis?.findings && (
                     <Section title={t('final_report_image_analysis_title')} icon={<ImageIcon className="w-6 h-6"/>}>
                         <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                             <p><span className='font-semibold'>{t('final_report_image_findings')}:</span> {report.imageAnalysis.findings}</p>
@@ -373,6 +515,9 @@ const FinalReportCard: React.FC<{
                         </div>
                     </Section>
                 )}
+
+                <ProtocolComplianceGapsCard gaps={report.protocolComplianceGaps} />
+                <CareQualityAuditCard audit={report.careQualityAudit} />
 
                 {report.unexpectedFindings && String(report.unexpectedFindings).trim() && (
                     <Section title={t('final_report_unexpected_findings')} icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
@@ -437,7 +582,21 @@ const FinalReportCard: React.FC<{
                     {report.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>{t('final_report_cost_effectiveness')}:</strong> {report.costEffectivenessNotes}</p>}
                 </Section>
                 
+                {report.clinicalRedFlags && report.clinicalRedFlags.length > 0 && (
+                    <ClinicalRedFlagsCard flags={report.clinicalRedFlags} />
+                )}
+
                 <Section title={t('final_report_medications_uz')} icon={<PillIcon className="w-6 h-6"/>}>
+                    {report.pharmacologyWarnings && report.pharmacologyWarnings.length > 0 && (
+                        <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                            <p className="text-sm font-bold text-amber-800 mb-1">{t('consilium_pharmacology_warnings')}</p>
+                            <ul className="list-disc list-inside text-sm text-amber-900 space-y-1">
+                                {report.pharmacologyWarnings.map((w, i) => (
+                                    <li key={i}>{w}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) ? report.medicationRecommendations.map((med, index) => {
                         const drugName = (med.name && String(med.name).trim()) || (med.localAvailability && String(med.localAvailability).trim()) || 'Dori';
@@ -465,6 +624,17 @@ const FinalReportCard: React.FC<{
                                <p className="text-sm text-text-secondary mt-2 pt-2 border-t border-slate-200">
                                    <span className="font-semibold">{t('final_report_instructions_inline')}</span> {med.notes}
                                </p>
+                           )}
+                           {med.adverseEffects && med.adverseEffects.length > 0 && (
+                               <p className="text-sm text-amber-800 mt-2 p-2 bg-amber-50 rounded border border-amber-100">
+                                   <span className="font-semibold">{t('final_report_adverse_effects')}:</span> {med.adverseEffects.join('; ')}
+                               </p>
+                           )}
+                           {med.contraindications && (
+                               <p className="text-xs text-red-700 mt-1"><span className="font-semibold">{t('final_report_contraindications')}:</span> {med.contraindications}</p>
+                           )}
+                           {med.monitoring && (
+                               <p className="text-xs text-slate-600 mt-1"><span className="font-semibold">{t('final_report_monitoring')}:</span> {med.monitoring}</p>
                            )}
                         </div>
                     ); }) : (

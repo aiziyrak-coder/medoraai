@@ -58,6 +58,9 @@ urlpatterns = [
     path('api/analyses/', include('analyses.urls')),
     path('api/ai/', include('ai_services.urls')),
     path('api/ziyrak/', include('ai_services.ziyrak_urls')),
+    path('api/monitoring/', include('monitoring.urls')),
+    path('api/integrations/', include('integrations.urls')),
+    path('api/telemedicine/', include('telemedicine.urls')),
 ]
 if _schema_view is not None:
     urlpatterns += [

@@ -3,16 +3,24 @@ import { FinalReport, PatientEducationTopic } from '../../types';
 import * as aiService from '../../services/aiCouncilService';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { Language } from '../../i18n/LanguageContext';
 
 interface PatientEducationPortalProps {
     report: FinalReport;
     onBack: () => void;
 }
 
-type Language = 'uz' | 'ru' | 'en';
+type ContentLang = 'uz' | 'ru' | 'en';
+
+const mapToContentLang = (lang: Language): ContentLang => {
+    if (lang === 'ru') return 'ru';
+    if (lang === 'en') return 'en';
+    return 'uz';
+};
 
 const PatientEducationPortal: React.FC<PatientEducationPortalProps> = ({ report, onBack }) => {
-    const [language, setLanguage] = useState<Language>('uz');
+    const { t, language } = useTranslation();
+    const [contentLang, setContentLang] = useState<ContentLang>(mapToContentLang(language));
     const [content, setContent] = useState<PatientEducationTopic[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -37,8 +45,13 @@ const PatientEducationPortal: React.FC<PatientEducationPortalProps> = ({ report,
                     <p className="text-text-secondary">{t('patient_education_subtitle')}</p>
                 </div>
                 <div className="flex gap-1 p-1 bg-slate-100 rounded-lg border border-border-color">
-                    {(['uz', 'ru', 'en'] as Language[]).map(lang => (
-                        <button key={lang} type="button" onClick={() => setContentLang(lang)} className={`px-3 py-1 text-sm font-semibold rounded-md ${contentLang === lang ? 'bg-white shadow' : ''}`}>
+                    {(['uz', 'ru', 'en'] as ContentLang[]).map((lang) => (
+                        <button
+                            key={lang}
+                            type="button"
+                            onClick={() => setContentLang(lang)}
+                            className={`px-3 py-1 text-sm font-semibold rounded-md ${contentLang === lang ? 'bg-white shadow' : ''}`}
+                        >
                             {lang.toUpperCase()}
                         </button>
                     ))}
@@ -48,13 +61,13 @@ const PatientEducationPortal: React.FC<PatientEducationPortalProps> = ({ report,
             {isLoading ? (
                 <div className="text-center p-8"><SpinnerIcon className="w-10 h-10 mx-auto" /></div>
             ) : error ? (
-                <div className="text-center p-8 text-red-500">{error}</div>
+                <p className="text-red-600 text-sm">{error}</p>
             ) : (
-                <div className="space-y-6">
-                    {content.map((topic, index) => (
-                        <div key={index} className="p-4 bg-slate-50 rounded-lg border border-border-color">
-                            <h3 className="text-xl font-bold text-text-primary">{topic.title}</h3>
-                            <div className="mt-2 prose prose-sm max-w-none whitespace-pre-wrap">{topic.content}</div>
+                <div className="space-y-4">
+                    {content.map((topic, i) => (
+                        <div key={i} className="p-4 rounded-xl border border-slate-200 bg-white">
+                            <h3 className="font-bold text-slate-800">{topic.title}</h3>
+                            <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{topic.content}</p>
                         </div>
                     ))}
                 </div>

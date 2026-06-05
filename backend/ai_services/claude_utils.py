@@ -114,38 +114,9 @@ def _get_client():
         return None
 
 
-def _patient_text(patient_data):
-    d = patient_data or {}
-    first = d.get("firstName") or d.get("first_name") or ""
-    last = d.get("lastName") or d.get("last_name") or ""
-    age = d.get("age") or ""
-    gender = d.get("gender") or ""
-    complaints = d.get("complaints") or ""
-    parts = [
-        f"Bemor: {first} {last}, {age} yosh, {gender}.",
-        f"Shikoyatlar: {complaints}",
-    ]
-    history = d.get("history") or ""
-    if history:
-        parts.append(f"Anamnez: {history}")
-    obj = d.get("objectiveData") or d.get("objective_data") or ""
-    if obj:
-        parts.append(f"Ob'ektiv: {obj}")
-    lab = d.get("labResults") or d.get("lab_results") or ""
-    if lab:
-        parts.append(f"Lab: {lab}")
-    if d.get("allergies"):
-        parts.append(f"Allergiya: {d['allergies']}")
-    meds = d.get("currentMedications") or d.get("current_medications") or ""
-    if meds:
-        parts.append(f"Dori-darmonlar: {meds}")
-    fam = d.get("familyHistory") or d.get("family_history") or ""
-    if fam:
-        parts.append(f"Oila anamnezi: {fam}")
-    add = d.get("additionalInfo") or d.get("additional_info") or ""
-    if add:
-        parts.append(f"Qo'shimcha: {add}")
-    return "\n".join(parts)
+def _patient_text(patient_data, extra=None):
+    from .clinical_context import build_clinical_context
+    return build_clinical_context(patient_data, extra)
 
 
 def _response_text(response):

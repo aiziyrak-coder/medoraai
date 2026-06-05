@@ -46,6 +46,17 @@ import {
 import { formatDebateForPrompt } from '../utils/debatePrompt';
 import { DIAGNOSIS_ACCURACY_RULES } from '../utils/diagnosisQuality';
 import { mapApiSpecialistToAIModel, resolveSpecialistI18nKey, stripAiParentheticals } from '../utils/specialistDisplay';
+import {
+    buildClinicalContextText,
+    buildPatientSummaryForDebate,
+    debateHistoryToSummary,
+    extractRegionalContext,
+} from '../utils/clinicalContext';
+import { enrichFinalReport } from '../utils/reportNormalize';
+import { ENHANCED_FINAL_REPORT_AI_RULES, ENHANCED_FINAL_REPORT_SCHEMA_PROPS } from '../constants/enhancedReportRequirements';
+import { isApiConfigured } from '../config/api';
+import { apiPost } from './api';
+import { API_CONFIG } from '../config/api';
 
 // --- Claude AI (Anthropic) ---
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
@@ -737,13 +748,15 @@ const buildMultimodalPrompt = (
     data: PatientData,
     pastCases?: import('../types').AnonymizedCase[],
     forDiagnosis = false,
+    language: Language = 'uz-L',
+    contextExtra?: import('../utils/clinicalContext').ClinicalContextExtra,
 ) => {
-    const { attachments, ...rest } = data;
-    const textData = JSON.stringify(rest);
+    const { attachments } = data;
     const historyContext = getRelevantHistoryContext(data.complaints, pastCases);
+    const clinicalBlock = buildClinicalContextText(data, language, contextExtra);
 
     const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-        { text: `${introText}\n\n${historyContext}\n\nPATIENT CLINICAL DATA (Structured): ${textData}` },
+        { text: `${introText}\n\n${historyContext}\n\n--- TO'LIQ KLINIK KONTEKST ---\n${clinicalBlock}` },
     ];
 
     if (attachments && attachments.length > 0) {
@@ -798,8 +811,8 @@ const getFastDoctorSystemInstruction = (language: Language): string => {
     const til = langMap[language];
     return `${strictLanguageRule(language)}
 Siz shifokor uchun amaliy tibbiy yordamchisiz. Javob: ${til}, FAQAT JSON.
-QOIDALAR: Tashxis nomi aniq; justification 2-3 jumla dalilli; treatmentPlan 3-5 aniq qadam; medications: O'zbekistonda mavjud savdo nomi + doza + davomiylik; uzbekProtocolMatch: SSV protokolga mos yoki protokoldan chetga chiqish sababi (dalil bilan). criticalFinding faqat shoshilinch bo'lsa. Dastur maqsadi yangi samarali davolash topish — dalil bo'lsa protokoldan voz kechish mumkin.
-ANIQLIK: Faqat berilgan ma'lumotga tayaning; probability ni dalil kuchiga mos qo'ying (KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%); reasoningChain har qadamda "nima uchun" javob bersin. SSV havola yoki protokoldan chetga chiqish sababini yozing.
+QOIDALAR: Tashxis nomi aniq; justification 2-3 jumla dalilli; treatmentPlan 3-5 aniq qadam; medications: O'zbekistonda mavjud savdo nomi + doza + davomiylik + adverseEffects (nojo'ya ta'sirlar) + contraindications + monitoring; uzbekProtocolMatch: SSV protokolga mos yoki protokoldan chetga chiqish sababi (dalil bilan). criticalFinding faqat shoshilinch bo'lsa. protocolComplianceGaps va careQualityAudit majburiy baholash. imagingInterpretation: EKG/UZI/rengen bo'lsa tahlil. nutritionPrevention.individualDietByDiagnosis — tashxis bo'yicha parhez.
+ANIQLIK: FAQAT shikoyat/anamnez emas — ob'ektiv, lab, yuklangan tasvirlar va barcha klinik maydonlardan foydalaning. probability ni dalil kuchiga mos qo'ying (KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%); reasoningChain har qadamda "nima uchun" javob bersin.
 ${strictLanguageRule(language)}`;
 };
 
@@ -809,7 +822,7 @@ export const generateFastDoctorConsultation = async (
     language: Language
 ): Promise<FinalReport> => {
     const systemInstr = getFastDoctorSystemInstruction(language);
-    const promptText = `Tashxis (name, probability 0-100 dalilga mos — KUCHLI dalil=90-97%, o'rtacha=85-89%, zaif=70-84%; taxminiy 60/25/75 kabi shablon raqamlar yo'q, justification 2 jumla, reasoningChain 3 band, uzbekProtocolMatch). treatmentPlan 3-5 qadam. medications: name, dosage, frequency, duration, timing, instructions (qanday ichish, 1 jumla). recommendedTests, criticalFinding agar kerak. Til: ${langMap[language]}. JSON.`;
+    const promptText = `Tashxis (name, probability 0-100 dalilga mos; FAQAT to'liq klinik kontekst: ob'ektiv, lab, EKG/UZI/rengen). treatmentPlan 3-5 qadam. medications: adverseEffects[], contraindications, monitoring. protocolComplianceGaps, careQualityAudit, imagingInterpretation (EKG/UZI/rengen), nutritionPrevention.individualDietByDiagnosis. ${ENHANCED_FINAL_REPORT_AI_RULES} Til: ${langMap[language]}. JSON.`;
 
     const finalReportSchema = {
         type: 'object',
@@ -852,7 +865,7 @@ export const generateFastDoctorConsultation = async (
         required: ['primaryDiagnosis', 'treatmentPlan', 'medications']
     };
 
-    const multimodalPrompt = buildFastDoctorPrompt(promptText, patientData);
+    const multimodalPrompt = buildMultimodalPrompt(promptText, patientData, undefined, true, language);
 
     const usePro = (specialties?.length ?? 0) > 0;
     const DOCTOR_MODEL = usePro ? DEPLOY_PRO : DEPLOY_FAST;
@@ -882,7 +895,7 @@ export const generateFastDoctorConsultation = async (
     const recommendedTests = arr(result.recommendedTests, []) as string[];
     const reasoningChain = primaryDiag ? arr(primaryDiag.reasoningChain, []) as string[] : [];
 
-    return {
+    const base: FinalReport = {
         consensusDiagnosis: normalizeConsensusDiagnosis(
             primaryDiag
                 ? [{
@@ -904,15 +917,19 @@ export const generateFastDoctorConsultation = async (
             timing: String(med?.timing ?? ''),
             duration: String(med?.duration ?? ''),
             instructions: String(med?.instructions ?? ''),
-            notes: '',
+            notes: String(med?.instructions ?? ''),
             localAvailability: localizedMedicalText(language, 'availability'),
-            priceEstimate: ''
+            priceEstimate: '',
+            adverseEffects: Array.isArray(med?.adverseEffects) ? (med.adverseEffects as string[]).map(String) : [],
+            contraindications: String(med?.contraindications ?? ''),
+            monitoring: String(med?.monitoring ?? ''),
         })),
         recommendedTests,
         unexpectedFindings: '',
         uzbekistanLegislativeNote: localizedMedicalText(language, 'protocol'),
-        criticalFinding: safe(result.criticalFinding) ? result.criticalFinding as { finding: string; implication: string; urgency: string } : undefined
-    } as FinalReport;
+        criticalFinding: safe(result.criticalFinding) ? result.criticalFinding as { finding: string; implication: string; urgency: string } : undefined,
+    };
+    return enrichFinalReport({ ...base, ...(result as Partial<FinalReport>) });
 };
 
 /** Strim: Gemini orqali javob, onChunk ga to'liq matn bir marta yuboriladi, oxirida FinalReport. */
@@ -1471,6 +1488,84 @@ ${rolesSpec.map((r) => `- role="${r.role}" — ${r.name} (${r.title})`).join('\n
     return { professorOpening, specialistMessages };
 }
 
+const backendConsiliumStatus: Record<Language, string> = {
+    'uz-L': 'Server konsiliumi ishga tushirilmoqda (3 bosqich)...',
+    'uz-C': 'Сервер консилиуми ишга туширилмоқда (3 босқич)...',
+    'ru': 'Запуск серверного консилиума (3 фазы)...',
+    'en': 'Starting server consilium (3 phases)...',
+    'kaa': 'Server konsiliumi iske túsirilip atır (3 bosqısh)...',
+};
+
+/** Production: API orqali backend multi-agent konsilium */
+async function runBackendConsilium(
+    patientData: PatientData,
+    language: Language,
+    onProgress: (update: ProgressUpdate) => void,
+): Promise<void> {
+    const { runConsilium } = await import('./apiAiService');
+    onProgress({ type: 'status', message: backendConsiliumStatus[language] || backendConsiliumStatus['uz-L'] });
+    const resp = await runConsilium(patientData, language);
+    if (!resp.success || !resp.data?.final_report) {
+        const msg = resp.error?.message || 'Server konsiliumi xatosi';
+        throw new Error(msg);
+    }
+    const respExtra = resp as { clinical_red_flags?: unknown };
+    const fr = resp.data.final_report as FinalReport & Record<string, unknown>;
+    const redFlagsRaw = fr.clinicalRedFlags
+        ?? (fr as { clinical_red_flags?: unknown }).clinical_red_flags
+        ?? respExtra.clinical_red_flags
+        ?? [];
+    const debateRaw = (fr.debateHistory ?? fr.debate_history ?? []) as Array<Record<string, unknown>>;
+    const chatMessages: ChatMessage[] = [];
+    for (let i = 0; i < debateRaw.length; i++) {
+        const m = debateRaw[i];
+        const authorName = String(m.author ?? 'Orchestrator');
+        const msg: ChatMessage = {
+            id: String(m.id ?? `backend-${i}-${Date.now()}`),
+            author: mapApiSpecialistToAIModel(authorName),
+            content: String(m.content ?? ''),
+            isSystemMessage: /professor|orchestrator|konsilium/i.test(authorName),
+        };
+        chatMessages.push(msg);
+        onProgress({ type: 'message', message: msg });
+    }
+    const critical = fr.criticalFinding ?? (fr as { critical_finding?: CriticalFinding }).critical_finding;
+    if (critical?.finding) {
+        onProgress({ type: 'critical_finding', data: critical as CriticalFinding });
+    }
+    const consensusDiagnosis = normalizeConsensusDiagnosis(fr.consensusDiagnosis ?? (fr as { consensus_diagnosis?: unknown }).consensus_diagnosis);
+    const folkMedicine = normalizeFolkMedicine(fr.folkMedicine ?? (fr as { folk_medicine?: unknown }).folk_medicine);
+    const nutritionPrevention = normalizeNutritionPrevention(
+        fr.nutritionPrevention ?? (fr as { nutrition_prevention?: unknown }).nutrition_prevention,
+    );
+    const pharmaWarnings = Array.isArray(fr.pharmacologyWarnings)
+        ? fr.pharmacologyWarnings
+        : Array.isArray((fr as { pharmacology_warnings?: string[] }).pharmacology_warnings)
+            ? (fr as { pharmacology_warnings: string[] }).pharmacology_warnings
+            : [];
+    const clinicalRedFlags = Array.isArray(redFlagsRaw)
+        ? redFlagsRaw.filter((f): f is { severity: string; code: string; message: string; action: string } =>
+            !!f && typeof f === 'object' && 'message' in (f as object))
+        : [];
+    const report = enrichFinalReport({
+        ...fr,
+        consensusDiagnosis,
+        rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
+        treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
+        medicationRecommendations: Array.isArray(fr.medicationRecommendations)
+            ? fr.medicationRecommendations
+            : [],
+        recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
+        unexpectedFindings: typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : String(fr.unexpectedFindings ?? ''),
+        uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
+        pharmacologyWarnings: pharmaWarnings,
+        clinicalRedFlags,
+        ...(folkMedicine ? { folkMedicine } : {}),
+        ...(nutritionPrevention ? { nutritionPrevention } : {}),
+    });
+    onProgress({ type: 'report', data: report, detectedMedications: [], debateHistory: chatMessages });
+}
+
 export const runCouncilDebate = async (
     patientData: PatientData,
     diagnoses: Diagnosis[],
@@ -1482,6 +1577,28 @@ export const runCouncilDebate = async (
     /** Serverdan yuklangan tahlillar — RAG konteksti uchun (barcha ma'lumot serverda) */
     userHistory?: AnalysisRecord[]
 ): Promise<void> => {
+    if (isApiConfigured()) {
+        try {
+            await runBackendConsilium(patientData, language, onProgress);
+            return;
+        } catch (e) {
+            logger.warn('Backend consilium failed, falling back to browser Claude', e);
+            if (!isBrowserClaudeConfigured()) {
+                onProgress({
+                    type: 'error',
+                    message: e instanceof Error ? e.message : 'Server konsiliumi ishlamadi. AI kalitini tekshiring.',
+                });
+                return;
+            }
+        }
+    } else if (!isBrowserClaudeConfigured()) {
+        onProgress({
+            type: 'error',
+            message: 'AI xizmati sozlanmagan. Server API yoki brauzer Claude kalitini sozlang.',
+        });
+        return;
+    }
+
     const pastCasesForContext = userHistory?.length ? caseService.analysesToAnonymizedCases(userHistory) : undefined;
     const systemInstrDebate = resolveSystemInstruction(language, 'debate');
     const systemInstrDiagnosis = resolveSystemInstruction(language, 'diagnosis');
@@ -1489,39 +1606,14 @@ export const runCouncilDebate = async (
         'uz-L': 'O\'zbekiston yetakchi tibbiyot mutaxassislari yig\'ilmoqda...',
         'uz-C': 'Ўзбекистон етакчи тиббиёт мутахассислари йиғилмоқда...',
         'ru': 'Ведующие медицинские специалисты собираются...',
-        'en': 'Leading medical specialists are gathering...'
+        'en': 'Leading medical specialists are gathering...',
+        'kaa': 'Ózbekstan jetekshi medicina mámleketshileri jıynalmaqta...',
     };
     
     onProgress({ type: 'status', message: introMessages[language] || introMessages['uz-C'] });
     let debateHistory: ChatMessage[] = [];
 
-    const objectiveFull = (patientData.objectiveData || '').trim();
-    const labText = (patientData.labResults || '').trim();
-    const attachmentCount = patientData.attachments?.length ?? 0;
-    const labAndDocsLine = labText
-        ? `Laboratoriya/tahlil ma'lumoti: ${labText.slice(0, 400)}.`
-        : '';
-    const attachmentsLine = attachmentCount > 0
-        ? `LABORATORIYA VA DIAGNOSTIKA HUJJATLARI: Bemor ${attachmentCount} ta fayl yuklagan (quyida/ilovada). Ularni TO'LIQ TAHLIL QILING, mutaxassislarga qisqacha xulosa bilan yetkazing. Bu hujjatlarni shifokordan QAYTA SO'RAMANG — allaqachon berilgan.`
-        : '';
-    const longitudinalBlock = (patientData.longitudinalClinicalNotes || '').trim();
-    const longitudinalLine = longitudinalBlock
-        ? `\n\nOLDINGI TAHLILLAR VA DINAMIKA (MUHIM — QAYTA KO'RISH, OLDINGI TAVSIYALAR BILAN ZIDLIK BO'LSA, SABABINI BAHOLANG):\n${longitudinalBlock.slice(0, 4500)}`
-        : '';
-
-    const patientSummaryForRais = `Bemor: ${(patientData.firstName || '')} ${(patientData.lastName || '')}, ${patientData.age || '-'} yosh.
-Shikoyat: ${(patientData.complaints || '').slice(0, 500)}.
-Anamnez: ${(patientData.history || '-').slice(0, 300)}.
-
-OB'EKTIV KO'RIK (VITAL KO'RSATKICHLAR — SHIFOKOR KIRITGAN, MUNOZARADA QAYTA SO'RAMANG, HISOBGA OLING):
-${objectiveFull || '(kiritilmagan)'}
-
-${labAndDocsLine}
-${attachmentsLine}
-Dastlabki tashxislar: ${diagnoses.map(d => d.name).join(', ') || '-'}.
-${longitudinalLine}
-
-QOIDA: Ob'ektiv ko'rik va (agar bor bo'lsa) yuklangan laboratoriya/diagnostika hujjatlari berilgan; shifokordan ularni so'ramang. Barcha ma'lumotlardan to'liq foydalaning va mutaxassislarga aniq yetkazing.`;
+    const patientSummaryForRais = buildPatientSummaryForDebate(patientData, diagnoses, language);
 
     const limitedSpecialists = specialistsConfig.slice(0, getMaxDebateSpecialists());
     const batchDebate = useBatchConsiliumDebate();
@@ -1590,7 +1682,8 @@ ${patientSummaryForRais}`;
             'uz-L': `Konsilium munozarasi davom etmoqda...`,
             'uz-C': `Консилиум муҳокамаси давом этмоқда...`,
             'ru': `Идёт обсуждение консилиума...`,
-            'en': `Council debate in progress...`
+            'en': `Council debate in progress...`,
+            'kaa': `Konsilium múnázarası dawam etip atır...`,
         };
         onProgress({ type: 'status', message: roundMessages[language] });
         
@@ -1663,6 +1756,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
 
         const objectiveForSpec = (patientData.objectiveData || '').trim();
         const labForSpec = (patientData.labResults || '').trim().slice(0, 300);
+        const attachmentCount = patientData.attachments?.length ?? 0;
         const attachmentsNoteForSpec = attachmentCount > 0
             ? `\nLABORATORIYA/DIAGNOSTIKA HUJJATLARI: Bemor ${attachmentCount} ta fayl yuklagan (quyida ilovada). Ularni TAHLIL QILING, xulosangizda ishlating. Bu hujjatlar allaqachon berilgan — shifokordan SO'RAMANG.`
             : '';
@@ -1757,7 +1851,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             rejectedHypotheses: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, reason: { type: 'string' } }}},
             recommendedTests: { type: 'array', items: { type: 'string' } },
             treatmentPlan: { type: 'array', items: { type: 'string' } },
-            medicationRecommendations: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' }, priceEstimate: { type: 'string' } }}},
+            medicationRecommendations: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' }, priceEstimate: { type: 'string' }, adverseEffects: { type: 'array', items: { type: 'string' } }, contraindications: { type: 'string' }, monitoring: { type: 'string' }, frequency: { type: 'string' }, duration: { type: 'string' }, timing: { type: 'string' }, instructions: { type: 'string' } }}},
             unexpectedFindings: { type: 'string' },
             uzbekistanLegislativeNote: { type: 'string' }, 
             imageAnalysis: {
@@ -1795,8 +1889,21 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
                     disclaimer: { type: 'string' },
                     dietaryGuidelines: { type: 'array', items: { type: 'string' } },
                     preventionMeasures: { type: 'array', items: { type: 'string' } },
+                    individualDietByDiagnosis: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                diagnosis: { type: 'string' },
+                                allowedFoods: { type: 'array', items: { type: 'string' } },
+                                restrictedFoods: { type: 'array', items: { type: 'string' } },
+                                mealPlanNotes: { type: 'string' },
+                            },
+                        },
+                    },
                 },
             },
+            ...ENHANCED_FINAL_REPORT_SCHEMA_PROPS,
             relatedResearch: {
                 type: 'array',
                 items: {
@@ -1837,6 +1944,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         8. folkMedicine (ALOHIDA BO'LIM, MAJBURIY): Konservativ davolash va reabilitatsiyaga MOS, O'zbekiston va Markaziy Osiyo xalq tabobatida ishlatiladigan dorivor o'simliklar haqida qisqa ma'lumot. Bu rasmiy dori-darmonlar o'rnini BOSMAYDI; shifokor bilan maslahat va qabul qilinayotgan dorilar bilan o'zaro ta'sirlar haqida ogohlantirish bo'lsin. Har bir o'simlik uchun: plantName (lotin yoki o'zbekcha nom), ixtiyoriy plantPart (gul, barg, ildiz), preparationOrUsage (qaynatma, choy, tashqiy ishlatish — qisqa va xavfsiz), traditionalContext (1 jumla qayerda qanday qo'llaniladi), precautions (homiladorlik, bolalar, allergiya, dori bilan ta'sir). Kamida 2 ta, odatda 2-5 ta o'simlik. intro: 1-2 jumla (masalan, qo'shimcha qo'llanma sifatida). disclaimer: "Rasmiy tibbiyot va shifokor ko'rsatmasini almashtirmaydi; individual sezuvchanlik va zaharli o'simliklardan xavfsizlik" mazmunida. Agar holat uchun xalq tabobati qo'llanishi ma'qul emas bo'lsa (masalan, o'tkir jiddiy holat), folkMedicine.items da kamida 1 ta qisqa qator bilan "hozirgi bosqichda xalq tabobati tavsiya etilmaydi" yoki shunga o'xshash sabab yozing.
         9. nutritionPrevention (ALOHIDA BO'LIM, MAJBURIY): Konsensus tashxis va bemor holatiga MOS ravishda kasalliklarni oldini olish, to'g'ri ovqatlanish va profilaktika bo'yicha aniq tavsiyalar. dietaryGuidelines: 4-8 ta qisqa band (masalan, tuz/shakar, suv, tolali mahsulotlar, ovqatlanish tartibi, mahalliy mahsulotlar — O'zbekiston oziq-ovqat realiati). preventionMeasures: 4-8 ta band (profilaktika: jismoniy faollik, uyqu, stress, gigiyena, skrining, vaksinatsiya agar mavzuga tegishli bo'lsa, qayta kasallanishning oldini olish). intro: 1-2 jumla (masalan, bu bo'limning maqsadi). disclaimer: ixtiyoriy qisqa — individual parhez va cheklovlar uchun shifokor/dietolog bilan kelishish kerakligi. Bu bo'lim davolash rejasi o'rnini bosmasin.
         10. relatedResearch (DALIL VA MANBALAR, MAJBURIY): 3-6 ta ishonchli manba qaytaring. Har birida title (protokol/maqola nomi), url (aniq URL: PubMed, DOI, WHO/NICE/ESC/ACC/ADA/IDSA/SSV protokoli sahifasi; URL to'qimang), summary (ushbu manba aynan qaysi tashxis/dori/tekshiruv/tavsiya uchun dalil ekanini 1 jumlada yozing). Kamida bittasi klinik protokol/guideline, kamida bittasi maqola yoki sistematik sharh bo'lsin. Agar aniq URL ma'lum bo'lmasa, url maydoniga PubMed qidiruv URLini yozing: https://pubmed.ncbi.nlm.nih.gov/?term=...
+        ${ENHANCED_FINAL_REPORT_AI_RULES}
         11. JSON kalitlari inglizcha qoladi, lekin HAR BIR string qiymat tanlangan til qoidasiga qat'iy mos bo'lsin.
         ANIQLIK: consensusDiagnosis da har bir element uchun probability — 0-100 oralig'ida, faqat klinik dalil va justification ga mos RAQAM (taxminiy 60/25/20 yoki 75/15 kabi takrorlanuvchi shablonlar YO'Q). Bir nechta tashxis bo'lsa, probability lar yig'indisi 100% bo'lishi kerak (bir-birini istisno qiluvchi differensial ro'yxat). reasoningChain har qadamda "nima uchun" javob bersin (HAR BIR ELEMENT 1-2 JUMLADAN OSHMASIN, qisqa holda yozing - to'liq JSON kesilmasin); uzbekProtocolMatch — aniq protokol nomi/yo'nalishi yoki protokoldan chetga chiqish sababi. Taxminiy tashxisni yakuniy deb yozmang.
         KRITIK TOPILMA: Suhbat (debate history) yoki bemor ma'lumotlarida shoshilinch, hayotga xavf, kritik holat tilga olingan bo'lsa — criticalFinding ni albatta to'ldiring (finding, implication, urgency). Bo'sh qoldirmang.
@@ -1849,6 +1957,12 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         patientData,
         pastCasesForContext,
         true,
+        language,
+        {
+            differentialDiagnoses: diagnoses,
+            specialistDebateSummary: debateHistoryToSummary(debateHistory),
+            regionalContext: extractRegionalContext(patientData),
+        },
     );
 
     const runFinalReport = async (maxTok: number, modelLabel: string = MODEL_DIAGNOSIS): Promise<FinalReport> => {
@@ -2017,6 +2131,7 @@ FAQAT JSON massiv: ["...","..."].`;
             'uz-C': 'Касаллик прогнози тайёрланмоқда...',
             'ru': 'Формируется прогноз заболевания...',
             'en': 'Generating disease prognosis...',
+            'kaa': 'Kesellik prognozı tayarlanbaqta...',
         };
         let generatedPrognosis: PrognosisReport | null = null;
         if (!shouldSkipPrognosisLlm()) {
@@ -2037,7 +2152,7 @@ FAQAT JSON massiv: ["...","..."].`;
             (rawReport as unknown as { nutritionPrevention?: unknown }).nutritionPrevention,
         );
 
-        const reportWithPrognosis: FinalReport = {
+        const reportWithPrognosis: FinalReport = enrichFinalReport({
             ...rawReport,
             prognosisReport,
             rejectedHypotheses,
@@ -2046,8 +2161,13 @@ FAQAT JSON massiv: ["...","..."].`;
             unexpectedFindings: typeof rawReport.unexpectedFindings === 'string' ? rawReport.unexpectedFindings : String(rawReport.unexpectedFindings ?? ''),
             ...(folkMedicine ? { folkMedicine } : {}),
             ...(nutritionPrevention ? { nutritionPrevention } : {}),
-        };
-        onProgress({ type: 'report', data: reportWithPrognosis, detectedMedications: [] });
+        });
+        onProgress({
+            type: 'report',
+            data: reportWithPrognosis,
+            detectedMedications: [],
+            debateHistory: [...debateHistory],
+        });
     } catch (e) {
         onProgress({ type: 'error', message: "Report generation error: " + (e instanceof Error ? e.message : String(e)) });
     }
@@ -2934,3 +3054,97 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot ber
         priceRange,
     };
 };
+
+function normalizeCheckUpPlanRaw(raw: {
+  recommendations?: unknown[];
+  preventionMeasures?: string[];
+  followUpTimeline?: string;
+}): {
+  recommendations: import('../types').CheckUpRecommendation[];
+  preventionMeasures: string[];
+  followUpTimeline?: string;
+} {
+  const recommendations = (Array.isArray(raw?.recommendations) ? raw.recommendations : [])
+    .map((r) => {
+      const o = r as Record<string, unknown>;
+      return {
+        screeningName: String(o.screeningName ?? o.screening_name ?? ''),
+        frequency: String(o.frequency ?? ''),
+        reason: String(o.reason ?? ''),
+        priority: (o.priority as 'high' | 'medium' | 'low') || 'medium',
+      };
+    })
+    .filter((r) => r.screeningName);
+  return {
+    recommendations,
+    preventionMeasures: Array.isArray(raw?.preventionMeasures) ? raw.preventionMeasures.map(String) : [],
+    followUpTimeline: raw?.followUpTimeline,
+  };
+}
+
+export async function generateCheckUpPlan(
+  input: { age: string; gender: string; conditions: string },
+  language: Language,
+): Promise<{
+  recommendations: import('../types').CheckUpRecommendation[];
+  preventionMeasures: string[];
+  followUpTimeline?: string;
+}> {
+  if (isApiConfigured()) {
+    try {
+      const res = await apiPost<{
+        recommendations?: unknown[];
+        preventionMeasures?: string[];
+        followUpTimeline?: string;
+      }>(
+        '/ai/check-up-plan/',
+        { age: input.age, gender: input.gender, conditions: input.conditions, language },
+        API_CONFIG.AI_TIMEOUT_MS,
+      );
+      if (res.success && res.data) {
+        return normalizeCheckUpPlanRaw(res.data);
+      }
+    } catch (e) {
+      logger.warn('Backend check-up plan failed, trying browser Claude', e);
+    }
+  }
+
+  if (!isBrowserClaudeConfigured()) {
+    throw new Error('AI xizmati mavjud emas. Server API yoki brauzer Claude kalitini sozlang.');
+  }
+
+  const prompt = `Profilaktik check-up rejasi. Yosh: ${input.age}, jins: ${input.gender || "noma'lum"}, holat: ${input.conditions || "sog'lom"}. O'zbekiston SSV skrining tavsiyalari va xalqaro standartlar. JSON: { recommendations: [{screeningName, frequency, reason, priority}], preventionMeasures: [], followUpTimeline: "" }. Til: ${langMap[language]}.`;
+  const schema = {
+    type: 'object',
+    properties: {
+      recommendations: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            screeningName: { type: 'string' },
+            frequency: { type: 'string' },
+            reason: { type: 'string' },
+            priority: { type: 'string' },
+          },
+        },
+      },
+      preventionMeasures: { type: 'array', items: { type: 'string' } },
+      followUpTimeline: { type: 'string' },
+    },
+  };
+  const raw = (await callClaude(
+    prompt,
+    DEPLOY_FAST,
+    schema,
+    false,
+    resolveSystemInstruction(language),
+    true,
+    1024,
+  )) as {
+    recommendations?: unknown[];
+    preventionMeasures?: string[];
+    followUpTimeline?: string;
+  };
+  return normalizeCheckUpPlanRaw(raw);
+}

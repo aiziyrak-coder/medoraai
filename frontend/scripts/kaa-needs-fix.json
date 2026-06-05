@@ -1,0 +1,1422 @@
+[
+  {
+    "k": "landing_feature_consultium",
+    "uzL": "AI Konsilium",
+    "en": "AI Konsilium"
+  },
+  {
+    "k": "landing_feature_ecg",
+    "uzL": "EKG Tahlili",
+    "en": "ECG Analysis"
+  },
+  {
+    "k": "landing_how_step1_p4",
+    "uzL": "Ixtiyoriy: EKG, rentgen, KT/MRT rasmlari",
+    "en": "Optional: EKG, X-ray, CT/MRI images"
+  },
+  {
+    "k": "landing_how_step2",
+    "uzL": "AI Tahlili",
+    "en": "AI Analysis"
+  },
+  {
+    "k": "landing_footer_platform",
+    "uzL": "Platforma",
+    "en": "Platform"
+  },
+  {
+    "k": "landing_footer_company",
+    "uzL": "Kompaniya",
+    "en": "Company"
+  },
+  {
+    "k": "specialty_gastro",
+    "uzL": "Gastroenterologiya",
+    "en": "Gastroenterology"
+  },
+  {
+    "k": "specialty_cardio",
+    "uzL": "Kardiologiya",
+    "en": "Cardiology"
+  },
+  {
+    "k": "specialty_neuro",
+    "uzL": "Nevrologiya",
+    "en": "Neurology"
+  },
+  {
+    "k": "specialty_therapist",
+    "uzL": "Terapiya",
+    "en": "Therapy"
+  },
+  {
+    "k": "specialty_endo",
+    "uzL": "Endokrinologiya",
+    "en": "Endocrinology"
+  },
+  {
+    "k": "specialty_pulmo",
+    "uzL": "Pulmonologiya",
+    "en": "Pulmonology"
+  },
+  {
+    "k": "specialty_nephro",
+    "uzL": "Nefrologiya",
+    "en": "Nephrology"
+  },
+  {
+    "k": "specialty_derma",
+    "uzL": "Dermatologiya",
+    "en": "Dermatology"
+  },
+  {
+    "k": "specialty_ortho",
+    "uzL": "Ortopediya / Travmatologiya",
+    "en": "Orthopedics / Traumatology"
+  },
+  {
+    "k": "specialty_gynec",
+    "uzL": "Ginekologiya",
+    "en": "Gynecology"
+  },
+  {
+    "k": "specialty_uro",
+    "uzL": "Urologiya",
+    "en": "Urology"
+  },
+  {
+    "k": "specialty_ophth",
+    "uzL": "Oftalmologiya",
+    "en": "Ophthalmology"
+  },
+  {
+    "k": "specialty_ent",
+    "uzL": "LOR",
+    "en": "ENT"
+  },
+  {
+    "k": "specialty_reuma",
+    "uzL": "Revmatologiya",
+    "en": "Rheumatology"
+  },
+  {
+    "k": "ecg_rhythm",
+    "uzL": "Ritm",
+    "en": "Rhythm"
+  },
+  {
+    "k": "ecg_heart_rate",
+    "uzL": "Yurak urish soni (HR)",
+    "en": "Heart Rate (HR)"
+  },
+  {
+    "k": "ecg_pr_interval",
+    "uzL": "PR Interval",
+    "en": "PR Interval"
+  },
+  {
+    "k": "ecg_qt_interval",
+    "uzL": "QT/QTc Interval",
+    "en": "QT/QTc Interval"
+  },
+  {
+    "k": "ecg_morphology",
+    "uzL": "Morfologiya",
+    "en": "Morphology"
+  },
+  {
+    "k": "vital_pulse",
+    "uzL": "Puls",
+    "en": "Pulse"
+  },
+  {
+    "k": "vital_spo2",
+    "uzL": "SpO2",
+    "en": "SpO2"
+  },
+  {
+    "k": "vital_bp",
+    "uzL": "Qon Bosimi",
+    "en": "Blood Pressure"
+  },
+  {
+    "k": "vital_respiration",
+    "uzL": "Nafas Soni",
+    "en": "Respiration Rate"
+  },
+  {
+    "k": "tool_abbreviation_placeholder",
+    "uzL": "Qisqartmani kiriting...",
+    "en": "Enter abbreviation..."
+  },
+  {
+    "k": "tool_coding_title",
+    "uzL": "Tibbiy Kodlash Yordamchisi (ICD-10)",
+    "en": "Medical Coding Assistant (ICD-10)"
+  },
+  {
+    "k": "tool_insurance_procedure_label",
+    "uzL": "Muolaja Nomi",
+    "en": "Procedure Name"
+  },
+  {
+    "k": "tool_risk_score_label",
+    "uzL": "Xavf Shkalasi",
+    "en": "Risk Scale"
+  },
+  {
+    "k": "nav_archive",
+    "uzL": "Arxiv",
+    "en": "Archive"
+  },
+  {
+    "k": "nav_training",
+    "uzL": "Trening",
+    "en": "Training"
+  },
+  {
+    "k": "auth_mode_clinic",
+    "uzL": "Klinika",
+    "en": "Clinic"
+  },
+  {
+    "k": "auth_mode_staff",
+    "uzL": "Registrator",
+    "en": "Reception"
+  },
+  {
+    "k": "auth_mode_monitoring",
+    "uzL": "Monitoring",
+    "en": "Monitoring"
+  },
+  {
+    "k": "auth_phone_placeholder",
+    "uzL": "+998 XX XXX XX XX",
+    "en": "+1 XXX XXX XX XX"
+  },
+  {
+    "k": "auth_password_label",
+    "uzL": "Parol",
+    "en": "Password"
+  },
+  {
+    "k": "auth_attention",
+    "uzL": "DIQQAT:",
+    "en": "ATTENTION:"
+  },
+  {
+    "k": "auth_terms",
+    "uzL": "Shartlar",
+    "en": "Terms"
+  },
+  {
+    "k": "auth_privacy",
+    "uzL": "Maxfiylik",
+    "en": "Privacy"
+  },
+  {
+    "k": "auth_faq",
+    "uzL": "FAQ",
+    "en": "FAQ"
+  },
+  {
+    "k": "auth_agree_prefix",
+    "uzL": "Men",
+    "en": "I have read and agree to the"
+  },
+  {
+    "k": "specialty_cardiology",
+    "uzL": "Kardiologiya",
+    "en": "Cardiology"
+  },
+  {
+    "k": "specialty_neurology",
+    "uzL": "Nevrologiya",
+    "en": "Neurology"
+  },
+  {
+    "k": "specialty_radiology",
+    "uzL": "Radiologiya",
+    "en": "Radiology"
+  },
+  {
+    "k": "specialty_oncology",
+    "uzL": "Onkologiya",
+    "en": "Oncology"
+  },
+  {
+    "k": "specialty_endocrinology",
+    "uzL": "Endokrinologiya",
+    "en": "Endocrinology"
+  },
+  {
+    "k": "specialty_anesthesiology",
+    "uzL": "Anesteziologiya",
+    "en": "Anesthesiology"
+  },
+  {
+    "k": "specialty_dermatology",
+    "uzL": "Dermatologiya",
+    "en": "Dermatology"
+  },
+  {
+    "k": "specialty_gastroenterology",
+    "uzL": "Gastroenterologiya",
+    "en": "Gastroenterology"
+  },
+  {
+    "k": "specialty_geriatrics",
+    "uzL": "Geriatriya",
+    "en": "Geriatrics"
+  },
+  {
+    "k": "specialty_hematology",
+    "uzL": "Gematologiya",
+    "en": "Hematology"
+  },
+  {
+    "k": "specialty_nephrology",
+    "uzL": "Nefrologiya",
+    "en": "Nephrology"
+  },
+  {
+    "k": "specialty_ophthalmology",
+    "uzL": "Oftalmologiya",
+    "en": "Ophthalmology"
+  },
+  {
+    "k": "specialty_orthopedics",
+    "uzL": "Ortopediya",
+    "en": "Orthopedics"
+  },
+  {
+    "k": "specialty_pathology",
+    "uzL": "Patologiya",
+    "en": "Pathology"
+  },
+  {
+    "k": "specialty_pediatrics",
+    "uzL": "Pediatriya",
+    "en": "Pediatrics"
+  },
+  {
+    "k": "specialty_psychiatry",
+    "uzL": "Psixiatriya",
+    "en": "Psychiatry"
+  },
+  {
+    "k": "specialty_pulmonology",
+    "uzL": "Pulmonologiya",
+    "en": "Pulmonology"
+  },
+  {
+    "k": "specialty_rheumatology",
+    "uzL": "Revmatologiya",
+    "en": "Rheumatology"
+  },
+  {
+    "k": "specialty_urology",
+    "uzL": "Urologiya",
+    "en": "Urology"
+  },
+  {
+    "k": "specialty_neonatology",
+    "uzL": "Neonatologiya",
+    "en": "Neonatology"
+  },
+  {
+    "k": "specialty_traumatology",
+    "uzL": "Travmatologiya",
+    "en": "Traumatology"
+  },
+  {
+    "k": "specialty_toxicology",
+    "uzL": "Toksikologiya",
+    "en": "Toxicology"
+  },
+  {
+    "k": "specialty_sleep_medicine",
+    "uzL": "Somnologiya",
+    "en": "Sleep Medicine"
+  },
+  {
+    "k": "specialty_immunology",
+    "uzL": "Immunologiya",
+    "en": "Immunologology"
+  },
+  {
+    "k": "specialty_hepatology",
+    "uzL": "Gepatologiya",
+    "en": "Hepatology"
+  },
+  {
+    "k": "specialty_epidemiology",
+    "uzL": "Epidemiologiya",
+    "en": "Epidemiology"
+  },
+  {
+    "k": "specialty_dentistry",
+    "uzL": "Stomatologiya",
+    "en": "Dentistry"
+  },
+  {
+    "k": "specialty_proctology",
+    "uzL": "Proktologiya",
+    "en": "Proctology"
+  },
+  {
+    "k": "specialty_mammology",
+    "uzL": "Mammologiya",
+    "en": "Mammology"
+  },
+  {
+    "k": "specialty_phthisiology",
+    "uzL": "Ftiziatriya",
+    "en": "Phthisiology"
+  },
+  {
+    "k": "specialty_narcology",
+    "uzL": "Narkologiya",
+    "en": "Narcology"
+  },
+  {
+    "k": "specialty_psychotherapy",
+    "uzL": "Psixoterapiya",
+    "en": "Psychotherapy"
+  },
+  {
+    "k": "specialty_sexology",
+    "uzL": "Seksopatologiya",
+    "en": "Sexology"
+  },
+  {
+    "k": "specialty_vertebrology",
+    "uzL": "Vertebrologiya",
+    "en": "Vertebrology"
+  },
+  {
+    "k": "specialty_moderator",
+    "uzL": "Moderator",
+    "en": "Moderator"
+  },
+  {
+    "k": "dashboard_analytics_title",
+    "uzL": "Analitika Hub",
+    "en": "Analytics Hub"
+  },
+  {
+    "k": "archive_filter_period",
+    "uzL": "Vaqt",
+    "en": "Period"
+  },
+  {
+    "k": "archive_period_7d",
+    "uzL": "7 kun",
+    "en": "7 days"
+  },
+  {
+    "k": "archive_period_30d",
+    "uzL": "30 kun",
+    "en": "30 days"
+  },
+  {
+    "k": "archive_period_90d",
+    "uzL": "90 kun",
+    "en": "90 days"
+  },
+  {
+    "k": "archive_sort_label",
+    "uzL": "Tartib",
+    "en": "Sort"
+  },
+  {
+    "k": "archive_sort_date_asc",
+    "uzL": "Eski avval",
+    "en": "Oldest first"
+  },
+  {
+    "k": "archive_gender_label",
+    "uzL": "Jins",
+    "en": "Gender"
+  },
+  {
+    "k": "archive_reset_filters",
+    "uzL": "Filtrlarni tozalash",
+    "en": "Clear filters"
+  },
+  {
+    "k": "archive_page_prev",
+    "uzL": "Oldingi",
+    "en": "Previous"
+  },
+  {
+    "k": "archive_page_next",
+    "uzL": "Keyingi",
+    "en": "Next"
+  },
+  {
+    "k": "archive_page_info",
+    "uzL": "{from}–{to} / {total}",
+    "en": "{from}–{to} of {total}"
+  },
+  {
+    "k": "doc_tab_profile",
+    "uzL": "Profil",
+    "en": "Profile"
+  },
+  {
+    "k": "doc_settings_language",
+    "uzL": "Tizim Tili",
+    "en": "System Language"
+  },
+  {
+    "k": "doc_stat_rating",
+    "uzL": "Reyting",
+    "en": "Rating"
+  },
+  {
+    "k": "staff_title",
+    "uzL": "Registrator",
+    "en": "Receptionist"
+  },
+  {
+    "k": "data_input_patient_fathername",
+    "uzL": "Otasining ismi",
+    "en": "Patient Middle Name / Patronymic"
+  },
+  {
+    "k": "data_input_allergies",
+    "uzL": "Allergiya",
+    "en": "Allergies"
+  },
+  {
+    "k": "data_input_dictate",
+    "uzL": "Diktovka",
+    "en": "Dictate"
+  },
+  {
+    "k": "data_input_labs_unit",
+    "uzL": "Birligi",
+    "en": "Unit"
+  },
+  {
+    "k": "usefulness_feedback_comment_placeholder",
+    "uzL": "Izoh (ixtiyoriy)...",
+    "en": "Comment (optional)..."
+  },
+  {
+    "k": "usefulness_feedback_sending",
+    "uzL": "Yuborilmoqda...",
+    "en": "Sending..."
+  },
+  {
+    "k": "error_title",
+    "uzL": "Xatolik",
+    "en": "Error"
+  },
+  {
+    "k": "error_retry_button",
+    "uzL": "Qayta urinish",
+    "en": "Retry"
+  },
+  {
+    "k": "analysis_age_suffix",
+    "uzL": "yosh",
+    "en": "years"
+  },
+  {
+    "k": "analysis_age_missing",
+    "uzL": "Yosh kiritilmagan",
+    "en": "Age not provided"
+  },
+  {
+    "k": "analysis_not_provided",
+    "uzL": "Kiritilmagan",
+    "en": "Not provided"
+  },
+  {
+    "k": "analysis_labs_title",
+    "uzL": "Laboratoriya",
+    "en": "Laboratory"
+  },
+  {
+    "k": "final_report_meds_notes",
+    "uzL": "Izoh",
+    "en": "Notes"
+  },
+  {
+    "k": "prognosis_section_short",
+    "uzL": "Qisqa muddatli (1–3 oy)",
+    "en": "Short term (1–3 months)"
+  },
+  {
+    "k": "prognosis_section_long",
+    "uzL": "Uzoq muddatli (1–5 yil)",
+    "en": "Long term (1–5 years)"
+  },
+  {
+    "k": "final_report_folk_context",
+    "uzL": "An'anaviy kontekst:",
+    "en": "Traditional context:"
+  },
+  {
+    "k": "final_report_protocol_ref",
+    "uzL": "Protokol",
+    "en": "Protocol"
+  },
+  {
+    "k": "final_report_contraindications",
+    "uzL": "Kontrendikatsiyalar",
+    "en": "Contraindications"
+  },
+  {
+    "k": "final_report_monitoring",
+    "uzL": "Monitoring",
+    "en": "Monitoring"
+  },
+  {
+    "k": "routing_outpatient",
+    "uzL": "Ambulator",
+    "en": "Outpatient"
+  },
+  {
+    "k": "routing_inpatient",
+    "uzL": "Statsionar",
+    "en": "Inpatient"
+  },
+  {
+    "k": "checkup_frequency",
+    "uzL": "Chastota",
+    "en": "Frequency"
+  },
+  {
+    "k": "tele_tab_consult",
+    "uzL": "Onlayn maslahat",
+    "en": "Online consultation"
+  },
+  {
+    "k": "mod_checkup_title",
+    "uzL": "Check-up",
+    "en": "Check-up"
+  },
+  {
+    "k": "specialist_name_cardiologist",
+    "uzL": "Kardiolog",
+    "en": "Cardiologist"
+  },
+  {
+    "k": "specialist_name_neurologist",
+    "uzL": "Nevrolog",
+    "en": "Neurologist"
+  },
+  {
+    "k": "specialist_name_radiologist",
+    "uzL": "Radiolog",
+    "en": "Radiologist"
+  },
+  {
+    "k": "specialist_name_oncologist",
+    "uzL": "Onkolog",
+    "en": "Oncologist"
+  },
+  {
+    "k": "specialist_name_endocrinologist",
+    "uzL": "Endokrinolog",
+    "en": "Endocrinologist"
+  },
+  {
+    "k": "specialty_gemini",
+    "uzL": "Kardiologiya",
+    "en": "Cardiology"
+  },
+  {
+    "k": "specialty_claude",
+    "uzL": "Nevrologiya",
+    "en": "Neurology"
+  },
+  {
+    "k": "specialty_gpt",
+    "uzL": "Radiologiya",
+    "en": "Radiology"
+  },
+  {
+    "k": "specialty_llama",
+    "uzL": "Onkologiya",
+    "en": "Oncology"
+  },
+  {
+    "k": "specialty_grok",
+    "uzL": "Endokrinologiya",
+    "en": "Endocrinology"
+  },
+  {
+    "k": "specialist_name_allergist",
+    "uzL": "Allergolog",
+    "en": "Allergist"
+  },
+  {
+    "k": "specialist_name_anesthesiology",
+    "uzL": "Anesteziolog",
+    "en": "Anesthesiologist"
+  },
+  {
+    "k": "specialist_name_dermatologist",
+    "uzL": "Dermatolog",
+    "en": "Dermatologist"
+  },
+  {
+    "k": "specialty_dermatologist",
+    "uzL": "Dermatologiya",
+    "en": "Dermatology"
+  },
+  {
+    "k": "specialty_emergency",
+    "uzL": "Shoshilinch tibbiy yordam",
+    "en": "Emergency Medicine"
+  },
+  {
+    "k": "specialist_name_gastroenterologist",
+    "uzL": "Gastroenterolog",
+    "en": "Gastroenterologist"
+  },
+  {
+    "k": "specialty_gastroenterologist",
+    "uzL": "Gastroenterologiya",
+    "en": "Gastroenterology"
+  },
+  {
+    "k": "specialist_name_geneticist",
+    "uzL": "Tibbiy genetik",
+    "en": "Medical Geneticist"
+  },
+  {
+    "k": "specialty_geneticist",
+    "uzL": "Tibbiy genetika",
+    "en": "Medical Genetics"
+  },
+  {
+    "k": "specialist_name_geriatrician",
+    "uzL": "Geriatr",
+    "en": "Geriatrician"
+  },
+  {
+    "k": "specialty_geriatrician",
+    "uzL": "Geriatriya",
+    "en": "Geriatrics"
+  },
+  {
+    "k": "specialist_name_hematologist",
+    "uzL": "Gematolog",
+    "en": "Hematologist"
+  },
+  {
+    "k": "specialty_hematologist",
+    "uzL": "Gematologiya",
+    "en": "Hematology"
+  },
+  {
+    "k": "specialist_name_nephrologist",
+    "uzL": "Nefrolog",
+    "en": "Nephrologist"
+  },
+  {
+    "k": "specialty_nephrologist",
+    "uzL": "Nefrologiya",
+    "en": "Nephrology"
+  },
+  {
+    "k": "specialist_name_obgyn",
+    "uzL": "Akusher-ginekolog",
+    "en": "Obstetrician-Gynecologist"
+  },
+  {
+    "k": "specialist_name_ophthalmologist",
+    "uzL": "Oftalmolog",
+    "en": "Ophthalmologist"
+  },
+  {
+    "k": "specialty_ophthalmologist",
+    "uzL": "Oftalmologiya",
+    "en": "Ophthalmology"
+  },
+  {
+    "k": "specialist_name_orthopedic",
+    "uzL": "Ortoped-jarroh",
+    "en": "Orthopedic Surgeon"
+  },
+  {
+    "k": "specialty_orthopedic",
+    "uzL": "Ortopediya",
+    "en": "Orthopedics"
+  },
+  {
+    "k": "specialty_otolaryngologist",
+    "uzL": "Otorinolaringologiya (LOR)",
+    "en": "Otolaryngology"
+  },
+  {
+    "k": "specialist_name_pathologist",
+    "uzL": "Patolog",
+    "en": "Pathologist"
+  },
+  {
+    "k": "specialty_pathologist",
+    "uzL": "Patologiya",
+    "en": "Pathology"
+  },
+  {
+    "k": "specialist_name_pediatrician",
+    "uzL": "Pediatr",
+    "en": "Pediatrician"
+  },
+  {
+    "k": "specialty_pediatrician",
+    "uzL": "Pediatriya",
+    "en": "Pediatrics"
+  },
+  {
+    "k": "specialist_name_pharmacologist",
+    "uzL": "Farmakolog",
+    "en": "Pharmacologist"
+  },
+  {
+    "k": "specialist_name_physiatrist",
+    "uzL": "Fiziatrolog",
+    "en": "Physiatrist"
+  },
+  {
+    "k": "specialist_name_plastic_surgeon",
+    "uzL": "Plastik jarroh",
+    "en": "Plastic Surgeon"
+  },
+  {
+    "k": "specialist_name_psychiatrist",
+    "uzL": "Psixiatr",
+    "en": "Psychiatrist"
+  },
+  {
+    "k": "specialty_psychiatrist",
+    "uzL": "Psixiatriya",
+    "en": "Psychiatry"
+  },
+  {
+    "k": "specialist_name_pulmonologist",
+    "uzL": "Pulmonolog",
+    "en": "Pulmonologist"
+  },
+  {
+    "k": "specialty_pulmonologist",
+    "uzL": "Pulmonologiya",
+    "en": "Pulmonology"
+  },
+  {
+    "k": "specialist_name_rheumatologist",
+    "uzL": "Revmatolog",
+    "en": "Rheumatologist"
+  },
+  {
+    "k": "specialty_rheumatologist",
+    "uzL": "Revmatologiya",
+    "en": "Rheumatology"
+  },
+  {
+    "k": "specialist_name_surgeon",
+    "uzL": "Jarroh",
+    "en": "General Surgeon"
+  },
+  {
+    "k": "specialty_surgeon",
+    "uzL": "Umumiy jarrohlik",
+    "en": "General Surgery"
+  },
+  {
+    "k": "specialist_name_urologist",
+    "uzL": "Urolog",
+    "en": "Urologist"
+  },
+  {
+    "k": "specialty_urologist",
+    "uzL": "Urologiya",
+    "en": "Urology"
+  },
+  {
+    "k": "specialist_name_neonatologist",
+    "uzL": "Neonatolog",
+    "en": "Neonatologist"
+  },
+  {
+    "k": "specialty_neonatologist",
+    "uzL": "Neonatologiya",
+    "en": "Neonatology"
+  },
+  {
+    "k": "specialist_name_neurosurgeon",
+    "uzL": "Neyrojarroh",
+    "en": "Neurosurgeon"
+  },
+  {
+    "k": "specialty_neurosurgeon",
+    "uzL": "Neyrojarrohlik",
+    "en": "Neurosurgery"
+  },
+  {
+    "k": "specialist_name_cardiothoracic_surgeon",
+    "uzL": "Kardiotorakal jarroh",
+    "en": "Cardiothoracic Surgeon"
+  },
+  {
+    "k": "specialist_name_vascular_surgeon",
+    "uzL": "Qon tomir jarrohi",
+    "en": "Vascular Surgeon"
+  },
+  {
+    "k": "specialist_name_traumatologist",
+    "uzL": "Travmatolog",
+    "en": "Traumatologist"
+  },
+  {
+    "k": "specialty_traumatologist",
+    "uzL": "Travmatologiya",
+    "en": "Traumatology"
+  },
+  {
+    "k": "specialist_name_toxicologist",
+    "uzL": "Toksikolog",
+    "en": "Toxicologist"
+  },
+  {
+    "k": "specialty_toxicologist",
+    "uzL": "Toksikologiya",
+    "en": "Toxicology"
+  },
+  {
+    "k": "specialist_name_sleep_medicine",
+    "uzL": "Somnolog",
+    "en": "Sleep Medicine Specialist"
+  },
+  {
+    "k": "specialist_name_nutritionist",
+    "uzL": "Nutritsiolog",
+    "en": "Nutritionist"
+  },
+  {
+    "k": "specialty_nutritionist",
+    "uzL": "Nutritsiologiya",
+    "en": "Nutrition"
+  },
+  {
+    "k": "specialist_name_immunologist",
+    "uzL": "Immunolog",
+    "en": "Immunologist"
+  },
+  {
+    "k": "specialty_immunologist",
+    "uzL": "Immunologiya",
+    "en": "Immunology"
+  },
+  {
+    "k": "specialist_name_hepatologist",
+    "uzL": "Gepatolog",
+    "en": "Hepatologist"
+  },
+  {
+    "k": "specialty_hepatologist",
+    "uzL": "Gepatologiya",
+    "en": "Hepatology"
+  },
+  {
+    "k": "specialist_name_epidemiologist",
+    "uzL": "Epidemiolog",
+    "en": "Epidemiologist"
+  },
+  {
+    "k": "specialty_epidemiologist",
+    "uzL": "Epidemiologiya",
+    "en": "Epidemiology"
+  },
+  {
+    "k": "specialist_name_dentist",
+    "uzL": "Stomatolog",
+    "en": "Dentist"
+  },
+  {
+    "k": "specialty_dentist",
+    "uzL": "Stomatologiya",
+    "en": "Dentistry"
+  },
+  {
+    "k": "specialist_name_proctologist",
+    "uzL": "Proktolog",
+    "en": "Proctologist"
+  },
+  {
+    "k": "specialty_proctologist",
+    "uzL": "Proktologiya",
+    "en": "Proctology"
+  },
+  {
+    "k": "specialist_name_mammologist",
+    "uzL": "Mammolog",
+    "en": "Mammologist"
+  },
+  {
+    "k": "specialty_mammologist",
+    "uzL": "Mammologiya",
+    "en": "Mammology"
+  },
+  {
+    "k": "specialist_name_phthisiatrician",
+    "uzL": "Ftiziator",
+    "en": "Phthisiatrician"
+  },
+  {
+    "k": "specialty_phthisiatrician",
+    "uzL": "Ftiziatriya",
+    "en": "Phthisiology"
+  },
+  {
+    "k": "specialist_name_narcologist",
+    "uzL": "Narkolog",
+    "en": "Narcologist"
+  },
+  {
+    "k": "specialty_narcologist",
+    "uzL": "Narkologiya",
+    "en": "Narcology"
+  },
+  {
+    "k": "specialist_name_psychotherapist",
+    "uzL": "Psixoterapevt",
+    "en": "Psychotherapist"
+  },
+  {
+    "k": "specialty_psychotherapist",
+    "uzL": "Psixoterapiya",
+    "en": "Psychotherapy"
+  },
+  {
+    "k": "specialist_name_sexologist",
+    "uzL": "Seksolog",
+    "en": "Sexologist"
+  },
+  {
+    "k": "specialty_sexologist",
+    "uzL": "Seksopatologiya",
+    "en": "Sexology"
+  },
+  {
+    "k": "specialist_name_vertebrologist",
+    "uzL": "Vertebrolog",
+    "en": "Vertebrologist"
+  },
+  {
+    "k": "specialty_vertebrologist",
+    "uzL": "Vertebrologiya",
+    "en": "Vertebrology"
+  },
+  {
+    "k": "walk_in_admission",
+    "uzL": "Navbatsiz Qabul",
+    "en": "Walk-in Admission"
+  },
+  {
+    "k": "back_to_queue",
+    "uzL": "Navbat",
+    "en": "Queue"
+  },
+  {
+    "k": "vitals_pulse",
+    "uzL": "Puls",
+    "en": "Pulse"
+  },
+  {
+    "k": "vitals_temp",
+    "uzL": "Harorat",
+    "en": "Temperature"
+  },
+  {
+    "k": "vitals_spo2",
+    "uzL": "Saturatsiya",
+    "en": "Saturation"
+  },
+  {
+    "k": "vitals_normal_btn",
+    "uzL": "Normada",
+    "en": "Normal"
+  },
+  {
+    "k": "last_name_label",
+    "uzL": "Familiya",
+    "en": "Last Name"
+  },
+  {
+    "k": "address_label_short",
+    "uzL": "Manzil",
+    "en": "Address"
+  },
+  {
+    "k": "nav_drugs",
+    "uzL": "Dorilar",
+    "en": "Drugs"
+  },
+  {
+    "k": "data_form_patient_searching",
+    "uzL": "Qidiruv...",
+    "en": "Searching..."
+  },
+  {
+    "k": "data_form_vitals_pulse",
+    "uzL": "Puls",
+    "en": "Pulse"
+  },
+  {
+    "k": "data_form_vitals_temp",
+    "uzL": "Harorat",
+    "en": "Temperature"
+  },
+  {
+    "k": "data_form_vitals_spo2",
+    "uzL": "Saturatsiya",
+    "en": "Saturation"
+  },
+  {
+    "k": "tv_ad_active",
+    "uzL": "Reklama bloki faol",
+    "en": "Ad block active"
+  },
+  {
+    "k": "data_input_placeholder_lastname",
+    "uzL": "Familiya",
+    "en": "Last name"
+  },
+  {
+    "k": "doc_camera",
+    "uzL": "Kamera",
+    "en": "Camera"
+  },
+  {
+    "k": "doc_gallery",
+    "uzL": "Galereya",
+    "en": "Gallery"
+  },
+  {
+    "k": "vitals_label_sys",
+    "uzL": "SYS",
+    "en": "SYS"
+  },
+  {
+    "k": "vitals_label_dia",
+    "uzL": "DIA",
+    "en": "DIA"
+  },
+  {
+    "k": "vitals_label_puls",
+    "uzL": "Puls",
+    "en": "Pulse"
+  },
+  {
+    "k": "vitals_label_spo2",
+    "uzL": "SpO2",
+    "en": "SpO2"
+  },
+  {
+    "k": "vitals_label_resp",
+    "uzL": "Nafas",
+    "en": "Respiration"
+  },
+  {
+    "k": "data_form_section_passport",
+    "uzL": "Pasport",
+    "en": "Passport"
+  },
+  {
+    "k": "data_form_vitals_summary_spo2",
+    "uzL": "Saturatsiya (SpO2)",
+    "en": "Saturation (SpO2)"
+  },
+  {
+    "k": "tv_video_url_placeholder",
+    "uzL": "https://video1.mp4, https://video2.mp4",
+    "en": "https://video1.mp4, https://video2.mp4"
+  },
+  {
+    "k": "assistant_phone_placeholder",
+    "uzL": "+998...",
+    "en": "+998..."
+  },
+  {
+    "k": "dashboard_hero_badge",
+    "uzL": "AI Konsilium 2.0 Tizimi",
+    "en": "AI Konsilium 2.0 System"
+  },
+  {
+    "k": "subscription_title",
+    "uzL": "Obuna",
+    "en": "Subscription"
+  },
+  {
+    "k": "consilium_debate_round",
+    "uzL": "Bahslar",
+    "en": "Debates"
+  },
+  {
+    "k": "consilium_independent",
+    "uzL": "Mustaqil",
+    "en": "Independent"
+  },
+  {
+    "k": "consilium_dissenting_opinions",
+    "uzL": "Farqli fikrlar:",
+    "en": "Dissenting opinions:"
+  },
+  {
+    "k": "consilium_follow_up_plan",
+    "uzL": "Kuzatuv Rejasi",
+    "en": "Follow-Up Plan"
+  },
+  {
+    "k": "final_report_document_title",
+    "uzL": "YAKUNIY KLINIK XULOSA",
+    "en": "FINAL CLINICAL CONCLUSION"
+  },
+  {
+    "k": "final_report_attention_critical",
+    "uzL": "DIQQAT! KRITIK TOPILMA!",
+    "en": "ATTENTION! CRITICAL FINDING!"
+  },
+  {
+    "k": "final_report_justification",
+    "uzL": "Asoslash:",
+    "en": "Justification:"
+  },
+  {
+    "k": "final_report_reasoning_chain",
+    "uzL": "Mantiqiy zanjir",
+    "en": "Reasoning chain"
+  },
+  {
+    "k": "final_report_dosage_inline",
+    "uzL": "Doza:",
+    "en": "Dosage:"
+  },
+  {
+    "k": "final_report_estimated_price",
+    "uzL": "Taxminiy narxi:",
+    "en": "Estimated price:"
+  },
+  {
+    "k": "mobile_blocker_device_computer",
+    "uzL": "Kompyuter",
+    "en": "Computer"
+  },
+  {
+    "k": "mobile_blocker_device_tablet",
+    "uzL": "Planshet",
+    "en": "Tablet"
+  },
+  {
+    "k": "mobile_blocker_registrar",
+    "uzL": "Registrator",
+    "en": "Receptionist"
+  },
+  {
+    "k": "loading_text",
+    "uzL": "Yuklanmoqda...",
+    "en": "Loading..."
+  },
+  {
+    "k": "phase_2_debate",
+    "uzL": "2-Faza: Bahslar (Cross-Examination)",
+    "en": "Phase 2: Cross-Examination"
+  },
+  {
+    "k": "landing_footer_api",
+    "uzL": "API",
+    "en": "API"
+  },
+  {
+    "k": "landing_footer_careers",
+    "uzL": "Karyera",
+    "en": "Careers"
+  },
+  {
+    "k": "landing_footer_blog",
+    "uzL": "Blog",
+    "en": "Blog"
+  },
+  {
+    "k": "testimonial_1_name",
+    "uzL": "Dr. A. Karimov",
+    "en": "Dr. A. Karimov"
+  },
+  {
+    "k": "testimonial_2_name",
+    "uzL": "Dr. S. Umarova",
+    "en": "Dr. S. Umarova"
+  },
+  {
+    "k": "testimonial_2_role",
+    "uzL": "Nevrolog",
+    "en": "Neurologist"
+  },
+  {
+    "k": "tools_lab_interpreter_title",
+    "uzL": "Laboratoriya tahlili",
+    "en": "Laboratory interpretation"
+  },
+  {
+    "k": "mobile_block_computer",
+    "uzL": "Kompyuter",
+    "en": "computer"
+  },
+  {
+    "k": "mobile_block_tablet",
+    "uzL": "Planshet",
+    "en": "tablet"
+  },
+  {
+    "k": "pdf_product_brand_footer",
+    "uzL": "AiDoktor",
+    "en": "AiDoktor"
+  },
+  {
+    "k": "docx_dose",
+    "uzL": "Doza",
+    "en": "Dose"
+  },
+  {
+    "k": "docx_note",
+    "uzL": "Izoh",
+    "en": "Note"
+  },
+  {
+    "k": "docx_reminder",
+    "uzL": "Eslatma",
+    "en": "Reminder"
+  },
+  {
+    "k": "docx_hypothesis",
+    "uzL": "Gipoteza",
+    "en": "Hypothesis"
+  },
+  {
+    "k": "pdf_uzi_utt_region",
+    "uzL": "Organ / soha",
+    "en": "Organ / region"
+  },
+  {
+    "k": "pdf_uzi_utt_technique",
+    "uzL": "Texnika / izoh",
+    "en": "Technique / notes"
+  },
+  {
+    "k": "uzi_utt_badge",
+    "uzL": "Tasvirlash",
+    "en": "Imaging"
+  },
+  {
+    "k": "uzi_utt_open",
+    "uzL": "Ochish",
+    "en": "Open"
+  },
+  {
+    "k": "uzi_utt_upload_cta",
+    "uzL": "Fayl qo‘shish",
+    "en": "Add files"
+  },
+  {
+    "k": "uzi_utt_modality_label",
+    "uzL": "Tasvirlash turi",
+    "en": "Imaging modality"
+  },
+  {
+    "k": "uzi_utt_modality_ultrasound",
+    "uzL": "UTT / UZI (ultratovush)",
+    "en": "Ultrasound (UZI/UTT)"
+  },
+  {
+    "k": "uzi_utt_modality_xray",
+    "uzL": "Rengen (X-ray)",
+    "en": "X-ray (Rengen)"
+  },
+  {
+    "k": "uzi_utt_patient_sex_unknown",
+    "uzL": "Ko‘rsatilmagan",
+    "en": "Not specified"
+  },
+  {
+    "k": "uzi_utt_error_no_files",
+    "uzL": "Kamida bitta fayl qo‘shing.",
+    "en": "Please add at least one file."
+  },
+  {
+    "k": "uzi_utt_remove",
+    "uzL": "Olib tashlash",
+    "en": "Remove"
+  },
+  {
+    "k": "uzi_utt_technique",
+    "uzL": "Texnika / izoh",
+    "en": "Technique / notes"
+  },
+  {
+    "k": "uzi_utt_limitations",
+    "uzL": "Cheklovlar",
+    "en": "Limitations"
+  },
+  {
+    "k": "uzi_utt_urgency",
+    "uzL": "Shoshilinchlik",
+    "en": "Urgency"
+  },
+  {
+    "k": "uzi_utt_urgency_routine",
+    "uzL": "Rejadagi",
+    "en": "Routine"
+  },
+  {
+    "k": "uzi_utt_urgency_soon",
+    "uzL": "Tez orada nazorat",
+    "en": "Follow-up soon"
+  },
+  {
+    "k": "uzi_utt_urgency_urgent",
+    "uzL": "Shoshilinch",
+    "en": "Urgent"
+  },
+  {
+    "k": "uzi_utt_urgency_emergent",
+    "uzL": "Favqulodda",
+    "en": "Emergent"
+  },
+  {
+    "k": "consilium_badge_consensus",
+    "uzL": "✓ Konsensus",
+    "en": "✓ Consensus"
+  },
+  {
+    "k": "consilium_badge_independent",
+    "uzL": "📋 Mustaqil",
+    "en": "📋 Independent"
+  },
+  {
+    "k": "consilium_title_debate",
+    "uzL": "Professorlar Bahsi",
+    "en": "Professor Debates"
+  },
+  {
+    "k": "consilium_phase_independent",
+    "uzL": "1-faza: Mustaqil tahlil",
+    "en": "Phase 1: Independent Analysis"
+  },
+  {
+    "k": "years_short",
+    "uzL": "y.",
+    "en": "y."
+  },
+  {
+    "k": "dashboard_ai_online",
+    "uzL": "AI ONLINE",
+    "en": "AI ONLINE"
+  }
+]

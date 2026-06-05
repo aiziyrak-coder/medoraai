@@ -5,6 +5,9 @@ import { generateDocxReport } from '../services/docxGenerator';
 import DownloadIcon from './icons/DownloadIcon';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../constants/brand';
+import { isApiConfigured } from '../config/api';
+import { API_BASE_URL } from '../services/api';
+import { getAuthToken } from '../services/api';
 
 /** Minimal report when analysis ended with error — PDF/DOCX still export patient + debate. */
 function getMinimalReportForExport(): FinalReport {
@@ -65,6 +68,26 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
         }, t);
     };
 
+    const handleFhirExport = async () => {
+        const analysisId = record.id ? parseInt(record.id, 10) : NaN;
+        if (!isApiConfigured() || isNaN(analysisId) || analysisId <= 0) return;
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/integrations/fhir/Bundle/Analysis/${analysisId}/`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) return;
+        const bundle = await res.json();
+        const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/fhir+json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fhir-analysis-${analysisId}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const canFhir = isApiConfigured() && record.id && !isNaN(parseInt(record.id, 10)) && parseInt(record.id, 10) > 0;
+
     return (
         <div className="space-y-4">
             {hasError && (
@@ -89,6 +112,16 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
                         <DownloadIcon className="w-4 h-4" />
                         <span>{t('export_download_word' as TranslationKey)}</span>
                     </button>
+                    {canFhir && (
+                        <button
+                            type="button"
+                            onClick={() => void handleFhirExport()}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-cyan-900 bg-cyan-100 hover:bg-cyan-200 rounded-xl transition-colors border border-cyan-300"
+                        >
+                            <DownloadIcon className="w-4 h-4" />
+                            <span>{t('fhir_export_btn')}</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
