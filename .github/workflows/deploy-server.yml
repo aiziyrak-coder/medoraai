@@ -40,13 +40,13 @@ jobs:
           script_stop: true
           script: |
             set -e
-            # aidoktor.uz (asosiy): /root/aidoktorfjsti
-            if [ -f /root/aidoktorfjsti/deploy/provision-aidoktor-uz.sh ]; then
+            # fjsti.ziyrak.org + fjstiapi.ziyrak.org
+            if [ -f /root/aidoktorfjsti/deploy/provision-fjsti-ziyrak.sh ]; then
               cd /root/aidoktorfjsti
               git fetch origin main
               git reset --hard origin/main
-              chmod +x deploy/provision-aidoktor-uz.sh
-              bash deploy/provision-aidoktor-uz.sh
+              chmod +x deploy/provision-fjsti-ziyrak.sh
+              bash deploy/provision-fjsti-ziyrak.sh
               exit 0
             fi
             for APP in /root/medoraai /root/AiDoktorai; do

@@ -527,7 +527,7 @@ export interface HealthCheckResult {
  * VITE_API_PUBLIC_HEALTH_URL > hostname jadvali.
  */
 const SPLIT_HEALTH_BY_HOST: Record<string, string> = {
-  'aidoktor.uz': 'https://api.aidoktor.uz/health/',
+  'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/health/',
 };
 
 function resolveSplitPublicHealthUrl(): string | undefined {

@@ -49,8 +49,8 @@ cd "$ROOT"
 git fetch origin
 git checkout main
 git reset --hard origin/main
-chmod +x deploy/provision-aidoktor-uz.sh
-exec bash deploy/provision-aidoktor-uz.sh
+chmod +x deploy/provision-fjsti-ziyrak.sh
+exec bash deploy/provision-fjsti-ziyrak.sh
 """
 
 

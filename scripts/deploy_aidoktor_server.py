@@ -34,32 +34,8 @@ CMD = """set -e
 cd /root/aidoktorfjsti
 git fetch origin main
 git reset --hard origin/main
-cd backend
-source venv/bin/activate
-pip install -q -r requirements.txt
-python manage.py migrate --noinput
-deactivate
-cd ../frontend
-mkdir -p public/fonts
-if [ ! -s public/fonts/AiDoktorSans.ttf ]; then
-  for FONT in \
-    /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
-    /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \
-    /usr/share/fonts/truetype/freefont/FreeSans.ttf \
-    /usr/share/fonts/dejavu/DejaVuSans.ttf; do
-    if [ -s "$FONT" ]; then
-      cp "$FONT" public/fonts/AiDoktorSans.ttf
-      break
-    fi
-  done
-  if [ ! -s public/fonts/AiDoktorSans.ttf ]; then
-    echo "WARN: Unicode PDF font not found; PDF will use built-in fallback"
-  fi
-fi
-npm run build
-sudo nginx -t
-sudo systemctl reload nginx
-sudo systemctl restart aidoktorfjsti-backend
+chmod +x deploy/provision-fjsti-ziyrak.sh
+bash deploy/provision-fjsti-ziyrak.sh
 echo OK_REMOTE_DEPLOY
 """
 

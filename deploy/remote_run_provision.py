@@ -44,8 +44,8 @@ cd "$ROOT"
 git fetch origin
 git checkout main
 git reset --hard origin/main
-chmod +x deploy/provision-aidoktor-uz.sh
-bash deploy/provision-aidoktor-uz.sh
+chmod +x deploy/provision-fjsti-ziyrak.sh
+bash deploy/provision-fjsti-ziyrak.sh
 """
     stdin, stdout, stderr = client.exec_command(script, get_pty=True)
     out = stdout.read().decode("utf-8", errors="replace")
