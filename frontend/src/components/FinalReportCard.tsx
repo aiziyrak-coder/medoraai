@@ -28,6 +28,7 @@ import ReferralGenerator from './report/ReferralGenerator';
 import PatientRoutingCard from './report/PatientRoutingCard';
 import RiskFactorsCard from './report/RiskFactorsCard';
 import CheckUpRecommendationsCard from './report/CheckUpRecommendationsCard';
+import LinkifiedText from './common/LinkifiedText';
 import GlobeIcon from './icons/GlobeIcon';
 import PencilIcon from './icons/PencilIcon';
 import TrashIcon from './icons/TrashIcon';
@@ -153,7 +154,7 @@ const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section 
                 <p className="text-xs font-semibold text-emerald-900">
                     {t('final_report_folk_disclaimer')}
                 </p>
-                {intro?.trim() && <p className="whitespace-pre-wrap">{intro}</p>}
+                {intro?.trim() && <LinkifiedText text={intro} className="text-sm" />}
                 {disclaimer?.trim() && (
                     <p className="text-xs text-emerald-900/90 border-t border-emerald-200 pt-2 whitespace-pre-wrap">{disclaimer}</p>
                 )}
@@ -164,11 +165,22 @@ const FolkMedicineCard: React.FC<{ section: FolkMedicineSection }> = ({ section 
                         <div key={i} className="p-4 rounded-xl border border-emerald-100 bg-white shadow-sm">
                             <p className="font-bold text-slate-900">{it.plantName}</p>
                             {it.plantPart && <p className="text-xs text-slate-600 mt-1"><span className="font-semibold">{t('final_report_folk_part')}</span> {it.plantPart}</p>}
-                            {it.preparationOrUsage && <p className="text-sm mt-2"><span className="font-semibold text-slate-700">{t('final_report_folk_usage')}</span> {it.preparationOrUsage}</p>}
-                            {it.traditionalContext && <p className="text-sm text-slate-600 mt-1"><span className="font-semibold">{t('final_report_folk_context')}</span> {it.traditionalContext}</p>}
+                            {it.preparationOrUsage && (
+                                <p className="text-sm mt-2">
+                                    <span className="font-semibold text-slate-700">{t('final_report_folk_usage')}</span>{' '}
+                                    <LinkifiedText text={it.preparationOrUsage} className="inline" />
+                                </p>
+                            )}
+                            {it.traditionalContext && (
+                                <p className="text-sm text-slate-600 mt-1">
+                                    <span className="font-semibold">{t('final_report_folk_context')}</span>{' '}
+                                    <LinkifiedText text={it.traditionalContext} className="inline" />
+                                </p>
+                            )}
                             {it.precautions && (
                                 <p className="text-sm mt-2 p-2 bg-amber-50 border border-amber-100 rounded-md text-amber-900">
-                                    <span className="font-semibold">{t('final_report_folk_precautions')}</span> {it.precautions}
+                                    <span className="font-semibold">{t('final_report_folk_precautions')}</span>{' '}
+                                    <LinkifiedText text={it.precautions} className="inline" />
                                 </p>
                             )}
                         </div>
@@ -291,13 +303,13 @@ const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }>
     if (!hasDiet && !hasPrev && !hasIndividual && !intro?.trim() && !disclaimer?.trim()) return null;
     return (
         <Section title={t('final_report_nutrition_title')} icon={<ChartBarIcon className="h-6 w-6 text-sky-600"/>}>
-            {intro?.trim() && <p className="text-sm text-slate-800 whitespace-pre-wrap mb-3">{intro}</p>}
+            {intro?.trim() && <div className="text-sm text-slate-800 mb-3"><LinkifiedText text={intro} /></div>}
             {hasDiet && (
                 <div className="mb-4">
                     <h4 className="text-sm font-bold text-slate-700 mb-2">{t('final_report_nutrition_diet_title')}</h4>
                     <ul className="list-disc list-inside space-y-1.5 text-sm text-text-primary">
                         {dietaryGuidelines.map((line, i) => (
-                            <li key={i}>{line}</li>
+                            <li key={i}><LinkifiedText text={line} className="inline" /></li>
                         ))}
                     </ul>
                 </div>
@@ -307,7 +319,7 @@ const NutritionPreventionCard: React.FC<{ section: NutritionPreventionSection }>
                     <h4 className="text-sm font-bold text-slate-700 mb-2">{t('final_report_nutrition_prevention_title')}</h4>
                     <ul className="list-disc list-inside space-y-1.5 text-sm text-text-primary">
                         {preventionMeasures.map((line, i) => (
-                            <li key={i}>{line}</li>
+                            <li key={i}><LinkifiedText text={line} className="inline" /></li>
                         ))}
                     </ul>
                 </div>
@@ -452,7 +464,10 @@ const FinalReportCard: React.FC<{
                                         {diag.uzbekProtocolMatch}
                                     </div>
                                 )}
-                                <p className="text-sm text-slate-700 mt-2 font-medium">{t('final_report_justification')} {diag.justification}</p>
+                                <p className="text-sm text-slate-700 mt-2 font-medium">
+                                    {t('final_report_justification')}{' '}
+                                    <LinkifiedText text={diag.justification} className="inline font-normal" />
+                                </p>
                                 {(() => {
                                     const chain = getReasoningChainArray(diag);
                                     return chain.length > 0 && (
@@ -460,7 +475,7 @@ const FinalReportCard: React.FC<{
                                             <p className="text-xs font-bold text-slate-500 uppercase mb-2">{t('final_report_reasoning_chain')}</p>
                                             <ol className="list-decimal list-inside text-sm text-slate-600 space-y-1">
                                                 {chain.map((step, i) => (
-                                                    <li key={i}>{step}</li>
+                                                    <li key={i}><LinkifiedText text={step} className="inline" /></li>
                                                 ))}
                                             </ol>
                                         </div>
@@ -469,32 +484,6 @@ const FinalReportCard: React.FC<{
                             </div>
                         ))}
                     </div>
-                    {report.folkMedicine && (report.folkMedicine.intro?.trim() || (report.folkMedicine.items?.length ?? 0) > 0) && (
-                        <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70">
-                            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2">{t('final_report_folk_title')}</h3>
-                            {report.folkMedicine.intro?.trim() ? (
-                                <p className="text-sm text-slate-800 whitespace-pre-wrap">{report.folkMedicine.intro}</p>
-                            ) : (
-                                <p className="text-sm text-slate-800">{t('final_report_folk_summary_intro')}</p>
-                            )}
-                            <p className="text-xs text-emerald-900 mt-2 font-medium">{t('final_report_folk_summary_footer')}</p>
-                        </div>
-                    )}
-                    {report.nutritionPrevention && (
-                        (report.nutritionPrevention.intro?.trim() ||
-                            (report.nutritionPrevention.dietaryGuidelines?.length ?? 0) > 0 ||
-                            (report.nutritionPrevention.preventionMeasures?.length ?? 0) > 0 ||
-                            report.nutritionPrevention.disclaimer?.trim()) && (
-                        <div className="p-4 rounded-xl border border-sky-200 bg-sky-50/70">
-                            <h3 className="text-sm font-bold text-sky-900 uppercase tracking-wider mb-2">{t('final_report_nutrition_title')}</h3>
-                            {report.nutritionPrevention.intro?.trim() ? (
-                                <p className="text-sm text-slate-800 whitespace-pre-wrap">{report.nutritionPrevention.intro}</p>
-                            ) : (
-                                <p className="text-sm text-slate-800">{t('final_report_nutrition_summary_intro')}</p>
-                            )}
-                            <p className="text-xs text-sky-900 mt-2 font-medium">{t('final_report_nutrition_summary_footer')}</p>
-                        </div>
-                    ))}
                 </div>
             </div>
 

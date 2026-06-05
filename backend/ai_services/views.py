@@ -217,50 +217,99 @@ def doctor_support_stream_view(request):
 def check_up_plan_view(request):
     """
     POST /api/ai/check-up-plan/
-    Body: { age, gender?, conditions?, language? }
+    Body: age, gender?, conditions?, smoking?, diabetes?, hypertension?, obesity?,
+          familyHistoryCancer?, language?
     """
-    age = str(request.data.get("age", "")).strip()
-    gender = str(request.data.get("gender", "")).strip()
-    conditions = str(request.data.get("conditions", "")).strip()
-    language = request.data.get("language", "uz-L")
+    from .check_up_plan import generate_check_up_plan
 
+    age = str(request.data.get("age", "")).strip()
     if not age:
         return _err(400, "Yosh kiritilmagan")
     if not _claude_ok():
         return _ai_not_configured()
 
-    lang_map = {
-        "uz-L": "O'zbek (lotin)",
-        "uz-C": "O'zbek (kirill)",
-        "ru": "Rus",
-        "en": "Ingliz",
-        "kaa": "Qoraqalpoq",
+    payload = {
+        "age": age,
+        "gender": str(request.data.get("gender", "")).strip(),
+        "conditions": str(request.data.get("conditions", "")).strip(),
+        "smoking": request.data.get("smoking"),
+        "diabetes": request.data.get("diabetes"),
+        "hypertension": request.data.get("hypertension"),
+        "obesity": request.data.get("obesity"),
+        "familyHistoryCancer": request.data.get("familyHistoryCancer"),
     }
-    g = gender or "noma'lum"
-    c = conditions or "sog'lom"
-    lang_label = lang_map.get(language, lang_map["uz-L"])
-    prompt = (
-        f"Profilaktik check-up rejasi. Yosh: {age}, jins: {g}, holat: {c}. "
-        "O'zbekiston SSV skrining tavsiyalari va xalqaro standartlar. "
-        f"Til: {lang_label}. "
-        'FAQAT JSON: {"recommendations":[{"screeningName":"","frequency":"","reason":"","priority":"high|medium|low"}],'
-        '"preventionMeasures":[],"followUpTimeline":""}'
-    )
+    language = request.data.get("language", "uz-L")
     try:
-        raw = claude_utils._call_claude(
-            prompt,
-            claude_utils.CLAUDE_FAST,
-            response_mime_type="application/json",
-            max_output_tokens=1024,
-        )
-        data = json.loads(raw)
+        data = generate_check_up_plan(payload, language)
         return Response({"success": True, "data": data})
-    except json.JSONDecodeError as exc:
-        logger.exception("Check-up JSON parse error: %s", exc)
-        return _err(500, "AI javobi JSON formatida emas")
+    except ValueError as exc:
+        return _err(400, str(exc))
     except Exception as exc:
         logger.exception("Check-up plan error: %s", exc)
         return _err(500, f"Check-up rejasi xatosi: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Tadqiqot markazi
+# ---------------------------------------------------------------------------
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
+def research_report_view(request):
+    """
+    POST /api/ai/research/
+    Body: diseaseName, focus?, stage?, patientContext?, language?
+    """
+    from .research_center import generate_research_report
+
+    disease = str(request.data.get("diseaseName") or request.data.get("disease_name") or "").strip()
+    if not disease:
+        return _err(400, "Kasallik nomi kiritilmagan")
+    if not _claude_ok():
+        return _ai_not_configured()
+
+    payload = {
+        "diseaseName": disease,
+        "focus": str(request.data.get("focus") or "comprehensive").strip(),
+        "stage": str(request.data.get("stage") or "").strip(),
+        "patientContext": str(request.data.get("patientContext") or request.data.get("patient_context") or "").strip(),
+    }
+    language = request.data.get("language", "uz-L")
+    try:
+        data = generate_research_report(payload, language)
+        return Response({"success": True, "data": data})
+    except ValueError as exc:
+        return _err(400, str(exc))
+    except Exception as exc:
+        logger.exception("Research report error: %s", exc)
+        return _err(500, f"Tadqiqot hisoboti xatosi: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Klinik vositalar (POST /api/ai/tools/<tool_name>/)
+# ---------------------------------------------------------------------------
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
+def clinical_tool_view(request, tool_name: str):
+    """guideline-search, drug-interactions, ecg, uzi-utt, icd10, lab-interpret, ..."""
+    from .clinical_tools import TOOL_HANDLERS
+
+    if not _claude_ok():
+        return _ai_not_configured()
+    handler = TOOL_HANDLERS.get(tool_name)
+    if not handler:
+        return _err(404, f"Noma'lum vosita: {tool_name}")
+    language = request.data.get("language", "uz-L")
+    try:
+        data = handler(request.data, language)
+        return Response({"success": True, "data": data})
+    except json.JSONDecodeError as exc:
+        logger.exception("Clinical tool JSON error (%s): %s", tool_name, exc)
+        return _err(500, "AI javobi JSON formatida emas")
+    except Exception as exc:
+        logger.exception("Clinical tool error (%s): %s", tool_name, exc)
+        return _err(500, str(exc)[:300])
 
 
 # ---------------------------------------------------------------------------

@@ -1105,7 +1105,11 @@ const AppContent: React.FC = () => {
                         <BackBar title={t('telemedicine_page_title')} subtitle={t('telemedicine_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <TelemedicineHub lastAnalysis={userHistory[0] ?? null} onBack={() => handleNavigation('dashboard')} />
+                                <TelemedicineHub
+                                    lastAnalysis={userHistory[0] ?? null}
+                                    recentAnalyses={userHistory.slice(0, 12)}
+                                    onBack={() => handleNavigation('dashboard')}
+                                />
                             </Suspense>
                         </ScrollWrapper>
                     </div>
@@ -1129,7 +1133,10 @@ const AppContent: React.FC = () => {
                         <BackBar title={t('patient_portal_page_title')} subtitle={t('patient_portal_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <PatientPortalView analyses={userHistory} />
+                                <PatientPortalView
+                                    analyses={userHistory}
+                                    onStartConsultation={() => handleNavigation('new_analysis')}
+                                />
                             </Suspense>
                         </ScrollWrapper>
                     </div>

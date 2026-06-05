@@ -495,22 +495,22 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   "dissenting_opinions": ["Farqli fikrlar (agar bo'lsa)"],
   "follow_up_plan": "Kuzatuv rejasi ...",
   "folk_medicine": {{
-    "intro": "Xalq tabobati qo'shimcha sifatida (qisqa)",
+    "intro": "Tanlangan dorivor o'simliklar konservativ davolashga qo'shimcha sifatida qo'llaniladi (WHO Traditional Medicine, https://pubmed.ncbi.nlm.nih.gov/?term=medicinal+plants+evidence)",
     "disclaimer": "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi",
     "items": [
       {{
         "plant_name": "Matricaria chamomilla",
         "plant_part": "gul",
         "preparation_or_usage": "choy",
-        "traditional_context": "yumshoq spazm va uyqu uchun an'anaviy qo'llanish",
+        "traditional_context": "yumshoq spazm va uyqu uchun (PubMed chamomile review, https://pubmed.ncbi.nlm.nih.gov/?term=chamomile+spasm)",
         "precautions": "allergiya, dori bilan ta'sir"
       }}
     ]
   }},
   "nutrition_prevention": {{
-    "intro": "Kasalliklarni oldini olish va ovqatlanish (qisqa)",
-    "dietary_guidelines": ["Tuz va qandni nazorat", "Kuniga yetarli suv"],
-    "prevention_measures": ["Muntazam yengil harakat", "Rejalashtirilgan tekshiruvlar"],
+    "intro": "Tashxisga mos parhez va profilaktika choralari (WHO diet guidelines, https://pubmed.ncbi.nlm.nih.gov/?term=WHO+dietary+guidelines)",
+    "dietary_guidelines": ["Tuz va qandni nazorat (WHO, https://pubmed.ncbi.nlm.nih.gov/?term=salt+sugar+intake+guideline)", "Kuniga yetarli suv"],
+    "prevention_measures": ["Muntazam yengil harakat (SSV profilaktika, https://pubmed.ncbi.nlm.nih.gov/?term=physical+activity+prevention)", "Rejalashtirilgan tekshiruvlar"],
     "disclaimer": "Individual parhez uchun mutaxassis bilan maslahat"
   }},
   "protocol_compliance_gaps": [],

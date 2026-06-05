@@ -4,11 +4,13 @@ AI Services URLs  -  Azure AI Foundry
 from django.urls import path
 from .views import (
     test_claude,
+    clinical_tool_view,
     # New
     run_consilium_view,
     doctor_support_view,
     doctor_support_stream_view,
     check_up_plan_view,
+    research_report_view,
     # Legacy
     run_council_debate,
     generate_clarifying_questions,
@@ -35,6 +37,8 @@ urlpatterns = [
     path("doctor-support/",     doctor_support_view,        name="doctor_support"),
     path("doctor-stream/",      doctor_support_stream_view, name="doctor_stream"),
     path("check-up-plan/",      check_up_plan_view,         name="check_up_plan"),
+    path("research/",           research_report_view,       name="research_report"),
+    path("tools/<str:tool_name>/", clinical_tool_view,    name="clinical_tool"),
 
     # в”Ђв”Ђ Basic AI в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     path("clarifying-questions/",  generate_clarifying_questions, name="clarifying_questions"),

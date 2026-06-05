@@ -1,4 +1,5 @@
 
+import { isPlaceholderSectionIntro } from './constants/citationRules';
 import { AIModel } from './constants/specialists';
 
 // Original types - some modified for new features
@@ -50,11 +51,47 @@ export interface SeverityAssessment {
   redFlags?: string[];
 }
 
+export type CheckUpCategory =
+  | 'cardiovascular'
+  | 'metabolic'
+  | 'cancer'
+  | 'infectious'
+  | 'general'
+  | 'vaccination'
+  | 'dental'
+  | 'mental';
+
 export interface CheckUpRecommendation {
   screeningName: string;
   frequency?: string;
   reason?: string;
   priority?: 'high' | 'medium' | 'low';
+  category?: CheckUpCategory | string;
+  guidelineSource?: string;
+  sourceUrl?: string;
+  nextSuggested?: string;
+  evidenceLevel?: string;
+}
+
+export interface VaccinationRecommendation {
+  vaccine: string;
+  schedule?: string;
+  reason?: string;
+  priority?: 'high' | 'medium' | 'low' | string;
+}
+
+export interface CheckUpPlanResult {
+  summary: string;
+  riskLevel: 'low' | 'moderate' | 'high';
+  riskFactors: string[];
+  recommendations: CheckUpRecommendation[];
+  preventionMeasures: string[];
+  lifestylePlan: string[];
+  labPanel: string[];
+  vaccinations: VaccinationRecommendation[];
+  followUpTimeline?: string;
+  urgentNotes?: string[];
+  sources: { title: string; url: string }[];
 }
 
 export type UserRole = 'clinic';
@@ -426,7 +463,8 @@ export function normalizeFolkMedicine(raw: unknown): FolkMedicineSection | undef
       });
     }
   }
-  const intro = String(o.intro ?? '').trim() || undefined;
+  const rawIntro = String(o.intro ?? '').trim();
+  const intro = rawIntro && !isPlaceholderSectionIntro(rawIntro) ? rawIntro : undefined;
   const disclaimer = String(o.disclaimer ?? '').trim() || undefined;
   if (items.length === 0 && !intro && !disclaimer) return undefined;
   return { intro, disclaimer, items };
@@ -443,7 +481,8 @@ export function normalizeNutritionPrevention(raw: unknown): NutritionPreventionS
   const o = raw as Record<string, unknown>;
   const dietaryGuidelines = _stringList(o.dietaryGuidelines ?? o.dietary_guidelines);
   const preventionMeasures = _stringList(o.preventionMeasures ?? o.prevention_measures);
-  const intro = String(o.intro ?? '').trim() || undefined;
+  const rawIntro = String(o.intro ?? '').trim();
+  const intro = rawIntro && !isPlaceholderSectionIntro(rawIntro) ? rawIntro : undefined;
   const disclaimer = String(o.disclaimer ?? '').trim() || undefined;
   const individualRaw = o.individualDietByDiagnosis ?? o.individual_diet_by_diagnosis;
   const individualDietByDiagnosis: IndividualDietPlan[] = [];
@@ -767,4 +806,14 @@ export interface VitalSigns {
     bpSystolic: number;
     bpDiastolic: number;
     respirationRate: number;
+    temperature?: number;
+}
+
+export interface MonitoringAlarm {
+    id: number;
+    severity: 'critical' | 'warning' | 'info' | string;
+    code: string;
+    message: string;
+    patient: string;
+    created_at: string;
 }

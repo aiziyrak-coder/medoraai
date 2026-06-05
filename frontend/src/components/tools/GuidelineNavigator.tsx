@@ -62,7 +62,7 @@ const GuidelineNavigator: React.FC = () => {
                 {isLoading && (
                     <div className="text-center">
                         <SpinnerIcon className="w-8 h-8 mx-auto text-accent-color-cyan" />
-                        <p className="mt-2 font-semibold">Google Scholar va PubMed tahlil qilinmoqda...</p>
+                        <p className="mt-2 font-semibold">{t('tool_guideline_loading')}</p>
                     </div>
                 )}
                 {result && (

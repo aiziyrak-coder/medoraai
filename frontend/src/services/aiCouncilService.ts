@@ -30,6 +30,7 @@ import { logger } from '../utils/logger';
 import { handleError, getUserFriendlyError } from '../utils/errorHandler';
 import { retry } from '../utils/retry';
 import { getUzbekistanContextForAI } from '../constants/uzbekistanHealthcare';
+import { AI_CITATION_FORMAT_RULES } from '../constants/citationRules';
 import {
     getAiCostMode,
     getClaudeModels,
@@ -309,7 +310,8 @@ const getSystemInstruction = (language: Language): string => {
 
     DIALOG USLUBI (majburiy): Suhbat har doim "Hurmatli professor va hamkasblar" yoki boshqa rasmiy salomlashuv bilan boshlanishi SHART EMAS. Haqiqiy klinik muhokama kabi yozing: e'tibor KASALLIK, ANIQ TASHXIS va FIKRLARGA qaratsin. Bir-biriga mulozamat ko'rsatish yoki bir-birini rozi qilish maqsad emas — muhimi aniq tashxis va dalilli fikrlar. Ibora qisqa, mazmunli, keraksiz tantanalardan xoli bo'lsin.
 
-    MANBALAR VA DALILLAR (majburiy): Muhim klinik da'vo, tashxis, dori yoki davolash tavsiyasi berganda ishonchli manbani ko'rsating: SSV/WHO/NICE/ESC/ACC/ADA/IDSA kabi klinik protokol yoki PubMed/DOI maqola. Manba nomi + URL yozing. Agar aniq URL bilmasangiz PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=... (sarlavha yoki guideline nomi bilan). Yakuniy hisobotda relatedResearch bo'limini to'ldiring.
+    ${AI_CITATION_FORMAT_RULES}
+    Yakuniy hisobotda relatedResearch bo'limini ham to'ldiring (3-6 ta manba).
     `;
 
     const specificInstructions: Record<Language, string> = {
@@ -1480,9 +1482,9 @@ async function runConsiliumDebateBatch(
 
     const prompt = `Siz tibbiy konsilium koordinatorisiz. Faqat JSON qaytaring.
 
-professorOpening: Konsilium Professori — uzluksiz matn (klinik qisqa xulosa + mavzu + mutaxassislarga yo'naltirish). Bemor ismi/yosh faqat bir marta boshida. Rasmiy salomlashuv yo'q. Muhim da'volar uchun 1–2 ta to'liq https:// URL.
+professorOpening: Konsilium Professori — uzluksiz matn (klinik qisqa xulosa + mavzu + mutaxassislarga yo'naltirish). Bemor ismi/yosh faqat bir marta boshida. Rasmiy salomlashuv yo'q. Har bir muhim da'vo oxirida manba qavs ichida: (Protokol yoki jurnal nomi, https://to-liq-url).
 
-specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). Har bir content: 4–6 qisqa jumla — asosiy tashxis, 2 differensial, tavsiya. Oxirgi qator alohida: "Manba: https://..." (to'liq, bosiladigan URL; PubMed bo'lsa https://pubmed.ncbi.nlm.nih.gov/?term=...).
+specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). Har bir content: 4–6 qisqa jumla — asosiy tashxis (dalil bilan), 2 differensial, tavsiya. Har bir muhim jumla oxirida yoki oxirgi jumlada manba: (Manba nomi, https://...). "Quyida", "pastda", "batafsil bo'limda" deb yozmang.
 
 role maydoni quyidagi ro'l bilan AYNAN mos kelishi shart.
 
@@ -1826,8 +1828,8 @@ QOIDALAR:
 3. Shifokordan savol: faqat hayotiy xavf yoki tashxisni aniqlash uchun boshqa iloji bo'lmaganda "FOYDALANUVCHI UCHUN SAVOL: [savol]" yozing; aks holda yozmang.
 4. Ob'ektiv ko'rik (qon bosimi, puls, harorat, SpO2, nafas) yuqorida berilgan — shifokordan HECH QACHON so'ramang, xulosangizda hisobga oling.
 5. Laboratoriya va diagnostika hujjatlari (agar yuklangan bo'lsa) quyida/ilovada — ularni tahlil qiling, xulosangizda ishlating. Bu ma'lumotlarni shifokordan SO'RAMANG — allaqachon berilgan.
-6. Javob tuzilishi (faqat matn, bullet/yulduzcha yo'q): (1) Asosiy tashxis va 2 ta asosiy dalil — har biri 1 qisqa jumla. (2) 2 ta differensial — har biri 1 jumla (nimaga kamroq ehtimol). (3) Tavsiya — 1–2 jumla (tekshiruv + davolash yo'nalishi). (4) Manba: 1 ta protokol yoki maqola nomi + URL.
-7. Aniq URL bo'lmasa, PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=...
+6. Javob tuzilishi (faqat matn, bullet/yulduzcha yo'q): (1) Asosiy tashxis va 2 ta asosiy dalil — har biri 1 qisqa jumla, har birida manba qavs ichida: (jurnal/protokol, https://...). (2) 2 ta differensial — har biri 1 jumla. (3) Tavsiya — 1–2 jumla (tekshiruv + davolash yo'nalishi), manba bilan. "Pastda", "quyidagi bo'limda" deb yozmang.
+7. Aniq URL bo'lmasa PubMed qidiruv URLini yozing: https://pubmed.ncbi.nlm.nih.gov/?term=...
 
 JAMI 4–6 QISQA, ANIQ jumla. Ortiqcha tafsilot va tantana YO'Q. TIL: ${langMap[language]}.
 OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
@@ -1971,15 +1973,15 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         ${strictLanguageRule(language)}
         LANGUAGE: ${langMap[language]}.
         REQUIREMENTS:
-        1. consensusDiagnosis: har biri uchun reasoningChain, justification, evidenceLevel. uzbekProtocolMatch: qaysi SSV protokoliga mos yoki "protokoldan chetga chiqish: [sabab]" (agar yangi/samarali yondashuv taklif qilsangiz).
+        1. consensusDiagnosis: har biri uchun reasoningChain, justification (har bir asosiy da'vo oxirida manba qavs ichida: (jurnal/protokol, https://...)), evidenceLevel. uzbekProtocolMatch: SSV protokol nomi yoki protokoldan chetga chiqish sababi.
         2. treatmentPlan: MAJBURIY, bo'sh massiv QAYTARMANG. 3-7 ketma-ket qadam, har biri 1 qisqa, aniq jumla (amaliy). SSV protokollarini asos qiling; protokoldan chetga chiqsangiz 1 qisqa sabab. Shoshilinch bo'lsa birinchi qadamlar birinchi bo'lsin.
         3. medicationRecommendations: MAJBURIY — HECH QACHON bo'sh massiv qoldirmang. Tashxis va kasallik asosida o'zingiz (dalillarga tayanib) O'zbekistonda mavjud, bemor uchun eng foydali va kerakli dorilarni tavsiya qiling; ortiqcha dori yozmang — faqat zarur va samarali. Har bir dori uchun: (a) name — ANIQ SAVDO NOMI (Nimesil, Sumamed, Metformin, Paratsetamol, Amlodipin, Omeprazol, Enalapril, Augmentin, Ibuprofen va h.k.). (b) dosage — aniq doza (masalan "500 mg kuniga 2 marta, 7 kun"). (c) notes — HAR BIR DORI UCHUN qo'llanma: qanday ichish (ovqatdan oldin/keyin, suv bilan va h.k.), kuniga necha marta, davomiylik; qisqa yo'riqnoma. (d) localAvailability — "O'zbekistonda mavjud" yoki muqobil savdo nomlari. Allergiya va dori o'zaro ta'sirini hisobga oling. Kamida 1 ta, odatda 2–5 ta zarur dori bo'lsin.
         4. criticalFinding: MAJBURIY. Agar suhbatda yoki bemor ma'lumotlarida hayotga xavf, shoshilinch holat, kritik topilma (masalan anafilaksiya, miokard infarkt, insult, jiddiy qon ketish, septik shok, nafas yetishmovchiligi, xavfli aritmiya va h.k.) tilga olingan yoki ehtimoli bor bo'lsa — to'ldiring: finding (qisqa, aniq), implication (oqibat), urgency ("High" yoki "Medium"). Barchasi o'zbekcha. Yo'q bo'lsa null/bo'sh.
         5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
         6. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV klinik protokollariga muvofiq" yoki agar takliflar protokoldan chetga chiqsa "Dalil asosida innovatsion/alternativ yondashuv sifatida taklif qilindi" kabi qisqacha eslatma.
         7. rejectedHypotheses: MAJBURIY. Munozarada ko'rib chiqilgan lekin rad etilgan tashxislar (differensial tashxislar). Har biri uchun name (tashxis nomi) va reason (nimaga rad etildi, qisqa sabab). Kamida 1-3 ta yozing agar bahsda boshqa variantlar tilga olingan bo'lsa; agar hech qanday rad etilgan tashxis bo'lmasa, bo'sh massiv [] qaytaring.
-        8. folkMedicine (ALOHIDA BO'LIM, MAJBURIY): Konservativ davolash va reabilitatsiyaga MOS, O'zbekiston va Markaziy Osiyo xalq tabobatida ishlatiladigan dorivor o'simliklar haqida qisqa ma'lumot. Bu rasmiy dori-darmonlar o'rnini BOSMAYDI; shifokor bilan maslahat va qabul qilinayotgan dorilar bilan o'zaro ta'sirlar haqida ogohlantirish bo'lsin. Har bir o'simlik uchun: plantName (lotin yoki o'zbekcha nom), ixtiyoriy plantPart (gul, barg, ildiz), preparationOrUsage (qaynatma, choy, tashqiy ishlatish — qisqa va xavfsiz), traditionalContext (1 jumla qayerda qanday qo'llaniladi), precautions (homiladorlik, bolalar, allergiya, dori bilan ta'sir). Kamida 2 ta, odatda 2-5 ta o'simlik. intro: 1-2 jumla (masalan, qo'shimcha qo'llanma sifatida). disclaimer: "Rasmiy tibbiyot va shifokor ko'rsatmasini almashtirmaydi; individual sezuvchanlik va zaharli o'simliklardan xavfsizlik" mazmunida. Agar holat uchun xalq tabobati qo'llanishi ma'qul emas bo'lsa (masalan, o'tkir jiddiy holat), folkMedicine.items da kamida 1 ta qisqa qator bilan "hozirgi bosqichda xalq tabobati tavsiya etilmaydi" yoki shunga o'xshash sabab yozing.
-        9. nutritionPrevention (ALOHIDA BO'LIM, MAJBURIY): Konsensus tashxis va bemor holatiga MOS ravishda kasalliklarni oldini olish, to'g'ri ovqatlanish va profilaktika bo'yicha aniq tavsiyalar. dietaryGuidelines: 4-8 ta qisqa band (masalan, tuz/shakar, suv, tolali mahsulotlar, ovqatlanish tartibi, mahalliy mahsulotlar — O'zbekiston oziq-ovqat realiati). preventionMeasures: 4-8 ta band (profilaktika: jismoniy faollik, uyqu, stress, gigiyena, skrining, vaksinatsiya agar mavzuga tegishli bo'lsa, qayta kasallanishning oldini olish). intro: 1-2 jumla (masalan, bu bo'limning maqsadi). disclaimer: ixtiyoriy qisqa — individual parhez va cheklovlar uchun shifokor/dietolog bilan kelishish kerakligi. Bu bo'lim davolash rejasi o'rnini bosmasin.
+        8. folkMedicine (ALOHIDA BO'LIM, MAJBURIY): Konservativ davolash va reabilitatsiyaga MOS dorivor o'simliklar. Rasmiy dori o'rnini BOSMAYDI. Har bir o'simlik: plantName, plantPart, preparationOrUsage, traditionalContext (manba bilan: (WHO/maqola, https://...)), precautions. Kamida 2-5 ta. intro: 2-3 jumla — tanlangan o'simliklar va klinik mosligi; "quyida/pastda/bo'limda (qisqa)" YO'Q. disclaimer: rasmiy tibbiyotni almashtirmasligi haqida.
+        9. nutritionPrevention (ALOHIDA BO'LIM, MAJBURIY): Tashxisga mos ovqatlanish va profilaktika. dietaryGuidelines: 4-8 ta aniq band, har birida kerak bo'lsa manba qavs ichida (SSV/WHO/maqola, https://...). preventionMeasures: 4-8 ta band, manba bilan. intro: 2-3 jumla mazmunli kirish; boshqa bo'limga yo'naltiruvchi matn YO'Q. disclaimer: individual parhez uchun shifokor maslahati.
         10. relatedResearch (DALIL VA MANBALAR, MAJBURIY): 3-6 ta ishonchli manba qaytaring. Har birida title (protokol/maqola nomi), url (aniq URL: PubMed, DOI, WHO/NICE/ESC/ACC/ADA/IDSA/SSV protokoli sahifasi; URL to'qimang), summary (ushbu manba aynan qaysi tashxis/dori/tekshiruv/tavsiya uchun dalil ekanini 1 jumlada yozing). Kamida bittasi klinik protokol/guideline, kamida bittasi maqola yoki sistematik sharh bo'lsin. Agar aniq URL ma'lum bo'lmasa, url maydoniga PubMed qidiruv URLini yozing: https://pubmed.ncbi.nlm.nih.gov/?term=...
         ${ENHANCED_FINAL_REPORT_AI_RULES}
         11. JSON kalitlari inglizcha qoladi, lekin HAR BIR string qiymat tanlangan til qoidasiga qat'iy mos bo'lsin.
@@ -2210,7 +2212,39 @@ FAQAT JSON massiv: ["...","..."].`;
     }
 };
 
+async function tryBackendTool<T>(toolName: string, body: Record<string, unknown>): Promise<T | null> {
+    if (!isApiConfigured()) return null;
+    try {
+        const res = await apiPost<T>(`/ai/tools/${toolName}/`, body, API_CONFIG.AI_TIMEOUT_MS);
+        if (res.success && res.data != null) return res.data;
+    } catch (e) {
+        logger.warn(`Backend tool ${toolName} failed`, e);
+    }
+    return null;
+}
+
+function ensureAiAvailable(): void {
+    if (!isApiConfigured() && !isBrowserClaudeConfigured()) {
+        throw new Error('AI xizmati mavjud emas. Server API yoki VITE_DEEPSEEK_API_KEY ni sozlang.');
+    }
+}
+
+function normalizeDrugSeverity(sev: string): 'High' | 'Moderate' | 'Low' | 'None' {
+    const s = (sev || '').toLowerCase();
+    if (s.includes('high') || s.includes('yuqori')) return 'High';
+    if (s.includes('moderate') || s.includes("o'rta") || s.includes('orta')) return 'Moderate';
+    if (s.includes('low') || s.includes('past')) return 'Low';
+    return 'None';
+}
+
 export const analyzeEcgImage = async (image: { base64Data: string, mimeType: string }, language: Language): Promise<EcgReport> => {
+    const fromBackend = await tryBackendTool<EcgReport>('ecg', {
+        base64Data: image.base64Data,
+        mimeType: image.mimeType,
+        language,
+    });
+    if (fromBackend) return fromBackend;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const textPart = { text: `Analyze ECG image. Return structured JSON report (rhythm, heartRate, etc.). Output Language: ${langMap[language]}.` };
     const imagePart = { inlineData: { data: image.base64Data, mimeType: image.mimeType } };
@@ -2351,6 +2385,13 @@ export const analyzeUziUttDocuments = async (
     if (!files.length) {
         throw new Error("Kamida bitta fayl yuklang.");
     }
+    const fromBackend = await tryBackendTool<UziUttReport>('uzi-utt', {
+        files,
+        clinicalContext: clinicalContext || '',
+        language,
+    });
+    if (fromBackend) return normalizeUziUttReport(fromBackend);
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const lang = langMap[language] || 'Uzbek';
     const ctx = (clinicalContext ?? '').trim();
@@ -2426,6 +2467,9 @@ export const analyzeUziUttDocuments = async (
 };
 
 export const getIcd10Codes = async (diagnosis: string, language: Language): Promise<Icd10Code[]> => {
+    const fromBackend = await tryBackendTool<Icd10Code[]>('icd10', { diagnosis, language });
+    if (fromBackend) return fromBackend;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const prompt = `Provide ICD-10 codes for "${diagnosis}". ICD-10 is used in Uzbekistan (O'zbekiston) for official statistics and documentation. Return JSON array [{code, description}]. Output Language: ${langMap[language]}.`;
     const schema = {
@@ -2442,36 +2486,71 @@ export const getIcd10Codes = async (diagnosis: string, language: Language): Prom
     return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
-export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
-    const systemInstr = resolveSystemInstruction(language);
-    const prompt = `Summarize clinical guidelines for "${query}". Prefer and prioritize: (1) Uzbekistan SSV (Sog'liqni Saqlash Vazirligi) approved national clinical protocols, (2) WHO and international guidelines adopted in Uzbekistan. Output Language: ${langMap[language]}.`;
-    // Azure OpenAI doesn't support Google Search grounding - plain text call
-    const summary = await callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
+function normalizeGuidelineResult(raw: {
+    summary?: string;
+    sources?: Array<{ title?: string; url?: string; uri?: string; snippet?: string }>;
+}): GuidelineSearchResult {
     return {
-        summary,
-        sources: [],
+        summary: String(raw.summary || ''),
+        sources: (raw.sources || []).map((s) => ({
+            title: String(s.title || s.snippet || 'Manba'),
+            uri: String(s.url || s.uri || ''),
+        })).filter((s) => s.uri),
     };
+}
+
+export const searchClinicalGuidelines = async (query: string, language: Language): Promise<GuidelineSearchResult> => {
+    const fromBackend = await tryBackendTool<{
+        summary?: string;
+        sources?: Array<{ title?: string; url?: string; uri?: string }>;
+    }>('guideline-search', { query, language });
+    if (fromBackend?.summary) return normalizeGuidelineResult(fromBackend);
+    ensureAiAvailable();
+    const systemInstr = resolveSystemInstruction(language);
+    const prompt = `Summarize clinical guidelines for "${query}". Prefer SSV, WHO, ESC, ADA. Include source names. Output Language: ${langMap[language]}.`;
+    const summary = await callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as string;
+    const term = encodeURIComponent(query);
+    return normalizeGuidelineResult({
+        summary,
+        sources: [{ title: `PubMed: ${query}`, url: `https://pubmed.ncbi.nlm.nih.gov/?term=${term}` }],
+    });
 };
 
 export const interpretLabValue = async (labValue: string, language: Language): Promise<string> => {
+    const fromBackend = await tryBackendTool<{ text: string }>('lab-interpret', { labValue, language });
+    if (fromBackend?.text) return fromBackend.text;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const prompt = `Interpret lab value: "${labValue}". Explain clinical significance. Use O'zbekiston LITS (Laboratoriya-indekslar va tibbiy standartlar) va SI birliklariga mos izoh bering; agar birlik ko'rsatilmasa, O'zbekistonda qo'llaniladigan odatiy birliklarni nazarda tuting. Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_PRO, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generatePatientExplanation = async (clinicalText: string, language: Language): Promise<string> => {
+    const fromBackend = await tryBackendTool<{ text: string }>('patient-explain', { clinicalText, language });
+    if (fromBackend?.text) return fromBackend.text;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const prompt = `Translate clinical text to simple patient language. Text: "${clinicalText}". Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const expandAbbreviation = async (abbreviation: string, language: Language): Promise<string> => {
+    const fromBackend = await tryBackendTool<{ text: string }>('abbreviation', { abbreviation, language });
+    if (fromBackend?.text) return fromBackend.text;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const prompt = `Expand medical abbreviation "${abbreviation}". Output Language: ${langMap[language]}.`;
     return callClaude(prompt, DEPLOY_FAST, undefined, false, systemInstr) as Promise<string>;
 };
 
 export const generateDischargeSummary = async (patientData: PatientData, finalReport: FinalReport, language: Language): Promise<string> => {
+    const fromBackend = await tryBackendTool<{ text: string }>('discharge-summary', {
+        patientData,
+        finalReport,
+        language,
+    });
+    if (fromBackend?.text) return fromBackend.text;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Generate Discharge Summary. Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
@@ -2479,6 +2558,14 @@ export const generateDischargeSummary = async (patientData: PatientData, finalRe
 };
 
 export const generateInsurancePreAuth = async (patientData: PatientData, finalReport: FinalReport, procedure: string, language: Language): Promise<string> => {
+    const fromBackend = await tryBackendTool<{ text: string }>('insurance-preauth', {
+        patientData,
+        finalReport,
+        procedure,
+        language,
+    });
+    if (fromBackend?.text) return fromBackend.text;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Write Insurance Pre-Auth letter for "${procedure}". Patient: ${JSON.stringify(rest)}. Report: ${JSON.stringify(finalReport)}. Output Language: ${langMap[language]}.`;
@@ -2486,6 +2573,9 @@ export const generateInsurancePreAuth = async (patientData: PatientData, finalRe
 };
 
 export const calculatePediatricDose = async (drugName: string, weightKg: number, language: Language): Promise<PediatricDose> => {
+    const fromBackend = await tryBackendTool<PediatricDose>('pediatric-dose', { drugName, weightKg, language });
+    if (fromBackend?.dose) return fromBackend;
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const prompt = `Calculate pediatric dose for ${drugName}, weight ${weightKg}kg. Return JSON {drugName, dose, calculation, warnings}. Output Language: ${langMap[language]}.`;
     const schema = {
@@ -2501,7 +2591,27 @@ export const calculatePediatricDose = async (drugName: string, weightKg: number,
     return callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
-export const calculateRiskScore = async (scoreType: string, patientData: PatientData, language: Language): Promise<RiskScore> => {
+export const calculateRiskScore = async (
+    scoreType: string,
+    patientData: PatientData,
+    language: Language,
+    precomputed?: { score: number | string; factors?: Record<string, unknown>; localInterpretation?: string },
+): Promise<RiskScore> => {
+    if (precomputed) {
+        const fromBackend = await tryBackendTool<RiskScore>('risk-score', {
+            scoreType,
+            scoreValue: precomputed.score,
+            factors: precomputed.factors || {},
+            language,
+        });
+        if (fromBackend?.interpretation) {
+            return { ...fromBackend, score: String(precomputed.score), name: fromBackend.name || scoreType };
+        }
+        if (precomputed.localInterpretation) {
+            return { name: scoreType, score: String(precomputed.score), interpretation: precomputed.localInterpretation };
+        }
+    }
+    ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const { attachments, ...rest } = patientData;
     const prompt = `Calculate ${scoreType} score. Patient: ${JSON.stringify(rest)}. Return JSON {name, score, interpretation}. Output Language: ${langMap[language]}.`;
@@ -2620,23 +2730,217 @@ export const suggestCmeTopics = async (history: AnalysisRecord[], language: Lang
     return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
+export type ResearchFocus =
+  | 'comprehensive'
+  | 'innovative'
+  | 'biomarkers'
+  | 'trials'
+  | 'pharmacogenomics';
+
+export type ResearchInput = {
+  diseaseName: string;
+  focus?: ResearchFocus;
+  stage?: string;
+  patientContext?: string;
+};
+
+const RESEARCH_EXPERT_MODELS: AIModel[] = [
+  AIModel.LLAMA,
+  AIModel.GPT,
+  AIModel.GENETICIST,
+  AIModel.CLAUDE,
+];
+
+function normalizeResearchReport(raw: Record<string, unknown>, diseaseFallback: string): ResearchReport {
+  const sources = (Array.isArray(raw.sources) ? raw.sources : []).map((s) => {
+    const o = s as Record<string, unknown>;
+    return {
+      title: String(o.title ?? ''),
+      uri: String(o.uri ?? o.url ?? ''),
+    };
+  }).filter((s) => s.uri || s.title);
+
+  const strategies = (Array.isArray(raw.potentialStrategies) ? raw.potentialStrategies : []).map((item) => {
+    const s = item as Record<string, unknown>;
+    const rb = (s.riskBenefit ?? {}) as Record<string, unknown>;
+    const mt = (s.molecularTarget ?? {}) as Record<string, unknown>;
+    return {
+      name: String(s.name ?? ''),
+      mechanism: String(s.mechanism ?? ''),
+      evidence: String(s.evidence ?? ''),
+      pros: Array.isArray(s.pros) ? s.pros.map(String) : [],
+      cons: Array.isArray(s.cons) ? s.cons.map(String) : [],
+      riskBenefit: {
+        risk: String(rb.risk ?? 'Medium') as ResearchReport['potentialStrategies'][0]['riskBenefit']['risk'],
+        benefit: String(rb.benefit ?? 'Significant') as ResearchReport['potentialStrategies'][0]['riskBenefit']['benefit'],
+      },
+      developmentRoadmap: (Array.isArray(s.developmentRoadmap) ? s.developmentRoadmap : []).map((r) => {
+        const o = r as Record<string, unknown>;
+        return { stage: String(o.stage ?? ''), duration: String(o.duration ?? ''), cost: String(o.cost ?? '') };
+      }),
+      molecularTarget: { name: String(mt.name ?? ''), pdbId: String(mt.pdbId ?? mt.pdb_id ?? '') || undefined },
+      ethicalConsiderations: Array.isArray(s.ethicalConsiderations) ? s.ethicalConsiderations.map(String) : [],
+      requiredCollaborations: Array.isArray(s.requiredCollaborations) ? s.requiredCollaborations.map(String) : [],
+      companionDiagnosticNeeded: String(s.companionDiagnosticNeeded ?? ''),
+    };
+  }).filter((s) => s.name);
+
+  const epi = (raw.epidemiology ?? {}) as Record<string, unknown>;
+  const pg = (raw.pharmacogenomics ?? {}) as Record<string, unknown>;
+  const pl = (raw.patentLandscape ?? {}) as Record<string, unknown>;
+
+  return {
+    diseaseName: String(raw.diseaseName ?? raw.disease_name ?? diseaseFallback),
+    summary: String(raw.summary ?? ''),
+    epidemiology: {
+      prevalence: String(epi.prevalence ?? ''),
+      incidence: String(epi.incidence ?? ''),
+      keyRiskFactors: Array.isArray(epi.keyRiskFactors) ? epi.keyRiskFactors.map(String) : [],
+    },
+    pathophysiology: String(raw.pathophysiology ?? ''),
+    emergingBiomarkers: (Array.isArray(raw.emergingBiomarkers) ? raw.emergingBiomarkers : []).map((b) => {
+      const o = b as Record<string, unknown>;
+      return {
+        name: String(o.name ?? ''),
+        type: String(o.type ?? 'Diagnostic') as ResearchReport['emergingBiomarkers'][0]['type'],
+        description: String(o.description ?? ''),
+      };
+    }).filter((b) => b.name),
+    clinicalGuidelines: (Array.isArray(raw.clinicalGuidelines) ? raw.clinicalGuidelines : []).map((g) => {
+      const o = g as Record<string, unknown>;
+      return {
+        guidelineTitle: String(o.guidelineTitle ?? o.guideline_title ?? ''),
+        source: String(o.source ?? ''),
+        recommendations: (Array.isArray(o.recommendations) ? o.recommendations : []).map((r) => {
+          const rec = r as Record<string, unknown>;
+          return {
+            category: String(rec.category ?? ''),
+            details: Array.isArray(rec.details) ? rec.details.map(String) : [],
+          };
+        }),
+      };
+    }).filter((g) => g.guidelineTitle),
+    potentialStrategies: strategies,
+    pharmacogenomics: {
+      relevantGenes: (Array.isArray(pg.relevantGenes) ? pg.relevantGenes : []).map((g) => {
+        const o = g as Record<string, unknown>;
+        return { gene: String(o.gene ?? ''), mutation: String(o.mutation ?? ''), impact: String(o.impact ?? '') };
+      }),
+      targetSubgroup: String(pg.targetSubgroup ?? pg.target_subgroup ?? ''),
+    },
+    patentLandscape: {
+      competingPatents: (Array.isArray(pl.competingPatents) ? pl.competingPatents : []).map((p) => {
+        const o = p as Record<string, unknown>;
+        return { patentId: String(o.patentId ?? ''), title: String(o.title ?? ''), assignee: String(o.assignee ?? '') };
+      }),
+      whitespaceOpportunities: Array.isArray(pl.whitespaceOpportunities) ? pl.whitespaceOpportunities.map(String) : [],
+    },
+    relatedClinicalTrials: (Array.isArray(raw.relatedClinicalTrials) ? raw.relatedClinicalTrials : []).map((t) => {
+      const o = t as Record<string, unknown>;
+      return {
+        trialId: String(o.trialId ?? o.trial_id ?? ''),
+        title: String(o.title ?? ''),
+        status: String(o.status ?? ''),
+        url: String(o.url ?? ''),
+      };
+    }).filter((t) => t.title || t.trialId),
+    strategicConclusion: String(raw.strategicConclusion ?? raw.strategic_conclusion ?? ''),
+    sources,
+  };
+}
+
+function mapDebateToChatMessages(
+  debate: unknown[],
+  diseaseName: string,
+): ChatMessage[] {
+  if (!Array.isArray(debate) || !debate.length) return [];
+  return debate.map((item, i) => {
+    const o = item as Record<string, unknown>;
+    const authorLabel = String(o.author ?? 'Ekspert');
+    const model = RESEARCH_EXPERT_MODELS[i % RESEARCH_EXPERT_MODELS.length];
+    const content = String(o.content ?? '');
+    return {
+      id: `research-debate-${i}-${Date.now()}`,
+      author: model,
+      content: `**${authorLabel}:** ${content}`,
+      isThinking: false,
+      isSystemMessage: false,
+    };
+  });
+}
+
+async function playDebateMessages(messages: ChatMessage[], onProgress: (u: ResearchProgressUpdate) => void) {
+  for (const msg of messages) {
+    onProgress({ type: 'message', message: { ...msg, isThinking: true } });
+    await new Promise((r) => setTimeout(r, 600));
+    onProgress({ type: 'message', message: { ...msg, isThinking: false } });
+    await new Promise((r) => setTimeout(r, 400));
+  }
+}
+
 export const runResearchCouncilDebate = async (
-    diseaseName: string,
+    input: ResearchInput | string,
     onProgress: (update: ResearchProgressUpdate) => void,
     language: Language
 ): Promise<void> => {
-    const systemInstr = resolveSystemInstruction(language);
-    onProgress({ type: 'status', message: `Research Topic: "${diseaseName}". Gathering data...` });
-
-    const specialists = [AIModel.GPT, AIModel.LLAMA, AIModel.CLAUDE];
-    for (const model of specialists) {
-        const translatedIntro = await callClaude(`Translate to ${langMap[language]}: "I am ${model}, ready to analyze the latest research on ${diseaseName}."`, DEPLOY_FAST, undefined, false, systemInstr);
-        onProgress({ type: 'message', message: { id: `${model}-${Date.now()}`, author: model, content: translatedIntro as string, isThinking: false } });
+    const payload: ResearchInput = typeof input === 'string'
+      ? { diseaseName: input, focus: 'comprehensive' }
+      : input;
+    const diseaseName = payload.diseaseName.trim();
+    if (!diseaseName) {
+      onProgress({ type: 'error', message: 'Kasallik nomi kiritilmagan' });
+      return;
     }
-    
-    onProgress({ type: 'status', message: 'Discussing innovative strategies...' });
-    
-    const prompt = `Provide detailed research report on "${diseaseName}". Use web search for latest data. Return ONLY valid JSON (no markdown, no extra text). The JSON must have these fields: diseaseName, summary, epidemiology {prevalence, incidence, keyRiskFactors[]}, pathophysiology, emergingBiomarkers [{name, type, description}], clinicalGuidelines [{guidelineTitle, source, recommendations [{category, details[]}]}], potentialStrategies [{name, mechanism, evidence, pros[], cons[], riskBenefit {risk, benefit}, developmentRoadmap [{stage, duration, cost}], molecularTarget {name, pdbId}, ethicalConsiderations[], requiredCollaborations[], companionDiagnosticNeeded}], pharmacogenomics {relevantGenes [{gene, mutation, impact}], targetSubgroup}, patentLandscape {competingPatents [{patentId, title, assignee}], whitespaceOpportunities[]}, relatedClinicalTrials [{trialId, title, status, url}], strategicConclusion, sources [{title, uri}]. LANGUAGE: ${langMap[language]}.`;
+
+    const systemInstr = resolveSystemInstruction(language);
+    const statusGather = langMap[language] === 'O\'zbek (lotin)'
+      ? `«${diseaseName}» bo'yicha ilmiy ma'lumotlar yig'ilmoqda...`
+      : `Gathering literature on "${diseaseName}"...`;
+    onProgress({ type: 'status', message: statusGather });
+
+    if (isApiConfigured()) {
+      try {
+        const res = await apiPost<{
+          debateMessages?: unknown[];
+          report?: Record<string, unknown>;
+        }>(
+          '/ai/research/',
+          { ...payload, language },
+          API_CONFIG.AI_TIMEOUT_MS,
+        );
+        if (res.success && res.data) {
+          onProgress({
+            type: 'status',
+            message: langMap[language].startsWith('O\'zbek')
+              ? 'Ekspertlar innovatsion strategiyalarni muhokama qilmoqda...'
+              : 'Experts debating innovative strategies...',
+          });
+          const debateMsgs = mapDebateToChatMessages(res.data.debateMessages || [], diseaseName);
+          await playDebateMessages(debateMsgs, onProgress);
+          const report = normalizeResearchReport(
+            (res.data.report || res.data) as Record<string, unknown>,
+            diseaseName,
+          );
+          onProgress({ type: 'report', data: report });
+          return;
+        }
+      } catch (e) {
+        logger.warn('Backend research failed, trying browser AI', e);
+      }
+    }
+
+    onProgress({
+      type: 'status',
+      message: langMap[language].startsWith('O\'zbek')
+        ? 'Ekspertlar munozarasini tayyorlash...'
+        : 'Preparing expert debate...',
+    });
+
+    const focusHint = payload.focus ? ` Focus: ${payload.focus}.` : '';
+    const contextHint = payload.patientContext ? ` Context: ${payload.patientContext}.` : '';
+    const stageHint = payload.stage ? ` Stage: ${payload.stage}.` : '';
+
+    const prompt = `Provide detailed research report on "${diseaseName}".${focusHint}${contextHint}${stageHint} Return ONLY valid JSON with debateMessages[{author,content}] AND report{diseaseName, summary, epidemiology {prevalence, incidence, keyRiskFactors[]}, pathophysiology, emergingBiomarkers [{name, type, description}], clinicalGuidelines [{guidelineTitle, source, recommendations [{category, details[]}]}], potentialStrategies [{name, mechanism, evidence, pros[], cons[], riskBenefit {risk, benefit}, developmentRoadmap [{stage, duration, cost}], molecularTarget {name, pdbId}, ethicalConsiderations[], requiredCollaborations[], companionDiagnosticNeeded}], pharmacogenomics {relevantGenes [{gene, mutation, impact}], targetSubgroup}, patentLandscape {competingPatents [{patentId, title, assignee}], whitespaceOpportunities[]}, relatedClinicalTrials [{trialId, title, status, url}], strategicConclusion, sources [{title, uri}]}. LANGUAGE: ${langMap[language]}.`;
 
     const researchReportSchema = {
       type: 'object',
@@ -2785,24 +3089,50 @@ export const runResearchCouncilDebate = async (
     };
 
     try {
-        // Azure OpenAI - JSON response (no grounding/web search available)
-        const rawText = await callClaude(prompt, DEPLOY_PRO, {}, false, systemInstr) as string;
+        const rawText = await callClaude(prompt, DEPLOY_PRO, researchReportSchema, false, systemInstr, true, 8000) as string;
         const cleanedText = (rawText || '').replace(/^```json\s*|```\s*$/g, '').trim();
 
-        let reportData: ResearchReport;
+        let parsed: Record<string, unknown>;
         try {
-            reportData = JSON.parse(cleanedText);
+            parsed = JSON.parse(cleanedText) as Record<string, unknown>;
         } catch {
             const repaired = tryRepairTruncatedJson(cleanedText);
             if (repaired) {
-                reportData = repaired as ResearchReport;
+                parsed = repaired as Record<string, unknown>;
             } else {
                 throw new Error("Tadqiqot hisoboti JSON formatida kelmadi.");
             }
         }
-        // No grounding sources from Azure
-        if (!reportData.sources) reportData.sources = [];
 
+        const debateMsgs = mapDebateToChatMessages(
+          (parsed.debateMessages as unknown[]) || [],
+          diseaseName,
+        );
+        if (debateMsgs.length) {
+          await playDebateMessages(debateMsgs, onProgress);
+        } else {
+          for (const model of RESEARCH_EXPERT_MODELS.slice(0, 3)) {
+            const intro = await callClaude(
+              `In ${langMap[language]}, write 2-3 sentences as a medical expert analyzing innovative treatments for ${diseaseName}. Be specific.`,
+              DEPLOY_FAST,
+              undefined,
+              false,
+              systemInstr,
+            );
+            onProgress({
+              type: 'message',
+              message: {
+                id: `${model}-${Date.now()}`,
+                author: model,
+                content: String(intro),
+                isThinking: false,
+              },
+            });
+          }
+        }
+
+        const reportRaw = (parsed.report || parsed) as Record<string, unknown>;
+        const reportData = normalizeResearchReport(reportRaw, diseaseName);
         onProgress({ type: 'report', data: reportData });
     } catch (e) {
         logger.error("Research report generation failed:", e);
@@ -2822,11 +3152,25 @@ JSON tashqarisida hech qanday matn yozmang.`;
 };
 
 export const checkDrugInteractions = async (drugs: string[], language: Language): Promise<{
-    severity: string;
+    severity: 'High' | 'Moderate' | 'Low' | 'None';
     description: string;
     clinicalSignificance: string;
     recommendations: string[];
 }> => {
+    const fromBackend = await tryBackendTool<{
+        severity: string;
+        description: string;
+        clinicalSignificance: string;
+        recommendations: string[];
+    }>('drug-interactions', { drugs, language });
+    if (fromBackend?.description) {
+        return {
+            ...fromBackend,
+            severity: normalizeDrugSeverity(fromBackend.severity),
+            recommendations: fromBackend.recommendations || [],
+        };
+    }
+    ensureAiAvailable();
     const systemInstr = getDrugToolSystemInstruction(language);
     const prompt = `Quyidagi dorilarni BIRGA qabul qilish xavfsizmi? Dorilar: ${drugs.join(', ')}.
 
@@ -2928,7 +3272,7 @@ Javob tili: ${langMap[language]}.
     }
 
     return {
-        severity: severityUz,
+        severity: normalizeDrugSeverity(sevRaw || severityUz),
         description,
         clinicalSignificance,
         recommendations: recs,
@@ -3092,15 +3436,18 @@ O'ZBEKISTON KONTEKSTI: faqat mamlakatimizda mavjud dorilar bo'yicha ma'lumot ber
     };
 };
 
-function normalizeCheckUpPlanRaw(raw: {
-  recommendations?: unknown[];
-  preventionMeasures?: string[];
-  followUpTimeline?: string;
-}): {
-  recommendations: import('../types').CheckUpRecommendation[];
-  preventionMeasures: string[];
-  followUpTimeline?: string;
-} {
+export type CheckUpPlanInput = {
+  age: string;
+  gender: string;
+  conditions: string;
+  smoking?: boolean;
+  diabetes?: boolean;
+  hypertension?: boolean;
+  obesity?: boolean;
+  familyHistoryCancer?: boolean;
+};
+
+function normalizeCheckUpPlanRaw(raw: Record<string, unknown>): import('../types').CheckUpPlanResult {
   const recommendations = (Array.isArray(raw?.recommendations) ? raw.recommendations : [])
     .map((r) => {
       const o = r as Record<string, unknown>;
@@ -3108,80 +3455,97 @@ function normalizeCheckUpPlanRaw(raw: {
         screeningName: String(o.screeningName ?? o.screening_name ?? ''),
         frequency: String(o.frequency ?? ''),
         reason: String(o.reason ?? ''),
-        priority: (o.priority as 'high' | 'medium' | 'low') || 'medium',
+        priority: (String(o.priority || 'medium').toLowerCase() as 'high' | 'medium' | 'low') || 'medium',
+        category: String(o.category ?? ''),
+        guidelineSource: String(o.guidelineSource ?? o.guideline_source ?? ''),
+        sourceUrl: String(o.sourceUrl ?? o.source_url ?? ''),
+        nextSuggested: String(o.nextSuggested ?? o.next_suggested ?? ''),
+        evidenceLevel: String(o.evidenceLevel ?? o.evidence_level ?? ''),
       };
     })
     .filter((r) => r.screeningName);
+
+  const vaccinations = (Array.isArray(raw?.vaccinations) ? raw.vaccinations : []).map((v) => {
+    const o = v as Record<string, unknown>;
+    return {
+      vaccine: String(o.vaccine ?? ''),
+      schedule: String(o.schedule ?? ''),
+      reason: String(o.reason ?? ''),
+      priority: String(o.priority ?? 'medium'),
+    };
+  }).filter((v) => v.vaccine);
+
+  const sources = (Array.isArray(raw?.sources) ? raw.sources : []).map((s) => {
+    const o = s as Record<string, unknown>;
+    return { title: String(o.title ?? ''), url: String(o.url ?? '') };
+  }).filter((s) => s.url);
+
+  const risk = String(raw?.riskLevel ?? raw?.risk_level ?? 'moderate').toLowerCase();
+  const riskLevel = (risk === 'high' || risk === 'low' ? risk : 'moderate') as 'low' | 'moderate' | 'high';
+
   return {
+    summary: String(raw?.summary ?? ''),
+    riskLevel,
+    riskFactors: Array.isArray(raw?.riskFactors) ? raw.riskFactors.map(String) : [],
     recommendations,
     preventionMeasures: Array.isArray(raw?.preventionMeasures) ? raw.preventionMeasures.map(String) : [],
-    followUpTimeline: raw?.followUpTimeline,
+    lifestylePlan: Array.isArray(raw?.lifestylePlan) ? raw.lifestylePlan.map(String) : [],
+    labPanel: Array.isArray(raw?.labPanel) ? raw.labPanel.map(String) : [],
+    vaccinations,
+    followUpTimeline: String(raw?.followUpTimeline ?? raw?.follow_up_timeline ?? ''),
+    urgentNotes: Array.isArray(raw?.urgentNotes) ? raw.urgentNotes.map(String) : [],
+    sources,
   };
 }
 
 export async function generateCheckUpPlan(
-  input: { age: string; gender: string; conditions: string },
+  input: CheckUpPlanInput,
   language: Language,
-): Promise<{
-  recommendations: import('../types').CheckUpRecommendation[];
-  preventionMeasures: string[];
-  followUpTimeline?: string;
-}> {
+): Promise<import('../types').CheckUpPlanResult> {
   if (isApiConfigured()) {
     try {
-      const res = await apiPost<{
-        recommendations?: unknown[];
-        preventionMeasures?: string[];
-        followUpTimeline?: string;
-      }>(
+      const res = await apiPost<Record<string, unknown>>(
         '/ai/check-up-plan/',
-        { age: input.age, gender: input.gender, conditions: input.conditions, language },
+        { ...input, language },
         API_CONFIG.AI_TIMEOUT_MS,
       );
       if (res.success && res.data) {
-        return normalizeCheckUpPlanRaw(res.data);
+        return normalizeCheckUpPlanRaw(res.data as Record<string, unknown>);
       }
     } catch (e) {
-      logger.warn('Backend check-up plan failed, trying browser Claude', e);
+      logger.warn('Backend check-up plan failed, trying browser AI', e);
     }
   }
 
   if (!isBrowserClaudeConfigured()) {
-    throw new Error('AI xizmati mavjud emas. Server API yoki brauzer Claude kalitini sozlang.');
+    throw new Error('AI xizmati mavjud emas. Server API yoki VITE_DEEPSEEK_API_KEY ni sozlang.');
   }
 
-  const prompt = `Profilaktik check-up rejasi. Yosh: ${input.age}, jins: ${input.gender || "noma'lum"}, holat: ${input.conditions || "sog'lom"}. O'zbekiston SSV skrining tavsiyalari va xalqaro standartlar. JSON: { recommendations: [{screeningName, frequency, reason, priority}], preventionMeasures: [], followUpTimeline: "" }. Til: ${langMap[language]}.`;
+  const prompt = `Profilaktik check-up rejasi (to'liq). Yosh: ${input.age}, jins: ${input.gender || "noma'lum"}, holat: ${input.conditions || "sog'lom"}. Xavf: chekish=${!!input.smoking}, diabet=${!!input.diabetes}, gipertoniya=${!!input.hypertension}, semizlik=${!!input.obesity}, oilaviy rak=${!!input.familyHistoryCancer}. O'zbekiston SSV + WHO + USPSTF. JSON: { summary, riskLevel, riskFactors[], recommendations[{screeningName,frequency,reason,priority,category,guidelineSource,sourceUrl,nextSuggested,evidenceLevel}], preventionMeasures[], lifestylePlan[], labPanel[], vaccinations[{vaccine,schedule,reason,priority}], followUpTimeline, urgentNotes[], sources[{title,url}] }. Til: ${langMap[language]}.`;
   const schema = {
     type: 'object',
     properties: {
-      recommendations: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            screeningName: { type: 'string' },
-            frequency: { type: 'string' },
-            reason: { type: 'string' },
-            priority: { type: 'string' },
-          },
-        },
-      },
+      summary: { type: 'string' },
+      riskLevel: { type: 'string' },
+      riskFactors: { type: 'array', items: { type: 'string' } },
+      recommendations: { type: 'array', items: { type: 'object' } },
       preventionMeasures: { type: 'array', items: { type: 'string' } },
+      lifestylePlan: { type: 'array', items: { type: 'string' } },
+      labPanel: { type: 'array', items: { type: 'string' } },
+      vaccinations: { type: 'array', items: { type: 'object' } },
       followUpTimeline: { type: 'string' },
+      urgentNotes: { type: 'array', items: { type: 'string' } },
+      sources: { type: 'array', items: { type: 'object' } },
     },
   };
   const raw = (await callClaude(
     prompt,
-    DEPLOY_FAST,
+    DEPLOY_PRO,
     schema,
     false,
     resolveSystemInstruction(language),
     true,
-    1024,
-  )) as {
-    recommendations?: unknown[];
-    preventionMeasures?: string[];
-    followUpTimeline?: string;
-  };
+    3500,
+  )) as Record<string, unknown>;
   return normalizeCheckUpPlanRaw(raw);
 }

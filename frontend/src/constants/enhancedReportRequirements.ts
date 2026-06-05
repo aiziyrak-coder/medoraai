@@ -1,5 +1,8 @@
+import { AI_CITATION_FORMAT_RULES } from './citationRules';
+
 /** Yakuniy hisobot uchun qo'shimcha AI talablari (barcha tillarda bir xil mantiq) */
 export const ENHANCED_FINAL_REPORT_AI_RULES = `
+${AI_CITATION_FORMAT_RULES}
 12. protocolComplianceGaps: SSV klinik protokolga nisbatan amalda qilingan yoki tavsiya etilgan davolanishdagi kamchiliklar (agar yo'q bo'lsa []). Har biri: gap, protocolReference, severity (high/medium/low), consequences (oqibatlar), recommendedCorrection.
 13. careQualityAudit: overallScore (0-100), summary, errors [{category, description, protocolReference, impact}], strengths [] — tugallangan karta bo'yicha tibbiy yordam sifati.
 14. imagingInterpretation: EKG/UZI/rengen/KT/MRI uchun ecg, ultrasound, xray, ct, mri (har biri: summary, keyFindings[], clinicalSignificance, limitations) va generalCorrelation.

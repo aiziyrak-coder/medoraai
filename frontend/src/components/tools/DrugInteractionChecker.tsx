@@ -17,6 +17,7 @@ const DrugInteractionChecker: React.FC = () => {
     const [drugs, setDrugs] = useState<string[]>(['', '']);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<DrugInteraction | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleAddDrug = () => {
         if (drugs.length < 10) {
@@ -43,11 +44,13 @@ const DrugInteractionChecker: React.FC = () => {
             return;
         }
         setIsAnalyzing(true);
+        setError(null);
+        setResult(null);
         try {
             const interaction = await checkDrugInteractions(validDrugs, language);
             setResult(interaction);
-        } catch (error) {
-            alert(t('alert_error_generic'));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('alert_error_generic'));
         } finally {
             setIsAnalyzing(false);
         }
@@ -135,6 +138,8 @@ const DrugInteractionChecker: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {error && <p className="text-red-400 text-sm text-center mt-4">{error}</p>}
 
             {result && (
                 <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl p-4 md:p-6 border border-white/10 shadow-xl animate-fade-in-up mt-4">

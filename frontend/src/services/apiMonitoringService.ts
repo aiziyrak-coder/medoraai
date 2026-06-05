@@ -29,3 +29,11 @@ export const getMonitoringDashboard = async (): Promise<
 export const simulateMonitoringVitals = async (): Promise<ApiResponse<{ patient_monitor_id: number }>> => {
   return apiPost<{ patient_monitor_id: number }>('/monitoring/simulate/', {});
 };
+
+export const getMonitoringAlarms = async (): Promise<ApiResponse<import('../types').MonitoringAlarm[]>> => {
+  return apiGet<import('../types').MonitoringAlarm[]>('/monitoring/alarms/');
+};
+
+export const acknowledgeMonitoringAlarm = async (alarmId: number): Promise<ApiResponse<unknown>> => {
+  return apiPost(`/monitoring/alarms/${alarmId}/acknowledge/`, {});
+};

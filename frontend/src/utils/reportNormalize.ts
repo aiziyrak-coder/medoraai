@@ -177,6 +177,11 @@ export function normalizeCheckUpRecommendations(raw: unknown): CheckUpRecommenda
       frequency: String(o.frequency ?? '').trim(),
       reason: String(o.reason ?? '').trim(),
       priority: (['high', 'medium', 'low'].includes(pr) ? pr : 'medium') as CheckUpRecommendation['priority'],
+      category: String(o.category ?? '').trim() || undefined,
+      guidelineSource: String(o.guidelineSource ?? o.guideline_source ?? '').trim() || undefined,
+      sourceUrl: String(o.sourceUrl ?? o.source_url ?? '').trim() || undefined,
+      nextSuggested: String(o.nextSuggested ?? o.next_suggested ?? '').trim() || undefined,
+      evidenceLevel: String(o.evidenceLevel ?? o.evidence_level ?? '').trim() || undefined,
     });
   }
   return out;

@@ -12,6 +12,7 @@ import { generatePdfReport } from '../services/pdfGenerator';
 import { generateDocxReport } from '../services/docxGenerator';
 import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../constants/brand';
 import { useTranslation } from '../hooks/useTranslation';
+import LinkifiedText from './common/LinkifiedText';
 
 async function getInstituteLogoDataUrl(): Promise<string | undefined> {
   try {
@@ -125,8 +126,8 @@ function DebateCard({ msg, t }: { msg: DebateMessage; t: (key: string) => string
           {isDebate ? t('consilium_debate_round') : t('consilium_independent')}
         </span>
       </div>
-      <div className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
-        {msg.content}
+      <div className="text-sm text-slate-300 leading-relaxed">
+        <LinkifiedText text={msg.content} />
       </div>
     </div>
   );

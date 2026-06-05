@@ -4,47 +4,52 @@ import type { PatientData, FinalReport } from '../../types';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import { useTranslation } from '../../hooks/useTranslation';
 
-// Mock data for standalone tool usage
-const mockPatientData: PatientData = {
-    firstName: 'Oysha',
-    lastName: 'Karimova',
-    age: '52',
-    gender: 'female',
-    complaints: 'Qorin og\'rig\'i',
-    history: 'GERK (Gastroezofageal reflyuks kasalligi)',
-};
-
-const mockFinalReport: FinalReport = {
-    consensusDiagnosis: [{ name: 'O\'tkir xoletsistit', probability: 90, justification: 'UTT topilmalari va klinik belgilar.', evidenceLevel: 'High' }],
-    rejectedHypotheses: [],
-    recommendedTests: [],
-    treatmentPlan: ['Laparoskopik xoletsistektomiya'],
-    medicationRecommendations: [],
-    unexpectedFindings: '',
-};
-
-
 const InsurancePreAuthTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const { t, language } = useTranslation();
-    const [procedure, setProcedure] = useState('Laparoskopik xoletsistektomiya');
+    const [procedure, setProcedure] = useState('');
+    const [patientName, setPatientName] = useState('');
+    const [age, setAge] = useState('');
+    const [diagnosis, setDiagnosis] = useState('');
+    const [justification, setJustification] = useState('');
     const [draft, setDraft] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleGenerate = async () => {
-        if(!procedure.trim()) {
-            setError("Iltimos, muolaja nomini kiriting.");
+        if (!procedure.trim()) {
+            setError('Muolaja nomini kiriting.');
+            return;
+        }
+        if (!diagnosis.trim()) {
+            setError('Tashxisni kiriting.');
             return;
         }
         setIsLoading(true);
         setError(null);
         setDraft(null);
+        const patientData: PatientData = {
+            firstName: patientName,
+            lastName: '',
+            age,
+            gender: 'unknown',
+            complaints: justification,
+            history: '',
+        };
+        const finalReport: FinalReport = {
+            consensusDiagnosis: [
+                { name: diagnosis, probability: 90, justification, evidenceLevel: 'Moderate' },
+            ],
+            rejectedHypotheses: [],
+            recommendedTests: [],
+            treatmentPlan: [procedure],
+            medicationRecommendations: [],
+            unexpectedFindings: '',
+        };
         try {
-            // FIX: Added missing 'language' argument.
-            const result = await generateInsurancePreAuth(mockPatientData, mockFinalReport, procedure, language);
+            const result = await generateInsurancePreAuth(patientData, finalReport, procedure, language);
             setDraft(result);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Xat loyihasini yaratishda xatolik.");
+            setError(err instanceof Error ? err.message : 'Xat yaratishda xatolik.');
         } finally {
             setIsLoading(false);
         }
@@ -57,44 +62,32 @@ const InsurancePreAuthTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                     &larr; Orqaga
                 </button>
             )}
-            <h3 className="text-xl font-bold text-text-primary">Sug'urta Uchun Ruxsatnoma Xati</h3>
-            <p className="text-sm text-text-secondary mt-1 mb-6">
-                Muolaja uchun tibbiy zaruratni asoslovchi xat loyihasini yarating.
-            </p>
-             <div className="space-y-4 mb-4">
-                 <label htmlFor="procedure" className="block text-sm font-medium text-text-secondary">{t('tool_insurance_procedure_label')}</label>
-                 <input
-                    type="text"
-                    id="procedure"
-                    value={procedure}
-                    onChange={(e) => setProcedure(e.target.value)}
-                    className="block w-full sm:text-sm common-input"
-                 />
-             </div>
+            <h3 className="text-xl font-bold text-text-primary">Sug'urta uchun ruxsatnoma xati</h3>
+            <p className="text-sm text-text-secondary mt-1 mb-6">Bemor va muolaja ma'lumotlarini kiriting.</p>
+
+            <div className="space-y-3 mb-4">
+                <input className="common-input w-full" placeholder="Muolaja nomi *" value={procedure} onChange={(e) => setProcedure(e.target.value)} />
+                <input className="common-input w-full" placeholder="Bemor ismi" value={patientName} onChange={(e) => setPatientName(e.target.value)} />
+                <input className="common-input w-full" placeholder="Yosh" value={age} onChange={(e) => setAge(e.target.value)} />
+                <input className="common-input w-full" placeholder="Tashxis *" value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
+                <textarea className="common-input w-full" rows={3} placeholder="Klinik asos / shikoyatlar" value={justification} onChange={(e) => setJustification(e.target.value)} />
+            </div>
 
             <button
                 onClick={handleGenerate}
                 disabled={isLoading}
-                className="w-full flex justify-center items-center gap-3 py-3 px-4 shadow-lg text-base font-bold animated-gradient-button focus:outline-none disabled:opacity-70"
+                className="w-full flex justify-center items-center gap-3 py-3 px-4 shadow-lg text-base font-bold animated-gradient-button disabled:opacity-70"
             >
-                {isLoading ? <><SpinnerIcon className="w-5 h-5" /> Yaratilmoqda...</> : "Xat Loyihasini Yaratish"}
+                {isLoading ? <><SpinnerIcon className="w-5 h-5" /> Yaratilmoqda...</> : 'Xat yaratish'}
             </button>
 
             {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
-            
-            <div className="mt-8">
-                {draft && (
-                    <div className="animate-fade-in-up">
-                        <h4 className="text-lg font-semibold text-text-primary mb-2">Xat Loyihasi:</h4>
-                        <textarea
-                            readOnly
-                            value={draft}
-                            rows={15}
-                            className="block w-full sm:text-sm common-input bg-slate-50"
-                        />
-                    </div>
-                )}
-            </div>
+
+            {draft && (
+                <div className="mt-8 animate-fade-in-up">
+                    <textarea readOnly value={draft} rows={16} className="block w-full sm:text-sm common-input bg-slate-50" />
+                </div>
+            )}
         </div>
     );
 };
