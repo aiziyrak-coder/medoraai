@@ -24,6 +24,20 @@ def _lang(language: str) -> str:
     return LANG_LABELS.get(language or "uz-L", LANG_LABELS["uz-L"])
 
 
+def strip_plain_text_markdown(text: str) -> str:
+    """Bemor/oila tushuntirishida markdown belgilarini olib tashlaydi."""
+    s = str(text or "")
+    if not s.strip():
+        return ""
+    s = re.sub(r"\*\*([^*]+)\*\*", r"\1", s)
+    s = s.replace("**", "")
+    s = re.sub(r"__([^_]+)__", r"\1", s)
+    s = s.replace("__", "")
+    s = re.sub(r"^#{1,6}\s+", "", s, flags=re.MULTILINE)
+    s = re.sub(r"\n{3,}", "\n\n", s)
+    return s.strip()
+
+
 def _parse_json(raw: str) -> Any:
     text = (raw or "").replace("```json", "").replace("```", "").strip()
     try:
@@ -228,10 +242,13 @@ def lab_interpret(lab_value: str, language: str) -> str:
 
 def patient_explain(clinical_text: str, language: str) -> str:
     lang = _lang(language)
-    return _call_text(
-        f'Murakkab tibbiy matnni bemor uchun sodda tilda yozing: "{clinical_text}". Til: {lang}.',
+    raw = _call_text(
+        f'Murakkab tibbiy matnni bemor va oilasi uchun sodda tilda yozing: "{clinical_text}". '
+        f"Til: {lang}. FAQAT oddiy matn — markdown YO'Q (** ## __ * ` belgilari ishlatmang). "
+        "Sarlavhalar uchun qalin yozuv o'rniga yangi qator va qisqa sarlavha matni ishlating.",
         max_tokens=1500,
     )
+    return strip_plain_text_markdown(raw)
 
 
 def expand_abbrev(abbreviation: str, language: str) -> str:

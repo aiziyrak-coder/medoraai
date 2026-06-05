@@ -47,5 +47,10 @@ export function sanitizeClinicalContent(text: string): string {
     'mutaxassis',
   );
 
-  return s.replace(/\n{3,}/g, '\n\n').trim();
+  return s
+    .replace(/\*\*/g, '')
+    .replace(/__/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }

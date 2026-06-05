@@ -54,6 +54,7 @@ from .debate_format import (
     DEBATE_INTENSITY_RULES,
     P1_DENSITY_RULES,
     ANTI_REPETITION_RULES,
+    SPECIALIST_THINKING_MANDATE,
     AGENT_SPECIALTY_FOCUS,
     debate_author_fields,
     format_p1_debate_content,
@@ -105,9 +106,9 @@ AGENTS: list[Agent] = [
         deployment=Deployments.deepseek(),
         persona=(
             "Siz chuqur mantiqiy tahlil va differensial diagnostika mutaxassisi siz. "
-            "Har bir gipotezani step-by-step reasoning zanjiri (chain-of-thought) orqali "
-            "tekshirasiz. Boshqalarning mantiqiy zaifliklarini ilmiy dalil bilan ANIQ ko'rsatish "
-            "va o'z pozitsiyangizni mantiqiy HIMOYA QILISH  -  asosiy kuchingiz."
+            "Har bir gipotezani 5-6 qadamli reasoning zanjiri orqali tekshirasiz. "
+            "Boshqalarning mantiqiy zaifliklarini bemor fakti bilan ANIQ ko'rsatasiz. "
+            "Umumiy gap yozmaysiz — har band amaliy klinik qiymat bersin."
         ),
     ),
     Agent(
@@ -303,7 +304,7 @@ MUSTAQIL TAHLIL QOIDALARI:
 
 {specialty_focus}
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P1_USER = """\
 BEMOR MA'LUMOTLARI:
@@ -336,7 +337,7 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.32, max_tokens=phase1_max_tokens())
+                            response_json=True, temperature=0.4, max_tokens=phase1_max_tokens())
         result = parse_json(raw, f"p1_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -361,7 +362,7 @@ def run_phase1(patient_str: str) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=60))  # Reduced from 90
+                results.append(fut.result(timeout=90))
             except Exception as exc:
                 logger.error("Phase1 timeout[%s]: %s", agent.id, exc)
                 results.append({
@@ -390,7 +391,7 @@ DEBATE VA REFUTATION QOIDALARI:
 
 {specialty_focus}
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + DEBATE_INTENSITY_RULES + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + DEBATE_INTENSITY_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P2_USER = """\
 BEMOR:
@@ -420,21 +421,26 @@ def _phase2_single(agent: Agent, patient_str: str,
         {
             "agent_id": o.get("agent_id"),
             "specialty": _agent_specialty_label(str(o.get("agent_id", ""))),
-            "diagnosis": (o.get("primary_diagnosis") or "")[:180],
+            "diagnosis": (o.get("primary_diagnosis") or "")[:320],
             "probability": o.get("probability"),
-            "reasoning": (o.get("reasoning_chain") or [])[:3],
-            "evidence": (o.get("supporting_evidence") or [])[:4],
-            "differential": (o.get("differential") or [])[:2],
-            "red_flags": (o.get("red_flags") or [])[:2],
+            "reasoning": (o.get("reasoning_chain") or [])[:6],
+            "evidence": (o.get("supporting_evidence") or [])[:6],
+            "differential": (o.get("differential") or [])[:4],
+            "red_flags": (o.get("red_flags") or [])[:4],
+            "recommended_tests": (o.get("recommended_tests") or [])[:4],
+            "treatment_notes": (o.get("initial_treatment_notes") or "")[:400],
         }
         for o in others
     ])
     own_text = dumps_compact({
         "diagnosis": own.get("primary_diagnosis"),
         "probability": own.get("probability"),
-        "reasoning": (own.get("reasoning_chain") or [])[:3],
-        "evidence": (own.get("supporting_evidence") or [])[:4],
-        "differential": (own.get("differential") or [])[:2],
+        "reasoning": (own.get("reasoning_chain") or [])[:6],
+        "evidence": (own.get("supporting_evidence") or [])[:6],
+        "differential": (own.get("differential") or [])[:4],
+        "red_flags": (own.get("red_flags") or [])[:4],
+        "recommended_tests": (own.get("recommended_tests") or [])[:4],
+        "treatment_notes": (own.get("initial_treatment_notes") or "")[:400],
         "confidence": own.get("confidence"),
     })
 
@@ -445,7 +451,7 @@ def _phase2_single(agent: Agent, patient_str: str,
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.35, max_tokens=phase2_max_tokens())
+                            response_json=True, temperature=0.42, max_tokens=phase2_max_tokens())
         result = parse_json(raw, f"p2_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -474,7 +480,7 @@ def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=60))  # Reduced from 90
+                results.append(fut.result(timeout=90))
             except Exception as exc:
                 logger.error("Phase2 timeout[%s]: %s", agent.id, exc)
                 results.append({"agent_id": agent.id, "error": str(exc)})
@@ -534,11 +540,16 @@ KONSENSUS QAROR QOIDALARI:
 7. FAQAT JSON formatida javob qaytaring.
 8. individual_diet_by_diagnosis — har bir asosiy tashxis uchun alohida parhez.
 9. rejected_hypotheses: munozarada rad etilgan kamida 2 ta gipoteza + aniq sabab.
-10. debate_synthesis: kelishuvlar, hal qilingan bahslar va g'olib dalillar — qisqa ro'yxat.
-11. Bemor shikoyatini/anamnezni QAYTA AYTMAG — faqat munozara natijasi va yakuniy qaror.
-12. debate_synthesis.summary maksimum 2 jumla; shikoyat takrori YO'Q.
+10. treatment_plan: MAJBURIY — kamida 3 ta aniq, ketma-ket amaliy qadam (bo'sh yoki umumiy ibora YO'Q).
+11. debate_synthesis: kelishuvlar, hal qilingan bahslar va g'olib dalillar — har ro'yxatda kamida 2 ta aniq band.
+12. agreement_summary: MAJBURIY 4–6 jumla — munozarada kim qaysi gipotezaga qarshi chiqdi, nima rad etildi, kutilmagan topilma.
+13. unexpected_findings: agreement_summary bilan bir xil mazmun, lekin aniqroq — rad etilgan gipotezalar va bahs natijalari.
+14. Bemor shikoyatini/anamnezni QAYTA AYTMAG — faqat munozara natijasi va yakuniy qaror.
+15. Har bir mutaxassisning ENG KUCHLI dalilini alohida qayd eting — umumiy sintez yetarli emas.
+16. consensus_diagnosis.justification: kamida 4 jumla, har biri aniq klinik fakt + manba.
+17. debate_synthesis: key_agreements, key_disputes_resolved, winning_arguments — har biri kamida 3 ta band.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P3_USER = """\
 BEMOR:
@@ -596,7 +607,8 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   }},
   "uzbekistan_protocol_note": "O'zbekiston Respublikasi SSV buyrug'i No. XX ...",
   "agreement_level": "HIGH/MEDIUM/LOW",
-  "agreement_summary": "Munozara natijasi: kim kimga qarshi chiqdi, qaysi dalil g'olib bo'ldi (3-5 jumla, aniq faktlar)",
+  "agreement_summary": "Munozara natijasi: kim kimga qarshi chiqdi, qaysi dalil g'olib bo'ldi (4-6 jumla, aniq faktlar)",
+  "unexpected_findings": "Kutilmagan topilmalar, rad etilgan gipotezalar va munozara xulosasi (batafsil matn)",
   "debate_synthesis": {{
     "summary": "Kengash raisi munozara xulosasi — 2-3 jumla",
     "key_agreements": ["Kelishilgan fakt 1", "Kelishilgan fakt 2"],
@@ -653,7 +665,7 @@ def run_phase3(patient_str: str, p1: list[dict],
     try:
         raw    = call_model(ORCHESTRATOR.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.05, max_tokens=phase3_max_tokens())
+                            response_json=True, temperature=0.12, max_tokens=phase3_max_tokens())
         result = parse_json(raw, "p3_consensus")
         result = result if isinstance(result, dict) else {}
         result["agent_weights_used"] = weights
@@ -753,7 +765,9 @@ def _chair_debate_entry(entry_id: str, phase: str, content: str) -> dict:
 
 def _build_final_report(consensus: dict, p1: list[dict],
                         p2: list[dict], weights: dict[str, float],
-                        orchestrator_opening: str = "") -> dict:
+                        orchestrator_opening: str = "",
+                        patient_data: Optional[dict] = None,
+                        language: str = "uz-L") -> dict:
     cd   = consensus.get("consensus_diagnosis") or {}
     meds = enrich_medications_from_consensus(consensus.get("medications") or [])
 
@@ -809,6 +823,9 @@ def _build_final_report(consensus: dict, p1: list[dict],
         consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
     ) or _nutrition_prevention_from_consensus(consensus)
 
+    from .prognosis_builder import build_prognosis_report
+    prognosis_report = build_prognosis_report(consensus, patient_data, language)
+
     report = {
         "consensusDiagnosis": [
             {
@@ -832,13 +849,24 @@ def _build_final_report(consensus: dict, p1: list[dict],
             for d in (consensus.get("differential_diagnoses") or [])[:4]
         ],
         "rejectedHypotheses": [
-            {"name": str(r.get("name", "")), "reason": str(r.get("reason", ""))}
+            {"name": nm, "reason": rs}
             for r in (consensus.get("rejected_hypotheses") or [])
+            if isinstance(r, dict)
+            for nm, rs in [(
+                str(r.get("name", "")).strip(),
+                str(r.get("reason", "")).strip(),
+            )]
+            if nm and nm.lower() not in ("aniqlanmadi", "tashxis aniqlanmadi", "noma'lum", "unknown")
         ],
         "treatmentPlan":             consensus.get("treatment_plan") or [],
         "medicationRecommendations": meds,
         "recommendedTests":          consensus.get("recommended_tests") or [],
-        "unexpectedFindings":        consensus.get("agreement_summary") or "",
+        "unexpectedFindings":        (
+            consensus.get("unexpected_findings")
+            or consensus.get("unexpectedFindings")
+            or consensus.get("agreement_summary")
+            or ""
+        ),
         "uzbekistanLegislativeNote": consensus.get("uzbekistan_protocol_note") or
                                      "O'zbekiston Respublikasi SSV protokollariga muvofiq",
         "criticalFinding":           critical,
@@ -864,15 +892,36 @@ def _build_final_report(consensus: dict, p1: list[dict],
             for a in AGENTS
         ],
         "generatedBy": "Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI)  -  Multi-Agent Konsilium",
+        "prognosisReport": prognosis_report,
         **({"folkMedicine": folk_medicine} if folk_medicine else {}),
         **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
     merged = merge_enriched_report_fields(report, consensus)
     # Yakuniy hisobotda bo'sh maydonlarni kamaytirish
-    if not merged.get("unexpectedFindings") and consensus.get("agreement_summary"):
-        merged["unexpectedFindings"] = str(consensus.get("agreement_summary"))[:2000]
-    if not merged.get("treatmentPlan") and consensus.get("treatment_plan"):
-        merged["treatmentPlan"] = consensus.get("treatment_plan")
+    from .consensus_repair import (
+        build_unexpected_findings,
+        ensure_treatment_plan,
+        _is_generic_agreement,
+        _is_usable_treatment_step,
+        _plan_item_to_str,
+        _s,
+    )
+    uf = merged.get("unexpectedFindings") or ""
+    if not _s(uf) or _is_generic_agreement(_s(uf)):
+        rebuilt = build_unexpected_findings(consensus, p1, p2, _s(cd.get("name")))
+        if rebuilt:
+            merged["unexpectedFindings"] = rebuilt
+    elif not merged.get("unexpectedFindings") and consensus.get("agreement_summary"):
+        merged["unexpectedFindings"] = str(consensus.get("agreement_summary"))[:4500]
+    existing_plan = merged.get("treatmentPlan") or []
+    usable_plan = [
+        _plan_item_to_str(x) for x in existing_plan
+        if _is_usable_treatment_step(_plan_item_to_str(x))
+    ]
+    if len(usable_plan) < 2:
+        merged["treatmentPlan"] = ensure_treatment_plan(consensus, p1, p2, _s(cd.get("name")))
+    elif usable_plan:
+        merged["treatmentPlan"] = usable_plan[:8]
     if not merged.get("recommendedTests") and consensus.get("recommended_tests"):
         merged["recommendedTests"] = consensus.get("recommended_tests")
     comp = consensus.get("_clinical_completeness")
@@ -901,7 +950,7 @@ def _merge_imaging_into_consensus(consensus: dict, patient_data: dict) -> dict:
 
 
 def _merge_protocol_audit(consensus: dict, patient_data: dict, completeness: dict) -> dict:
-    from .protocol_audit import rule_protocol_gaps, rule_care_quality_audit
+    from .protocol_audit import rule_protocol_gaps
 
     rule_gaps = rule_protocol_gaps(patient_data)
     ai_gaps = consensus.get("protocol_compliance_gaps") or consensus.get("protocolComplianceGaps") or []
@@ -916,20 +965,20 @@ def _merge_protocol_audit(consensus: dict, patient_data: dict, completeness: dic
     if ai_gaps:
         consensus["protocol_compliance_gaps"] = ai_gaps
 
-    audit = consensus.get("care_quality_audit") or consensus.get("careQualityAudit")
-    rule_audit = rule_care_quality_audit(patient_data, completeness)
-    if not isinstance(audit, dict) or not audit.get("overall_score"):
-        consensus["care_quality_audit"] = rule_audit
+    from .protocol_audit import merge_care_quality_audit, rule_care_quality_audit
+
+    cd = consensus.get("consensus_diagnosis") or {}
+    if isinstance(cd, list) and cd:
+        first = cd[0]
+        primary_dx = str(first.get("name", "") if isinstance(first, dict) else first).strip()
+    elif isinstance(cd, dict):
+        primary_dx = str(cd.get("name") or "").strip()
     else:
-        try:
-            ai_score = int(audit.get("overall_score") or 0)
-        except (TypeError, ValueError):
-            ai_score = 0
-        rule_score = int(rule_audit.get("overall_score") or 0)
-        audit["overall_score"] = min(ai_score, rule_score) if ai_score else rule_score
-        if not audit.get("errors") and rule_audit.get("errors"):
-            audit["errors"] = rule_audit["errors"]
-        consensus["care_quality_audit"] = audit
+        primary_dx = ""
+
+    audit = consensus.get("care_quality_audit") or consensus.get("careQualityAudit")
+    rule_audit = rule_care_quality_audit(patient_data, completeness, primary_dx)
+    consensus["care_quality_audit"] = merge_care_quality_audit(audit, rule_audit)
     return consensus
 
 
@@ -967,32 +1016,28 @@ def run_consilium(
 
     ctx_extra = extra or {}
     ptext = build_clinical_context(patient_data, ctx_extra, language=language)
-    ptext_compact = build_clinical_context(
-        patient_data, ctx_extra, compact=True, include_uz_protocols=False, language=language
-    )
-
     # Orchestrator opening
     logger.info("[%s] Orchestrator: konsilium ochilmoqda", result.session_id)
     opening = run_orchestrator_opening(ptext, language)
     result.phases["orchestrator_opening"] = opening
 
-    # Phase 1
+    # Phase 1 — to'liq klinik kontekst
     logger.info("[%s] Phase 1: Independent analysis started", result.session_id)
     p1 = run_phase1(ptext)
     result.phases["phase1_independent"] = p1
 
-    # Phase 2 — qisqa kontekst (token tejash)
+    # Phase 2 — to'liq kontekst (mutaxassislar chuqur bahslashadi)
     logger.info("[%s] Phase 2: Cross-examination started", result.session_id)
-    p2 = run_phase2(ptext_compact, p1)
+    p2 = run_phase2(ptext, p1)
     result.phases["phase2_debate"] = p2
 
     # Refutation scoring
     weights = _score_refutations(p2)
     result.phases["refutation_weights"] = weights
 
-    # Phase 3
+    # Phase 3 — to'liq kontekst + boyitilgan P1/P2
     logger.info("[%s] Phase 3: Weighted consensus started", result.session_id)
-    consensus = run_phase3(ptext_compact, p1, p2, weights)
+    consensus = run_phase3(ptext, p1, p2, weights)
     from .consensus_repair import ensure_consensus_from_phases
     consensus = ensure_consensus_from_phases(consensus, p1, p2, weights)
     consensus = _merge_imaging_into_consensus(consensus, patient_data)
@@ -1019,6 +1064,8 @@ def run_consilium(
     result.final_report = _build_final_report(
         consensus, p1, p2, weights,
         orchestrator_opening=str(opening.get("content") or ""),
+        patient_data=patient_data,
+        language=language,
     )
     if pharma.get("warnings"):
         result.final_report["pharmacologyWarnings"] = pharma.get("warnings")

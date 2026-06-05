@@ -188,7 +188,8 @@ def enrich_consensus_with_diagnosis_tools(
 
     explain = results.get("explain")
     if explain:
-        consensus["simplified_family_explanation"] = str(explain)[:4000]
+        from .clinical_tools import strip_plain_text_markdown
+        consensus["simplified_family_explanation"] = strip_plain_text_markdown(str(explain))[:4000]
 
     age = _patient_age(patient_data)
     if age is not None and age < 18 and drugs:

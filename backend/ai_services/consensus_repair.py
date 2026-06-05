@@ -23,6 +23,21 @@ _BAD_NAMES = frozenset({
     "unknown",
 })
 
+_BAD_TREATMENT_MARKERS = (
+    "shifokor tasdiqlashi kerak",
+    "konsensus davolash rejasi",
+    "kiritilmagan",
+    "aniqlanmadi",
+    "ma'lumot yo'q",
+)
+
+_GENERIC_AGREEMENT_MARKERS = (
+    "dalillar phase 1–2 mutaxassis tahlillari",
+    "dalillar phase 1-2 mutaxassis tahlillari",
+    "refutation og'irligi asosida birlashtirildi",
+    "konsilium munozarasi yakunida asosiy tashxis:",
+)
+
 
 def _is_bad_name(name: str) -> bool:
     n = _s(name).lower()
@@ -147,6 +162,99 @@ def _collect_differentials(p1: list[dict], primary_name: str) -> list[dict]:
     return out[:4]
 
 
+def _collect_rejected_hypotheses(
+    consensus: dict,
+    p1: list[dict],
+    p2: list[dict],
+    primary: str,
+) -> list[dict]:
+    """P3, P2 refutation va P1 differensiallardan rad etilgan gipotezalar."""
+    seen: set[str] = set()
+    out: list[dict] = []
+    primary_l = primary.lower()
+
+    def add(name: str, reason: str) -> None:
+        nm = _s(name)
+        if _is_bad_name(nm):
+            return
+        if primary_l and nm.lower() == primary_l:
+            return
+        key = nm.lower()
+        if key in seen:
+            return
+        seen.add(key)
+        rs = _s(reason)[:600]
+        out.append({
+            "name": nm,
+            "reason": rs or "Konsilium munozarasi natijasida rad etilgan differensial gipoteza.",
+        })
+
+    for item in consensus.get("rejected_hypotheses") or []:
+        if isinstance(item, dict):
+            add(_s(item.get("name")), _s(item.get("reason")))
+
+    for r in p2 or []:
+        if not isinstance(r, dict):
+            continue
+        for ref in r.get("refutations") or []:
+            if not isinstance(ref, dict):
+                continue
+            target = _s(ref.get("target_diagnosis"))
+            refutation = _s(ref.get("refutation"))
+            strength = _s(ref.get("strength"))
+            reason = refutation
+            if strength:
+                reason = f"[{strength}] {reason}".strip()
+            add(target, reason or "Phase 2 munozarasida refutation bilan rad etildi.")
+
+    for r in p2 or []:
+        if not isinstance(r, dict):
+            continue
+        revised = _s(r.get("revised_diagnosis"))
+        if revised and primary_l and revised.lower() != primary_l:
+            add(
+                revised,
+                _s(r.get("key_argument"))
+                or "Munozara yakunida asosiy konsensus tashxisi sifatida tanlanmadi.",
+            )
+
+    for r in p1 or []:
+        if not isinstance(r, dict):
+            continue
+        pname = _s(r.get("primary_diagnosis"))
+        if pname and primary_l and pname.lower() != primary_l:
+            add(
+                pname,
+                "Boshqa mutaxassis mustaqil tahlilidagi muqobil tashxis; konsensus asosiy variantni tanladi.",
+            )
+
+    for d in _collect_differentials(p1, primary):
+        add(d["name"], d.get("reason", ""))
+
+    for d in (
+        consensus.get("differential_diagnoses")
+        or consensus.get("differentialDiagnoses")
+        or []
+    ):
+        if not isinstance(d, dict):
+            continue
+        add(
+            _s(d.get("name")),
+            _s(d.get("reason")) or "Differensial sifatida qoldirildi, asosiy tashxis ustun.",
+        )
+
+    for d in consensus.get("dissenting_opinions") or []:
+        if isinstance(d, dict):
+            add(
+                _s(d.get("diagnosis") or d.get("name")),
+                _s(d.get("reason") or d.get("argument")),
+            )
+        elif isinstance(d, str):
+            add(d, "Konsensusga qo'shilmagan mutaxassis fikri.")
+
+    return out[:6]
+
+
 def _collect_tests(p1: list[dict], p2: list[dict]) -> list[str]:
     tests: list[str] = []
     seen: set[str] = set()
@@ -167,25 +275,327 @@ def _collect_tests(p1: list[dict], p2: list[dict]) -> list[str]:
     return tests[:12]
 
 
-def _collect_treatment(p1: list[dict], consensus: dict) -> list[str]:
-    plan = list(consensus.get("treatment_plan") or [])
-    if plan:
-        return [str(x) for x in plan if _s(x)]
-    notes: list[str] = []
-    for r in p1 or []:
-        n = _s(r.get("initial_treatment_notes"))
-        if n:
-            notes.append(n[:400])
-    meds = consensus.get("medications") or []
-    if isinstance(meds, list):
-        for m in meds[:5]:
-            if not isinstance(m, dict):
-                continue
+def _is_usable_treatment_step(step: str) -> bool:
+    s = _s(step)
+    if len(s) < 10:
+        return False
+    low = s.lower()
+    if any(m in low for m in _BAD_TREATMENT_MARKERS):
+        return False
+    return True
+
+
+def _plan_item_to_str(item: Any) -> str:
+    if isinstance(item, dict):
+        return _s(
+            item.get("step")
+            or item.get("details")
+            or item.get("action")
+            or item.get("description")
+            or item.get("text")
+        )
+    return _s(item)
+
+
+def _split_treatment_text(text: str) -> list[str]:
+    raw = _s(text)
+    if not raw:
+        return []
+    parts: list[str] = []
+    for chunk in raw.replace(";", "\n").split("\n"):
+        line = chunk.strip()
+        if not line:
+            continue
+        line = line.lstrip("0123456789.-) ").strip()
+        if line:
+            parts.append(line)
+    return parts if parts else [raw]
+
+
+def _synthesize_treatment_steps(primary: str, consensus: dict) -> list[str]:
+    """Oxirgi zaxira: tashxis, tekshiruv va dorilardan aniq qadamlar."""
+    if _is_bad_name(primary):
+        primary = "asosiy klinik holat"
+    steps: list[str] = []
+    tests = [_s(t) for t in (consensus.get("recommended_tests") or [])[:4] if _s(t)]
+    if tests:
+        steps.append(
+            f"1-qadam: {primary} bo'yicha tashxisni tasdiqlash — {', '.join(tests)}."
+        )
+    else:
+        steps.append(
+            f"1-qadam: {primary} bo'yicha klinik holatni baholash va zarur laboratoriya/instrumental tekshiruvlarni belgilash."
+        )
+
+    meds = [m for m in (consensus.get("medications") or []) if isinstance(m, dict)]
+    if meds:
+        for i, m in enumerate(meds[:3], start=2):
             nm = _s(m.get("name") or m.get("generic"))
+            if not nm:
+                continue
             dose = _s(m.get("dosage"))
-            if nm:
-                notes.append(f"{nm}" + (f" — {dose}" if dose else ""))
-    return notes[:8] if notes else ["Konsensus davolash rejasi — shifokor tasdiqlashi kerak."]
+            freq = _s(m.get("frequency"))
+            instr = _s(m.get("instructions"))
+            line = nm
+            if dose:
+                line += f" {dose}"
+            if freq:
+                line += f", {freq}"
+            if instr:
+                line += f" ({instr})"
+            steps.append(f"{i}-qadam: Farmakoterapiya — {line}.")
+    else:
+        steps.append(
+            f"2-qadam: {primary} uchun SSV protokoliga muvofiq farmakologik va farmakologik bo'lmagan davolashni boshlash."
+        )
+
+    fu = _s(consensus.get("follow_up_plan"))
+    if fu:
+        steps.append(f"{len(steps) + 1}-qadam: Kuzatuv — {fu}")
+    else:
+        steps.append(
+            f"{len(steps) + 1}-qadam: Davolash samaradorligi, xavfsizlik va nojo'ya ta'sirlar bo'yicha 2–4 hafta ichida qayta ko'rish."
+        )
+    return steps[:8]
+
+
+def _collect_treatment_plan(
+    p1: list[dict],
+    p2: list[dict],
+    consensus: dict,
+    primary: str,
+) -> list[str]:
+    """P3, P1/P2 va dorilardan davolash rejasini yig'adi."""
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def add(step: str) -> None:
+        st = _s(step)
+        if not _is_usable_treatment_step(st):
+            return
+        key = st.lower()[:100]
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(st[:500])
+
+    for item in consensus.get("treatment_plan") or []:
+        text = _plan_item_to_str(item)
+        for part in _split_treatment_text(text):
+            add(part)
+
+    for item in consensus.get("non_pharmacological") or consensus.get("nonPharmacological") or []:
+        add(f"Farmakologik bo'lmagan choralar: {_s(item)}")
+
+    fu = _s(consensus.get("follow_up_plan") or consensus.get("followUpPlan"))
+    if fu:
+        add(f"Kuzatuv rejasi: {fu}")
+
+    for r in p1 or []:
+        for part in _split_treatment_text(_s(r.get("initial_treatment_notes"))):
+            add(part)
+
+    for r in p2 or []:
+        defense = r.get("defense") or {}
+        if isinstance(defense, dict):
+            for part in _split_treatment_text(_s(defense.get("argument"))):
+                if any(w in part.lower() for w in ("davolash", "terapiya", "dori", "rejim", "tavsiya", "kuzatuv")):
+                    add(part)
+            ev = _s(defense.get("new_evidence"))
+            if ev and any(w in ev.lower() for w in ("davolash", "terapiya", "dori", "kuzatuv", "tekshir")):
+                add(ev)
+        ka = _s(r.get("key_argument"))
+        if ka and any(w in ka.lower() for w in ("davolash", "terapiya", "dori", "rejim", "kuzatuv")):
+            add(ka)
+
+    for m in (consensus.get("medications") or [])[:6]:
+        if not isinstance(m, dict):
+            continue
+        nm = _s(m.get("name") or m.get("generic"))
+        if not nm:
+            continue
+        dose = _s(m.get("dosage"))
+        freq = _s(m.get("frequency"))
+        timing = _s(m.get("timing"))
+        instr = _s(m.get("instructions"))
+        line = nm
+        if dose:
+            line += f" — {dose}"
+        if freq:
+            line += f", {freq}"
+        if timing:
+            line += f" ({timing})"
+        if instr:
+            line += f". {instr}"
+        add(f"Dori-darmon: {line}")
+
+    tests = [_s(t) for t in (consensus.get("recommended_tests") or [])[:4] if _s(t)]
+    if len(out) < 2 and tests:
+        add(f"Zarur tekshiruvlar: {', '.join(tests)}.")
+
+    if len(out) < 2:
+        out = _synthesize_treatment_steps(primary, consensus)
+    elif len(out) < 3 and primary and not _is_bad_name(primary):
+        synth = _synthesize_treatment_steps(primary, consensus)
+        for step in synth:
+            add(step)
+
+    return out[:8]
+
+
+def _is_generic_agreement(text: str) -> bool:
+    low = _s(text).lower()
+    if not low:
+        return True
+    if len(low) < 50 and "munozara" not in low and "bahs" not in low and "gipoteza" not in low:
+        return True
+    hits = sum(1 for m in _GENERIC_AGREEMENT_MARKERS if m in low)
+    return hits >= 1 and "kelishuv" not in low and "rad etilgan" not in low
+
+
+def build_unexpected_findings(
+    consensus: dict,
+    p1: list[dict],
+    p2: list[dict],
+    primary: str,
+) -> str:
+    """Munozara, rad etilgan gipotezalar va differensiallardan batafsil xulosa."""
+    from .debate_format import format_debate_synthesis
+
+    sections: list[str] = []
+    seen_blocks: set[str] = set()
+
+    def add_block(title: str, body: str) -> None:
+        b = _s(body)
+        if not b or len(b) < 8:
+            return
+        key = b.lower()[:80]
+        if key in seen_blocks:
+            return
+        seen_blocks.add(key)
+        sections.append(f"▸ {title}\n{b}")
+
+    existing = _s(
+        consensus.get("unexpected_findings")
+        or consensus.get("unexpectedFindings")
+    )
+    agreement = _s(consensus.get("agreement_summary") or consensus.get("agreementSummary"))
+
+    if existing and not _is_generic_agreement(existing):
+        add_block("KUTILMAGAN TOPILMALAR VA MUNOZARA XULOSASI", existing)
+    elif agreement and not _is_generic_agreement(agreement):
+        add_block("MUNOZARA XULOSASI", agreement)
+
+    synth = consensus.get("debate_synthesis") or consensus.get("debateSynthesis")
+    if isinstance(synth, dict):
+        synth_text = format_debate_synthesis(synth)
+        if synth_text:
+            add_block("KONSILIUM MUNOZARASI TAHLILI", synth_text)
+
+    rejected = consensus.get("rejected_hypotheses") or []
+    rej_lines: list[str] = []
+    for r in rejected[:5]:
+        if not isinstance(r, dict):
+            continue
+        nm = _s(r.get("name"))
+        rs = _s(r.get("reason"))
+        if nm:
+            rej_lines.append(f"• {nm}" + (f" — {rs}" if rs else ""))
+    if rej_lines:
+        add_block("RAD ETILGAN GIPOTEZALAR", "\n".join(rej_lines))
+
+    diff_lines: list[str] = []
+    for d in (consensus.get("differential_diagnoses") or consensus.get("differentialDiagnoses") or [])[:4]:
+        if not isinstance(d, dict):
+            continue
+        nm = _s(d.get("name"))
+        rs = _s(d.get("reason"))
+        if nm:
+            diff_lines.append(f"• {nm}" + (f" (ehtimol: {d.get('probability', '?')}%)" if d.get("probability") else "") + (f" — {rs}" if rs else ""))
+    if not diff_lines and primary:
+        for d in _collect_differentials(p1, primary)[:4]:
+            diff_lines.append(f"• {d['name']} — {d.get('reason', 'differensial variant')}")
+    if diff_lines:
+        add_block("KO'RIB CHIQILGAN MUQOBIL TASHXISLAR", "\n".join(diff_lines))
+
+    ref_lines: list[str] = []
+    for r in p2 or []:
+        if not isinstance(r, dict):
+            continue
+        for ref in r.get("refutations") or []:
+            if not isinstance(ref, dict):
+                continue
+            target = _s(ref.get("target_diagnosis"))
+            refutation = _s(ref.get("refutation"))
+            strength = _s(ref.get("strength"))
+            if target and refutation:
+                tag = f"[{strength}] " if strength else ""
+                ref_lines.append(f"• {tag}{target}: {refutation[:280]}")
+    if ref_lines:
+        add_block("MUNOZARADA INKOR YOKI ZAIFLATILGAN DALILLAR", "\n".join(ref_lines[:6]))
+
+    dissent_lines: list[str] = []
+    for d in consensus.get("dissenting_opinions") or []:
+        if isinstance(d, dict):
+            dissent_lines.append(
+                f"• {_s(d.get('diagnosis') or d.get('name'))}: {_s(d.get('reason') or d.get('argument'))}"
+            )
+        elif isinstance(d, str) and _s(d):
+            dissent_lines.append(f"• {_s(d)}")
+    if dissent_lines:
+        add_block("KONSENSUSGA QO'SHILMAGAN FIKRLAR", "\n".join(dissent_lines[:4]))
+
+    alt_dx: list[str] = []
+    primary_l = primary.lower() if primary else ""
+    for r in p1 or []:
+        if not isinstance(r, dict):
+            continue
+        pname = _s(r.get("primary_diagnosis"))
+        if pname and primary_l and pname.lower() != primary_l and not _is_bad_name(pname):
+            chain = r.get("reasoning_chain") or []
+            hint = _s(chain[0])[:120] if chain else ""
+            alt_dx.append(f"• {pname}" + (f" — {hint}" if hint else ""))
+        for rf in r.get("red_flags") or []:
+            rf_s = _s(rf)
+            if rf_s:
+                add_block("SHOSHILINCH / MUHIM BELGI", rf_s)
+    if alt_dx:
+        add_block("PHASE 1 MUSTAQIL TASHXISLAR (farqli nuqtai nazarlar)", "\n".join(alt_dx[:5]))
+
+    cd = consensus.get("consensus_diagnosis") or {}
+    if isinstance(cd, dict):
+        just = _s(cd.get("justification"))
+        if just and len(just) > 40:
+            add_block("ASOSIY KONSENSUS DALILLARI", just[:900])
+
+    if len("\n".join(sections)) < 100 and primary:
+        add_block(
+            "YAKUNIY XULOSA",
+            f"Asosiy tashxis: {primary}. Konsilium Phase 1–2 mutaxassis tahlillari, "
+            "refutation va og'irliklar hisobga olingan holda yakuniy qaror qabul qilindi.",
+        )
+
+    return "\n\n".join(sections)[:4500]
+
+
+def ensure_treatment_plan(
+    consensus: dict,
+    p1: list[dict],
+    p2: list[dict],
+    primary: str = "",
+) -> list[str]:
+    """Mavjud rejani tekshiradi; yetarli bo'lmasa P1/P2/P3 dan to'ldiradi."""
+    primary = primary or _s((consensus.get("consensus_diagnosis") or {}).get("name"))
+    usable: list[str] = []
+    for item in consensus.get("treatment_plan") or []:
+        text = _plan_item_to_str(item)
+        for part in _split_treatment_text(text):
+            if _is_usable_treatment_step(part):
+                usable.append(part[:500])
+    if len(usable) >= 2:
+        return usable[:8]
+    plan = _collect_treatment_plan(p1, p2, consensus, primary)
+    return plan if plan else _synthesize_treatment_steps(primary or "klinik holat", consensus)
 
 
 def _normalize_consensus_diagnosis_obj(consensus: dict) -> dict:
@@ -238,30 +648,19 @@ def ensure_consensus_from_phases(
         if tests:
             consensus["recommended_tests"] = tests
 
-    if not consensus.get("treatment_plan"):
-        consensus["treatment_plan"] = _collect_treatment(p1, consensus)
+    consensus["treatment_plan"] = ensure_treatment_plan(consensus, p1, p2, primary)
 
-    if not _s(consensus.get("agreement_summary")):
-        synth = consensus.get("debate_synthesis") or consensus.get("debateSynthesis")
-        if isinstance(synth, dict) and _s(synth.get("summary")):
-            consensus["agreement_summary"] = _s(synth.get("summary"))
-        elif primary:
-            consensus["agreement_summary"] = (
-                f"Konsilium munozarasi yakunida asosiy tashxis: {primary}. "
-                "Dalillar Phase 1–2 mutaxassis tahlillari va refutation og'irligi asosida birlashtirildi."
-            )
+    rejected = _collect_rejected_hypotheses(consensus, p1, p2, primary)
+    if rejected:
+        consensus["rejected_hypotheses"] = rejected
 
-    if not consensus.get("rejected_hypotheses"):
-        rejected = []
-        for r in p1 or []:
-            pname = _s(r.get("primary_diagnosis"))
-            if pname and primary and pname.lower() != primary.lower() and not _is_bad_name(pname):
-                rejected.append({
-                    "name": pname,
-                    "reason": "Yuqori og'irlikdagi konsensus dalillari asosida ikkinchi darajali gipoteza.",
-                })
-        if rejected:
-            consensus["rejected_hypotheses"] = rejected[:4]
+    unexpected = build_unexpected_findings(consensus, p1, p2, primary)
+    if unexpected:
+        consensus["unexpected_findings"] = unexpected
+        if not _s(consensus.get("agreement_summary")) or _is_generic_agreement(
+            _s(consensus.get("agreement_summary"))
+        ):
+            consensus["agreement_summary"] = unexpected[:2000]
 
     if primary and not _s(cd.get("justification")):
         cd["justification"] = _s(consensus.get("agreement_summary"))[:800]

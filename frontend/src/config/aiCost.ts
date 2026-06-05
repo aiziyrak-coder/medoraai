@@ -19,7 +19,7 @@ export function getAiCostMode(): AiCostMode {
   if (raw === 'quality' || raw === 'balanced' || raw === 'economy' || raw === 'scale') {
     return raw;
   }
-  return 'scale';
+  return 'balanced';
 }
 
 /** Sonnet faqat ixtiyoriy (VITE_CLAUDE_USE_SONNET_DIAGNOSIS=true). */
@@ -63,9 +63,9 @@ export function getClaudeModels(): {
 export type TokenBudget = 'tiny' | 'short' | 'medium' | 'large' | 'batch' | 'report';
 
 const TOKEN_CAPS: Record<AiCostMode, Record<TokenBudget, number>> = {
-  scale: { tiny: 256, short: 768, medium: 2048, large: 3072, batch: 4096, report: 6144 },
-  economy: { tiny: 256, short: 1024, medium: 2048, large: 3072, batch: 4096, report: 4096 },
-  balanced: { tiny: 384, short: 1536, medium: 3072, large: 4096, batch: 6144, report: 6144 },
+  scale: { tiny: 384, short: 1024, medium: 2600, large: 3600, batch: 6144, report: 7168 },
+  economy: { tiny: 384, short: 1280, medium: 2800, large: 3600, batch: 6144, report: 6144 },
+  balanced: { tiny: 512, short: 2048, medium: 3600, large: 5120, batch: 7168, report: 8192 },
   quality: { tiny: 512, short: 2048, medium: 4096, large: 8192, batch: 8192, report: 8192 },
 };
 

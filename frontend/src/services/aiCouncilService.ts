@@ -59,7 +59,12 @@ import {
     debateHistoryToSummary,
     extractRegionalContext,
 } from '../utils/clinicalContext';
-import { enrichFinalReport } from '../utils/reportNormalize';
+import {
+    enrichFinalReport,
+    normalizeRejectedHypotheses,
+    normalizePrognosisReport,
+    ensurePrognosisReport,
+} from '../utils/reportNormalize';
 import { ENHANCED_FINAL_REPORT_AI_RULES, ENHANCED_FINAL_REPORT_SCHEMA_PROPS } from '../constants/enhancedReportRequirements';
 import { isApiConfigured } from '../config/api';
 import { apiPost } from './api';
@@ -1312,89 +1317,6 @@ export const generateInitialDiagnoses = async (data: PatientData, language: Lang
     }
 };
 
-/** Normalize Gemini response to PrognosisReport; handles nested { prognosis: {...} } or truncated/incomplete JSON. */
-function normalizePrognosisReport(raw: unknown): PrognosisReport | null {
-    if (!raw || typeof raw !== 'object') return null;
-    const obj = (raw as { prognosis?: unknown }).prognosis
-        ? (raw as { prognosis: Record<string, unknown> }).prognosis
-        : (raw as Record<string, unknown>);
-    if (!obj || typeof obj !== 'object') return null;
-    const shortTerm = typeof obj.shortTermPrognosis === 'string' ? obj.shortTermPrognosis : (typeof (obj as { summary?: string }).summary === 'string' ? (obj as { summary: string }).summary : '');
-    const longTerm = typeof obj.longTermPrognosis === 'string' ? obj.longTermPrognosis : '';
-    const keyFactors = Array.isArray(obj.keyFactors) ? obj.keyFactors.filter((f: unknown) => typeof f === 'string') as string[] : [];
-    const confidenceScore = typeof obj.confidenceScore === 'number' && obj.confidenceScore >= 0 && obj.confidenceScore <= 1 ? obj.confidenceScore : 0.5;
-    return {
-        shortTermPrognosis: shortTerm || '-',
-        longTermPrognosis: longTerm || '-',
-        keyFactors,
-        confidenceScore,
-    };
-}
-
-/** AI yoki tarmoq xatosi bo'lsa ham konsensus va bemor ma'lumotlaridan to'liq prognoz blokini beradi */
-function ensurePrognosisReport(
-    pr: PrognosisReport | null | undefined,
-    fr: FinalReport,
-    patientData: PatientData,
-    language: Language
-): PrognosisReport {
-    const dx = normalizeConsensusDiagnosis(fr.consensusDiagnosis);
-    const dxNames = dx.map(d => d.name).filter(Boolean).join('; ') || 'klinik holat';
-    const shortRaw = (pr?.shortTermPrognosis || '').trim();
-    const longRaw = (pr?.longTermPrognosis || '').trim();
-    const shortOk = shortRaw.length > 2 && shortRaw !== '-';
-    const longOk = longRaw.length > 2 && longRaw !== '-';
-    const factorsOk = Array.isArray(pr?.keyFactors) && pr!.keyFactors!.some(f => String(f).trim().length > 3);
-
-    if (shortOk && longOk && factorsOk && pr) {
-        return {
-            ...pr,
-            confidenceScore: typeof pr.confidenceScore === 'number' ? pr.confidenceScore : 0.65,
-        };
-    }
-
-    const isRu = language === 'ru';
-    const isEn = language === 'en';
-    const shortTerm =
-        shortOk && pr
-            ? pr.shortTermPrognosis
-            : isEn
-              ? `Short term (1–3 months): based on the consensus (${dxNames}), expected course depends on adherence to the proposed plan and follow-up. Symptoms may improve as treatment takes effect; monitor for warning signs and repeat tests as advised.`
-              : isRu
-                ? `Краткосрочно (1–3 мес.): по консенсусу (${dxNames}) ожидается ответ на терапию при соблюдении плана; контроль симптомов и анализов по назначению.`
-                : `Qisqa muddat (1–3 oy): konsensus bo'yicha asosiy yo'nalish — ${dxNames}. Taklif qilingan davolash va kuzatuvga rioya qilinsa, simptomlar vaqt o'tishi bilan yaxshilanishi yoki barqarorlashishi mumkin; ogohlantiruvchi belgilar va qayta tekshiruvlar bo'yicha shifokor ko'rsatmalariga amal qiling.`;
-
-    const longTerm =
-        longOk && pr
-            ? pr.longTermPrognosis
-            : isEn
-              ? `Long term (1–5 years): prognosis depends on chronicity, comorbidities, lifestyle, and adherence. Regular follow-up and prevention reduce recurrence and complications.`
-              : isRu
-                ? `Долгосрочно (1–5 лет): прогноз зависит от хроничности, сопутствующих заболеваний и соблюдения терапии; профилактика и диспансеризация снижают риск обострений.`
-                : `Uzoq muddat (1–5 yil): surunkali kasalliklar uchun prognoz yosh, qo'shimcha kasalliklar, hayot tarzi va davolashga rioya qilish bilan bog'liq. Muntazam kuzatuv va profilaktika qayta yuzaga kelish va asoratlarni kamaytiradi.`;
-
-    const complaintsSnippet = (patientData.complaints || '').trim();
-    const keyFactors: string[] = factorsOk && pr && pr.keyFactors
-        ? pr.keyFactors.filter(f => String(f).trim().length > 0)
-        : [
-              `${isEn ? 'Consensus diagnosis' : 'Konsensus tashxis'}: ${dxNames}`,
-              patientData.age ? (isEn ? `Age: ${patientData.age}` : `Yosh: ${patientData.age}`) : isEn ? 'Clinical context' : 'Klinik kontekst',
-              complaintsSnippet
-                  ? (isEn ? `Chief complaints: ${complaintsSnippet.slice(0, 200)}${complaintsSnippet.length > 200 ? '…' : ''}` : `Shikoyatlar: ${complaintsSnippet.slice(0, 200)}${complaintsSnippet.length > 200 ? '…' : ''}`)
-                  : isEn
-                    ? 'Treatment adherence and follow-up visits'
-                    : 'Davolashga rioya qilish va qayta ko‘rish',
-              isEn ? 'Comorbidities and risk factors from the record' : 'Qo‘shimcha kasalliklar va xavf omillari (ma\'lumotlar bo\'yicha)',
-          ];
-
-    return {
-        shortTermPrognosis: shortTerm,
-        longTermPrognosis: longTerm,
-        keyFactors,
-        confidenceScore: typeof pr?.confidenceScore === 'number' ? pr.confidenceScore : 0.55,
-    };
-}
-
 const generatePrognosisUpdate = async (
     debateHistory: ChatMessage[],
     patientData: PatientData,
@@ -1607,10 +1529,9 @@ async function runBackendConsilium(
         ? redFlagsRaw.filter((f): f is { severity: string; code: string; message: string; action: string } =>
             !!f && typeof f === 'object' && 'message' in (f as object))
         : [];
-    const report = enrichFinalReport({
+    let report = enrichFinalReport({
         ...fr,
         consensusDiagnosis,
-        rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
         treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
         medicationRecommendations: Array.isArray(fr.medicationRecommendations)
             ? fr.medicationRecommendations
@@ -1628,7 +1549,31 @@ async function runBackendConsilium(
         clinicalRedFlags,
         ...(folkMedicine ? { folkMedicine } : {}),
         ...(nutritionPrevention ? { nutritionPrevention } : {}),
-    });
+    }, { patientData, language });
+
+    if (!shouldSkipPrognosisLlm()) {
+        try {
+            const consensusNames = consensusDiagnosis.map((d) => d.name).filter(Boolean).join('; ');
+            const generated = await generatePrognosisUpdate(
+                chatMessages,
+                patientData,
+                language,
+                consensusNames || undefined,
+            );
+            if (generated) {
+                report = {
+                    ...report,
+                    prognosisReport: ensurePrognosisReport(generated, report, patientData, language),
+                };
+            }
+        } catch (e) {
+            logger.warn('backend consilium prognosis LLM failed', e);
+        }
+    }
+
+    if (report.prognosisReport) {
+        onProgress({ type: 'prognosis_update', data: report.prognosisReport });
+    }
     onProgress({ type: 'report', data: report, detectedMedications: [], debateHistory: chatMessages });
 }
 
@@ -2106,16 +2051,10 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
             onProgress({ type: 'critical_finding', data: rawReport.criticalFinding });
         }
 
-        let rejectedHypotheses = Array.isArray(rawReport.rejectedHypotheses) && rawReport.rejectedHypotheses.length > 0
-            ? rawReport.rejectedHypotheses.map((h: { name?: string; reason?: string }) => ({ name: String(h?.name ?? ''), reason: String(h?.reason ?? '') }))
-            : (rawReport.rejectedHypotheses ?? []);
-        // Hech qanday rad etilgan gipoteza bo'lmasa ham, foydalanuvchi uchun chala bo'lib ko'rinmasligi uchun izoh beramiz
-        if (!Array.isArray(rejectedHypotheses) || rejectedHypotheses.length === 0) {
-            rejectedHypotheses = [{
-                name: 'Aniq rad etilgan differensial tashxislar kiritilmagan',
-                reason: 'Konsilium davomida muqobil tashxislar ustida bahs bo\'lgan bo\'lishi mumkin, ammo yakuniy hisobotda aniq rad etilgan gipoteza alohida ko\'rsatilmagan.'
-            }];
-        }
+        const rejectedHypotheses = normalizeRejectedHypotheses(
+            rawReport as Record<string, unknown>,
+            normalizeConsensusDiagnosis(rawReport.consensusDiagnosis),
+        );
         let medicationRecommendations = (Array.isArray(rawReport.medicationRecommendations) ? rawReport.medicationRecommendations : []).map((m: { name?: string; dosage?: string; notes?: string; localAvailability?: string; priceEstimate?: string }) => {
             const name = String(m?.name ?? '').trim();
             const localAvailability = String(m?.localAvailability ?? '').trim();
@@ -2227,7 +2166,7 @@ FAQAT JSON massiv: ["...","..."].`;
             unexpectedFindings: typeof rawReport.unexpectedFindings === 'string' ? rawReport.unexpectedFindings : String(rawReport.unexpectedFindings ?? ''),
             ...(folkMedicine ? { folkMedicine } : {}),
             ...(nutritionPrevention ? { nutritionPrevention } : {}),
-        });
+        }, { patientData, language });
         onProgress({
             type: 'report',
             data: reportWithPrognosis,

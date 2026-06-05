@@ -354,7 +354,7 @@ DEEPSEEK_MODEL_PRO = config('DEEPSEEK_MODEL_PRO', default='deepseek-reasoner')
 # Legacy aliases (eski kod va deploy skriptlari uchun)
 ANTHROPIC_API_KEY = DEEPSEEK_API_KEY
 # AI xarajat: scale (default, 1000+ user) | economy | balanced | quality
-AI_COST_MODE = config('AI_COST_MODE', default='scale')
+AI_COST_MODE = config('AI_COST_MODE', default='balanced')
 CONSILIUM_AGENT_LIMIT = config('CONSILIUM_AGENT_LIMIT', default=4, cast=int)
 CLAUDE_MODEL_HAIKU = DEEPSEEK_MODEL_FAST
 CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default=DEEPSEEK_MODEL_FAST)

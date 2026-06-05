@@ -421,7 +421,8 @@ def merge_enriched_report_fields(report: dict, consensus: dict) -> dict:
 
     sfe = _s(consensus.get("simplified_family_explanation") or consensus.get("simplifiedFamilyExplanation"))
     if sfe:
-        report["simplifiedFamilyExplanation"] = sfe
+        from .clinical_tools import strip_plain_text_markdown
+        report["simplifiedFamilyExplanation"] = strip_plain_text_markdown(sfe)
 
     rr = consensus.get("related_research") or consensus.get("relatedResearch")
     if isinstance(rr, list) and rr:

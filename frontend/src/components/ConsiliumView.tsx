@@ -176,7 +176,6 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       onReport(enrichFinalReport({
         ...(fr as FinalReport),
         consensusDiagnosis,
-        rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses : [],
         treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
         medicationRecommendations: (Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : []) as FinalReport['medicationRecommendations'],
         recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
@@ -185,7 +184,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
         criticalFinding: fr.criticalFinding,
         ...(fm ? { folkMedicine: fm } : {}),
         ...(nprev ? { nutritionPrevention: nprev } : {}),
-      }));
+      }, { patientData, language }));
     } catch (err) {
       setPhases(p => ({
         ...p,

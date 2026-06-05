@@ -29,6 +29,7 @@ import {
     recommendSpecialists as apiRecommendSpecialists,
 } from './services/apiAiService';
 import { getAnalysis } from './services/apiAnalysisService';
+import { enrichFinalReport } from './utils/reportNormalize';
 
 // --- Views & Components ---
 import AuthPage from './components/AuthPage';
@@ -289,13 +290,10 @@ const AppContent: React.FC = () => {
                 const savedDebate = update.debateHistory ?? debateHistoryRef.current;
                 debateHistoryRef.current = savedDebate;
                 setDebateHistory(savedDebate);
-                const mergedReport: FinalReport = {
+                const mergedReport: FinalReport = enrichFinalReport({
                     ...reportData,
                     prognosisReport: reportData.prognosisReport ?? livePrognosisRef.current ?? livePrognosis,
-                    rejectedHypotheses: Array.isArray(reportData.rejectedHypotheses) && reportData.rejectedHypotheses.length > 0
-                        ? reportData.rejectedHypotheses.map((h: { name?: string; reason?: string }) => ({ name: String(h?.name ?? ''), reason: String(h?.reason ?? '') }))
-                        : (reportData.rejectedHypotheses ?? []),
-                };
+                }, { patientData: patientData ?? undefined, language });
                 setFinalReport(mergedReport);
                 setIsProcessing(false);
                 setSocraticQuestion(null);

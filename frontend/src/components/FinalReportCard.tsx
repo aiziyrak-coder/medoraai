@@ -11,6 +11,7 @@ import type {
   ImagingModalityBlock,
 } from '../types';
 import { normalizeConsensusDiagnosis, getReasoningChainArray } from '../types';
+import { sanitizeClinicalContent } from '../utils/sanitizeClinicalContent';
 import ClipboardListIcon from './icons/ClipboardListIcon';
 import BrainCircuitIcon from './icons/BrainCircuitIcon';
 import ShieldWarningIcon from './icons/ShieldWarningIcon';
@@ -259,34 +260,63 @@ const ProtocolComplianceGapsCard: React.FC<{ gaps?: ProtocolComplianceGap[] }> =
     );
 };
 
+const GENERIC_QUALITY_STRENGTHS = new Set([
+    'shikoyatlar aniq hujjatlashtirilgan',
+    'anamnez mavjud',
+    "ob'ektiv ko'rik/vital ko'rsatkichlar kiritilgan",
+]);
+
+const qualityCategoryLabel = (category: string, t: (k: string) => string): string => {
+    const key = `quality_cat_${category}` as const;
+    const mapped = t(key);
+    return mapped !== key ? mapped : category;
+};
+
 const CareQualityAuditCard: React.FC<{ audit?: CareQualityAudit }> = ({ audit }) => {
     const { t } = useTranslation();
     if (!audit) return null;
+    const strengths = (audit.strengths || []).filter(
+        (s) => s.trim() && !GENERIC_QUALITY_STRENGTHS.has(s.trim().toLowerCase()),
+    );
     return (
         <Section title={t('final_report_quality_audit_title')} icon={<ClipboardListIcon className="w-6 h-6"/>}>
             {audit.overallScore != null && (
-                <p className="text-lg font-bold text-slate-800 mb-2">
-                    {t('final_report_quality_score')}: {audit.overallScore}/100
-                </p>
+                <div className="mb-3">
+                    <p className="text-lg font-bold text-slate-800">
+                        {t('final_report_quality_score')}: {audit.overallScore}/100
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">{t('final_report_quality_score_help')}</p>
+                </div>
             )}
-            {audit.summary && <p className="text-sm text-slate-700 mb-4 whitespace-pre-wrap">{audit.summary}</p>}
+            {audit.summary && <p className="text-sm text-slate-700 mb-4 whitespace-pre-wrap leading-relaxed">{audit.summary}</p>}
             {audit.errors?.length > 0 && (
                 <div className="space-y-2 mb-4">
                     <h4 className="text-sm font-bold text-red-800">{t('final_report_quality_errors')}</h4>
                     {audit.errors.map((e, i) => (
                         <div key={i} className="p-3 bg-red-50 border border-red-100 rounded-lg text-sm">
-                            <p className="font-semibold">{e.category}: {e.description}</p>
-                            {e.protocolReference && <p className="text-xs mt-1 text-slate-600">{e.protocolReference}</p>}
-                            {e.impact && <p className="text-xs mt-1 text-red-700">{e.impact}</p>}
+                            <p className="font-semibold">
+                                <span className="text-red-900">{qualityCategoryLabel(e.category, t)}:</span>{' '}
+                                {e.description}
+                            </p>
+                            {e.protocolReference && (
+                                <p className="text-xs mt-1 text-slate-600">
+                                    {t('final_report_protocol_ref')}: {e.protocolReference}
+                                </p>
+                            )}
+                            {e.impact && (
+                                <p className="text-xs mt-1 text-red-700">
+                                    {t('final_report_consequences')}: {e.impact}
+                                </p>
+                            )}
                         </div>
                     ))}
                 </div>
             )}
-            {audit.strengths?.length > 0 && (
+            {strengths.length > 0 && (
                 <div>
                     <h4 className="text-sm font-bold text-green-800 mb-2">{t('final_report_quality_strengths')}</h4>
-                    <ul className="list-disc list-inside text-sm text-slate-700">
-                        {audit.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                    <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
+                        {strengths.map((s, i) => <li key={i} className="leading-relaxed">{s}</li>)}
                     </ul>
                 </div>
             )}
@@ -506,7 +536,7 @@ const FinalReportCard: React.FC<{
                     {report.simplifiedFamilyExplanation && String(report.simplifiedFamilyExplanation).trim() && (
                         <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/60">
                             <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wider mb-2">{t('final_report_family_explanation')}</h3>
-                            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{report.simplifiedFamilyExplanation}</p>
+                            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{sanitizeClinicalContent(String(report.simplifiedFamilyExplanation))}</p>
                         </div>
                     )}
                 </div>
@@ -535,7 +565,9 @@ const FinalReportCard: React.FC<{
 
                 {report.unexpectedFindings && String(report.unexpectedFindings).trim() && (
                     <Section title={t('final_report_unexpected_findings')} icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
-                        <p className="text-text-primary whitespace-pre-wrap">{report.unexpectedFindings}</p>
+                        <div className="text-text-primary text-sm whitespace-pre-wrap leading-relaxed">
+                            <LinkifiedText text={sanitizeClinicalContent(String(report.unexpectedFindings))} />
+                        </div>
                     </Section>
                 )}
 

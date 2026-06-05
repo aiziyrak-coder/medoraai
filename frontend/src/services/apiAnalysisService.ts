@@ -4,6 +4,7 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, type ApiResponse } from './api';
 import type { AnalysisRecord, DiagnosisFeedback, FinalReport, ChatMessage, AnalysisStatsPayload } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
+import { enrichFinalReport } from '../utils/reportNormalize';
 
 export interface ApiAnalysisRecord {
   id: number;
@@ -62,12 +63,9 @@ const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
     date: api?.created_at ?? new Date().toISOString(),
     patientData: api.patient_data as unknown as AnalysisRecord['patientData'],
     debateHistory: api.debate_history || [],
-    finalReport: {
+    finalReport: enrichFinalReport({
       ...fr,
       consensusDiagnosis: normalizeConsensusDiagnosis(fr.consensusDiagnosis ?? fr.consensus_diagnosis),
-      rejectedHypotheses: Array.isArray(fr.rejectedHypotheses) ? fr.rejectedHypotheses.map((h: { name?: unknown; reason?: unknown }) => ({ name: String(h?.name ?? ''), reason: String(h?.reason ?? '') }))
-        : (Array.isArray(fr.rejected_hypotheses) ? fr.rejected_hypotheses : []).map((h: { name?: unknown; reason?: unknown }) => ({ name: String(h?.name ?? ''), reason: String(h?.reason ?? '') })),
-      prognosisReport: fr.prognosisReport ?? fr.prognosis_report ?? undefined,
       treatmentPlan,
       medicationRecommendations,
       unexpectedFindings: String(fr.unexpectedFindings ?? fr.unexpected_findings ?? ''),
@@ -80,7 +78,9 @@ const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
         }
         return String(t ?? '');
       }),
-    } as FinalReport,
+    } as FinalReport, {
+      patientData: api.patient_data as AnalysisRecord['patientData'],
+    }),
     followUpHistory: api.follow_up_history,
     detectedMedications: api.detected_medications,
     selectedSpecialists: api.selected_specialists as AnalysisRecord['selectedSpecialists'],

@@ -22,27 +22,43 @@ KONSILIUM USLUBI (MAJBURIY — buzish MUMKIN EMAS):
 8. Ob'ektiv, lab va tasvir (EKG/UZI/rengen) mavjud bo'lsa — ularni shikoyatdan ustun qo'llang.
 """
 
-DENSE_JSON_HINT = (
-    "Javob FAQAT JSON. Matn ZICH: har bandda aniq klinik qiymat (raqam+birlik). "
-    "Bo'sh gap, 'ehtimol', 'ko'rib chiqildi' kabi so'zlarsiz. Ortiqcha tushuntirish YO'Q."
+DEEP_CLINICAL_HINT = (
+    "Javob FAQAT JSON. Har band CHUQUR va AMALIY bo'lsin: aniq klinik qiymat (raqam+birlik), "
+    "mexanizm yoki patofiziologik bog'liqlik, keyingi qadam. Bo'sh iboralar ('ehtimol', "
+    "'ko'rib chiqildi', 'umuman olganda') YO'Q — har satr foydali klinik ma'lumot bersin."
 )
 
+# Eski nom bilan moslik
+DENSE_JSON_HINT = DEEP_CLINICAL_HINT
+
 DEBATE_INTENSITY_RULES = """
-KONSILIUM CHANGI (MAJBURIY):
-1. Boshqa mutaxassis tashxisi boshqacha bo'lsa — KAMIDA 1 ta STRONG yoki MODERATE refutation yozing.
-2. Boshqa mutaxassis dalili kuchli bo'lsa — accepted_from_others da aniq FAKT bilan qo'llab-quvvatlang.
-3. Har refutation: bemorning ANIQ ko'rsatkichi + nima uchun zaif/noto'g'ri — boshqalarning jumlasini KO'CHIRMAN.
-4. Himoya: o'z ixtisosligingizdan YANGI fakt — rais yoki boshqa mutaxassis gapini takrorlamang.
-5. key_argument: faqat SIZNING eng kuchli klinik dalilingiz + manba URL.
-6. Agar boshqalar bilan kelishsangiz ham — qaysi ANIQ fakt sizni ishontirganini yozing (umumiy gap emas).
+KONSILIUM CHANGI (MAJBURIY — YUMSHOQ EMAS):
+1. Boshqa mutaxassis tashxisi boshqacha bo'lsa — KAMIDA 2 ta refutation (1 ta STRONG + 1 ta MODERATE/WEAK).
+2. Har refutation: bemorning ANIQ ko'rsatkichi + patofiziologik/mexanistik sabab + nima uchun zaif.
+3. Himoya (defense): o'z ixtisosligingizdan KAMIDA 2 ta yangi fakt — boshqalarning jumlasini KO'CHIRMAN.
+4. accepted_from_others: kamida 1 ta band (agar haqiqatan qabul qilsangiz) — aniq qaysi fakt va kimning dalili.
+5. key_argument: 2-3 jumla — eng kuchli klinik dalil + manba URL + amaliy oqibat.
+6. revised_diagnosis o'zgarsa — nima o'zgartirdi (qaysi refutation/dalil) yozing.
+7. Umumiy gaplar taqiqlangan — har band bemor uchun amaliy qiymat bersin.
 """
 
 P1_DENSITY_RULES = """
-PHASE 1 ZICHLIK (MAJBURIY):
-- reasoning_chain: kamida 4 qadam, har biri bemor fakti + manba URL.
-- supporting_evidence: kamida 4 ta — vital, lab, anamnez yoki tasvirdan aniq qiymatlar.
-- differential: kamida 2 ta alternativ tashxis + ehtimollik + qisqa sabab.
-- recommended_tests: kamida 2 ta + nima uchun (klinik indikatsiya).
+PHASE 1 CHUQURLIK (MAJBURIY):
+- reasoning_chain: kamida 5-6 qadam — har biri: bemor fakti → klinik talqin → xulosa + manba URL.
+- supporting_evidence: kamida 5 ta — vital, lab, anamnez, tasvir yoki dori tarixidan ANIQ qiymatlar.
+- differential: kamida 3 ta alternativ tashxis + ehtimollik (%) + rad etish/qoldirish sababi.
+- recommended_tests: kamida 3 ta + klinik indikatsiya + kutilayotgan natija.
+- red_flags: kamida 1 ta (agar mavjud bo'lsa) — shoshilinch harakat bilan.
+- initial_treatment_notes: kamida 2 jumla — o'z ixtisosligingizdan aniq tavsiya + protokol/manba.
+"""
+
+SPECIALIST_THINKING_MANDATE = """
+MUTAXASSIS FIKRLASHI (MAKSIMAL CHUQURLIK):
+1. Sizning javobingiz boshqa mutaxassislardan FARQ qilishi kerak — o'z noyob klinik burchagingiz.
+2. Har da'vo bemor ma'lumotidagi ANIQ faktdan boshlansin (raqam, vaqt, dori, simptom).
+3. Tashxis nomi bir xil bo'lsa ham — dalillar, tekshiruvlar va xavf nuqtalari BOSHQA bo'lsin.
+4. Yetarli ma'lumot bo'lmasa — qaysi qo'shimcha ma'lumot/tekshiruv kerakligini aniq yozing.
+5. Har bir tavsiya amaliy: nima qilish, qachon, qanday monitoring.
 """
 
 ANTI_REPETITION_RULES = """
@@ -56,26 +72,32 @@ TAKRORLASH TAQIQLANADI (MAJBURIY):
 
 AGENT_SPECIALTY_FOCUS: dict[str, str] = {
     "deepseek": (
-        "SIZNING BURCHAGINGIZ (Nevrolog/mantiq): markaziy va periferik asab tizimi, uyqu-buzilishlar, "
-        "neuromuskulyar, differensial mantiq zanjiri. Boshqalar aytgan tashxisni takrorlamang — "
-        "o'z neuro-mantiqiy asoslaringizni yozing."
+        "SIZNING BURCHAGINGIZ (Nevrolog/mantiq): neyrologik simptomlar, uyqu-arousal, kognitiv, "
+        "neuromuskulyar, markaziy vs periferik ajratish. MAJBURIY chiqaring: differensial mantiq "
+        "zanjiri (5+ qadam), neyrologik red flag, agar kerak bo'lsa EMG/EEG/polisomnografiya. "
+        "Boshqa mutaxassis aytmagan neyrologik mexanizmni izohlang."
     ),
     "llama": (
-        "SIZNING BURCHAGINGIZ (Onkolog/EBM): malign xavf, paraneoplastik sindromlar, meta-tahlil darajasi. "
-        "Agar onkologik emas deb baholassangiz — aniq qaysi dalil bilan rad etasiz. "
-        "Onkolog bo'lmagan holatda ham o'z tekshiruvlaringizni taklif qiling."
+        "SIZNING BURCHAGINGIZ (Onkolog/EBM): malign xavf, paraneoplastik sindrom, metastaz, "
+        "survival/prognostik omillar. MAJBURIY: evidence level (A/B/C), qaysi screening kerak, "
+        "qaysi onkologik gipoteza rad etiladi va nega. Onkologiya bo'lmasa ham — EBM asosida "
+        "o'z tekshiruv va kuzatuv rejangizni bering."
     ),
     "mistral": (
-        "SIZNING BURCHAGINGIZ (Protokol/standart): O'zbekiston SSV protokoli, klinik yo'l, "
-        "majburiy tekshiruvlar va xavf stratifikatsiyasi. Tashxisni takrorlamang — "
-        "protokolga muvofiqlik yoki kamchilikni ko'rsating."
+        "SIZNING BURCHAGINGIZ (Protokol/SSV): O'zbekiston SSV protokol raqami/nomi, majburiy "
+        "diagnostik algoritm, xavf stratifikatsiyasi, statsionar vs ambulator. MAJBURIY: "
+        "protokolga mos/qarshi qaysi qadam, qaysi tekshiruv protokolda majburiy, qaysi "
+        "davolash bosqichi tavsiya etiladi."
     ),
     "mini": (
-        "SIZNING BURCHAGINGIZ (Farmakolog): dori, DDI, doza, nojo'ya ta'sir, kontrendikatsiya, "
-        "O'zbekistonda mavjud preparatlar. Tashxis takrori emas — dori xavfi va monitoring rejasi."
+        "SIZNING BURCHAGINGIZ (Farmakolog): har bir dori uchun doza, DDI, kontrendikatsiya, "
+        "monitoring (qon, jigar, buyrak), O'zbekistonda mavjud savdo nomi. MAJBURIY: "
+        "xavfli kombinatsiya, pediatrik/geriatrik tuzatish, alternativ preparat, "
+        "nojo'ya ta'sir profilaksi rejasi."
     ),
     "gpt4o": (
-        "SIZNING BURCHAGINGIZ (Kengash raisi): faqat yakunda qisqa sintez — alohida mutaxassis tahlili emas."
+        "SIZNING BURCHAGINGIZ (Kengash raisi): munozarani sintez qiling — har mutaxassisning "
+        "eng kuchli dalilini og'irlik bilan birlashtiring; zaif dalillarni rad eting."
     ),
 }
 
