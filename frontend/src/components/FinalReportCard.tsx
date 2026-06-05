@@ -384,6 +384,10 @@ const FinalReportCard: React.FC<{
 }> = ({ report, patientData, isScenario = false, onUpdateReport }) => {
     const { t } = useTranslation();
     const safePlan = (Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString);
+    const consensusDiagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis);
+    const hasRealDiagnosis = consensusDiagnoses.some(
+        (d) => d.name.trim() && !/^(tashxis aniqlanmadi|aniqlanmadi|timeout)$/i.test(d.name.trim()),
+    );
 
     const [isEditingPlan, setIsEditingPlan] = useState(false);
     const [editedPlan, setEditedPlan] = useState<string[]>(safePlan);
@@ -450,7 +454,15 @@ const FinalReportCard: React.FC<{
                     )}
                     <div>
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">{t('final_report_consensus_diagnoses')}</h3>
-                        {normalizeConsensusDiagnosis(report.consensusDiagnosis).map((diag, index) => (
+                        {!hasRealDiagnosis && (
+                            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 mb-4">
+                                <p className="text-sm font-semibold text-amber-900">{t('final_report_consensus_pending')}</p>
+                                {report.unexpectedFindings && String(report.unexpectedFindings).trim() && (
+                                    <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{report.unexpectedFindings}</p>
+                                )}
+                            </div>
+                        )}
+                        {consensusDiagnoses.filter((d) => d.name.trim()).map((diag, index) => (
                             <div key={index} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 mb-4 last:mb-0">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="min-w-0">

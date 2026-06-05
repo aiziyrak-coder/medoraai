@@ -11,6 +11,7 @@ import type {
   SeverityAssessment,
   CheckUpRecommendation,
 } from '../types';
+import { normalizeConsensusDiagnosis } from '../types';
 
 function strList(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -253,6 +254,30 @@ export function normalizeNutritionExtended(raw: unknown): NutritionPreventionSec
 export function enrichFinalReport(raw: FinalReport): FinalReport {
   const r = raw as FinalReport & Record<string, unknown>;
   const out: FinalReport = { ...raw };
+
+  const cdNorm = normalizeConsensusDiagnosis(
+    r.consensusDiagnosis ?? r.consensus_diagnosis,
+  );
+  if (cdNorm.length) {
+    out.consensusDiagnosis = cdNorm;
+  }
+
+  if (!out.unexpectedFindings) {
+    const u = r.unexpectedFindings ?? r.unexpected_findings ?? r.agreement_summary ?? r.agreementSummary;
+    if (typeof u === 'string' && u.trim()) out.unexpectedFindings = u.trim();
+  }
+  if (!out.treatmentPlan?.length) {
+    const tp = r.treatmentPlan ?? r.treatment_plan;
+    if (Array.isArray(tp) && tp.length) out.treatmentPlan = tp.map(String);
+  }
+  if (!out.recommendedTests?.length) {
+    const rt = r.recommendedTests ?? r.recommended_tests;
+    if (Array.isArray(rt) && rt.length) out.recommendedTests = rt.map(String);
+  }
+  const sfe = r.simplifiedFamilyExplanation ?? r.simplified_family_explanation;
+  if (typeof sfe === 'string' && sfe.trim()) out.simplifiedFamilyExplanation = sfe.trim();
+  const rr = r.relatedResearch ?? r.related_research;
+  if (Array.isArray(rr) && rr.length) out.relatedResearch = rr as FinalReport['relatedResearch'];
 
   const gaps = normalizeProtocolComplianceGaps(r.protocolComplianceGaps ?? r.protocol_compliance_gaps);
   if (gaps.length) out.protocolComplianceGaps = gaps;

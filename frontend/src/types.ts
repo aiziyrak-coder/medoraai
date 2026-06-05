@@ -534,18 +534,28 @@ export function normalizeNutritionPrevention(raw: unknown): NutritionPreventionS
  *  nisbatlar saqlangan holda 100% ga normallashtiriladi (shablon 60/25 emas, matematik muvozanat).
  */
 export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
-  if (!Array.isArray(raw)) return [];
+  let items: unknown[] = [];
+  if (Array.isArray(raw)) {
+    items = raw;
+  } else if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>;
+    if (o.name || o.diagnosis || o.primary_diagnosis || o.primaryDiagnosis) {
+      items = [raw];
+    }
+  }
 
-  const mapped = raw.map((item: Record<string, unknown>) => {
+  const mapped = items.map((item: Record<string, unknown>) => {
     const pRaw = Number(item?.probability ?? 0);
     const pNorm = Number.isFinite(pRaw)
       ? (pRaw >= 0 && pRaw <= 1 ? pRaw * 100 : pRaw)
       : 0;
     const icdRaw = item?.icd10 ?? item?.icd_10;
     return {
-      name: String(item?.name ?? item?.diagnosis ?? ''),
+      name: String(item?.name ?? item?.diagnosis ?? item?.primary_diagnosis ?? item?.primaryDiagnosis ?? ''),
       probability: Math.max(0, Math.round(pNorm)),
-      justification: String(item?.justification ?? item?.reasoningChain ?? ''),
+      justification: String(
+        item?.justification ?? item?.reason ?? item?.reasoningChain ?? item?.reasoning_chain ?? '',
+      ),
       evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
       ...(icdRaw ? { icd10: String(icdRaw).trim() } : {}),
       reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : (typeof item?.reasoningChain === 'string' ? [item.reasoningChain] : []),

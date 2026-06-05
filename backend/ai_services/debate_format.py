@@ -31,9 +31,10 @@ DEBATE_INTENSITY_RULES = """
 KONSILIUM CHANGI (MAJBURIY):
 1. Boshqa mutaxassis tashxisi boshqacha bo'lsa — KAMIDA 1 ta STRONG yoki MODERATE refutation yozing.
 2. Boshqa mutaxassis dalili kuchli bo'lsa — accepted_from_others da aniq FAKT bilan qo'llab-quvvatlang.
-3. Har refutation: bemorning ANIQ ko'rsatkichi (masalan SpO2 88%, TSH 8.2) + nima uchun zaif/noto'g'ri.
-4. Himoya: o'z pozitsiyangizni yangi FAKT yoki lab/tasvir bilan mustahkamlang; zaif bo'lsa revised_diagnosis yangilang.
-5. key_argument: eng muhim 1 ta klinik dalil + manba URL — qisqa va aniq.
+3. Har refutation: bemorning ANIQ ko'rsatkichi + nima uchun zaif/noto'g'ri — boshqalarning jumlasini KO'CHIRMAN.
+4. Himoya: o'z ixtisosligingizdan YANGI fakt — rais yoki boshqa mutaxassis gapini takrorlamang.
+5. key_argument: faqat SIZNING eng kuchli klinik dalilingiz + manba URL.
+6. Agar boshqalar bilan kelishsangiz ham — qaysi ANIQ fakt sizni ishontirganini yozing (umumiy gap emas).
 """
 
 P1_DENSITY_RULES = """
@@ -43,6 +44,40 @@ PHASE 1 ZICHLIK (MAJBURIY):
 - differential: kamida 2 ta alternativ tashxis + ehtimollik + qisqa sabab.
 - recommended_tests: kamida 2 ta + nima uchun (klinik indikatsiya).
 """
+
+ANTI_REPETITION_RULES = """
+TAKRORLASH TAQIQLANADI (MAJBURIY):
+1. Bemor shikoyatini so'zma-so'z qayta yozmang — faqat o'z ixtisosligingizdan foydalanilgan faktlar.
+2. Boshqa mutaxassis, rais yoki namuna matndagi jumlalarni KO'CHIRMAN — o'z mustaqil tahlil.
+3. Umumiy konsensus jumlalar ("konsilium", "hamkasblar", "shikoyat asosida") YO'Q — faqat aniq klinik da'vo.
+4. Har mutaxassis BOSHQA burchakdan qarashi kerak: bir xil tashxis nomi bo'lsa ham dalillar va tekshiruvlar farq qilsin.
+5. Rais ochish nutqidagi bemor tavsifini takrorlamang — faqat o'z ixtisoslik nuqtai nazaringizni bering.
+"""
+
+AGENT_SPECIALTY_FOCUS: dict[str, str] = {
+    "deepseek": (
+        "SIZNING BURCHAGINGIZ (Nevrolog/mantiq): markaziy va periferik asab tizimi, uyqu-buzilishlar, "
+        "neuromuskulyar, differensial mantiq zanjiri. Boshqalar aytgan tashxisni takrorlamang — "
+        "o'z neuro-mantiqiy asoslaringizni yozing."
+    ),
+    "llama": (
+        "SIZNING BURCHAGINGIZ (Onkolog/EBM): malign xavf, paraneoplastik sindromlar, meta-tahlil darajasi. "
+        "Agar onkologik emas deb baholassangiz — aniq qaysi dalil bilan rad etasiz. "
+        "Onkolog bo'lmagan holatda ham o'z tekshiruvlaringizni taklif qiling."
+    ),
+    "mistral": (
+        "SIZNING BURCHAGINGIZ (Protokol/standart): O'zbekiston SSV protokoli, klinik yo'l, "
+        "majburiy tekshiruvlar va xavf stratifikatsiyasi. Tashxisni takrorlamang — "
+        "protokolga muvofiqlik yoki kamchilikni ko'rsating."
+    ),
+    "mini": (
+        "SIZNING BURCHAGINGIZ (Farmakolog): dori, DDI, doza, nojo'ya ta'sir, kontrendikatsiya, "
+        "O'zbekistonda mavjud preparatlar. Tashxis takrori emas — dori xavfi va monitoring rejasi."
+    ),
+    "gpt4o": (
+        "SIZNING BURCHAGINGIZ (Kengash raisi): faqat yakunda qisqa sintez — alohida mutaxassis tahlili emas."
+    ),
+}
 
 
 def _conf_label_uz(conf: str) -> str:
@@ -57,6 +92,31 @@ def _clean_step_text(step: str) -> str:
     s = re.sub(r"\s*→\s*", " — ", s)
     s = re.sub(r"\*\*([^*]+)\*\*", r"\1", s)
     return s.strip()
+
+
+_RECAP_LINE = re.compile(
+    r"^(shikoyat|bemor\s+\d+\s*yosh|patient\s+is\s+\d+|erkak|ayol)[\s,:]",
+    re.I,
+)
+
+
+def _filter_recap_lines(text: str) -> str:
+    """Shikoyat/anamnez takrorini UI matnidan olib tashlash."""
+    if not text:
+        return text
+    kept: list[str] = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            kept.append(line)
+            continue
+        content = re.sub(r"^[\s•▸\d.]+", "", stripped)
+        if _RECAP_LINE.search(content) and not re.search(
+            r"\d+\s*(mmHg|mg|ml|/|min|L|%)", content, re.I
+        ):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
 
 
 def format_reasoning_steps(chain: Any) -> str:
@@ -131,7 +191,7 @@ def format_p1_debate_content(p1r: dict) -> str:
     if notes:
         sections.append(f"▸ DASTLABKI TAVSIYA\n{notes}")
 
-    return "\n\n".join(sections)
+    return _filter_recap_lines("\n\n".join(sections))
 
 
 def format_p2_debate_content(
@@ -190,6 +250,63 @@ def format_p2_debate_content(
     endorse = format_bullet_items(p2r.get("endorsements"))
     if endorse:
         sections.append(f"▸ QO'LLAB-QUVVATLASH\n{endorse}")
+
+    return _filter_recap_lines("\n\n".join(sections))
+
+
+def format_specialist_roster(agents: list[Any]) -> str:
+    """Konsiliumga chorlangan mutaxassislar ro'yxati."""
+    lines: list[str] = []
+    for agent in agents:
+        fields = debate_author_fields(agent)
+        lines.append(f"  • {fields['authorTitle']} — {fields['author']}")
+    return "\n".join(lines)
+
+
+def format_orchestrator_closing(consensus: dict) -> str:
+    """Rais konsiliumni yopadi va yakuniy xulosa beradi."""
+    if not isinstance(consensus, dict):
+        return ""
+    sections: list[str] = ["▸ KONSILIUM YOPILDI\nKengash muhokamasi yakunlandi. Quyida yakuniy klinik xulosa."]
+
+    cd = consensus.get("consensus_diagnosis") or {}
+    if isinstance(cd, dict) and cd.get("name"):
+        icd = _clean_step_text(cd.get("icd10", ""))
+        icd_s = f" (ICD-10: {icd})" if icd else ""
+        prob = cd.get("probability")
+        prob_s = f" — {prob}%" if prob is not None else ""
+        sections.append(f"▸ YAKUNIY TASHXIS\n{_clean_step_text(cd['name'])}{icd_s}{prob_s}")
+        just = _clean_step_text(cd.get("justification", ""))
+        if just:
+            sections.append(f"▸ ASOS\n{just}")
+
+    treatment = consensus.get("treatment_plan") or []
+    if isinstance(treatment, list) and treatment:
+        block = format_bullet_items(treatment)
+        if block:
+            sections.append(f"▸ DAVOLASH REJASI\n{block}")
+
+    tests = consensus.get("recommended_tests") or []
+    if isinstance(tests, list) and tests:
+        block = format_bullet_items(tests)
+        if block:
+            sections.append(f"▸ TAVSIYA ETILGAN TEKSHIRUVLAR\n{block}")
+
+    follow = _clean_step_text(consensus.get("follow_up_plan", ""))
+    if follow:
+        sections.append(f"▸ KUZATUV REJASI\n{follow}")
+
+    synth = consensus.get("debate_synthesis") or consensus.get("debateSynthesis")
+    synth_text = format_debate_synthesis(synth) if synth else ""
+    agreement = _clean_step_text(consensus.get("agreement_summary", ""))
+    if synth_text:
+        sections.append(synth_text)
+    elif agreement:
+        sections.append(f"▸ MUNOZARA XULOSASI\n{agreement}")
+
+    dissent = format_bullet_items(consensus.get("dissenting_opinions"))
+    if dissent:
+        sections.append(f"▸ FARQLI FIKRLAR\n{dissent}")
 
     return "\n\n".join(sections)
 

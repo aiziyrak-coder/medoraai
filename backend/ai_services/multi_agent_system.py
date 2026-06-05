@@ -53,10 +53,13 @@ from .debate_format import (
     DENSE_JSON_HINT,
     DEBATE_INTENSITY_RULES,
     P1_DENSITY_RULES,
+    ANTI_REPETITION_RULES,
+    AGENT_SPECIALTY_FOCUS,
     debate_author_fields,
     format_p1_debate_content,
     format_p2_debate_content,
-    format_debate_synthesis,
+    format_orchestrator_closing,
+    format_specialist_roster,
     agent_specialty_label as _specialty_from_agent_obj,
 )
 from .consilium_cost import (
@@ -188,6 +191,34 @@ def _active_agents() -> list[Agent]:
     """Barcha konsilium agentlari (4 ta professor) — kamaytirilmaydi."""
     return list(AGENTS)
 
+
+_LANG_HINT: dict[str, str] = {
+    "uz-L": "O'zbek (Lotin)",
+    "uz-C": "O'zbek (Kirill)",
+    "ru": "Rus",
+    "en": "Ingliz",
+    "kaa": "Qoraqalpoq",
+}
+
+
+_OPENING_SYSTEM = """\
+{persona}
+
+Siz tibbiy kengash raisi siz. Konsiliumni RASMIY OCHING.
+
+VAZIFA:
+1. Kengashni qisqa rasmiy oching (1 jumla).
+2. Bemor haqida TO'LIQ klinik ma'lumot bering: yosh, jins, shikoyatlar, anamnez, vitallar, laboratoriya, tasvir — mavjud barcha faktlar.
+3. Har bir mutaxassisni ixtisosligi bilan konsiliumga CHORLANG va nima baholashini aniq so'rang.
+4. Oxirida: har bir mutaxassis mustaqil tashxis va o'z ixtisoslik burchagidan fakt bildirishi kerakligini ayting.
+
+QOIDALAR:
+- Oddiy matn, markdown yo'q.
+- Ma'lumotni qisqartirmang — to'liq taqdim eting.
+- Bu yagona joy — bemor holati shu yerda to'liq; mutaxassislar keyin takrorlamasin.
+
+""" + CLINICAL_OUTPUT_RULES
+
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # Result container
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
@@ -216,6 +247,42 @@ class ConsiliumResult:
         }
 
 
+def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
+    """Rais konsiliumni ochadi — to'liq bemor ma'lumoti va mutaxassislarni chorlash."""
+    lang = _LANG_HINT.get(language, _LANG_HINT["uz-L"])
+    roster = format_specialist_roster(AGENTS)
+    system = _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
+    user = (
+        f"BEMOR MA'LUMOTLARI:\n{patient_str}\n\n"
+        f"KONSILIUMGA CHORLANGAN MUTAXASSISLAR:\n{roster}\n\n"
+        f"Til: {lang}.\n"
+        "Konsiliumni oching, bemor holatini to'liq taqdim eting va yuqoridagi mutaxassislarni "
+        "mustaqil fikr bildirishga chorlang."
+    )
+    t0 = time.monotonic()
+    try:
+        content = call_model(
+            ORCHESTRATOR.deployment,
+            build_messages(system, user, want_json=False),
+            response_json=False,
+            temperature=0.2,
+            max_tokens=900,
+        )
+        content = str(content or "").strip()
+    except Exception as exc:
+        logger.error("Orchestrator opening failed: %s", exc)
+        content = (
+            "▸ KONSILIUM OCHILDI\n"
+            f"{patient_str}\n\n"
+            f"▸ CHORLANGAN MUTAXASSISLAR\n{roster}\n\n"
+            "Har bir mutaxassis o'z ixtisosligi bo'yicha mustaqil tashxis va dalil bildirsin."
+        )
+    return {
+        "content": content,
+        "elapsed_ms": round((time.monotonic() - t0) * 1000),
+    }
+
+
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 # PHASE 1  -  Independent Analysis
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
@@ -232,46 +299,44 @@ MUSTAQIL TAHLIL QOIDALARI:
 6. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%.
 7. FAQAT JSON formatida javob qaytaring.
 8. Shikoyatdan tashqari ob'ektiv, lab va tasvir tahlilini majburiy hisobga oling.
+9. Faqat O'Z ixtisosligingiz burchagidan yozing — boshqalar yoki rais fikrini bilmaysiz va takrorlamaysiz.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + DENSE_JSON_HINT
+{specialty_focus}
+
+""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P1_USER = """\
 BEMOR MA'LUMOTLARI:
 {patient}
 
-Quyidagi JSON formatida MUSTAQIL tashxisingizni bildiring:
+Quyidagi JSON SXEMASI bo'yicha MUSTAQIL tashxisingizni bildiring.
+MAJBURIY: Yuqoridagi bemor ma'lumotlaridan ANIQ faktlar ishlating — namuna matnni ko'chirmang.
 {{
-  "primary_diagnosis": "Aniq tashxis nomi (O'zbek tilida)",
-  "probability": 92,
-  "reasoning_chain": [
-    "Tunda apnoe shikoyati OUAS uchun patognomonik belgi (SSV uyqu buzilishlari protokoli, https://lex.uz/...)",
-    "SpO2 98% uyg'onganda normal, ammo tunda gipoksiya mumkin (AHA Sleep Apnea Guideline, https://pubmed.ncbi.nlm.nih.gov/?term=sleep+apnea)",
-    "Differensial: gipertoniya OUAS bilan bog'liq emas — alohida baholanadi (ESC, https://pubmed.ncbi.nlm.nih.gov/?term=hypertension+differential)"
-  ],
-  "supporting_evidence": [
-    "Shikoyat: tunda nafas to'xtashi, 6 oy",
-    "Vital: AB 120/80 mmHg, puls 72/min, SpO2 98%",
-    "(SSV klinik protokoli, https://lex.uz/...)"
-  ],
-  "red_flags": ["Tunda nafas to'xtashi — gipoksiya va aritmiya xavfi (SSV, https://lex.uz/...)"],
-  "differential": [
-    {{"name": "Alt tashxis", "probability": 20, "reason": "Nega kamroq — faktlar bilan"}}
-  ],
-  "recommended_tests": ["Polisomnografiya (AASM, https://pubmed.ncbi.nlm.nih.gov/?term=polysomnography)"],
-  "initial_treatment_notes": "Qisqa tavsiya + manba URL",
-  "confidence": "HIGH/MEDIUM/LOW",
-  "evidence_level": "A/B/C"
+  "primary_diagnosis": "<sizning ixtisosligingizdan asosiy tashxis>",
+  "probability": <55-97>,
+  "reasoning_chain": ["<bemor faktidan 1-qadam + manba URL>", "..."],
+  "supporting_evidence": ["<vital/lab/anamnez raqami>", "..."],
+  "red_flags": ["<shoshilinch belgi + manba>"],
+  "differential": [{{"name": "<alt tashxis>", "probability": <3-40>, "reason": "<fakt>"}}],
+  "recommended_tests": ["<sizning ixtisosligingizdan tekshiruv + sabab>"],
+  "initial_treatment_notes": "<qisqa tavsiya + manba>",
+  "confidence": "HIGH|MEDIUM|LOW",
+  "evidence_level": "A|B|C"
 }}"""
 
 
+def _specialty_focus(agent_id: str) -> str:
+    return AGENT_SPECIALTY_FOCUS.get(agent_id, AGENT_SPECIALTY_FOCUS.get("deepseek", ""))
+
+
 def _phase1_single(agent: Agent, patient_str: str) -> dict:
-    system = _P1_SYSTEM.format(persona=agent.persona)
+    system = _P1_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
     user   = _P1_USER.format(patient=patient_str)
     t0 = time.monotonic()
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.15, max_tokens=phase1_max_tokens())
+                            response_json=True, temperature=0.32, max_tokens=phase1_max_tokens())
         result = parse_json(raw, f"p1_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -321,8 +386,11 @@ DEBATE VA REFUTATION QOIDALARI:
 4. Kuchli dalil bo'lsa, pozitsiyangizni yangilang — ilmiy halollik.
 5. refutation matnida shaxsiy ism, AI nomi yoki ichki agent_id KO'RSATILMASIN.
 6. FAQAT JSON formatida javob qaytaring.
+7. Boshqa mutaxassis gapini so'zma-so'z takrorlamang — faqat o'z ixtisosligingizdan refutation/himoya.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + DEBATE_INTENSITY_RULES + "\n" + DENSE_JSON_HINT
+{specialty_focus}
+
+""" + CLINICAL_OUTPUT_RULES + "\n" + DEBATE_INTENSITY_RULES + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P2_USER = """\
 BEMOR:
@@ -334,30 +402,15 @@ BOSHQA MUTAXASSISLAR MUSTAQIL TASHXISLARI (agent_id faqat ichki — matnda ishla
 SIZNING DASTLABKI TASHXISINGIZ:
 {own_json}
 
-Debate javobingizni quyidagi JSON formatida yozing:
+Debate javobingizni JSON SXEMASI bo'yicha yozing. Boshqalarning jumlasini ko'chirmang — faqat yangi fakt.
 {{
-  "refutations": [
-    {{
-      "target_agent_id": "llama",
-      "target_diagnosis": "Ular aytgan tashxis",
-      "refutation": "Onkolog mutaxassisi taklifidagi ... zaif, chunki [FAKT + manba URL]",
-      "strength": "STRONG/MODERATE/WEAK"
-    }}
-  ],
-  "defense": {{
-    "my_diagnosis_stands": true,
-    "argument": "O'z pozitsiyamni himoya: aniq klinik faktlar ... (manba URL)",
-    "new_evidence": "Yangi dalil: vital/lab qiymat + (Protokol, https://...)"
-  }},
-  "revised_diagnosis": "Yangilangan tashxis",
-  "revised_probability": 92,
-  "accepted_from_others": [
-    {{"agent_id": "mistral", "point": "Gastroenterolog mutaxassisining ... fikri to'g'ri: [fakt]"}}
-  ],
-  "endorsements": [
-    "Farmakolog mutaxassisi dori rejasi bilan kelishaman: [fakt + manba]"
-  ],
-  "key_argument": "Eng muhim klinik dalil + (Manba, https://...)"
+  "refutations": [{{"target_agent_id": "<id>", "target_diagnosis": "<ular tashxisi>", "refutation": "<sizning ixtisosligingizdan fakt>", "strength": "STRONG|MODERATE|WEAK"}}],
+  "defense": {{"my_diagnosis_stands": true, "argument": "<himoya>", "new_evidence": "<yangi fakt>"}},
+  "revised_diagnosis": "<yangilangan yoki o'zgarmagan tashxis>",
+  "revised_probability": <55-97>,
+  "accepted_from_others": [{{"agent_id": "<id>", "point": "<qaysi aniq fakt qabul qilindi>"}}],
+  "endorsements": ["<qo'llab-quvvatlash — faqat aniq fakt>"],
+  "key_argument": "<sizning eng kuchli dalilingiz + manba URL>"
 }}"""
 
 
@@ -385,14 +438,14 @@ def _phase2_single(agent: Agent, patient_str: str,
         "confidence": own.get("confidence"),
     })
 
-    system = _P2_SYSTEM.format(persona=agent.persona)
+    system = _P2_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
     user   = _P2_USER.format(patient=patient_str,
                               others_json=others_text, own_json=own_text)
     t0 = time.monotonic()
     try:
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.2, max_tokens=phase2_max_tokens())
+                            response_json=True, temperature=0.35, max_tokens=phase2_max_tokens())
         result = parse_json(raw, f"p2_{agent.id}")
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
@@ -482,8 +535,10 @@ KONSENSUS QAROR QOIDALARI:
 8. individual_diet_by_diagnosis — har bir asosiy tashxis uchun alohida parhez.
 9. rejected_hypotheses: munozarada rad etilgan kamida 2 ta gipoteza + aniq sabab.
 10. debate_synthesis: kelishuvlar, hal qilingan bahslar va g'olib dalillar — qisqa ro'yxat.
+11. Bemor shikoyatini/anamnezni QAYTA AYTMAG — faqat munozara natijasi va yakuniy qaror.
+12. debate_synthesis.summary maksimum 2 jumla; shikoyat takrori YO'Q.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + DENSE_JSON_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P3_USER = """\
 BEMOR:
@@ -683,14 +738,32 @@ def _nutrition_prevention_from_consensus(consensus: dict) -> Optional[dict]:
     return out
 
 
+def _chair_debate_entry(entry_id: str, phase: str, content: str) -> dict:
+    chair_fields = debate_author_fields(ORCHESTRATOR)
+    return {
+        "id":          entry_id,
+        "author":      chair_fields["author"],
+        "authorTitle": chair_fields["authorTitle"],
+        "phase":       phase,
+        "weight":      1.0,
+        "isChair":     True,
+        "content":     content,
+    }
+
+
 def _build_final_report(consensus: dict, p1: list[dict],
-                        p2: list[dict], weights: dict[str, float]) -> dict:
+                        p2: list[dict], weights: dict[str, float],
+                        orchestrator_opening: str = "") -> dict:
     cd   = consensus.get("consensus_diagnosis") or {}
     meds = enrich_medications_from_consensus(consensus.get("medications") or [])
 
-    # Build debate timeline
+    # Build debate timeline: rais ochadi → mutaxassislar → rais yopadi
     id_to_p2   = {r.get("agent_id"): r for r in p2}
-    debate_log = []
+    debate_log: list[dict] = []
+    opening_text = str(orchestrator_opening or "").strip()
+    if opening_text:
+        debate_log.append(_chair_debate_entry("chair-opening", "opening", opening_text))
+
     for agent in AGENTS:
         p1r = next((r for r in p1 if r.get("agent_id") == agent.id), {})
         p2r = id_to_p2.get(agent.id, {})
@@ -724,20 +797,9 @@ def _build_final_report(consensus: dict, p1: list[dict],
                     "content":     p2_content,
                 })
 
-    synth = consensus.get("debate_synthesis") or consensus.get("debateSynthesis")
-    synth_text = format_debate_synthesis(synth) if synth else ""
-    agreement = str(consensus.get("agreement_summary") or "").strip()
-    chair_content = synth_text or (f"▸ KENGASH XULOSASI\n{agreement}" if agreement else "")
-    if chair_content:
-        chair_fields = debate_author_fields(ORCHESTRATOR)
-        debate_log.append({
-            "id":          "chair-synthesis",
-            "author":      chair_fields["author"],
-            "authorTitle": chair_fields["authorTitle"],
-            "phase":       "consensus",
-            "weight":      1.0,
-            "content":     chair_content,
-        })
+    closing_text = format_orchestrator_closing(consensus)
+    if closing_text:
+        debate_log.append(_chair_debate_entry("chair-closing", "consensus", closing_text))
 
     cf = consensus.get("critical_finding") or {}
     critical = cf if (isinstance(cf, dict) and cf.get("present")) else None
@@ -806,6 +868,13 @@ def _build_final_report(consensus: dict, p1: list[dict],
         **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
     merged = merge_enriched_report_fields(report, consensus)
+    # Yakuniy hisobotda bo'sh maydonlarni kamaytirish
+    if not merged.get("unexpectedFindings") and consensus.get("agreement_summary"):
+        merged["unexpectedFindings"] = str(consensus.get("agreement_summary"))[:2000]
+    if not merged.get("treatmentPlan") and consensus.get("treatment_plan"):
+        merged["treatmentPlan"] = consensus.get("treatment_plan")
+    if not merged.get("recommendedTests") and consensus.get("recommended_tests"):
+        merged["recommendedTests"] = consensus.get("recommended_tests")
     comp = consensus.get("_clinical_completeness")
     if isinstance(comp, dict):
         merged["clinicalCompleteness"] = comp
@@ -902,6 +971,11 @@ def run_consilium(
         patient_data, ctx_extra, compact=True, include_uz_protocols=False, language=language
     )
 
+    # Orchestrator opening
+    logger.info("[%s] Orchestrator: konsilium ochilmoqda", result.session_id)
+    opening = run_orchestrator_opening(ptext, language)
+    result.phases["orchestrator_opening"] = opening
+
     # Phase 1
     logger.info("[%s] Phase 1: Independent analysis started", result.session_id)
     p1 = run_phase1(ptext)
@@ -919,6 +993,8 @@ def run_consilium(
     # Phase 3
     logger.info("[%s] Phase 3: Weighted consensus started", result.session_id)
     consensus = run_phase3(ptext_compact, p1, p2, weights)
+    from .consensus_repair import ensure_consensus_from_phases
+    consensus = ensure_consensus_from_phases(consensus, p1, p2, weights)
     consensus = _merge_imaging_into_consensus(consensus, patient_data)
     consensus = _merge_protocol_audit(consensus, patient_data, completeness)
     consensus["_clinical_completeness"] = completeness
@@ -940,7 +1016,10 @@ def run_consilium(
     }
 
     # Final report
-    result.final_report = _build_final_report(consensus, p1, p2, weights)
+    result.final_report = _build_final_report(
+        consensus, p1, p2, weights,
+        orchestrator_opening=str(opening.get("content") or ""),
+    )
     if pharma.get("warnings"):
         result.final_report["pharmacologyWarnings"] = pharma.get("warnings")
     if red_flags:

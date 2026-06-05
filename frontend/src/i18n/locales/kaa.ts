@@ -962,6 +962,7 @@ export const kaa: Partial<TranslationSet> = {
   export_report_title: 'Umumiy konsilium esabatini júklep alıw',
   final_report_attention_critical: 'DIQQAT! KRITIK TOPILMA!',
   final_report_consensus_diagnoses: 'Konsensus diagnoz(lar)',
+  final_report_consensus_pending: 'Konsensus diagnozı munozara juwmaǵında qáliplesedi. Tómendegi klinikalıq xulasa:',
   final_report_icd10: 'ICD-10',
   final_report_family_explanation: 'Náwkes hám úy ushın túsindiriw',
   final_report_delete_btn: 'Óshiriw',

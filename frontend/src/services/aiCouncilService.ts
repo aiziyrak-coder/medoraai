@@ -1488,9 +1488,9 @@ async function runConsiliumDebateBatch(
 
     const prompt = `Siz tibbiy konsilium koordinatorisiz. Faqat JSON qaytaring.
 
-professorOpening: Konsilium Professori — uzluksiz matn (klinik qisqa xulosa + mavzu + mutaxassislarga yo'naltirish). Bemor ismi/yosh faqat bir marta boshida. Rasmiy salomlashuv yo'q. Har bir muhim da'vo oxirida manba qavs ichida: (Protokol yoki jurnal nomi, https://to-liq-url).
+professorOpening: Konsilium raisi — kengashni oching. Bemor haqida TO'LIQ klinik ma'lumot (yosh, jins, shikoyat, anamnez, vital, lab, tasvir). Har bir mutaxassisni ism/ixtisoslik bilan konsiliumga chorlang. Oxirida mustaqil fikr so'rang. Bu yagona to'liq taqdimot — keyin takrorlanmasin.
 
-specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). Har bir content: 4–6 qisqa jumla — asosiy tashxis (dalil bilan), 2 differensial, tavsiya. Har bir muhim jumla oxirida yoki oxirgi jumlada manba: (Manba nomi, https://...). "Quyida", "pastda", "batafsil bo'limda" deb yozmang.
+specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). professorOpening matnini SO'ZMA-SO'Z TAKRORLAMANG — faqat O'Z ixtisosligidan: aniq fakt, o'z tashxisi, differensial, tekshiruv. Har content 4–6 jumla, har bandda yangi klinik dalil. Manba: (Manba nomi, https://...). "Quyida", "pastda", "batafsil bo'limda" deb yozmang.
 
 role maydoni quyidagi ro'l bilan AYNAN mos kelishi shart.
 
@@ -1565,12 +1565,18 @@ async function runBackendConsilium(
     for (let i = 0; i < debateRaw.length; i++) {
         const m = debateRaw[i];
         const authorName = String(m.author ?? 'Orchestrator');
-        const agentId = String(m.id ?? '').split('-')[0];
+        const msgId = String(m.id ?? '');
+        const phase = String(m.phase ?? '');
+        const agentId = msgId.split('-')[0];
+        const isChair = !!(m.isChair ?? m.is_chair)
+            || phase === 'opening'
+            || phase === 'consensus'
+            || msgId.startsWith('chair-');
         const msg: ChatMessage = {
-            id: String(m.id ?? `backend-${i}-${Date.now()}`),
-            author: mapConsiliumAgentIdToAIModel(agentId) || mapApiSpecialistToAIModel(authorName),
+            id: msgId || `backend-${i}-${Date.now()}`,
+            author: isChair ? AIModel.SYSTEM : (mapConsiliumAgentIdToAIModel(agentId) || mapApiSpecialistToAIModel(authorName)),
             content: sanitizeClinicalContent(String(m.content ?? '')),
-            isSystemMessage: /professor|orchestrator|konsilium/i.test(authorName),
+            isSystemMessage: isChair || /professor|orchestrator|konsilium/i.test(authorName),
         };
         chatMessages.push(msg);
         onProgress({ type: 'message', message: msg });
@@ -1579,7 +1585,15 @@ async function runBackendConsilium(
     if (critical?.finding) {
         onProgress({ type: 'critical_finding', data: critical as CriticalFinding });
     }
-    const consensusDiagnosis = normalizeConsensusDiagnosis(fr.consensusDiagnosis ?? (fr as { consensus_diagnosis?: unknown }).consensus_diagnosis);
+    const rawConsensus =
+        fr.consensusDiagnosis
+        ?? (fr as { consensus_diagnosis?: unknown }).consensus_diagnosis
+        ?? (resp.data as { phases?: { phase3_consensus_raw?: { consensus_diagnosis?: unknown } } })?.phases?.phase3_consensus_raw?.consensus_diagnosis;
+    let consensusDiagnosis = normalizeConsensusDiagnosis(rawConsensus);
+    if (!consensusDiagnosis.length) {
+        const p3 = (resp.data as { phases?: { phase3_consensus_raw?: Record<string, unknown> } })?.phases?.phase3_consensus_raw;
+        if (p3) consensusDiagnosis = normalizeConsensusDiagnosis(p3.consensus_diagnosis ?? p3.consensusDiagnosis);
+    }
     const folkMedicine = normalizeFolkMedicine(fr.folkMedicine ?? (fr as { folk_medicine?: unknown }).folk_medicine);
     const nutritionPrevention = normalizeNutritionPrevention(
         fr.nutritionPrevention ?? (fr as { nutrition_prevention?: unknown }).nutrition_prevention,
@@ -1602,7 +1616,13 @@ async function runBackendConsilium(
             ? fr.medicationRecommendations
             : [],
         recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
-        unexpectedFindings: typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : String(fr.unexpectedFindings ?? ''),
+        unexpectedFindings: (() => {
+            const u = fr.unexpectedFindings ?? (fr as { unexpected_findings?: string }).unexpected_findings;
+            if (typeof u === 'string' && u.trim()) return u;
+            const ag = (fr as { agreement_summary?: string; agreementSummary?: string }).agreement_summary
+                ?? (fr as { agreementSummary?: string }).agreementSummary;
+            return typeof ag === 'string' ? ag : String(u ?? '');
+        })(),
         uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
         pharmacologyWarnings: pharmaWarnings,
         clinicalRedFlags,
@@ -1683,14 +1703,14 @@ export const runCouncilDebate = async (
     }
 
     if (!currentTopic) {
-        const professorOpeningPrompt = `Siz Konsilium Professori. Bitta uzluksiz matn yozing (bir nechta paragraf bo'lishi mumkin).
+        const professorOpeningPrompt = `Siz Konsilium raisi. Kengashni oching va bemor holatini TO'LIQ taqdim eting.
 
 QAT'IY:
-- Bemor ism-familiyasi va yoshni FAQAT bir marta, matning boshida qisqa eslatib o'ting; keyin takrorlamang.
+- Bemor: yosh, jins, shikoyatlar, anamnez, vitallar, laboratoriya, yuklangan hujjatlar — mavjud barcha faktlar.
+- Har bir mutaxassisni ixtisosligi bilan konsiliumga chorlang va nima baholashini so'rang.
 - Rasmiy mulozamat ("Hurmatli hamkasblar") yozmang.
-- Avval: klinik holat va shikoyatlar bo'yicha qisqa umumlashtirish (3-5 jumla).
-- Keyin: birinchi mavzu — asosiy shubhalar, differensial yo'nalishlar, mutaxassislardan nima kutish kerak; hujjatlar bo'lsa topilmalar (qisqa).
-- Oxirida mutaxassislarga aniq yo'naltirish (qanday baho va xavf belgilari muhim).
+- Bu yagona to'liq taqdimot — mutaxassislar keyin shikoyatni takrorlamasin.
+- Oxirida: har mutaxassis o'z ixtisosligidan mustaqil tashxis bildirsin.
 - Muhim da'volar uchun 1-2 ta manba nomi va URL yozing (masalan WHO/NICE/ESC/ADA/SSV protokoli yoki PubMed/DOI maqola). Aniq URL bilmasangiz PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=...
 - TIL: ${langMap[language]}.
 - Javobni TO'LIQ yakunlang: oxirgi jumla nuqta bilan tugasin; jumla yarmida, so'z yarmida TO'XTAMANG. Agar joy yetmasa, qisqaroq yozing, lekin har bir jumla to'liq bo'lsin.
