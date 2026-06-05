@@ -35,15 +35,13 @@ export const ClinicalDebateContent: React.FC<{ text: string; className?: string 
           return (
             <div
               key={`sec-${i}`}
-              className={`rounded-xl border p-3 ${
-                isAlert
-                  ? 'border-red-500/30 bg-red-950/20'
-                  : 'border-slate-600/25 bg-slate-900/25'
+              className={`py-2 border-b last:border-b-0 ${
+                isAlert ? 'border-red-200' : 'border-slate-200'
               }`}
             >
               <p
-                className={`text-[11px] font-bold uppercase tracking-wider mb-2 ${
-                  isAlert ? 'text-red-400' : 'text-sky-400'
+                className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 ${
+                  isAlert ? 'text-red-800' : 'text-slate-800'
                 }`}
               >
                 {title}
@@ -51,14 +49,14 @@ export const ClinicalDebateContent: React.FC<{ text: string; className?: string 
               {body && (
                 <LinkifiedText
                   text={body}
-                  className="text-sm text-slate-200 leading-relaxed"
+                  className="text-sm text-black leading-relaxed"
                 />
               )}
             </div>
           );
         }
         return (
-          <LinkifiedText key={`blk-${i}`} text={chunk} className="text-sm text-slate-200" />
+          <LinkifiedText key={`blk-${i}`} text={chunk} className="text-sm text-black" />
         );
       })}
     </div>
