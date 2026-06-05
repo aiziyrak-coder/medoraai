@@ -42,8 +42,44 @@ export interface PatientListParams {
   page?: number;
   page_size?: number;
   search?: string;
+  patient_id?: number;
   gender?: string;
   ordering?: string;
+}
+
+export interface ClinicalTimelineAnalysis {
+  id: number;
+  date: string;
+  physician?: string;
+  complaints?: string;
+  consensus_diagnoses?: string[];
+  justification?: string;
+  treatment_plan?: string[];
+  recommended_tests?: string[];
+  medications?: string[];
+  follow_up?: string;
+}
+
+export interface SmartPatientHit {
+  id: number;
+  first_name: string;
+  last_name: string;
+  age: string;
+  gender: string;
+  phone: string;
+  complaints: string;
+  analysis_count: number;
+  last_analysis_at: string;
+  last_diagnosis: string;
+  last_complaint: string;
+  last_physician: string;
+  registered_by: string;
+}
+
+export interface ClinicalTimeline {
+  patient: Patient;
+  analyses: ClinicalTimelineAnalysis[];
+  analysis_count: number;
 }
 
 /**
@@ -108,6 +144,7 @@ export const getPatients = async (params?: PatientListParams): Promise<ApiRespon
   if (params?.page) queryParams.page = params.page.toString();
   if (params?.page_size) queryParams.page_size = params.page_size.toString();
   if (params?.search) queryParams.search = params.search;
+  if (params?.patient_id) queryParams.patient_id = params.patient_id.toString();
   if (params?.gender) queryParams.gender = params.gender;
   if (params?.ordering) queryParams.ordering = params.ordering;
   
@@ -175,3 +212,62 @@ export const deletePatientAttachment = async (
  * Convert Patient to PatientData for frontend use
  */
 export const convertPatientToPatientData = apiToPatientData;
+
+/** Ism/familiya/telefon bo'yicha mavjud bemorlarni topish */
+export const findPatientMatches = async (
+  firstName: string,
+  lastName: string,
+  phone?: string,
+): Promise<ApiResponse<Patient[]>> => {
+  const queryParams: Record<string, string> = {};
+  const fn = firstName.trim();
+  const ln = lastName.trim();
+  if (fn) queryParams.first_name = fn;
+  if (ln) queryParams.last_name = ln;
+  if (phone?.trim()) queryParams.phone = phone.trim();
+  const res = await apiGet<Patient[] | { data?: Patient[] }>('/patients/match/', queryParams);
+  if (!res.success) return res as ApiResponse<Patient[]>;
+  const d = res.data;
+  if (Array.isArray(d)) return { ...res, data: d };
+  if (d && typeof d === 'object' && Array.isArray((d as { data?: Patient[] }).data)) {
+    return { ...res, data: (d as { data: Patient[] }).data };
+  }
+  return { ...res, data: [] };
+};
+
+/** Bemorning barcha oldingi tahlillari */
+export const getPatientClinicalTimeline = async (
+  patientId: number,
+  limit = 200,
+): Promise<ApiResponse<ClinicalTimeline>> => {
+  const res = await apiGet<ClinicalTimeline | { data?: ClinicalTimeline }>(
+    `/patients/${patientId}/clinical-timeline/`,
+    { limit: String(limit) },
+  );
+  if (!res.success || !res.data) return res as ApiResponse<ClinicalTimeline>;
+  const d = res.data;
+  if (d && typeof d === 'object' && 'patient' in d && 'analyses' in d) {
+    return { ...res, data: d as ClinicalTimeline };
+  }
+  if (d && typeof d === 'object' && (d as { data?: ClinicalTimeline }).data) {
+    return { ...res, data: (d as { data: ClinicalTimeline }).data };
+  }
+  return res as ApiResponse<ClinicalTimeline>;
+};
+
+/** Klinika guruhi bo'yicha aqlli qidiruv (server) */
+export const smartSearchPatients = async (q: string): Promise<ApiResponse<SmartPatientHit[]>> => {
+  const query = q.trim();
+  if (!query) return { success: true, data: [] };
+  const res = await apiGet<SmartPatientHit[] | { data?: SmartPatientHit[] }>(
+    '/patients/smart-search/',
+    { q: query },
+  );
+  if (!res.success) return res as ApiResponse<SmartPatientHit[]>;
+  const d = res.data;
+  if (Array.isArray(d)) return { ...res, data: d };
+  if (d && typeof d === 'object' && Array.isArray((d as { data?: SmartPatientHit[] }).data)) {
+    return { ...res, data: (d as { data: SmartPatientHit[] }).data };
+  }
+  return { ...res, data: [] };
+};

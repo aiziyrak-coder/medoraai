@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import type { PatientData, AnalysisRecord } from '../types';
+import type { PatientData } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
 import UploadCloudIcon from './icons/UploadCloudIcon';
 import ChevronRightIcon from './icons/ChevronRightIcon';
@@ -12,8 +12,14 @@ import { validateFileSize, validateFileType, validateAge, validateRequired, vali
 import { handleError } from '../utils/errorHandler';
 import { validatePatientDataSmart, getSmartValidationMessage } from '../utils/smartValidation';
 import { scoreClinicalCompleteness } from '../utils/clinicalCompleteness';
-import { groupRecentPatientsFromHistory } from '../utils/longitudinalContext';
-import { getPatients, convertPatientToPatientData, type Patient } from '../services/apiPatientService';
+import {
+    getPatient,
+    findPatientMatches,
+    smartSearchPatients,
+    convertPatientToPatientData,
+    type Patient,
+    type SmartPatientHit,
+} from '../services/apiPatientService';
 import { getAuthToken } from '../services/api';
 import SearchIcon from './icons/SearchIcon';
 
@@ -504,11 +510,13 @@ const HISTORY_TEMPLATES: Record<SpecialtyKey, string[]> = {
 interface DataInputFormProps {
     isAnalyzing: boolean;
     onSubmit: (data: PatientData) => void;
-    /** Mahalliy arxiv — oxirgi bemorlar ro'yxati */
-    priorAnalyses?: AnalysisRecord[];
     /** Tanlangan bemor patient.id (string) — App longitudinal kontekst uchun */
     linkedPatientKey?: string | null;
     onLinkedPatientChange?: (patientKey: string | null) => void;
+    /** Bazadan yuklangan bemor — anamnez qayta so'ralmaydi */
+    returnVisitMode?: boolean;
+    /** To'liq bazaviy klinik ma'lumot (tahlilda ishlatiladi) */
+    onPatientBaselineLoaded?: (baseline: PatientData) => void;
 }
 
 type VitalsState = {
@@ -594,9 +602,10 @@ const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label
 const DataInputForm: React.FC<DataInputFormProps> = ({
     isAnalyzing,
     onSubmit,
-    priorAnalyses = [],
     linkedPatientKey = null,
     onLinkedPatientChange,
+    returnVisitMode = false,
+    onPatientBaselineLoaded,
 }) => {
     const { t } = useTranslation();
     const { isListening, transcript, startListening, stopListening, isSupported } = useSpeechToText();
@@ -633,9 +642,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [patientSearch, setPatientSearch] = useState('');
-    const [apiPatients, setApiPatients] = useState<Patient[]>([]);
+    const [smartHits, setSmartHits] = useState<SmartPatientHit[]>([]);
     const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+    const [nameMatches, setNameMatches] = useState<Patient[]>([]);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const nameMatchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Get templates based on current language
     const complaintTemplates = getComplaintTemplates(t);
@@ -672,53 +683,90 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     useEffect(() => {
         if (!getAuthToken()) return;
         const q = patientSearch.trim();
-        if (q.length < 2) {
-            setApiPatients([]);
+        const minLen = /^\d+$/.test(q) ? 1 : 2;
+        if (q.length < minLen) {
+            setSmartHits([]);
             setPatientSearchLoading(false);
             return;
         }
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         setPatientSearchLoading(true);
         searchDebounceRef.current = setTimeout(() => {
-            getPatients({ search: q, page_size: 15 })
+            smartSearchPatients(q)
                 .then(res => {
-                    if (res.success && Array.isArray(res.data)) setApiPatients(res.data);
-                    else setApiPatients([]);
+                    if (res.success && Array.isArray(res.data)) setSmartHits(res.data);
+                    else setSmartHits([]);
                 })
-                .catch(() => setApiPatients([]))
+                .catch(() => setSmartHits([]))
                 .finally(() => setPatientSearchLoading(false));
-        }, 380);
+        }, 320);
         return () => {
             if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         };
     }, [patientSearch]);
 
-    const recentGroups = React.useMemo(
-        () => groupRecentPatientsFromHistory(priorAnalyses),
-        [priorAnalyses]
-    );
+    useEffect(() => {
+        if (!getAuthToken() || linkedPatientKey) {
+            setNameMatches([]);
+            return;
+        }
+        const fn = (formData.firstName || '').trim();
+        const ln = (formData.lastName || '').trim();
+        if (fn.length < 2 || ln.length < 2) {
+            setNameMatches([]);
+            return;
+        }
+        if (nameMatchDebounceRef.current) clearTimeout(nameMatchDebounceRef.current);
+        nameMatchDebounceRef.current = setTimeout(() => {
+            findPatientMatches(fn, ln)
+                .then(res => {
+                    if (res.success && Array.isArray(res.data)) setNameMatches(res.data.slice(0, 5));
+                    else setNameMatches([]);
+                })
+                .catch(() => setNameMatches([]));
+        }, 500);
+        return () => {
+            if (nameMatchDebounceRef.current) clearTimeout(nameMatchDebounceRef.current);
+        };
+    }, [formData.firstName, formData.lastName, linkedPatientKey]);
 
     const selectFromApiPatient = useCallback(
         (p: Patient) => {
-            applyPatientDataToForm(convertPatientToPatientData(p));
+            const baseline = convertPatientToPatientData(p);
+            onPatientBaselineLoaded?.(baseline);
+            applyPatientDataToForm({
+                ...baseline,
+                complaints: '',
+                objectiveData: '',
+            });
+            setVitals(emptyVitals());
             onLinkedPatientChange?.(String(p.id));
             setPatientSearch('');
-            setApiPatients([]);
+            setSmartHits([]);
+            setNameMatches([]);
         },
-        [applyPatientDataToForm, onLinkedPatientChange]
+        [applyPatientDataToForm, onLinkedPatientChange, onPatientBaselineLoaded]
     );
 
-    const selectFromHistoryGroup = useCallback(
-        (key: string) => {
-            const list = priorAnalyses.filter(r => String(r.patientId ?? '').trim() === key);
-            const sorted = [...list].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            const last = sorted[0];
-            if (!last) return;
-            applyPatientDataToForm(last.patientData);
-            onLinkedPatientChange?.(key);
+    const selectFromSmartHit = useCallback(
+        (hit: SmartPatientHit) => {
+            getPatient(hit.id)
+                .then(res => {
+                    if (res.success && res.data) selectFromApiPatient(res.data);
+                })
+                .catch(() => { /* ignore */ });
         },
-        [priorAnalyses, applyPatientDataToForm, onLinkedPatientChange]
+        [selectFromApiPatient],
     );
+
+    const formatHitDate = (iso: string) => {
+        if (!iso) return '';
+        try {
+            return new Date(iso).toLocaleDateString();
+        } catch {
+            return '';
+        }
+    };
 
     const clearPatientLink = useCallback(() => {
         onLinkedPatientChange?.(null);
@@ -1068,7 +1116,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                 {/* Bemor bazasidan qidiruv va mahalliy arxiv */}
                 <div className="flex-shrink-0 mb-2 rounded-xl border border-sky-100/80 bg-sky-50/40 px-2 py-2 space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wide">{t('data_form_patient_lookup_title')}</p>
+                        <div>
+                            <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wide">{t('data_form_smart_search_title')}</p>
+                            <p className="text-[8px] text-sky-700/90 mt-0.5">{t('data_form_smart_search_hint')}</p>
+                        </div>
                         {linkedPatientKey && (
                             <button
                                 type="button"
@@ -1098,39 +1149,43 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             {patientSearchLoading && (
                                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-slate-500">{t('data_form_patient_searching')}</span>
                             )}
-                            {patientSearch.trim().length >= 2 && apiPatients.length > 0 && (
-                                <ul className="absolute z-20 mt-1 w-full max-h-36 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-[10px]">
-                                    {apiPatients.map(p => (
-                                        <li key={p.id}>
+                            {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
+                                <ul className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-[10px]">
+                                    {smartHits.map(hit => (
+                                        <li key={hit.id}>
                                             <button
                                                 type="button"
-                                                className="w-full text-left px-2 py-1.5 hover:bg-sky-50"
-                                                onClick={() => selectFromApiPatient(p)}
+                                                className="w-full text-left px-2 py-2 hover:bg-sky-50 border-b border-slate-50 last:border-0"
+                                                onClick={() => selectFromSmartHit(hit)}
                                             >
-                                                {p.first_name} {p.last_name} · {p.age} {t('years_short')} · ID {p.id}
+                                                <span className="font-semibold text-slate-900">
+                                                    {hit.first_name} {hit.last_name}
+                                                </span>
+                                                <span className="text-slate-500 ml-1">
+                                                    · ID {hit.id} · {hit.age} {t('years_short')}
+                                                </span>
+                                                {hit.phone && (
+                                                    <span className="block text-[9px] text-slate-500 mt-0.5">{hit.phone}</span>
+                                                )}
+                                                {hit.last_diagnosis && (
+                                                    <span className="block text-[9px] text-indigo-800 mt-0.5">
+                                                        {t('data_form_smart_last_dx')}: {hit.last_diagnosis}
+                                                    </span>
+                                                )}
+                                                <span className="block text-[8px] text-slate-400 mt-0.5">
+                                                    {hit.analysis_count > 0
+                                                        ? t('data_form_smart_meta', {
+                                                            count: hit.analysis_count,
+                                                            date: formatHitDate(hit.last_analysis_at),
+                                                            doctor: hit.last_physician || '—',
+                                                        })
+                                                        : t('data_form_smart_no_analyses')}
+                                                </span>
                                             </button>
                                         </li>
                                     ))}
                                 </ul>
                             )}
-                        </div>
-                    )}
-                    {recentGroups.length > 0 && (
-                        <div>
-                            <p className="text-[9px] font-semibold text-slate-600 mb-1">{t('data_form_patient_recent')}</p>
-                            <div className="flex flex-wrap gap-1">
-                                {recentGroups.map(g => (
-                                    <button
-                                        key={g.patientKey}
-                                        type="button"
-                                        onClick={() => selectFromHistoryGroup(g.patientKey)}
-                                        className="text-[9px] px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700 hover:border-sky-400 hover:bg-sky-50/80"
-                                    >
-                                        {g.label}
-                                        <span className="text-slate-400 ml-1">×{g.count}</span>
-                                    </button>
-                                ))}
-                            </div>
                         </div>
                     )}
                 </div>
@@ -1160,6 +1215,21 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 <Input id="lastName" label={t('data_input_patient_lastname')} type="text" value={formData.lastName || ''} onChange={e => handleChange('lastName', e.target.value)} required placeholder={t('data_input_placeholder_lastname')} />
                                 {formErrors.lastName && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.lastName}</p>}
                             </div>
+                            {!linkedPatientKey && nameMatches.length > 0 && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50/90 px-2 py-1.5 space-y-1">
+                                    <p className="text-[9px] font-semibold text-amber-900">{t('data_form_patient_match_banner')}</p>
+                                    {nameMatches.map(p => (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            onClick={() => selectFromApiPatient(p)}
+                                            className="block w-full text-left text-[9px] px-2 py-1 rounded bg-white border border-amber-100 hover:border-sky-300"
+                                        >
+                                            {p.first_name} {p.last_name} · ID {p.id} · {p.age} {t('years_short')}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <div>
                                 <Input
                                     id="fatherName"
@@ -1199,13 +1269,16 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
                                 <span className="w-4 h-4 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[8px]">!</span>
                                 {t('data_form_section_safety')}
+                                {returnVisitMode && (
+                                    <span className="text-[8px] font-normal text-emerald-700 ml-1">({t('data_form_return_visit_saved')})</span>
+                                )}
                             </h3>
                             <div>
-                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} />
+                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} readOnly={returnVisitMode} />
                             </div>
                             <div>
-                                <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} />
-                                <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} />
+                                <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} readOnly={returnVisitMode} />
+                                <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
                             </div>
                         </div>
 
@@ -1374,14 +1447,23 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                         {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
                                 </div>
-                                <Textarea 
-                                    id="history" 
-                                    label={t('data_input_history_label')} 
-                                    placeholder={t('data_input_history_placeholder')} 
-                                    value={formData.history || ''} 
-                                    onChange={e => handleChange('history', e.target.value)} 
-                                    className="min-h-[120px] lg:flex-grow"
-                                />
+                                {returnVisitMode ? (
+                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2">
+                                        <p className="text-[9px] font-bold text-emerald-900 mb-1">{t('data_form_return_visit_anamnesis')}</p>
+                                        <p className="text-[10px] text-slate-700 whitespace-pre-wrap max-h-28 overflow-y-auto">
+                                            {formData.history?.trim() || t('data_form_return_visit_no_history')}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <Textarea 
+                                        id="history" 
+                                        label={t('data_input_history_label')} 
+                                        placeholder={t('data_input_history_placeholder')} 
+                                        value={formData.history || ''} 
+                                        onChange={e => handleChange('history', e.target.value)} 
+                                        className="min-h-[120px] lg:flex-grow"
+                                    />
+                                )}
                             </div>
                         </div>
 

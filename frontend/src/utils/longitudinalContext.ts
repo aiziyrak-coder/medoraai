@@ -2,8 +2,8 @@ import type { AnalysisRecord, PatientData } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import type { Language } from '../i18n/LanguageContext';
 
-const MAX_PRIOR = 5;
-const MAX_FIELD_LEN = 420;
+const MAX_PRIOR = 80;
+const MAX_FIELD_LEN = 900;
 
 function truncate(s: string, max: number): string {
     const t = (s || '').trim();
@@ -94,9 +94,15 @@ export function buildLongitudinalClinicalNotes(
         const dx = normalizeConsensusDiagnosis(rec.finalReport?.consensusDiagnosis);
         const names = dx.map(d => d.name).filter(Boolean).join('; ') || '—';
         const dateStr = new Date(rec.date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-GB' : 'uz-UZ');
-        const meds = rec.finalReport?.medicationRecommendations?.slice(0, 4).map(m => m.name).filter(Boolean).join(', ');
-        lines.push(`[${idx + 1}] ${dateStr} — konsensus: ${truncate(names, 280)}`);
-        if (meds) lines.push(`    Tavsiya etilgan dorilar (qisqa): ${truncate(meds, 200)}`);
+        const meds = rec.finalReport?.medicationRecommendations?.slice(0, 6).map(m => m.name).filter(Boolean).join(', ');
+        const priorComplaint = truncate(rec.patientData?.complaints || '', 320);
+        const treatment = (rec.finalReport?.treatmentPlan || []).slice(0, 4).map(String).filter(Boolean).join('; ');
+        lines.push(`[${idx + 1}] ${dateStr} — konsensus: ${truncate(names, 400)}`);
+        if (priorComplaint) lines.push(`    Shikoyat (o'sha qabul): ${priorComplaint}`);
+        if (meds) lines.push(`    Dorilar: ${truncate(meds, 280)}`);
+        if (treatment) lines.push(`    Davolash: ${truncate(treatment, 320)}`);
+        const tests = (rec.finalReport?.recommendedTests || []).slice(0, 4).join(', ');
+        if (tests) lines.push(`    Tekshiruvlar: ${truncate(tests, 200)}`);
     });
 
     const latest = slice[0];
@@ -110,5 +116,67 @@ export function buildLongitudinalClinicalNotes(
     lines.push(`Ob'ektiv/lab (oxirgi tahlil): ${truncate((pd.objectiveData || '') + (pd.labResults || ''), 300)}`);
     lines.push(`Ob'ektiv/lab (hozir): ${truncate((current.objectiveData || '') + (current.labResults || ''), 300)}`);
 
-    return lines.join('\n').slice(0, 8000);
+    return lines.join('\n').slice(0, 14000);
+}
+
+export interface TimelineAnalysis {
+    id: number;
+    date: string;
+    complaints?: string;
+    consensus_diagnoses?: string[];
+    treatment_plan?: string[];
+    recommended_tests?: string[];
+    follow_up?: string;
+}
+
+/** Serverdan kelgan klinik vaqt chizig'i + bazadagi anamnez — konsilium uchun to'liq kontekst. */
+export function buildTimelineClinicalNotes(
+    baseline: PatientData | null,
+    timeline: TimelineAnalysis[],
+    current: PatientData,
+    lang: Language,
+): string {
+    const lines: string[] = [];
+    const hdr: Record<Language, string> = {
+        'uz-L': 'BEMOR KLINIK TARIXI (bazada saqlangan — qayta so\'ramang, tahlilda INOBATGA OLING):',
+        'uz-C': 'БЕМОР КЛИНИК ТАРИХИ (базада сақланган):',
+        'ru': 'КЛИНИЧЕСКАЯ ИСТОРИЯ ПАЦИЕНТА (в базе — учитывать при анализе):',
+        'en': 'PATIENT CLINICAL HISTORY (on record — use in analysis):',
+        'kaa': 'NAWQAS KLINIKALIQ TARIYX (bazada saqlanǵan):',
+    };
+    lines.push(hdr[lang] || hdr['uz-L'], '');
+
+    if (baseline) {
+        if (baseline.history?.trim()) lines.push(`Anamnez: ${truncate(baseline.history, MAX_FIELD_LEN)}`);
+        if (baseline.allergies?.trim()) lines.push(`Allergiya: ${truncate(baseline.allergies, 240)}`);
+        if (baseline.familyHistory?.trim()) lines.push(`Oilaviy anamnez: ${truncate(baseline.familyHistory, 400)}`);
+        if (baseline.currentMedications?.trim()) lines.push(`Doimiy dorilar: ${truncate(baseline.currentMedications, 400)}`);
+        if (baseline.labResults?.trim()) lines.push(`Oxirgi lab (bazada): ${truncate(baseline.labResults, 400)}`);
+        lines.push('');
+    }
+
+    timeline.slice(0, MAX_PRIOR).forEach((item, idx) => {
+        const dateStr = item.date
+            ? new Date(item.date).toLocaleDateString(lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-GB' : 'uz-UZ')
+            : '—';
+        const dx = (item.consensus_diagnoses || []).join('; ') || '—';
+        const phys = (item as { physician?: string }).physician;
+        const header = phys ? `[Tahlil ${idx + 1}] ${dateStr} (${phys}) — ${dx}` : `[Tahlil ${idx + 1}] ${dateStr} — ${dx}`;
+        lines.push(header);
+        if (item.complaints) lines.push(`  Shikoyat: ${truncate(item.complaints, 300)}`);
+        const just = (item as { justification?: string }).justification;
+        if (just) lines.push(`  Xulosa: ${truncate(just, 400)}`);
+        if (item.treatment_plan?.length) lines.push(`  Davolash: ${truncate(item.treatment_plan.join('; '), 350)}`);
+        const meds = (item as { medications?: string[] }).medications;
+        if (meds?.length) lines.push(`  Dorilar: ${truncate(meds.join(', '), 250)}`);
+        if (item.recommended_tests?.length) lines.push(`  Tekshiruv: ${truncate(item.recommended_tests.join(', '), 250)}`);
+        if (item.follow_up) lines.push(`  Kuzatuv: ${truncate(item.follow_up, 200)}`);
+    });
+
+    lines.push('');
+    lines.push('--- BUGUNGI QABUL ---');
+    lines.push(`Shikoyat: ${truncate(current.complaints || '', MAX_FIELD_LEN)}`);
+    lines.push(`Ob\'ektiv/lab (bugun): ${truncate((current.objectiveData || '') + (current.labResults || ''), 500)}`);
+
+    return lines.join('\n').slice(0, 28000);
 }

@@ -8,7 +8,17 @@ import * as caseService from './services/caseService';
 import { useTranslation } from './hooks/useTranslation';
 import { getSpecialistsFromComplaint, mergeSpecialistRecommendations } from './utils/specialistRecommendation';
 import { checkPatientComplaintConsistency } from './utils/smartValidation';
-import { getPriorAnalysesForPatient, buildLongitudinalClinicalNotes } from './utils/longitudinalContext';
+import {
+    getPriorAnalysesForPatient,
+    buildLongitudinalClinicalNotes,
+    buildTimelineClinicalNotes,
+} from './utils/longitudinalContext';
+import {
+    mergeReturnVisitData,
+    hasBaselineAnamnesis,
+    saveActivePatientSession,
+    clearActivePatientSession,
+} from './utils/patientRegistry';
 import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
@@ -233,6 +243,8 @@ const AppContent: React.FC = () => {
     const [createdPatientId, setCreatedPatientId] = useState<number | null>(null);
     /** Bazadan tanlangan bemor patient.id (string) — avvalgi tahlillar bilan bog'lash va updatePatient uchun */
     const [linkedPatientKey, setLinkedPatientKey] = useState<string | null>(null);
+    const [patientBaseline, setPatientBaseline] = useState<PatientData | null>(null);
+    const [returnVisitMode, setReturnVisitMode] = useState(false);
     const [clarificationQuestions, setClarificationQuestions] = useState<string[] | null>([]);
     
     const debateScrollRef = useRef<HTMLDivElement>(null);
@@ -292,7 +304,12 @@ const AppContent: React.FC = () => {
                 if (currentUser && patientData) {
                     const newRecord: AnalysisRecord = {
                         id: currentAnalysisRecord?.id || `local-${Date.now()}`,
-                        patientId: currentAnalysisRecord?.patientId || `${patientData.lastName}-${patientData.firstName}-${Date.now()}`,
+                        patientId: String(
+                            createdPatientId
+                            ?? linkedPatientKey
+                            ?? currentAnalysisRecord?.patientId
+                            ?? '',
+                        ) || `${patientData.lastName}-${patientData.firstName}-${Date.now()}`,
                         date: new Date().toISOString(),
                         patientData,
                         debateHistory: savedDebate,
@@ -469,6 +486,9 @@ const AppContent: React.FC = () => {
         setCurrentAnalysisRecord(null);
         setCreatedPatientId(null);
         setLinkedPatientKey(null);
+        setPatientBaseline(null);
+        setReturnVisitMode(false);
+        clearActivePatientSession();
         setCriticalFinding(null);
         setRationaleMessage(null);
         setUserIntervention(null);
@@ -501,6 +521,61 @@ const AppContent: React.FC = () => {
             return words.some(w => ql.includes(w));
         });
     };
+
+    const handleLinkedPatientChange = useCallback((key: string | null) => {
+        setLinkedPatientKey(key);
+        if (!key) {
+            setPatientBaseline(null);
+            setReturnVisitMode(false);
+            clearActivePatientSession();
+            return;
+        }
+        if (currentUser) {
+            saveActivePatientSession(currentUser.id, key, createdPatientId);
+        }
+    }, [currentUser, createdPatientId]);
+
+    const handlePatientBaselineLoaded = useCallback((baseline: PatientData) => {
+        setPatientBaseline(baseline);
+        setReturnVisitMode(hasBaselineAnamnesis(baseline));
+    }, []);
+
+    const enrichPatientWithHistory = useCallback(async (data: PatientData): Promise<PatientData> => {
+        const key = linkedPatientKey?.trim();
+        let merged = patientBaseline ? mergeReturnVisitData(patientBaseline, data) : { ...data };
+        if (!key) {
+            merged.longitudinalClinicalNotes = undefined;
+            return merged;
+        }
+        let notes = '';
+        if (/^\d+$/.test(key)) {
+            try {
+                const { getPatientClinicalTimeline, convertPatientToPatientData } = await import('./services/apiPatientService');
+                const tl = await getPatientClinicalTimeline(Number(key), 200);
+                if (tl.success && tl.data) {
+                    const baseline = patientBaseline ?? convertPatientToPatientData(tl.data.patient);
+                    notes = buildTimelineClinicalNotes(
+                        baseline,
+                        tl.data.analyses,
+                        merged,
+                        language,
+                    );
+                    if (!patientBaseline) setPatientBaseline(baseline);
+                    if (tl.data.analysis_count > 0 || hasBaselineAnamnesis(baseline)) {
+                        setReturnVisitMode(true);
+                    }
+                }
+            } catch {
+                /* server timeline ixtiyoriy */
+            }
+        }
+        if (!notes) {
+            const prior = getPriorAnalysesForPatient(userHistory, key);
+            notes = buildLongitudinalClinicalNotes(prior, merged, language);
+        }
+        merged.longitudinalClinicalNotes = notes || undefined;
+        return merged;
+    }, [linkedPatientKey, patientBaseline, userHistory, language]);
 
     const handleGenerateClarificationQuestions = async (data: PatientData) => {
         setError(null);
@@ -569,14 +644,18 @@ const AppContent: React.FC = () => {
             return;
         }
         setError(null);
-        let merged: PatientData = { ...data };
-        if (linkedPatientKey) {
-            const prior = getPriorAnalysesForPatient(userHistory, linkedPatientKey);
-            merged.longitudinalClinicalNotes = buildLongitudinalClinicalNotes(prior, data, language);
-        } else {
-            merged.longitudinalClinicalNotes = undefined;
-        }
+        const merged = await enrichPatientWithHistory(data);
         setPatientData(merged);
+        const hasPrior = !!linkedPatientKey
+            && (/^\d+$/.test(linkedPatientKey.trim())
+                || returnVisitMode
+                || getPriorAnalysesForPatient(userHistory, linkedPatientKey).length > 0
+                || hasBaselineAnamnesis(patientBaseline));
+        if (hasPrior) {
+            setAppView('team_recommendation');
+            handleRecommendTeamFromData(merged);
+            return;
+        }
         await handleGenerateClarificationQuestions(merged);
     };
     
@@ -589,13 +668,9 @@ const AppContent: React.FC = () => {
                 .join('\n\n');
             enrichedPatientData.additionalInfo = `${patientData.additionalInfo || ''}\n\n--- ${t('clarification_additional_qa')} ---\n${qaString}`.trim();
         }
-        if (linkedPatientKey) {
-            const prior = getPriorAnalysesForPatient(userHistory, linkedPatientKey);
-            enrichedPatientData.longitudinalClinicalNotes = buildLongitudinalClinicalNotes(prior, enrichedPatientData, language);
-        } else {
-            enrichedPatientData.longitudinalClinicalNotes = undefined;
-        }
-        setPatientData(enrichedPatientData);
+        const withHistory = await enrichPatientWithHistory(enrichedPatientData);
+        setPatientData(withHistory);
+        enrichedPatientData = withHistory;
         
         // ✅ TEZKOR: Mutaxassislarni DARHOL ko'rsatish (0ms) - Backend API emas!
         const instantTeam = getSpecialistsFromComplaint(enrichedPatientData);
@@ -656,11 +731,23 @@ const AppContent: React.FC = () => {
         if (currentUser) {
             try {
                 const { createPatient, updatePatient } = await import('./services/apiPatientService');
-                const n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
+                const { findPatientMatches } = await import('./services/apiPatientService');
+                let n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
+                if (n == null && enrichedPatientData.firstName?.trim() && enrichedPatientData.lastName?.trim()) {
+                    const matches = await findPatientMatches(
+                        enrichedPatientData.firstName,
+                        enrichedPatientData.lastName,
+                    );
+                    if (matches.success && matches.data?.length === 1) {
+                        n = matches.data[0].id;
+                        handleLinkedPatientChange(String(n));
+                    }
+                }
                 if (n != null && n > 0) {
                     const res = await updatePatient(n, enrichedPatientData);
                     if (res?.success !== false) {
                         setCreatedPatientId(n);
+                        handleLinkedPatientChange(String(n));
                     } else {
                         setError(res.error?.message || t('error_patient_update_failed'));
                         setIsProcessing(false);
@@ -671,6 +758,7 @@ const AppContent: React.FC = () => {
                     const id = res?.data && (res.data as { id?: number }).id;
                     if (res?.success && id != null && Number(id) > 0) {
                         setCreatedPatientId(Number(id));
+                        handleLinkedPatientChange(String(id));
                     } else {
                         setError(res?.error?.message || t('error_patient_consilium_blocked'));
                         setIsProcessing(false);
@@ -700,14 +788,31 @@ const AppContent: React.FC = () => {
         if (currentUser) {
             try {
                 const { createPatient, updatePatient } = await import('./services/apiPatientService');
-                const n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
+                let n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
+                if (n == null && enrichedPatientData.firstName?.trim() && enrichedPatientData.lastName?.trim()) {
+                    const { findPatientMatches } = await import('./services/apiPatientService');
+                    const matches = await findPatientMatches(
+                        enrichedPatientData.firstName,
+                        enrichedPatientData.lastName,
+                    );
+                    if (matches.success && matches.data?.length === 1) {
+                        n = matches.data[0].id;
+                        handleLinkedPatientChange(String(n));
+                    }
+                }
                 if (n != null && n > 0) {
                     const res = await updatePatient(n, enrichedPatientData);
-                    if (res?.success !== false) setCreatedPatientId(n);
+                    if (res?.success !== false) {
+                        setCreatedPatientId(n);
+                        handleLinkedPatientChange(String(n));
+                    }
                 } else {
                     const res = await createPatient(enrichedPatientData);
                     const id = res?.data && (res.data as { id?: number }).id;
-                    if (id != null && Number(id) > 0) setCreatedPatientId(Number(id));
+                    if (id != null && Number(id) > 0) {
+                        setCreatedPatientId(Number(id));
+                        handleLinkedPatientChange(String(id));
+                    }
                 }
             } catch {
                 // Report paytida qayta urinamiz
@@ -894,6 +999,20 @@ const AppContent: React.FC = () => {
         }
         setCurrentAnalysisRecord(full);
         setPatientData(full.patientData);
+        const pid = String(full.patientId ?? '').trim();
+        if (pid && /^\d+$/.test(pid)) {
+            handleLinkedPatientChange(pid);
+            setCreatedPatientId(Number(pid));
+            import('./services/apiPatientService').then(({ getPatient, convertPatientToPatientData }) => {
+                getPatient(Number(pid)).then((res) => {
+                    if (res.success && res.data) {
+                        const baseline = convertPatientToPatientData(res.data);
+                        setPatientBaseline(baseline);
+                        setReturnVisitMode(hasBaselineAnamnesis(baseline));
+                    }
+                }).catch(() => { /* ignore */ });
+            });
+        }
         setDebateHistory(full.debateHistory);
         setFinalReport(full.finalReport);
         const specs = full.selectedSpecialists?.map(role => ({ role, backEndModel: 'Claude Opus 4.7' })) || [];
@@ -974,9 +1093,10 @@ const AppContent: React.FC = () => {
                             <DataInputForm
                                 onSubmit={handleDataSubmit}
                                 isAnalyzing={isProcessing}
-                                priorAnalyses={userHistory}
                                 linkedPatientKey={linkedPatientKey}
-                                onLinkedPatientChange={setLinkedPatientKey}
+                                onLinkedPatientChange={handleLinkedPatientChange}
+                                returnVisitMode={returnVisitMode}
+                                onPatientBaselineLoaded={handlePatientBaselineLoaded}
                             />
                         </div>
                     </div>
