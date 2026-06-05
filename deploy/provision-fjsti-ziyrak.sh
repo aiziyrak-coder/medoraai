@@ -77,6 +77,11 @@ set_kv SECURE_SSL_REDIRECT "True"
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
+# Django admin superuser (telefon + parol)
+ADMIN_PHONE="${ADMIN_PHONE:-+998995751111}"
+ADMIN_PASS="${ADMIN_PASSWORD:-admin1234}"
+python manage.py ensure_superuser --phone "$ADMIN_PHONE" --password "$ADMIN_PASS" --name "FJSTI Admin"
+
 install -m 644 "$ROOT/deploy/systemd/aidoktorfjsti-backend.service" /etc/systemd/system/aidoktorfjsti-backend.service
 systemctl daemon-reload
 systemctl enable aidoktorfjsti-backend
