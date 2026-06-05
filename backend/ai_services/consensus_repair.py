@@ -3,6 +3,7 @@ Konsilium Phase 3 natijasi buzilsa yoki bo'sh qolsa — P1/P2 dan kuchli fallbac
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -578,6 +579,186 @@ def build_unexpected_findings(
     return "\n\n".join(sections)[:4500]
 
 
+_BAD_MED_NAMES = frozenset({
+    "",
+    "dori",
+    "doza",
+    "tabletka",
+    "tavsiya",
+    "dori-darmon",
+    "farmakoterapiya",
+    "unknown",
+})
+
+
+def _is_usable_med(m: dict) -> bool:
+    name = _s(m.get("name") or m.get("generic"))
+    if len(name) < 2:
+        return False
+    return name.lower() not in _BAD_MED_NAMES
+
+
+def _normalize_med_dict(m: dict) -> dict:
+    notes = _s(m.get("notes") or m.get("instructions"))
+    instr = _s(m.get("instructions") or m.get("notes"))
+    return {
+        "name": _s(m.get("name") or m.get("generic"))[:120],
+        "generic": _s(m.get("generic") or m.get("name"))[:120],
+        "dosage": _s(m.get("dosage"))[:200],
+        "frequency": _s(m.get("frequency"))[:120],
+        "duration": _s(m.get("duration"))[:120],
+        "timing": _s(m.get("timing"))[:120],
+        "instructions": instr[:400],
+        "notes": notes[:500],
+        "contraindications": _s(m.get("contraindications"))[:300],
+        "local_availability": _s(
+            m.get("local_availability") or m.get("localAvailability") or "O'zbekistonda mavjud"
+        )[:200],
+    }
+
+
+def _parse_med_from_line(text: str) -> dict | None:
+    """Davolash rejasi yoki mutaxassis matnidan dori qatorini ajratadi."""
+    raw = _s(text)
+    if not raw:
+        return None
+    low = raw.lower()
+    if not any(w in low for w in ("farmakoterapiya", "dori", "mg", "mcg", "iu", "tablet", "kapsul", "ml")):
+        return None
+
+    t = re.sub(r"^\d+-qadam:\s*", "", raw, flags=re.I).strip()
+    t = re.sub(
+        r"^(?:farmakoterapiya|dori[- ]?darmon)\s*[—\-:]\s*",
+        "",
+        t,
+        flags=re.I,
+    ).strip()
+
+    name = ""
+    dosage = ""
+    m = re.match(r"^(.+?)\s*[—\-]\s*(.+)$", t)
+    if m:
+        name, dosage = m.group(1).strip(), m.group(2).strip()
+    else:
+        m2 = re.match(
+            r"^([A-Za-zА-Яа-яЁёO'ʻG'g'\-\s]{2,40}?)\s+(\d[\d\s./\-–]*(mg|mcg|g|ml|IU|ME|tab).*)",
+            t,
+            flags=re.I,
+        )
+        if m2:
+            name, dosage = m2.group(1).strip().rstrip(","), m2.group(2).strip()
+        elif "(" in t and ")" in t:
+            name = t.split("(")[0].strip()
+            dosage = t[len(name):].strip(" -—:")
+        else:
+            parts = re.split(r"[.;]", t, maxsplit=1)
+            name = parts[0].strip()
+            dosage = parts[1].strip() if len(parts) > 1 else ""
+
+    if len(name) < 2 or name.lower() in _BAD_MED_NAMES:
+        return None
+    if not dosage and len(name) > 60:
+        return None
+    return _normalize_med_dict({"name": name, "dosage": dosage, "instructions": dosage})
+
+
+def _collect_medications(
+    consensus: dict,
+    p1: list[dict],
+    p2: list[dict],
+) -> list[dict]:
+    seen: set[str] = set()
+    out: list[dict] = []
+
+    def add(m: dict | None) -> None:
+        if not m or not _is_usable_med(m):
+            return
+        key = _s(m.get("name")).lower()
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(_normalize_med_dict(m))
+
+    for m in consensus.get("medications") or consensus.get("medication_recommendations") or []:
+        if isinstance(m, dict):
+            add(m)
+
+    for item in consensus.get("treatment_plan") or []:
+        text = _plan_item_to_str(item)
+        add(_parse_med_from_line(text))
+
+    for r in p1 or []:
+        for part in _split_treatment_text(_s(r.get("initial_treatment_notes"))):
+            add(_parse_med_from_line(part))
+
+    for r in p2 or []:
+        defense = r.get("defense") or {}
+        if isinstance(defense, dict):
+            for part in _split_treatment_text(_s(defense.get("argument"))):
+                add(_parse_med_from_line(part))
+        for part in _split_treatment_text(_s(r.get("key_argument"))):
+            add(_parse_med_from_line(part))
+
+    return out[:8]
+
+
+def _synthesize_medications(primary: str, consensus: dict) -> list[dict]:
+    """Oxirgi zaxira: davolash rejasi qadamlaridan dori nomlarini ajratish."""
+    if _is_bad_name(primary):
+        primary = "asosiy klinik holat"
+    meds: list[dict] = []
+    for step in consensus.get("treatment_plan") or []:
+        text = _plan_item_to_str(step)
+        if not text:
+            continue
+        for chunk in re.split(r"[,;]| va ", text):
+            parsed = _parse_med_from_line(chunk)
+            if parsed:
+                meds.append(parsed)
+            elif re.search(r"\b(mg|mcg|IU|tablet)\b", chunk, re.I):
+                words = chunk.strip()
+                if 5 < len(words) < 120:
+                    meds.append(_normalize_med_dict({
+                        "name": words[:80],
+                        "dosage": "",
+                        "notes": f"{primary} bo'yicha konsilium tavsiyasi.",
+                    }))
+        if len(meds) >= 3:
+            break
+    if not meds:
+        meds.append(_normalize_med_dict({
+            "name": primary[:100],
+            "dosage": "SSV protokoliga muvofiq individual",
+            "notes": (
+                f"{primary} uchun O'zbekiston SSV klinik protokoliga muvofiq "
+                "farmakoterapiya belgilanadi. Aniq savdo nomi va doza — "
+                "tashxis tasdiqlangach shifokor tomonidan yoziladi."
+            ),
+        }))
+    return meds[:6]
+
+
+def ensure_medications(
+    consensus: dict,
+    p1: list[dict],
+    p2: list[dict],
+    primary: str = "",
+) -> list[dict]:
+    """Mavjud dorilarni tekshiradi; bo'sh bo'lsa P1/P2/rejadan to'ldiradi."""
+    primary = primary or _s((consensus.get("consensus_diagnosis") or {}).get("name"))
+    usable = [
+        _normalize_med_dict(m)
+        for m in (consensus.get("medications") or [])
+        if isinstance(m, dict) and _is_usable_med(m)
+    ]
+    if len(usable) >= 1:
+        return usable[:8]
+    collected = _collect_medications(consensus, p1, p2)
+    if collected:
+        return collected
+    return _synthesize_medications(primary, consensus)
+
+
 def ensure_treatment_plan(
     consensus: dict,
     p1: list[dict],
@@ -649,6 +830,7 @@ def ensure_consensus_from_phases(
             consensus["recommended_tests"] = tests
 
     consensus["treatment_plan"] = ensure_treatment_plan(consensus, p1, p2, primary)
+    consensus["medications"] = ensure_medications(consensus, p1, p2, primary)
 
     rejected = _collect_rejected_hypotheses(consensus, p1, p2, primary)
     if rejected:

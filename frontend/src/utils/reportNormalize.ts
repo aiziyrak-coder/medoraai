@@ -93,6 +93,123 @@ export function normalizeTreatmentPlan(
   return out.slice(0, 8);
 }
 
+const BAD_MED_NAMES = new Set(['', 'dori', 'doza', 'tabletka', 'tavsiya', 'dori-darmon', 'farmakoterapiya']);
+
+function isUsableMedName(name: string): boolean {
+  const n = name.trim();
+  return n.length >= 2 && !BAD_MED_NAMES.has(n.toLowerCase());
+}
+
+function medFromRecord(m: Record<string, unknown>): FinalReport['medicationRecommendations'][number] | null {
+  const name = String(m.name ?? m.generic ?? '').trim();
+  if (!isUsableMedName(name)) return null;
+  const notes = String(m.notes ?? m.instructions ?? '').trim();
+  return {
+    name,
+    dosage: String(m.dosage ?? '').trim(),
+    frequency: String(m.frequency ?? '').trim() || undefined,
+    duration: String(m.duration ?? '').trim() || undefined,
+    timing: String(m.timing ?? '').trim() || undefined,
+    instructions: String(m.instructions ?? m.notes ?? '').trim() || undefined,
+    notes: notes || String(m.instructions ?? '').trim(),
+    localAvailability: String(m.localAvailability ?? m.local_availability ?? "O'zbekistonda mavjud").trim() || undefined,
+    priceEstimate: String(m.priceEstimate ?? m.price_estimate ?? '').trim() || undefined,
+    adverseEffects: Array.isArray(m.adverseEffects)
+      ? m.adverseEffects.map(String).filter(Boolean)
+      : Array.isArray(m.adverse_effects)
+        ? m.adverse_effects.map(String).filter(Boolean)
+        : undefined,
+    contraindications: String(m.contraindications ?? '').trim() || undefined,
+    monitoring: String(m.monitoring ?? '').trim() || undefined,
+  };
+}
+
+function parseMedFromTreatmentLine(text: string): FinalReport['medicationRecommendations'][number] | null {
+  const raw = text.trim();
+  if (!raw) return null;
+  const low = raw.toLowerCase();
+  if (!/(farmakoterapiya|dori|mg|mcg|iu|tablet|kapsul|ml)/i.test(low)) return null;
+
+  let t = raw.replace(/^\d+-qadam:\s*/i, '').trim();
+  t = t.replace(/^(?:farmakoterapiya|dori[- ]?darmon)\s*[—\-:]\s*/i, '').trim();
+
+  let name = '';
+  let dosage = '';
+  const dash = t.match(/^(.+?)\s*[—\-]\s*(.+)$/);
+  if (dash) {
+    name = dash[1].trim();
+    dosage = dash[2].trim();
+  } else {
+    const dose = t.match(/^([A-Za-zА-Яа-яЁёO'ʻG'g'\-\s]{2,40}?)\s+(\d[\d\s./\-–]*(mg|mcg|g|ml|IU|ME|tab).*)$/i);
+    if (dose) {
+      name = dose[1].trim().replace(/,$/, '');
+      dosage = dose[2].trim();
+    } else {
+      const parts = t.split(/[.;]/, 2);
+      name = parts[0]?.trim() ?? '';
+      dosage = parts[1]?.trim() ?? '';
+    }
+  }
+  if (!isUsableMedName(name) || (!dosage && name.length > 60)) return null;
+  return {
+    name,
+    dosage,
+    notes: dosage || '',
+    localAvailability: "O'zbekistonda mavjud",
+  };
+}
+
+/** Dori tavsiyalarini normalizatsiya; bo'sh bo'lsa rejadan va snake_case maydonlardan to'ldiradi */
+export function normalizeMedicationRecommendations(
+  raw: Record<string, unknown>,
+  report: FinalReport,
+): FinalReport['medicationRecommendations'] {
+  const src =
+    raw.medicationRecommendations
+    ?? raw.medication_recommendations
+    ?? raw.medications;
+  const out: FinalReport['medicationRecommendations'] = [];
+  const seen = new Set<string>();
+
+  const push = (med: FinalReport['medicationRecommendations'][number] | null) => {
+    if (!med || !isUsableMedName(med.name)) return;
+    const key = med.name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(med);
+  };
+
+  if (Array.isArray(src)) {
+    for (const item of src) {
+      if (item && typeof item === 'object') {
+        push(medFromRecord(item as Record<string, unknown>));
+      }
+    }
+  }
+
+  if (out.length >= 1) return out.slice(0, 8);
+
+  const planSrc = raw.treatmentPlan ?? raw.treatment_plan;
+  const planSteps = Array.isArray(planSrc)
+    ? planSrc.map((item) => planItemToString(item)).filter(Boolean)
+    : (report.treatmentPlan || []);
+  for (const step of planSteps) {
+    push(parseMedFromTreatmentLine(step));
+  }
+
+  const dx = normalizeConsensusDiagnosis(report.consensusDiagnosis)[0]?.name?.trim();
+  if (!out.length && dx) {
+    push({
+      name: dx,
+      dosage: 'SSV protokoliga muvofiq individual',
+      notes: `${dx} uchun O'zbekiston SSV klinik protokoliga muvofiq farmakoterapiya belgilanadi.`,
+      localAvailability: "O'zbekistonda mavjud",
+    });
+  }
+
+  return out.slice(0, 8);
+}
+
 const BAD_REJECTED_NAMES = new Set([
   '',
   'aniqlanmadi',
@@ -635,10 +752,6 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
   const np = normalizeNutritionExtended(r.nutritionPrevention ?? r.nutrition_prevention);
   if (np) out.nutritionPrevention = np;
 
-  if (Array.isArray(out.medicationRecommendations)) {
-    out.medicationRecommendations = out.medicationRecommendations.map((m) => ({ ...m }));
-  }
-
   const routing = normalizePatientRouting(r.patientRouting ?? r.patient_routing);
   if (routing) out.patientRouting = routing;
 
@@ -656,6 +769,9 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
 
   const treatmentPlan = normalizeTreatmentPlan(r, out);
   if (treatmentPlan.length) out.treatmentPlan = treatmentPlan;
+
+  const meds = normalizeMedicationRecommendations(r, out);
+  if (meds.length) out.medicationRecommendations = meds;
 
   const existingPrognosis = normalizePrognosisReport(
     out.prognosisReport ?? r.prognosis_report,

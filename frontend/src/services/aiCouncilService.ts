@@ -1533,9 +1533,7 @@ async function runBackendConsilium(
         ...fr,
         consensusDiagnosis,
         treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
-        medicationRecommendations: Array.isArray(fr.medicationRecommendations)
-            ? fr.medicationRecommendations
-            : [],
+        medicationRecommendations: [],
         recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
         unexpectedFindings: (() => {
             const u = fr.unexpectedFindings ?? (fr as { unexpected_findings?: string }).unexpected_findings;

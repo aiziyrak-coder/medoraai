@@ -1050,6 +1050,13 @@ def run_consilium(
     result.phases["pharmacology_review"] = pharma
     if pharma.get("warnings"):
         consensus["pharmacology_warnings"] = pharma.get("warnings")
+    validated = pharma.get("validated_medications") or []
+    if isinstance(validated, list) and validated:
+        consensus["medications"] = validated
+    elif not consensus.get("medications"):
+        from .consensus_repair import ensure_medications
+        primary = str((consensus.get("consensus_diagnosis") or {}).get("name") or "")
+        consensus["medications"] = ensure_medications(consensus, p1, p2, primary)
 
     # Tashxis asosida klinik vositalar (ICD-10, qo'llanma, DDI, bemor tushuntirishi)
     from .diagnosis_enrichment import enrich_consensus_with_diagnosis_tools

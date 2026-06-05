@@ -116,7 +116,8 @@ export const generatePdfReport = async (
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     let y = MARGIN;
-    const contentBottom = () => pageHeight - FOOTER_RESERVE - 26;
+    const PROMO_RESERVE = 28;
+    const contentBottom = () => pageHeight - FOOTER_RESERVE - PROMO_RESERVE;
 
     const ensureSpace = (needed: number) => {
         if (y + needed > contentBottom()) {
@@ -471,16 +472,11 @@ export const generatePdfReport = async (
         doc.setFontSize(9);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(40, 80, 120);
-        const diagnosisLines = doc.splitTextToSize(`${idx + 1}. ${diag.name}`, pageWidth - MARGIN * 2 - 46);
-        doc.text(diagnosisLines[0] || '', MARGIN, y);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(100, 100, 100);
-        doc.text(`(${pct}) - ${diag.evidenceLevel || 'N/A'}`, pageWidth - MARGIN - 50, y, { align: 'left' });
-        y += COMPACT_LINE;
-        diagnosisLines.slice(1, 3).forEach((line: string) => {
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(40, 80, 120);
-            doc.text(line, MARGIN + 4, y);
+        const titleLine = `${idx + 1}. ${diag.name} (${pct}) — ${diag.evidenceLevel || 'N/A'}`;
+        const diagnosisLines = doc.splitTextToSize(titleLine, pageWidth - MARGIN * 2);
+        diagnosisLines.forEach((line: string) => {
+            ensureSpace(COMPACT_LINE + 1);
+            doc.text(line, MARGIN, y);
             y += COMPACT_LINE;
         });
         if (diag.justification) {
@@ -572,47 +568,33 @@ export const generatePdfReport = async (
         doc.setFont(fontName, 'italic');
         doc.setTextColor(100, 120, 100);
         const warn = tr('pdf_folk_medicine_note', "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi.");
-        doc.text(warn, MARGIN, y);
-        y += COMPACT_LINE + 1;
+        addWrappedText(warn, MARGIN, pageWidth - MARGIN * 2);
+        y += 1;
         doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         if (fm.intro?.trim()) {
-            const introLines = doc.splitTextToSize(fm.intro, pageWidth - MARGIN * 2);
-            introLines.forEach((line: string) => {
-                doc.text(line, MARGIN, y);
-                y += COMPACT_LINE;
-            });
+            addWrappedText(fm.intro, MARGIN, pageWidth - MARGIN * 2);
             y += 1;
         }
         if (fm.disclaimer?.trim()) {
             doc.setFontSize(7);
             doc.setTextColor(90, 90, 90);
-            const dLines = doc.splitTextToSize(fm.disclaimer, pageWidth - MARGIN * 2);
-            dLines.forEach((line: string) => {
-                doc.text(line, MARGIN, y);
-                y += COMPACT_LINE;
-            });
+            addWrappedText(fm.disclaimer, MARGIN, pageWidth - MARGIN * 2, 3.2);
             y += 1;
             doc.setFontSize(9);
             doc.setTextColor(40, 40, 40);
         }
         (fm.items || []).slice(0, 8).forEach(it => {
-            doc.setFontSize(9);
             doc.setFont(fontName, 'bold');
             doc.setTextColor(30, 90, 50);
-            doc.text('\u2022 ' + (it.plantName || ''), MARGIN + 2, y);
-            y += COMPACT_LINE;
+            addBullet(it.plantName || '');
             doc.setFont(fontName, 'normal');
             doc.setTextColor(60, 60, 60);
             const parts = [it.plantPart, it.preparationOrUsage, it.traditionalContext, it.precautions]
                 .filter(Boolean)
                 .map(String);
             if (parts.length) {
-                const block = doc.splitTextToSize(parts.join(' — '), pageWidth - MARGIN * 2 - 4);
-                block.forEach((line: string) => {
-                    doc.text(line, MARGIN + 6, y);
-                    y += COMPACT_LINE;
-                });
+                addWrappedText(parts.join(' — '), MARGIN + 6, pageWidth - MARGIN * 2 - 6, 3.2);
             }
         });
     }
@@ -633,16 +615,16 @@ export const generatePdfReport = async (
         doc.setFontSize(8);
         doc.setFont(fontName, 'italic');
         doc.setTextColor(80, 100, 130);
-        doc.text(tr('pdf_nutrition_note', "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat."), MARGIN, y);
-        y += COMPACT_LINE + 1;
+        addWrappedText(
+            tr('pdf_nutrition_note', "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat."),
+            MARGIN,
+            pageWidth - MARGIN * 2,
+        );
+        y += 1;
         doc.setFont(fontName, 'normal');
         doc.setTextColor(40, 40, 40);
         if (np.intro?.trim()) {
-            const introLines = doc.splitTextToSize(np.intro, pageWidth - MARGIN * 2);
-            introLines.forEach((line: string) => {
-                doc.text(line, MARGIN, y);
-                y += COMPACT_LINE;
-            });
+            addWrappedText(np.intro, MARGIN, pageWidth - MARGIN * 2);
             y += 1;
         }
         if ((np.dietaryGuidelines?.length ?? 0) > 0) {
@@ -674,11 +656,7 @@ export const generatePdfReport = async (
             y += 1;
             doc.setFontSize(7);
             doc.setTextColor(90, 90, 90);
-            const dLines = doc.splitTextToSize(np.disclaimer, pageWidth - MARGIN * 2);
-            dLines.forEach((line: string) => {
-                doc.text(line, MARGIN, y);
-                y += COMPACT_LINE;
-            });
+            addWrappedText(np.disclaimer, MARGIN, pageWidth - MARGIN * 2, 3.2);
             doc.setFontSize(9);
             doc.setTextColor(40, 40, 40);
         }
@@ -720,15 +698,11 @@ export const generatePdfReport = async (
         addSectionTitle(tr('pdf_risks', "Nojo'ya Ta'sir Xavfi"));
         const risks = report.adverseEventRisks.slice(0, 3);
         risks.forEach(risk => {
-            doc.setFontSize(8);
-            doc.setFont(fontName, 'normal');
-            doc.setTextColor(40, 40, 40);
             const mgmt = risk.management ? ` — ${risk.management}` : '';
             const prob = Number.isFinite(risk.probability)
                 ? Math.round(risk.probability <= 1 ? risk.probability * 100 : risk.probability)
                 : 0;
-            doc.text(`\u2022 ${pdfText(risk.drug)}: ${pdfText(risk.risk)} (~${prob}%)${mgmt}`, MARGIN + 2, y);
-            y += COMPACT_LINE;
+            addBullet(`${pdfText(risk.drug)}: ${pdfText(risk.risk)} (~${prob}%)${mgmt}`);
         });
     }
 
@@ -739,11 +713,11 @@ export const generatePdfReport = async (
         const hypotheses = report.rejectedHypotheses.slice(0, 3);
         hypotheses.forEach(hyp => {
             doc.setFontSize(8);
-            doc.setFont(fontName, 'normal');
             doc.setTextColor(100, 100, 100);
-            doc.text(`\u2022 ${hyp.name}: ${hyp.reason}`, MARGIN + 2, y);
-            y += COMPACT_LINE;
+            addBullet(`${hyp.name}: ${hyp.reason}`);
         });
+        doc.setFontSize(9);
+        doc.setTextColor(40, 40, 40);
     }
 
     // Evidence sources and article/guideline links
@@ -759,14 +733,24 @@ export const generatePdfReport = async (
     // Legislative note
     if (report.uzbekistanLegislativeNote) {
         y += 3;
-        doc.setFillColor(250, 250, 245);
-        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, 8, 'F');
         doc.setFontSize(7);
         doc.setFont(fontName, 'italic');
         doc.setTextColor(100, 100, 80);
         const noteSplit = doc.splitTextToSize(report.uzbekistanLegislativeNote, pageWidth - MARGIN * 2 - 6);
-        doc.text(noteSplit[0] || '', MARGIN + 3, y + 5);
-        y += 10;
+        const noteHeight = noteSplit.length * COMPACT_LINE + 6;
+        ensureSpace(noteHeight + 2);
+        doc.setFillColor(250, 250, 245);
+        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, noteHeight, 'F');
+        noteSplit.forEach((line: string, i: number) => {
+            doc.text(line, MARGIN + 3, y + 5 + i * COMPACT_LINE);
+        });
+        y += noteHeight + 2;
+    }
+
+    const promoY = pageHeight - FOOTER_RESERVE - 18;
+    if (y > promoY - 6) {
+        doc.addPage();
+        y = MARGIN;
     }
 
     // === FOOTER WITH PLATFORM PROMO ===
@@ -796,7 +780,6 @@ export const generatePdfReport = async (
     
     // === PLATFORM PROMO SECTION (on last page) ===
     doc.setPage(pageCount);
-    const promoY = pageHeight - FOOTER_RESERVE - 18;
     
     // Draw promo background box (taller to fit 3 rows)
     doc.setFillColor(248, 250, 252);
