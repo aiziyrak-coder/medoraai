@@ -31,12 +31,17 @@ def allocate_patient_registry_number() -> str:
 
 
 def registry_number_lookup_q(query: str) -> Q | None:
-    """Raqamli qidiruv — 8 xonali ro'yxat raqami yoki eski ichki pk."""
+    """Raqamli qidiruv — 8 xonali bemor ID (qisman ham: 42 → …00000042)."""
     q = (query or '').strip()
     if not q.isdigit():
         return None
-    padded = q.zfill(REGISTRY_NUMBER_WIDTH) if len(q) <= REGISTRY_NUMBER_WIDTH else q
-    clause = Q(registry_number=padded)
+    clause = Q()
+    if len(q) <= REGISTRY_NUMBER_WIDTH:
+        clause |= Q(registry_number=q.zfill(REGISTRY_NUMBER_WIDTH))
+        if len(q) < REGISTRY_NUMBER_WIDTH:
+            clause |= Q(registry_number__endswith=q)
+    else:
+        clause |= Q(registry_number=q)
     try:
         clause |= Q(pk=int(q))
     except (TypeError, ValueError):

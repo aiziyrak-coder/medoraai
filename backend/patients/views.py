@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsAuthenticatedWithSubscription
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, NotFound
 from django.db.models import Q, Count, Max
 from django_filters.rest_framework import DjangoFilterBackend
 from accounts.group_scope import clinic_peer_user_ids
@@ -18,7 +18,7 @@ from analyses.models import AnalysisRecord, ImagingStudyRecord
 from analyses.imaging_context import build_imaging_context_from_report
 from analyses.serializers import ImagingStudyRecordSerializer, ImagingStudyRecordCreateSerializer
 from .models import Patient, PatientAttachment
-from .access import user_can_view_clinical
+from .access import user_can_view_clinical, strip_clinical_payload
 from .registry_number import registry_number_lookup_q
 from .address_data import load_address_catalog, search_districts
 from .serializers import (
@@ -34,21 +34,43 @@ class PatientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['gender', 'region_id', 'district_id']
-    search_fields = ['first_name', 'last_name', 'father_name', 'phone']
+    search_fields = ['first_name', 'last_name', 'father_name', 'phone', 'registry_number']
     ordering_fields = ['created_at', 'first_name', 'last_name']
     ordering = ['-created_at']
 
     def filter_queryset(self, queryset):
-        """Raqamli qidiruv — 8 xonali ro'yxat raqami yoki ichki pk."""
+        """ID qidiruvi global — registrator bemorlari ham barcha shifokorga ko'rinadi."""
         search = (self.request.query_params.get('search') or '').strip()
-        lookup = registry_number_lookup_q(search)
-        if lookup is not None:
-            return queryset.filter(lookup)
+        if search:
+            return self._search_patients_global(self._global_patient_queryset(), search)
         patient_id = (self.request.query_params.get('patient_id') or '').strip()
         lookup = registry_number_lookup_q(patient_id)
         if lookup is not None:
-            return queryset.filter(lookup)
+            return self._global_patient_queryset().filter(lookup)
         return super().filter_queryset(queryset)
+
+    def _search_patients_global(self, qs, q: str):
+        """Pasport qidiruv — klinika guruhsiz, barcha ro'yxatdan o'tgan bemorlar."""
+        q = (q or '').strip()
+        if not q:
+            return qs.none()
+        lookup = registry_number_lookup_q(q)
+        if lookup is not None:
+            return qs.filter(lookup | Q(phone__icontains=q))
+        tokens = [t for t in q.split() if t]
+        clause = (
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(father_name__icontains=q)
+            | Q(phone__icontains=q)
+            | Q(registry_number__icontains=q)
+        )
+        if len(tokens) >= 2:
+            clause |= Q(
+                first_name__icontains=tokens[0],
+                last_name__icontains=tokens[-1],
+            )
+        return qs.filter(clause).order_by('-updated_at')[:20]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -77,6 +99,18 @@ class PatientViewSet(viewsets.ModelViewSet):
 
     def _global_patient_queryset(self):
         return Patient.objects.select_related('created_by', 'home_clinic_group')
+
+    def retrieve(self, request, *args, **kwargs):
+        """Pasport global — klinik maydonlar faqat ruxsat bo'yicha."""
+        try:
+            patient = self._global_patient_queryset().get(pk=kwargs.get('pk'))
+        except (Patient.DoesNotExist, TypeError, ValueError):
+            raise NotFound('Bemor topilmadi')
+        serializer = PatientSerializer(patient, context=self.get_serializer_context())
+        data = serializer.data
+        if not user_can_view_clinical(request.user, patient):
+            data = strip_clinical_payload(data)
+        return Response(data)
 
     def perform_destroy(self, instance):
         user = self.request.user
@@ -115,15 +149,16 @@ class PatientViewSet(viewsets.ModelViewSet):
         }
 
     def _passport_hit(self, p: Patient, user) -> dict:
-        peer_ids = set(clinic_peer_user_ids(user))
+        raw_peers = clinic_peer_user_ids(user)
+        peer_ids = set(raw_peers) if raw_peers is not None else set()
         can_clinical = user_can_view_clinical(user, p)
-        last = self._last_analysis_summary(p, peer_ids if not can_clinical else None)
+        last = self._last_analysis_summary(p, peer_ids if not can_clinical and peer_ids else None)
         ser = PatientPassportSerializer(p, context=self.get_serializer_context())
         data = ser.data
-        data['analysis_count'] = AnalysisRecord.objects.filter(
-            patient=p,
-            **({'created_by_id__in': peer_ids} if not can_clinical else {}),
-        ).count()
+        analysis_filter = {}
+        if not can_clinical and peer_ids:
+            analysis_filter['created_by_id__in'] = peer_ids
+        data['analysis_count'] = AnalysisRecord.objects.filter(patient=p, **analysis_filter).count()
         data['last_analysis_at'] = last.get('last_analysis_at', '')
         data['last_diagnosis'] = last.get('last_diagnosis', '') if can_clinical else ''
         data['last_complaint'] = last.get('last_complaint', '') if can_clinical else ''
@@ -192,22 +227,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         q = (request.query_params.get('q') or '').strip()
         if len(q) < 1:
             return Response({'success': True, 'data': []})
-        qs = self._global_patient_queryset()
-        lookup = registry_number_lookup_q(q)
-        if lookup is not None:
-            qs = qs.filter(lookup)
-        else:
-            tokens = [t for t in q.split() if t]
-            clause = (
-                Q(first_name__icontains=q)
-                | Q(last_name__icontains=q)
-                | Q(father_name__icontains=q)
-                | Q(phone__icontains=q)
-            )
-            if len(tokens) >= 2:
-                clause |= Q(first_name__icontains=tokens[0], last_name__icontains=tokens[-1])
-            qs = qs.filter(clause)
-        qs = qs.order_by('-updated_at')[:20]
+        qs = self._search_patients_global(self._global_patient_queryset(), q)
         return Response({
             'success': True,
             'data': [self._passport_hit(p, request.user) for p in qs],
@@ -252,34 +272,11 @@ class PatientViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='smart-search')
     def smart_search(self, request):
-        """
-        Aqlli qidiruv — pasport ma'lumotlari global, klinik faqat o'z guruhi.
-        """
+        """Aqlli qidiruv — barcha klinikalardan (registrator bemorlari ham), guruhsiz."""
         q = (request.query_params.get('q') or '').strip()
         if len(q) < 1:
             return Response({'success': True, 'data': []})
-
-        qs = self._global_patient_queryset()
-
-        lookup = registry_number_lookup_q(q)
-        if lookup is not None:
-            qs = qs.filter(lookup | Q(phone__icontains=q))
-        else:
-            tokens = [t for t in q.split() if t]
-            clause = (
-                Q(first_name__icontains=q)
-                | Q(last_name__icontains=q)
-                | Q(father_name__icontains=q)
-                | Q(phone__icontains=q)
-            )
-            if len(tokens) >= 2:
-                clause |= Q(
-                    first_name__icontains=tokens[0],
-                    last_name__icontains=tokens[-1],
-                )
-            qs = qs.filter(clause)
-
-        qs = qs.order_by('-updated_at')[:20]
+        qs = self._search_patients_global(self._global_patient_queryset(), q)
         return Response({
             'success': True,
             'data': [self._passport_hit(p, request.user) for p in qs],

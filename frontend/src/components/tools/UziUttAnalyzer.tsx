@@ -9,13 +9,13 @@ import SearchIcon from '../icons/SearchIcon';
 import { useTranslation, type TranslationKey } from '../../hooks/useTranslation';
 import { getAuthToken } from '../../services/api';
 import {
-    getPatientPassport,
     hasRecentImagingStudies,
     passportToPatientData,
     saveImagingStudy,
     smartSearchPatients,
     type SmartPatientHit,
 } from '../../services/apiPatientService';
+import { formatPatientRegistryId } from '../../utils/patientRegistryId';
 
 const MAX_FILES = 12;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -128,20 +128,14 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     }, [linkedPatientId, refreshPriorImaging]);
 
     const selectFromSmartHit = useCallback((hit: SmartPatientHit) => {
-        getPatientPassport(hit.id)
-            .then((res) => {
-                if (res.success && res.data) {
-                    const pd = passportToPatientData(res.data);
-                    setLinkedPatientId(hit.id);
-                    setPatientName(`${pd.lastName} ${pd.firstName}`.trim());
-                    if (pd.age) setPatientAge(pd.age);
-                    if (pd.gender === 'male' || pd.gender === 'female') setPatientSex(pd.gender);
-                    setPatientSearch('');
-                    setSmartHits([]);
-                    setSavedToDb(false);
-                }
-            })
-            .catch(() => { /* ignore */ });
+        const pd = passportToPatientData(hit);
+        setLinkedPatientId(hit.id);
+        setPatientName(`${pd.lastName} ${pd.firstName}`.trim());
+        if (pd.age) setPatientAge(pd.age);
+        if (pd.gender === 'male' || pd.gender === 'female') setPatientSex(pd.gender);
+        setPatientSearch('');
+        setSmartHits([]);
+        setSavedToDb(false);
     }, []);
 
     const clearPatientLink = useCallback(() => {
@@ -360,7 +354,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                             {linkedPatientId && (
                                 <div className="flex flex-wrap items-center gap-2 text-xs">
                                     <span className="font-mono bg-white/80 px-2 py-1 rounded border border-sky-100 text-sky-900">
-                                        ID {linkedPatientId}
+                                        {formatPatientRegistryId({ id: linkedPatientId })}
                                     </span>
                                     {hasPriorImaging && (
                                         <span className="inline-flex items-center gap-1 text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
@@ -389,6 +383,11 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                                         {t('data_form_patient_searching')}
                                     </span>
                                 )}
+                                {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && !patientSearchLoading && smartHits.length === 0 && (
+                                    <p className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[10px] text-slate-500 shadow-lg">
+                                        {t('data_form_smart_search_empty')}
+                                    </p>
+                                )}
                                 {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
                                     <ul className="absolute z-20 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-xs">
                                         {smartHits.map((hit) => (
@@ -402,7 +401,7 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                                                         {hit.last_name} {hit.first_name} {hit.father_name}
                                                     </span>
                                                     <span className="text-slate-500 ml-1">
-                                                        · ID {hit.id} · {hit.age} {t('years_short')}
+                                                        · {formatPatientRegistryId(hit)} · {hit.age} {t('years_short')}
                                                     </span>
                                                 </button>
                                             </li>

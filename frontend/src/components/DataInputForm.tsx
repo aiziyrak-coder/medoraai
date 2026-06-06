@@ -14,7 +14,6 @@ import { validatePatientDataSmart, getSmartValidationMessage } from '../utils/sm
 import { scoreClinicalCompleteness } from '../utils/clinicalCompleteness';
 import {
     getPatient,
-    getPatientPassport,
     findPatientMatches,
     smartSearchPatients,
     getRecentImagingStudies,
@@ -838,19 +837,13 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
 
     const selectFromSmartHit = useCallback(
         (hit: SmartPatientHit) => {
-            getPatientPassport(hit.id)
-                .then((res) => {
-                    if (res.success && res.data) {
-                        const passport = passportToPatientData(res.data);
-                        selectPassportOnly(
-                            passport,
-                            hit.id,
-                            Boolean(hit.can_view_clinical),
-                            formatPatientRegistryId(hit),
-                        );
-                    }
-                })
-                .catch(() => { /* ignore */ });
+            const passport = passportToPatientData(hit);
+            selectPassportOnly(
+                passport,
+                hit.id,
+                Boolean(hit.can_view_clinical),
+                formatPatientRegistryId(hit),
+            );
         },
         [selectPassportOnly],
     );
@@ -1267,6 +1260,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     />
                                     {patientSearchLoading && (
                                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-slate-500">{t('data_form_patient_searching')}</span>
+                                    )}
+                                    {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && !patientSearchLoading && smartHits.length === 0 && (
+                                        <p className="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[9px] text-slate-500 shadow-lg">
+                                            {t('data_form_smart_search_empty')}
+                                        </p>
                                     )}
                                     {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
                                         <ul className="absolute z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-[10px]">
