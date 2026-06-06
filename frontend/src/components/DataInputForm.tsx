@@ -14,14 +14,17 @@ import { validatePatientDataSmart, getSmartValidationMessage } from '../utils/sm
 import { scoreClinicalCompleteness } from '../utils/clinicalCompleteness';
 import {
     getPatient,
+    getPatientPassport,
     findPatientMatches,
     smartSearchPatients,
     convertPatientToPatientData,
+    passportToPatientData,
     type Patient,
     type SmartPatientHit,
 } from '../services/apiPatientService';
 import { getAuthToken } from '../services/api';
 import SearchIcon from './icons/SearchIcon';
+import AddressCombobox from './address/AddressCombobox';
 
 type SpecialtyKey = 'gastro' | 'cardio' | 'neuro' | 'therapist' | 'endo' | 'pulmo' | 'nephro' | 'derma' | 'ortho' | 'gynec' | 'uro' | 'ophth' | 'ent' | 'reuma' | 'psych';
 
@@ -610,12 +613,17 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const { t } = useTranslation();
     const { isListening, transcript, startListening, stopListening, isSupported } = useSpeechToText();
     const wasListeningRef = useRef(false);
+    const [regionId, setRegionId] = useState('');
+    const [districtId, setDistrictId] = useState('');
+
     const [formData, setFormData] = useState<Partial<PatientData>>({
         firstName: '',
         lastName: '',
         fatherName: '',
         age: '',
         gender: '',
+        phone: '',
+        address: '',
         complaints: '',
         history: '',
         allergies: '',
@@ -653,12 +661,16 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const historyTemplates = getHistoryTemplates(t);
 
     const applyPatientDataToForm = useCallback((pd: PatientData) => {
+        setRegionId(pd.regionId || '');
+        setDistrictId(pd.districtId || '');
         setFormData({
             firstName: pd.firstName || '',
             lastName: pd.lastName || '',
             fatherName: pd.fatherName || '',
             age: pd.age || '',
             gender: pd.gender || '',
+            phone: pd.phone || '',
+            address: pd.address || '',
             complaints: pd.complaints || '',
             history: pd.history || '',
             allergies: pd.allergies || '',
@@ -730,33 +742,64 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         };
     }, [formData.firstName, formData.lastName, linkedPatientKey]);
 
-    const selectFromApiPatient = useCallback(
-        (p: Patient) => {
-            const baseline = convertPatientToPatientData(p);
-            onPatientBaselineLoaded?.(baseline);
-            applyPatientDataToForm({
-                ...baseline,
-                complaints: '',
-                objectiveData: '',
-            });
+    const selectPassportOnly = useCallback(
+        (passportData: PatientData, patientId: number, withClinical = false) => {
+            if (withClinical) {
+                getPatient(patientId)
+                    .then((res) => {
+                        if (res.success && res.data) {
+                            const baseline = convertPatientToPatientData(res.data);
+                            onPatientBaselineLoaded?.(baseline);
+                            applyPatientDataToForm({
+                                ...baseline,
+                                complaints: baseline.complaints || '',
+                            });
+                        } else {
+                            applyPatientDataToForm(passportData);
+                        }
+                    })
+                    .catch(() => applyPatientDataToForm(passportData));
+            } else {
+                applyPatientDataToForm({
+                    ...passportData,
+                    complaints: '',
+                    history: '',
+                    allergies: '',
+                    currentMedications: '',
+                    familyHistory: '',
+                    objectiveData: '',
+                    labResults: '',
+                });
+            }
             setVitals(emptyVitals());
-            onLinkedPatientChange?.(String(p.id));
+            onLinkedPatientChange?.(String(patientId));
             setPatientSearch('');
             setSmartHits([]);
             setNameMatches([]);
         },
-        [applyPatientDataToForm, onLinkedPatientChange, onPatientBaselineLoaded]
+        [applyPatientDataToForm, onLinkedPatientChange, onPatientBaselineLoaded],
+    );
+
+    const selectFromApiPatient = useCallback(
+        (p: Patient) => {
+            const baseline = convertPatientToPatientData(p);
+            selectPassportOnly(baseline, p.id, true);
+        },
+        [selectPassportOnly],
     );
 
     const selectFromSmartHit = useCallback(
         (hit: SmartPatientHit) => {
-            getPatient(hit.id)
-                .then(res => {
-                    if (res.success && res.data) selectFromApiPatient(res.data);
+            getPatientPassport(hit.id)
+                .then((res) => {
+                    if (res.success && res.data) {
+                        const passport = passportToPatientData(res.data);
+                        selectPassportOnly(passport, hit.id, Boolean(hit.can_view_clinical));
+                    }
                 })
                 .catch(() => { /* ignore */ });
         },
-        [selectFromApiPatient],
+        [selectPassportOnly],
     );
 
     const formatHitDate = (iso: string) => {
@@ -1032,6 +1075,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             fatherName: formData.fatherName || '',
             age: formData.age || '',
             gender: formData.gender as 'male' | 'female' | 'other' | '',
+            phone: formData.phone || undefined,
+            address: formData.address || undefined,
+            regionId: regionId || formData.regionId,
+            districtId: districtId || formData.districtId,
             complaints: formData.complaints || '',
             history: formData.history || '',
             allergies: formData.allergies || undefined,
@@ -1159,11 +1206,16 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 onClick={() => selectFromSmartHit(hit)}
                                             >
                                                 <span className="font-semibold text-slate-900">
-                                                    {hit.first_name} {hit.last_name}
+                                                    {hit.last_name} {hit.first_name} {hit.father_name}
                                                 </span>
                                                 <span className="text-slate-500 ml-1">
                                                     · ID {hit.id} · {hit.age} {t('years_short')}
                                                 </span>
+                                                {(hit.region_name || hit.district_name) && (
+                                                    <span className="block text-[9px] text-slate-500 mt-0.5">
+                                                        {[hit.region_name, hit.district_name].filter(Boolean).join(', ')}
+                                                    </span>
+                                                )}
                                                 {hit.phone && (
                                                     <span className="block text-[9px] text-slate-500 mt-0.5">{hit.phone}</span>
                                                 )}
@@ -1262,6 +1314,31 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     {formErrors.gender && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.gender}</p>}
                                 </div>
                             </div>
+                            <Input
+                                id="phone"
+                                label={t('phone_label')}
+                                type="tel"
+                                value={formData.phone || ''}
+                                onChange={(e) => handleChange('phone', e.target.value)}
+                                placeholder="+998..."
+                            />
+                            <AddressCombobox
+                                regionId={regionId}
+                                districtId={districtId}
+                                onChange={(rId, dId) => {
+                                    setRegionId(rId);
+                                    setDistrictId(dId);
+                                    setFormData((prev) => ({ ...prev, regionId: rId, districtId: dId }));
+                                }}
+                            />
+                            <Input
+                                id="addressExtra"
+                                label={t('address_extra_label')}
+                                type="text"
+                                value={formData.address || ''}
+                                onChange={(e) => handleChange('address', e.target.value)}
+                                placeholder={t('address_extra_placeholder')}
+                            />
                         </div>
                         
                         {/* Allergiya va dori-darmonlar (xavfsizlik uchun muhim) */}

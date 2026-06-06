@@ -7,6 +7,7 @@ export { AIModel };
 
 export type AppView =
   | 'dashboard'
+  | 'registrar'
   | 'new_analysis'
   | 'clarification'
   | 'team_recommendation'
@@ -14,15 +15,12 @@ export type AppView =
   | 'history'
   | 'view_history_item'
   | 'case_library'
-  | 'research'
-  | 'live_consultation'
+  | 'uzi_utt'
+  | 'tools'
   | 'prescription'
   | 'tumor_board'
   | 'longitudinal_view'
-  | 'subscription'
-  | 'check_up'
-  | 'telemedicine'
-  | 'patient_portal';
+  | 'subscription';
 
 /** Bemor marshrutlash: mutaxassis, tekshiruv rejasi, statsionar */
 export interface PatientRouting {
@@ -49,50 +47,7 @@ export interface SeverityAssessment {
   redFlags?: string[];
 }
 
-export type CheckUpCategory =
-  | 'cardiovascular'
-  | 'metabolic'
-  | 'cancer'
-  | 'infectious'
-  | 'general'
-  | 'vaccination'
-  | 'dental'
-  | 'mental';
-
-export interface CheckUpRecommendation {
-  screeningName: string;
-  frequency?: string;
-  reason?: string;
-  priority?: 'high' | 'medium' | 'low';
-  category?: CheckUpCategory | string;
-  guidelineSource?: string;
-  sourceUrl?: string;
-  nextSuggested?: string;
-  evidenceLevel?: string;
-}
-
-export interface VaccinationRecommendation {
-  vaccine: string;
-  schedule?: string;
-  reason?: string;
-  priority?: 'high' | 'medium' | 'low' | string;
-}
-
-export interface CheckUpPlanResult {
-  summary: string;
-  riskLevel: 'low' | 'moderate' | 'high';
-  riskFactors: string[];
-  recommendations: CheckUpRecommendation[];
-  preventionMeasures: string[];
-  lifestylePlan: string[];
-  labPanel: string[];
-  vaccinations: VaccinationRecommendation[];
-  followUpTimeline?: string;
-  urgentNotes?: string[];
-  sources: { title: string; url: string }[];
-}
-
-export type UserRole = 'clinic';
+export type UserRole = 'clinic' | 'staff';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'pending';
 
@@ -188,6 +143,12 @@ export interface PatientData {
   fatherName?: string;
   age: string;
   gender: 'male' | 'female' | 'other' | '';
+  phone?: string;
+  address?: string;
+  regionId?: string;
+  districtId?: string;
+  regionName?: string;
+  districtName?: string;
   // --- Clinical Info ---
   complaints: string;
   history?: string;
@@ -426,8 +387,6 @@ export interface FinalReport {
   riskFactors?: RiskFactor[];
   /** Holat og'irligi / triaj */
   severityAssessment?: SeverityAssessment;
-  /** Profilaktik tekshiruv tavsiyalari */
-  checkUpRecommendations?: CheckUpRecommendation[];
   /** Deterministik klinik qizil bayroqlar (server qoidalari) */
   clinicalRedFlags?: ClinicalRedFlag[];
   /** Farmakologiya ogohlantirishlari */
@@ -633,84 +592,8 @@ export type ProgressUpdate =
   | { type: 'prognosis_update'; data: PrognosisReport }
   | { type: 'error'; message: string };
 
-// --- RESEARCH & EDUCATION ---
+// --- EDUCATION ---
 
-export interface TreatmentStrategy {
-    name: string;
-    mechanism: string;
-    evidence: string;
-    pros: string[];
-    cons: string[];
-    riskBenefit: {
-        risk: 'Low' | 'Medium' | 'High' | 'Very High' | 'N/A';
-        benefit: 'Incremental' | 'Significant' | 'Breakthrough' | 'N/A';
-    };
-    developmentRoadmap: {
-        stage: string;
-        duration: string;
-        cost: string;
-    }[];
-    molecularTarget: {
-        name: string;
-        pdbId?: string;
-    };
-    ethicalConsiderations: string[];
-    requiredCollaborations: string[];
-    companionDiagnosticNeeded: string;
-}
-
-export interface ClinicalGuideline {
-    guidelineTitle: string;
-    source: string;
-    recommendations: {
-        category: string;
-        details: string[];
-    }[];
-}
-
-export interface ResearchReport {
-    diseaseName: string;
-    summary: string;
-    epidemiology: {
-        prevalence: string;
-        incidence: string;
-        keyRiskFactors: string[];
-    };
-    pathophysiology: string;
-    emergingBiomarkers: {
-        name: string;
-        type: 'Prognostic' | 'Predictive' | 'Diagnostic';
-        description: string;
-    }[];
-    clinicalGuidelines: ClinicalGuideline[];
-    potentialStrategies: TreatmentStrategy[];
-    pharmacogenomics: {
-        relevantGenes: { gene: string; mutation: string; impact: string }[];
-        targetSubgroup: string;
-    };
-    patentLandscape: {
-        competingPatents: { patentId: string; title: string; assignee: string }[];
-        whitespaceOpportunities: string[];
-    };
-    relatedClinicalTrials: {
-        trialId: string;
-        title: string;
-        status: string;
-        url: string;
-    }[];
-    strategicConclusion: string;
-    sources: {
-      title: string;
-      uri: string;
-    }[];
-}
-
-export type ResearchProgressUpdate =
-  | { type: 'status'; message: string }
-  | { type: 'message'; message: ChatMessage }
-  | { type: 'report'; data: ResearchReport }
-  | { type: 'error'; message: string };
-  
 export interface PatientEducationTopic {
   title: string;
   content: string;
@@ -817,22 +700,4 @@ export interface EmergencyTemplate {
   name: string;
   description: string;
   data: Partial<PatientData>;
-}
-
-export interface VitalSigns {
-    heartRate: number;
-    spO2: number;
-    bpSystolic: number;
-    bpDiastolic: number;
-    respirationRate: number;
-    temperature?: number;
-}
-
-export interface MonitoringAlarm {
-    id: number;
-    severity: 'critical' | 'warning' | 'info' | string;
-    code: string;
-    message: string;
-    patient: string;
-    created_at: string;
 }

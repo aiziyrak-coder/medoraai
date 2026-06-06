@@ -28,7 +28,6 @@ import FollowUpPlan from './report/FollowUpPlan';
 import ReferralGenerator from './report/ReferralGenerator';
 import PatientRoutingCard from './report/PatientRoutingCard';
 import RiskFactorsCard from './report/RiskFactorsCard';
-import CheckUpRecommendationsCard from './report/CheckUpRecommendationsCard';
 import LinkifiedText from './common/LinkifiedText';
 import GlobeIcon from './icons/GlobeIcon';
 import PencilIcon from './icons/PencilIcon';
@@ -549,7 +548,6 @@ const FinalReportCard: React.FC<{
 
                 <PatientRoutingCard routing={report.patientRouting} />
                 <RiskFactorsCard riskFactors={report.riskFactors} severityAssessment={report.severityAssessment} />
-                <CheckUpRecommendationsCard items={report.checkUpRecommendations} />
 
                 {!report.imagingInterpretation && report.imageAnalysis?.findings && (
                     <Section title={t('final_report_image_analysis_title')} icon={<ImageIcon className="w-6 h-6"/>}>

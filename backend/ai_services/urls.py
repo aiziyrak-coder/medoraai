@@ -9,8 +9,6 @@ from .views import (
     run_consilium_view,
     doctor_support_view,
     doctor_support_stream_view,
-    check_up_plan_view,
-    research_report_view,
     # Legacy
     run_council_debate,
     generate_clarifying_questions,
@@ -18,9 +16,6 @@ from .views import (
     generate_diagnoses,
     generate_autonomous_protocol,
     make_clinical_decision,
-    start_monitoring,
-    record_vital_signs,
-    stop_monitoring,
     record_treatment_outcome,
     get_improved_protocol,
 )
@@ -36,8 +31,6 @@ urlpatterns = [
     # в”Ђв”Ђ Doctor Support Mode в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     path("doctor-support/",     doctor_support_view,        name="doctor_support"),
     path("doctor-stream/",      doctor_support_stream_view, name="doctor_stream"),
-    path("check-up-plan/",      check_up_plan_view,         name="check_up_plan"),
-    path("research/",           research_report_view,       name="research_report"),
     path("tools/<str:tool_name>/", clinical_tool_view,    name="clinical_tool"),
 
     # в”Ђв”Ђ Basic AI в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
@@ -48,11 +41,6 @@ urlpatterns = [
     # в”Ђв”Ђ Autonomous Protocol в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     path("autonomous-protocol/",   generate_autonomous_protocol,  name="autonomous_protocol"),
     path("clinical-decision/",     make_clinical_decision,        name="clinical_decision"),
-
-    # в”Ђв”Ђ Monitoring в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-    path("monitoring/start/",                 start_monitoring,   name="start_monitoring"),
-    path("monitoring/record/",                record_vital_signs, name="record_vital_signs"),
-    path("monitoring/stop/<str:session_id>/", stop_monitoring,    name="stop_monitoring"),
 
     # в”Ђв”Ђ Learning в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     path("learning/outcome/", record_treatment_outcome, name="record_treatment_outcome"),

@@ -91,7 +91,7 @@ class UserAdmin(BaseUserAdmin):
     
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
-        ('Shaxsiy ma\'lumotlar', {'fields': ('name', 'role', 'specialties')}),
+        ('Shaxsiy ma\'lumotlar', {'fields': ('name', 'role', 'specialties', 'linked_doctor')}),
         ('Klinika guruhi', {
             'fields': ('clinic_group',),
             'description': 'Bir guruhdagi foydalanuvchilar bemor va tahlillarni bir-biriga ko\'radi. Guruhni yuqorida «Klinika guruhlari» orqali yarating.',

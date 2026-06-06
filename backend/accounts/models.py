@@ -179,6 +179,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     ROLE_CHOICES = [
         ('clinic', 'Klinika'),
+        ('staff', 'Registrator'),
     ]
     
     SUBSCRIPTION_STATUS_CHOICES = [
@@ -269,12 +270,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_clinic(self):
         return self.role == 'clinic'
+
+    @property
+    def is_registrar(self):
+        return self.role == 'staff'
     
     @property
     def has_active_subscription(self):
         if not self.is_active:
             return False
         if self.is_superuser or self.is_staff:
+            return True
+        if self.role == 'staff':
             return True
         # Chek yuborilgan, admin tasdiqlamaguncha to'liq platforma yo'q
         if self.subscription_status == 'pending':

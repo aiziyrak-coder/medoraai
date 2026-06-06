@@ -26,7 +26,6 @@ from .doctor_support         import (
 from .physiology_filter      import check as physiology_check
 from .autonomous_protocol_generator import autonomous_generator
 from .clinical_decision_engine      import clinical_decision_engine
-from .continuous_monitoring         import continuous_monitoring
 from .self_learning_system          import self_learning_system
 from .azure_utils import recommend_specialists as azure_recommend
 
@@ -233,83 +232,6 @@ def doctor_support_stream_view(request):
 
 
 # ---------------------------------------------------------------------------
-# Check-up / profilaktika rejasi
-# ---------------------------------------------------------------------------
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
-def check_up_plan_view(request):
-    """
-    POST /api/ai/check-up-plan/
-    Body: age, gender?, conditions?, smoking?, diabetes?, hypertension?, obesity?,
-          familyHistoryCancer?, language?
-    """
-    from .check_up_plan import generate_check_up_plan
-
-    age = str(request.data.get("age", "")).strip()
-    if not age:
-        return _err(400, "Yosh kiritilmagan")
-    if not _claude_ok():
-        return _ai_not_configured()
-
-    payload = {
-        "age": age,
-        "gender": str(request.data.get("gender", "")).strip(),
-        "conditions": str(request.data.get("conditions", "")).strip(),
-        "smoking": request.data.get("smoking"),
-        "diabetes": request.data.get("diabetes"),
-        "hypertension": request.data.get("hypertension"),
-        "obesity": request.data.get("obesity"),
-        "familyHistoryCancer": request.data.get("familyHistoryCancer"),
-    }
-    language = request.data.get("language", "uz-L")
-    try:
-        data = generate_check_up_plan(payload, language)
-        return Response({"success": True, "data": data})
-    except ValueError as exc:
-        return _err(400, str(exc))
-    except Exception as exc:
-        logger.exception("Check-up plan error: %s", exc)
-        return _err(500, f"Check-up rejasi xatosi: {exc}")
-
-
-# ---------------------------------------------------------------------------
-# Tadqiqot markazi
-# ---------------------------------------------------------------------------
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
-def research_report_view(request):
-    """
-    POST /api/ai/research/
-    Body: diseaseName, focus?, stage?, patientContext?, language?
-    """
-    from .research_center import generate_research_report
-
-    disease = str(request.data.get("diseaseName") or request.data.get("disease_name") or "").strip()
-    if not disease:
-        return _err(400, "Kasallik nomi kiritilmagan")
-    if not _claude_ok():
-        return _ai_not_configured()
-
-    payload = {
-        "diseaseName": disease,
-        "focus": str(request.data.get("focus") or "comprehensive").strip(),
-        "stage": str(request.data.get("stage") or "").strip(),
-        "patientContext": str(request.data.get("patientContext") or request.data.get("patient_context") or "").strip(),
-    }
-    language = request.data.get("language", "uz-L")
-    try:
-        data = generate_research_report(payload, language)
-        return Response({"success": True, "data": data})
-    except ValueError as exc:
-        return _err(400, str(exc))
-    except Exception as exc:
-        logger.exception("Research report error: %s", exc)
-        return _err(500, f"Tadqiqot hisoboti xatosi: {exc}")
-
-
-# ---------------------------------------------------------------------------
 # Klinik vositalar (POST /api/ai/tools/<tool_name>/)
 # ---------------------------------------------------------------------------
 
@@ -464,56 +386,6 @@ def make_clinical_decision(request):
 
 
 # ---------------------------------------------------------------------------
-# Monitoring endpoints
-# ---------------------------------------------------------------------------
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def start_monitoring(request):
-    pid    = request.data.get("protocol_id")
-    pd_    = request.data.get("patient_data")
-    plan   = request.data.get("treatment_plan")
-    if not all([pid, pd_, plan]):
-        return _err(400, "Kerakli ma'lumotlar to'liq emas")
-    try:
-        sid = continuous_monitoring.start_monitoring_session(pid, pd_, plan)
-        return Response({"success": True, "data": {"session_id": sid, "message": "Monitoring boshlandi"}})
-    except Exception as exc:
-        logger.exception("Start monitoring error: %s", exc)
-        return _err(500, "Monitoringni boshlashda xatolik")
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def record_vital_signs(request):
-    sid  = request.data.get("session_id")
-    vita = request.data.get("vital_data")
-    if not sid or not vita:
-        return _err(400, "Sessiya ID yoki vital ma'lumotlari kiritilmagan")
-    try:
-        analysis = continuous_monitoring.record_vital_signs(sid, vita)
-        if "error" in analysis:
-            return _err(400, analysis["error"])
-        return Response({"success": True, "data": analysis})
-    except Exception as exc:
-        logger.exception("Record vital signs error: %s", exc)
-        return _err(500, "Vital belgilarni yozishda xatolik")
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def stop_monitoring(request, session_id):
-    try:
-        ok = continuous_monitoring.stop_monitoring_session(session_id)
-        if ok:
-            return Response({"success": True, "data": {"message": "Monitoring to'xtatildi"}})
-        return _err(404, "Monitoring sessiyasi topilmadi")
-    except Exception as exc:
-        logger.exception("Stop monitoring error: %s", exc)
-        return _err(500, "Monitoringni to'xtatishda xatolik")
-
-
-# ---------------------------------------------------------------------------
 # Learning endpoints
 # ---------------------------------------------------------------------------
 
@@ -544,6 +416,3 @@ def get_improved_protocol(request):
     except Exception as exc:
         logger.exception("Improved protocol error: %s", exc)
         return _err(500, "Yaxshilangan protokolni olishda xatolik")
-
-
-# (Monitoring AI endpoints removed  -  monitoring platform o'chirilgan)

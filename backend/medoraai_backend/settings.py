@@ -64,9 +64,7 @@ INSTALLED_APPS = [
     'patients',
     'analyses',
     'ai_services',
-    'monitoring',
     'integrations',
-    'telemedicine',
 ]
 
 MIDDLEWARE = [
@@ -385,9 +383,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 TELEGRAM_PAYMENT_GROUP_ID = config('TELEGRAM_PAYMENT_GROUP_ID', default='')
 TELEGRAM_WEBHOOK_SECRET = config('TELEGRAM_WEBHOOK_SECRET', default='')
-
-# Monitoring gateway ingest (X-API-Key header on POST /api/monitoring/ingest/)
-MONITORING_INGEST_API_KEY = config('MONITORING_INGEST_API_KEY', default='')
 
 # Celery Configuration (for async tasks)
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')

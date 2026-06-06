@@ -12,7 +12,6 @@ import type {
   PatientRouting,
   RiskFactor,
   SeverityAssessment,
-  CheckUpRecommendation,
 } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import type { Language } from '../i18n/LanguageContext';
@@ -612,30 +611,6 @@ export function normalizeSeverityAssessment(raw: unknown): SeverityAssessment | 
   return { level: level || 'moderate', score, rationale: rationale || undefined, redFlags: redFlags.length ? redFlags : undefined };
 }
 
-export function normalizeCheckUpRecommendations(raw: unknown): CheckUpRecommendation[] {
-  if (!Array.isArray(raw)) return [];
-  const out: CheckUpRecommendation[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== 'object') continue;
-    const o = item as Record<string, unknown>;
-    const screeningName = String(o.screeningName ?? o.screening_name ?? '').trim();
-    if (!screeningName) continue;
-    const pr = String(o.priority ?? '').toLowerCase();
-    out.push({
-      screeningName,
-      frequency: String(o.frequency ?? '').trim(),
-      reason: String(o.reason ?? '').trim(),
-      priority: (['high', 'medium', 'low'].includes(pr) ? pr : 'medium') as CheckUpRecommendation['priority'],
-      category: String(o.category ?? '').trim() || undefined,
-      guidelineSource: String(o.guidelineSource ?? o.guideline_source ?? '').trim() || undefined,
-      sourceUrl: String(o.sourceUrl ?? o.source_url ?? '').trim() || undefined,
-      nextSuggested: String(o.nextSuggested ?? o.next_suggested ?? '').trim() || undefined,
-      evidenceLevel: String(o.evidenceLevel ?? o.evidence_level ?? '').trim() || undefined,
-    });
-  }
-  return out;
-}
-
 export function normalizeAdverseEventRisks(raw: unknown): AdverseEventRisk[] {
   if (!Array.isArray(raw)) return [];
   const out: AdverseEventRisk[] = [];
@@ -760,9 +735,6 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
 
   const severity = normalizeSeverityAssessment(r.severityAssessment ?? r.severity_assessment);
   if (severity) out.severityAssessment = severity;
-
-  const checkUp = normalizeCheckUpRecommendations(r.checkUpRecommendations ?? r.check_up_recommendations);
-  if (checkUp.length) out.checkUpRecommendations = checkUp;
 
   const rejected = normalizeRejectedHypotheses(r, out.consensusDiagnosis);
   if (rejected.length) out.rejectedHypotheses = rejected;

@@ -1,17 +1,22 @@
 /**
  * Patient API Service
  */
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiUpload, type ApiResponse } from './api';
-import type { PatientData, AnalysisRecord } from '../types';
+import { apiGet, apiPost, apiPatch, apiDelete, apiUpload, type ApiResponse } from './api';
+import type { PatientData } from '../types';
 
 export interface Patient {
   id: number;
   first_name: string;
   last_name: string;
+  father_name?: string;
   age: string;
   gender: 'male' | 'female' | 'other' | '';
   phone?: string;
   address?: string;
+  region_id?: string;
+  district_id?: string;
+  region_name?: string;
+  district_name?: string;
   complaints: string;
   history?: string;
   objective_data?: string;
@@ -28,6 +33,26 @@ export interface Patient {
   created_by?: unknown;
   created_at: string;
   updated_at: string;
+}
+
+export interface PatientPassport {
+  id: number;
+  first_name: string;
+  last_name: string;
+  father_name?: string;
+  age: string;
+  gender: string;
+  phone: string;
+  address: string;
+  region_id: string;
+  district_id: string;
+  region_name: string;
+  district_name: string;
+  registered_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  analysis_count?: number;
+  can_view_clinical?: boolean;
 }
 
 export interface PatientAttachment {
@@ -60,20 +85,26 @@ export interface ClinicalTimelineAnalysis {
   follow_up?: string;
 }
 
-export interface SmartPatientHit {
-  id: number;
-  first_name: string;
-  last_name: string;
-  age: string;
-  gender: string;
-  phone: string;
-  complaints: string;
-  analysis_count: number;
+export interface SmartPatientHit extends PatientPassport {
   last_analysis_at: string;
   last_diagnosis: string;
   last_complaint: string;
   last_physician: string;
-  registered_by: string;
+}
+
+export interface DistrictSearchHit {
+  district_id: string;
+  district_name_uz: string;
+  district_name_ru: string;
+  region_id: string;
+  region_name_uz: string;
+  region_name_ru: string;
+}
+
+export interface LocationStat {
+  region_id: string;
+  region_name: string;
+  count: number;
 }
 
 export interface ClinicalTimeline {
@@ -82,72 +113,109 @@ export interface ClinicalTimeline {
   analysis_count: number;
 }
 
-/**
- * Convert PatientData to API format
- */
-const patientDataToApi = (data: PatientData): Partial<Patient> => {
-  return {
-    first_name: data.firstName,
-    last_name: data.lastName,
-    age: data.age,
-    gender: data.gender as 'male' | 'female' | 'other' | '',
-    complaints: data.complaints,
-    history: data.history,
-    objective_data: data.objectiveData,
-    lab_results: data.labResults,
-    allergies: data.allergies,
-    current_medications: data.currentMedications,
-    family_history: data.familyHistory,
-    additional_info: data.additionalInfo,
-    structured_lab_results: data.structuredLabResults,
-    pharmacogenomics_report: data.pharmacogenomicsReport,
-    symptom_timeline: data.symptomTimeline,
-    mental_health_scores: data.mentalHealthScores,
-  };
-};
+const patientDataToApi = (data: PatientData): Partial<Patient> => ({
+  first_name: data.firstName,
+  last_name: data.lastName,
+  father_name: data.fatherName,
+  age: data.age,
+  gender: data.gender as 'male' | 'female' | 'other' | '',
+  phone: data.phone,
+  address: data.address,
+  region_id: data.regionId,
+  district_id: data.districtId,
+  complaints: data.complaints,
+  history: data.history,
+  objective_data: data.objectiveData,
+  lab_results: data.labResults,
+  allergies: data.allergies,
+  current_medications: data.currentMedications,
+  family_history: data.familyHistory,
+  additional_info: data.additionalInfo,
+  structured_lab_results: data.structuredLabResults,
+  pharmacogenomics_report: data.pharmacogenomicsReport,
+  symptom_timeline: data.symptomTimeline,
+  mental_health_scores: data.mentalHealthScores,
+});
 
-/**
- * Convert API Patient to PatientData
- */
-const apiToPatientData = (patient: Patient): PatientData => {
-  return {
-    firstName: patient.first_name,
-    lastName: patient.last_name,
-    age: patient.age,
-    gender: patient.gender,
-    complaints: patient.complaints,
-    history: patient.history,
-    objectiveData: patient.objective_data,
-    labResults: patient.lab_results,
-    allergies: patient.allergies,
-    currentMedications: patient.current_medications,
-    familyHistory: patient.family_history,
-    additionalInfo: patient.additional_info,
-    structuredLabResults: patient.structured_lab_results as Record<string, { value: string; unit: string; trend?: 'up' | 'down' | 'stable'; }[]>,
-    pharmacogenomicsReport: patient.pharmacogenomics_report,
-    symptomTimeline: patient.symptom_timeline as PatientData['symptomTimeline'],
-    mentalHealthScores: patient.mental_health_scores as PatientData['mentalHealthScores'],
-    attachments: patient.attachments?.map(att => ({
-      name: att.name,
-      base64Data: '', // Will be fetched separately if needed
-      mimeType: att.mime_type,
-    })),
-  };
-};
+const apiToPatientData = (patient: Patient): PatientData => ({
+  firstName: patient.first_name,
+  lastName: patient.last_name,
+  fatherName: patient.father_name,
+  age: patient.age,
+  gender: patient.gender,
+  phone: patient.phone,
+  address: patient.address,
+  regionId: patient.region_id,
+  districtId: patient.district_id,
+  regionName: patient.region_name,
+  districtName: patient.district_name,
+  complaints: patient.complaints || '',
+  history: patient.history,
+  objectiveData: patient.objective_data,
+  labResults: patient.lab_results,
+  allergies: patient.allergies,
+  currentMedications: patient.current_medications,
+  familyHistory: patient.family_history,
+  additionalInfo: patient.additional_info,
+  structuredLabResults: patient.structured_lab_results as PatientData['structuredLabResults'],
+  pharmacogenomicsReport: patient.pharmacogenomics_report,
+  symptomTimeline: patient.symptom_timeline as PatientData['symptomTimeline'],
+  mentalHealthScores: patient.mental_health_scores as PatientData['mentalHealthScores'],
+  attachments: patient.attachments?.map((att) => ({
+    name: att.name,
+    base64Data: '',
+    mimeType: att.mime_type,
+  })),
+});
 
-/**
- * Get patients list
- */
+export const passportToPatientData = (p: PatientPassport): PatientData => ({
+  firstName: p.first_name,
+  lastName: p.last_name,
+  fatherName: p.father_name,
+  age: p.age,
+  gender: (p.gender as PatientData['gender']) || '',
+  phone: p.phone,
+  address: p.address,
+  regionId: p.region_id,
+  districtId: p.district_id,
+  regionName: p.region_name,
+  districtName: p.district_name,
+  complaints: '',
+  history: '',
+  allergies: '',
+  currentMedications: '',
+  familyHistory: '',
+  additionalInfo: '',
+  labResults: '',
+});
+
+function unwrapArray<T>(res: ApiResponse<T[] | { data?: T[] }>): ApiResponse<T[]> {
+  if (!res.success) return res as ApiResponse<T[]>;
+  const d = res.data;
+  if (Array.isArray(d)) return { ...res, data: d };
+  if (d && typeof d === 'object' && Array.isArray((d as { data?: T[] }).data)) {
+    return { ...res, data: (d as { data: T[] }).data };
+  }
+  return { ...res, data: [] };
+}
+
+function unwrapOne<T>(res: ApiResponse<T | { data?: T }>): ApiResponse<T> {
+  if (!res.success || res.data == null) return res as ApiResponse<T>;
+  const d = res.data;
+  if (d && typeof d === 'object' && 'data' in (d as object) && (d as { data?: T }).data != null) {
+    return { ...res, data: (d as { data: T }).data };
+  }
+  return res as ApiResponse<T>;
+}
+
 export const getPatients = async (params?: PatientListParams): Promise<ApiResponse<Patient[]>> => {
   const queryParams: Record<string, string> = {};
-  
   if (params?.page) queryParams.page = params.page.toString();
   if (params?.page_size) queryParams.page_size = params.page_size.toString();
   if (params?.search) queryParams.search = params.search;
   if (params?.patient_id) queryParams.patient_id = params.patient_id.toString();
   if (params?.gender) queryParams.gender = params.gender;
   if (params?.ordering) queryParams.ordering = params.ordering;
-  
   const res = await apiGet<Patient[] | { results?: Patient[] }>('/patients/', queryParams);
   if (!res.success || res.data == null) return res as ApiResponse<Patient[]>;
   const d = res.data;
@@ -158,66 +226,63 @@ export const getPatients = async (params?: PatientListParams): Promise<ApiRespon
   return { ...res, data: [] };
 };
 
-/**
- * Get patient by ID
- */
-export const getPatient = async (id: number): Promise<ApiResponse<Patient>> => {
-  return apiGet<Patient>(`/patients/${id}/`);
-};
+export const getPatient = async (id: number): Promise<ApiResponse<Patient>> =>
+  apiGet<Patient>(`/patients/${id}/`);
 
-/**
- * Create patient
- */
-export const createPatient = async (data: PatientData): Promise<ApiResponse<Patient>> => {
-  const apiData = patientDataToApi(data);
-  return apiPost<Patient>('/patients/', apiData);
-};
+export const getPatientPassport = async (id: number): Promise<ApiResponse<PatientPassport>> =>
+  unwrapOne(await apiGet<PatientPassport | { data?: PatientPassport }>(`/patients/${id}/passport/`));
 
-/**
- * Update patient
- */
-export const updatePatient = async (id: number, data: Partial<PatientData>): Promise<ApiResponse<Patient>> => {
-  const apiData = patientDataToApi(data as PatientData);
-  return apiPatch<Patient>(`/patients/${id}/`, apiData);
-};
+export const createPatient = async (data: PatientData): Promise<ApiResponse<Patient>> =>
+  apiPost<Patient>('/patients/', patientDataToApi(data));
 
-/**
- * Delete patient
- */
-export const deletePatient = async (id: number): Promise<ApiResponse<void>> => {
-  return apiDelete<void>(`/patients/${id}/`);
-};
+export const updatePatient = async (id: number, data: Partial<PatientData>): Promise<ApiResponse<Patient>> =>
+  apiPatch<Patient>(`/patients/${id}/`, patientDataToApi(data as PatientData));
 
-/**
- * Upload patient attachment
- */
+export const deletePatient = async (id: number): Promise<ApiResponse<void>> =>
+  apiDelete<void>(`/patients/${id}/`);
+
 export const uploadPatientAttachment = async (
   patientId: number,
-  file: File
-): Promise<ApiResponse<PatientAttachment>> => {
-  return apiUpload<PatientAttachment>(`/patients/${patientId}/upload-attachment/`, file);
-};
+  file: File,
+): Promise<ApiResponse<PatientAttachment>> =>
+  apiUpload<PatientAttachment>(`/patients/${patientId}/upload-attachment/`, file);
 
-/**
- * Delete patient attachment
- */
 export const deletePatientAttachment = async (
   patientId: number,
-  attachmentId: number
-): Promise<ApiResponse<void>> => {
-  return apiDelete<void>(`/patients/${patientId}/attachments/${attachmentId}/`);
-};
+  attachmentId: number,
+): Promise<ApiResponse<void>> =>
+  apiDelete<void>(`/patients/${patientId}/attachments/${attachmentId}/`);
 
-/**
- * Convert Patient to PatientData for frontend use
- */
 export const convertPatientToPatientData = apiToPatientData;
 
-/** Ism/familiya/telefon bo'yicha mavjud bemorlarni topish */
+export const registerPatientPassport = async (
+  payload: Partial<PatientPassport> & {
+    first_name: string;
+    last_name: string;
+    age: string;
+  },
+): Promise<ApiResponse<PatientPassport>> =>
+  unwrapOne(await apiPost<PatientPassport | { data?: PatientPassport }>('/patients/registry/', payload));
+
+export const registrySearchPatients = async (q: string): Promise<ApiResponse<PatientPassport[]>> => {
+  const query = q.trim();
+  if (!query) return { success: true, data: [] };
+  return unwrapArray(await apiGet<PatientPassport[] | { data?: PatientPassport[] }>('/patients/registry-search/', { q: query }));
+};
+
+export const searchDistricts = async (q: string): Promise<ApiResponse<DistrictSearchHit[]>> => {
+  if (!q.trim()) return { success: true, data: [] };
+  return unwrapArray(await apiGet<DistrictSearchHit[] | { data?: DistrictSearchHit[] }>('/patients/district-search/', { q }));
+};
+
+export const getLocationStats = async (): Promise<ApiResponse<LocationStat[]>> =>
+  unwrapArray(await apiGet<LocationStat[] | { data?: LocationStat[] }>('/patients/location-stats/'));
+
 export const findPatientMatches = async (
   firstName: string,
   lastName: string,
   phone?: string,
+  fatherName?: string,
 ): Promise<ApiResponse<Patient[]>> => {
   const queryParams: Record<string, string> = {};
   const fn = firstName.trim();
@@ -225,17 +290,10 @@ export const findPatientMatches = async (
   if (fn) queryParams.first_name = fn;
   if (ln) queryParams.last_name = ln;
   if (phone?.trim()) queryParams.phone = phone.trim();
-  const res = await apiGet<Patient[] | { data?: Patient[] }>('/patients/match/', queryParams);
-  if (!res.success) return res as ApiResponse<Patient[]>;
-  const d = res.data;
-  if (Array.isArray(d)) return { ...res, data: d };
-  if (d && typeof d === 'object' && Array.isArray((d as { data?: Patient[] }).data)) {
-    return { ...res, data: (d as { data: Patient[] }).data };
-  }
-  return { ...res, data: [] };
+  if (fatherName?.trim()) queryParams.father_name = fatherName.trim();
+  return unwrapArray(await apiGet<Patient[] | { data?: Patient[] }>('/patients/match/', queryParams));
 };
 
-/** Bemorning barcha oldingi tahlillari */
 export const getPatientClinicalTimeline = async (
   patientId: number,
   limit = 200,
@@ -255,19 +313,8 @@ export const getPatientClinicalTimeline = async (
   return res as ApiResponse<ClinicalTimeline>;
 };
 
-/** Klinika guruhi bo'yicha aqlli qidiruv (server) */
 export const smartSearchPatients = async (q: string): Promise<ApiResponse<SmartPatientHit[]>> => {
   const query = q.trim();
   if (!query) return { success: true, data: [] };
-  const res = await apiGet<SmartPatientHit[] | { data?: SmartPatientHit[] }>(
-    '/patients/smart-search/',
-    { q: query },
-  );
-  if (!res.success) return res as ApiResponse<SmartPatientHit[]>;
-  const d = res.data;
-  if (Array.isArray(d)) return { ...res, data: d };
-  if (d && typeof d === 'object' && Array.isArray((d as { data?: SmartPatientHit[] }).data)) {
-    return { ...res, data: (d as { data: SmartPatientHit[] }).data };
-  }
-  return { ...res, data: [] };
+  return unwrapArray(await apiGet<SmartPatientHit[] | { data?: SmartPatientHit[] }>('/patients/smart-search/', { q: query }));
 };

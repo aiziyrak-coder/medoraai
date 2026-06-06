@@ -130,17 +130,6 @@ export function buildRiskExportLines(report: FinalReport, tr: ExportTr): string[
   return lines;
 }
 
-export function buildCheckUpExportLines(report: FinalReport, tr: ExportTr): string[] {
-  return (report.checkUpRecommendations || []).map((c) => {
-    const parts = [c.screeningName];
-    if (c.frequency) parts.push(`${tr('checkup_frequency', 'Chastota')}: ${c.frequency}`);
-    if (c.reason) parts.push(c.reason);
-    if (c.guidelineSource) parts.push(`${tr('checkup_guideline_source', 'Qo\'llanma')}: ${c.guidelineSource}`);
-    if (c.evidenceLevel) parts.push(`${tr('checkup_evidence_level', 'Dalil')}: ${c.evidenceLevel}`);
-    return parts.join(' | ');
-  });
-}
-
 export function buildIndividualDietLines(report: FinalReport, tr: ExportTr): string[] {
   const plans = report.nutritionPrevention?.individualDietByDiagnosis;
   if (!plans?.length) return [];

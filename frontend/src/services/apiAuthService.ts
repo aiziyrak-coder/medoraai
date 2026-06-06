@@ -32,7 +32,7 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
   return {
     phone: String(apiUser.phone ?? ''),
     name: String(apiUser.name ?? ''),
-    role: 'clinic',
+    role: (apiUser.role === 'staff' ? 'staff' : 'clinic') as User['role'],
     specialties: Array.isArray(apiUser.specialties) ? apiUser.specialties as string[] : undefined,
     subscriptionStatus: (apiUser.subscription_status as User['subscriptionStatus']) ?? apiUser.subscriptionStatus as User['subscriptionStatus'] ?? 'inactive',
     subscriptionExpiry: apiUser.subscription_expiry != null ? String(apiUser.subscription_expiry) : apiUser.subscriptionExpiry as string | undefined,
@@ -46,6 +46,7 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
 
 /** Foydalanuvchining obunasi faolmi (backend has_active_subscription bilan mos; trial yo'q) */
 export function hasActiveSubscription(user: User): boolean {
+  if (user.role === 'staff') return true;
   if (user.isStaff || user.isSuperuser) return true;
   if (typeof user.hasActiveSubscription === 'boolean') return user.hasActiveSubscription;
   if (user.subscriptionStatus === 'pending') return false;

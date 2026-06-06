@@ -8,7 +8,6 @@ ${AI_CITATION_FORMAT_RULES}
 14. imagingInterpretation: EKG/UZI/rengen/KT/MRI uchun ecg, ultrasound, xray, ct, mri (har biri: summary, keyFindings[], clinicalSignificance, limitations) va generalCorrelation.
 17. patientRouting: recommendedSpecialists[{specialty, reason, urgency}], examPlan[], disposition (outpatient|observation|inpatient|emergency), dispositionReason, followUpTimeline, hospitalizationIndicated, hospitalizationReason.
 18. riskFactors: [{factor, severity, mitigation}]. severityAssessment: {level: critical|urgent|moderate|low, score 1-10, rationale, redFlags[]}.
-19. checkUpRecommendations: profilaktik skrining [{screeningName, frequency, reason, priority}].
 15. medicationRecommendations: har dori uchun notes ichida qo'llanma + adverseEffects (nojo'ya ta'sirlar ro'yxati), contraindications, monitoring. adverseEventRisks: [{drug, risk, probability 0-1, management}].
 16. nutritionPrevention.individualDietByDiagnosis: har bir asosiy tashxis uchun {diagnosis, allowedFoods[], restrictedFoods[], mealPlanNotes} — individual parhez (O'zbekiston oziq-ovqat realiati).
 MUHIM: Tashxis faqat shikoyat/anamnez emas — ob'ektiv, lab, EKG/UZI/rengen, mutaxassis munozarasi va DDX sintezi asosida.
@@ -73,7 +72,6 @@ export const ENHANCED_FINAL_REPORT_SCHEMA_PROPS = {
   },
   riskFactors: { type: 'array', items: { type: 'object', properties: { factor: { type: 'string' }, severity: { type: 'string' }, mitigation: { type: 'string' } } } },
   severityAssessment: { type: 'object', properties: { level: { type: 'string' }, score: { type: 'number' }, rationale: { type: 'string' }, redFlags: { type: 'array', items: { type: 'string' } } } },
-  checkUpRecommendations: { type: 'array', items: { type: 'object', properties: { screeningName: { type: 'string' }, frequency: { type: 'string' }, reason: { type: 'string' }, priority: { type: 'string' } } } },
   adverseEventRisks: {
     type: 'array',
     items: {

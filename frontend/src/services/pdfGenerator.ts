@@ -17,7 +17,6 @@ import {
     buildIndividualDietLines,
     buildRoutingExportLines,
     buildRiskExportLines,
-    buildCheckUpExportLines,
 } from '../utils/exportReportSections';
 import {
     createExportTr,
@@ -490,13 +489,6 @@ export const generatePdfReport = async (
         y += 2;
         addSectionTitle(tr('risk_factors_title', 'Xavf omillari va og\'irlik'));
         riskLines.forEach((line) => addBullet(line));
-    }
-
-    const checkUpLines = buildCheckUpExportLines(report, tr);
-    if (checkUpLines.length > 0) {
-        y += 2;
-        addSectionTitle(tr('final_report_checkup_title', 'Profilaktik tekshiruvlar'));
-        checkUpLines.forEach((line) => addBullet(line));
     }
 
     // Treatment plan

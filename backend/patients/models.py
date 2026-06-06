@@ -14,18 +14,21 @@ class Patient(models.Model):
         ('other', 'Boshqa'),
     ]
     
-    # Basic Information
+    # Basic Information (pasport ma'lumotlari — barcha klinika guruhlarida ko'rinadi)
     first_name = models.CharField(max_length=255, verbose_name='Ism')
     last_name = models.CharField(max_length=255, verbose_name='Familiya')
+    father_name = models.CharField(max_length=255, blank=True, verbose_name='Otasining ismi')
     age = models.CharField(max_length=10, verbose_name='Yosh')
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, verbose_name='Jins')
     
     # Contact Information
     phone = models.CharField(max_length=20, blank=True, verbose_name='Telefon')
-    address = models.TextField(blank=True, verbose_name='Manzil')
+    address = models.TextField(blank=True, verbose_name="Manzil (qo'shimcha)")
+    region_id = models.CharField(max_length=10, blank=True, db_index=True, verbose_name='Viloyat ID')
+    district_id = models.CharField(max_length=10, blank=True, db_index=True, verbose_name='Tuman ID')
     
-    # Clinical Information
-    complaints = models.TextField(verbose_name='Shikoyatlar')
+    # Clinical Information (faqat bemor klinika guruhi uchun)
+    complaints = models.TextField(blank=True, default='', verbose_name='Shikoyatlar')
     history = models.TextField(blank=True, verbose_name='Anamnez')
     objective_data = models.TextField(blank=True, verbose_name='Ob\'ektiv ma\'lumotlar')
     lab_results = models.TextField(blank=True, verbose_name='Laboratoriya natijalari')
@@ -48,6 +51,14 @@ class Patient(models.Model):
         related_name='created_patients',
         verbose_name='Yaratgan'
     )
+    home_clinic_group = models.ForeignKey(
+        'accounts.ClinicGroup',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='registered_patients',
+        verbose_name='Ro\'yxatdan o\'tgan klinika guruhi',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Yaratilgan sana')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Yangilangan sana')
     
@@ -60,7 +71,9 @@ class Patient(models.Model):
             models.Index(fields=['created_at']),
             models.Index(fields=['created_by']),
             models.Index(fields=['created_by', 'created_at']),  # Composite for common queries
-            models.Index(fields=['phone']),  # For phone searches
+            models.Index(fields=['phone']),
+            models.Index(fields=['region_id', 'district_id']),
+            models.Index(fields=['home_clinic_group']),
         ]
     
     def __str__(self):

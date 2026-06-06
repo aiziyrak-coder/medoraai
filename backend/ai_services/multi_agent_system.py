@@ -642,7 +642,6 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   "patient_routing": {{ "recommended_specialists": [], "exam_plan": [], "disposition": "outpatient", "disposition_reason": "", "follow_up_timeline": "", "hospitalization_indicated": false, "hospitalization_reason": "" }},
   "risk_factors": [],
   "severity_assessment": {{ "level": "moderate", "score": 5, "rationale": "", "red_flags": [] }},
-  "check_up_recommendations": [],
   "adverse_event_risks": [],
   "agent_weights_used": {{}}
 }}"""

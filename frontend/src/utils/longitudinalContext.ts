@@ -24,52 +24,6 @@ export function getPriorAnalysesForPatient(all: AnalysisRecord[], patientKey: st
     return list.sort((a, b) => recordTime(b) - recordTime(a));
 }
 
-export interface RecentPatientGroup {
-    patientKey: string;
-    label: string;
-    lastDate: string;
-    count: number;
-    /** Shu bemorga tegishli tahlillar (eng yangisi birinchi) */
-    records: AnalysisRecord[];
-}
-
-/** Bemorni guruhlash kaliti: avval patientId, bo'lmasa FIO */
-export function patientGroupKey(record: AnalysisRecord): string {
-    const id = String(record.patientId ?? '').trim();
-    if (id) return `id:${id}`;
-    const pd = record.patientData;
-    const name = `${pd.lastName || ''}|${pd.firstName || ''}|${pd.fatherName || ''}`.trim().toLowerCase();
-    if (name && name !== '||') return `name:${name}`;
-    return `analysis:${record.id}`;
-}
-
-/** Mahalliy tarixdan bemorlar guruhi — patientId yoki FIO bo'yicha bitta qator */
-export function groupRecentPatientsFromHistory(records: AnalysisRecord[]): RecentPatientGroup[] {
-    const map = new Map<string, AnalysisRecord[]>();
-    for (const r of records) {
-        const key = patientGroupKey(r);
-        if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(r);
-    }
-    const out: RecentPatientGroup[] = [];
-    for (const [key, list] of map) {
-        const sorted = [...list].sort((a, b) => recordTime(b) - recordTime(a));
-        const last = sorted[0];
-        out.push({
-            patientKey: key,
-            label: `${last.patientData.lastName || ''} ${last.patientData.firstName || ''}`.trim()
-                || `${last.patientData.firstName || ''} ${last.patientData.lastName || ''}`.trim()
-                || key,
-            lastDate: last.date,
-            count: sorted.length,
-            records: sorted,
-        });
-    }
-    return out
-        .sort((a, b) => new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime())
-        .slice(0, 24);
-}
-
 function trendHint(oldText: string, newText: string, lang: Language): string {
     const o = (oldText || '').trim();
     const n = (newText || '').trim();

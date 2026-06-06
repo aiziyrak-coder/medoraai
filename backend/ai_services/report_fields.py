@@ -28,7 +28,6 @@ QO'SHIMCHA MAJBURIY MAYDONLAR (til: {language_hint}):
 - patient_routing: {{ recommended_specialists [{{specialty, reason, urgency}}], exam_plan[], disposition (outpatient|observation|inpatient|emergency), disposition_reason, follow_up_timeline, hospitalization_indicated, hospitalization_reason }}.
 - risk_factors: [{{ factor, severity (high|medium|low), mitigation }}].
 - severity_assessment: {{ level (critical|urgent|moderate|low), score (1-10), rationale, red_flags[] }}.
-- check_up_recommendations: [{{ screening_name, frequency, reason, priority (high|medium|low) }}] — profilaktik skrining.
 - medications: har birida adverse_effects[] (nojo'ya ta'sirlar), contraindications, monitoring.
 - nutrition_prevention: individual_diet_by_diagnosis[] MAJBURIY (kamida konsensus tashxisi uchun 1 qator) — har tashxis: diagnosis, allowed_foods[], restricted_foods[], meal_plan_notes (umumiy emas, aniq parhez).
 - adverse_event_risks: [{{ drug, risk, probability (0-1), management }}] — dori xavflari.
@@ -327,26 +326,6 @@ def normalize_severity_assessment(raw: Any) -> Optional[dict]:
     return out
 
 
-def normalize_check_up_recommendations(raw: Any) -> list[dict]:
-    if not isinstance(raw, list):
-        return []
-    out = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        name = str(item.get("screening_name") or item.get("screeningName") or "").strip()
-        if not name:
-            continue
-        pr = str(item.get("priority") or "medium").lower()
-        out.append({
-            "screeningName": name,
-            "frequency": str(item.get("frequency") or "").strip(),
-            "reason": str(item.get("reason") or "").strip(),
-            "priority": pr if pr in ("high", "medium", "low") else "medium",
-        })
-    return out
-
-
 def merge_enriched_report_fields(report: dict, consensus: dict) -> dict:
     """Mavjud final_report dict ga yangi maydonlarni qo'shadi."""
     gaps = normalize_protocol_gaps(
@@ -412,12 +391,6 @@ def merge_enriched_report_fields(report: dict, consensus: dict) -> dict:
     )
     if severity:
         report["severityAssessment"] = severity
-
-    check_up = normalize_check_up_recommendations(
-        consensus.get("check_up_recommendations") or consensus.get("checkUpRecommendations")
-    )
-    if check_up:
-        report["checkUpRecommendations"] = check_up
 
     sfe = _s(consensus.get("simplified_family_explanation") or consensus.get("simplifiedFamilyExplanation"))
     if sfe:

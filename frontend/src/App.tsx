@@ -41,12 +41,11 @@ import RectorDashboard from './components/RectorDashboard';
 import DataInputForm from './components/DataInputForm';
 const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
-const ResearchView = lazy(() => import('./components/ResearchView'));
-const CheckUpModule = lazy(() => import('./components/CheckUpModule'));
-const TelemedicineHub = lazy(() => import('./components/TelemedicineHub'));
-const PatientPortalView = lazy(() => import('./components/PatientPortalView'));
+const ToolsDashboard = lazy(() => import('./components/ToolsDashboard'));
+import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
+import RegistrarPanel from './components/registrar/RegistrarPanel';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
 const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
@@ -435,8 +434,13 @@ const AppContent: React.FC = () => {
 
     const handleLoginSuccess = (user: User) => {
         setCurrentUser(user);
-        setShowLanding(false); // Hide landing after successful login
-        // Barcha rollar uchun tahlillarni faqat bazadan (API) yuklash; lokal fallback ishlatilmaydi
+        setShowLanding(false);
+        if (user.role === 'staff') {
+            setUserHistory([]);
+            setDashboardStats(null);
+            setAppView('registrar');
+            return;
+        }
         caseService.loadDashboardStatsFromApi().then(result => {
             if (result) {
                 setUserHistory(result.list);
@@ -1057,6 +1061,13 @@ const AppContent: React.FC = () => {
 
     const renderMainContent = () => {
         switch (appView) {
+            case 'registrar':
+                return (
+                    <ScrollWrapper>
+                        <RegistrarPanel user={currentUser!} />
+                    </ScrollWrapper>
+                );
+
             case 'dashboard':
                 return (
                     <ScrollWrapper>
@@ -1064,10 +1075,8 @@ const AppContent: React.FC = () => {
                             userName={currentUser!.name}
                             onNewAnalysis={() => handleNavigation('new_analysis')}
                             onViewHistory={() => setAppView('history')}
-                            onOpenCheckUp={() => setAppView('check_up')}
-                            onOpenTelemedicine={() => setAppView('telemedicine')}
-                            onOpenResearch={() => setAppView('research')}
-                            onOpenPatientPortal={() => setAppView('patient_portal')}
+                            onOpenUziUtt={() => setAppView('uzi_utt')}
+                            onOpenTools={() => setAppView('tools')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
                             onSelectAnalysis={viewHistoryItem}
@@ -1175,56 +1184,27 @@ const AppContent: React.FC = () => {
                     </div>
                 );
 
-            case 'check_up':
+            case 'uzi_utt':
                 return (
                     <div className="min-h-full flex flex-col min-w-0">
-                        <BackBar title={t('checkup_page_title')} subtitle={t('checkup_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <BackBar
+                            title={t('uzi_utt_page_title')}
+                            subtitle={t('uzi_utt_page_subtitle')}
+                            onBack={() => handleNavigation('dashboard')}
+                        />
                         <ScrollWrapper>
-                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <CheckUpModule />
-                            </Suspense>
+                            <UziUttAnalyzer />
                         </ScrollWrapper>
                     </div>
                 );
 
-            case 'telemedicine':
+            case 'tools':
                 return (
                     <div className="min-h-full flex flex-col min-w-0">
-                        <BackBar title={t('telemedicine_page_title')} subtitle={t('telemedicine_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <BackBar title={t('tools_page_title')} subtitle={t('tools_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <TelemedicineHub
-                                    lastAnalysis={userHistory[0] ?? null}
-                                    recentAnalyses={userHistory.slice(0, 12)}
-                                    onBack={() => handleNavigation('dashboard')}
-                                />
-                            </Suspense>
-                        </ScrollWrapper>
-                    </div>
-                );
-
-            case 'research':
-                return (
-                    <div className="min-h-full flex flex-col min-w-0">
-                        <BackBar title={t('research_center_title')} subtitle={t('research_view_subtitle')} onBack={() => handleNavigation('dashboard')} />
-                        <ScrollWrapper>
-                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <ResearchView />
-                            </Suspense>
-                        </ScrollWrapper>
-                    </div>
-                );
-
-            case 'patient_portal':
-                return (
-                    <div className="min-h-full flex flex-col min-w-0">
-                        <BackBar title={t('patient_portal_page_title')} subtitle={t('patient_portal_page_subtitle')} onBack={() => handleNavigation('dashboard')} />
-                        <ScrollWrapper>
-                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <PatientPortalView
-                                    analyses={userHistory}
-                                    onStartConsultation={() => handleNavigation('new_analysis')}
-                                />
+                                <ToolsDashboard />
                             </Suspense>
                         </ScrollWrapper>
                     </div>
@@ -1302,7 +1282,7 @@ const AppContent: React.FC = () => {
                 <div className="glass-panel page-px py-2.5 flex flex-wrap justify-between items-center gap-x-2 gap-y-2 shadow-lg shadow-blue-500/5 w-full min-w-0">
                     {/* Logo */}
                     <button
-                        onClick={() => handleNavigation('dashboard')}
+                        onClick={() => handleNavigation(currentUser?.role === 'staff' ? 'registrar' : 'dashboard')}
                         className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-80 transition-opacity"
                     >
                         <img src={INSTITUTE_LOGO_SRC} alt={INSTITUTE_NAME_SHORT} className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shrink-0 bg-slate-100" />
@@ -1403,7 +1383,9 @@ const AppContent: React.FC = () => {
                 </div>
             </footer>
             
-            <MobileNavBar activeView={appView} onNavigate={handleNavigation as (view: 'dashboard' | 'new_analysis' | 'history' | 'research') => void} />
+            {currentUser?.role !== 'staff' && (
+                <MobileNavBar activeView={appView} onNavigate={handleNavigation as (view: 'dashboard' | 'new_analysis' | 'history' | 'research') => void} />
+            )}
         </div>
     );
 };

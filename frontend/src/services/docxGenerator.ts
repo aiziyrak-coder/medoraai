@@ -13,7 +13,6 @@ import {
     buildIndividualDietLines,
     buildRoutingExportLines,
     buildRiskExportLines,
-    buildCheckUpExportLines,
 } from '../utils/exportReportSections';
 import { createExportTr, formatExportDate, pdfText } from '../utils/exportI18n';
 
@@ -176,12 +175,6 @@ export const generateDocxReport = async (
         ...(buildRiskExportLines(report, tr).length > 0 ? [
             createHeading2(tr('risk_factors_title', 'Xavf omillari va og\'irlik')),
             ...buildRiskExportLines(report, tr).map((line) => createListItem(line)),
-            new Paragraph({ text: '' }),
-        ] : []),
-
-        ...(buildCheckUpExportLines(report, tr).length > 0 ? [
-            createHeading2(tr('final_report_checkup_title', 'Profilaktik tekshiruvlar')),
-            ...buildCheckUpExportLines(report, tr).map((line) => createListItem(line)),
             new Paragraph({ text: '' }),
         ] : []),
 
