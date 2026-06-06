@@ -2,12 +2,11 @@ import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
-import {
-    INSTITUTE_PHONE_1,
-    INSTITUTE_PHONE_2,
-    PDF_PRODUCT_PUBLIC_URL,
-    PDF_PRODUCT_WEBSITE_DISPLAY,
-} from '../constants/brand';
+/** PDF footer — faqat shu faylda; brauzer keshi uchun aniq qiymatlar */
+const PDF_FOOTER_SITE = 'fjsti.ziyrak.org';
+const PDF_FOOTER_PUBLIC_URL = `https://${PDF_FOOTER_SITE}`;
+const PDF_FOOTER_PHONE_1 = '+998 99 575 11 11';
+const PDF_FOOTER_PHONE_2 = '+998907863888';
 import type { Language } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translationKeys';
 import {
@@ -143,7 +142,7 @@ export const generatePdfReport = async (
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
-        qrDataUrl = await QRCode.toDataURL(PDF_PRODUCT_PUBLIC_URL, {
+        qrDataUrl = await QRCode.toDataURL(PDF_FOOTER_PUBLIC_URL, {
             width: 80,
             margin: 1,
             color: { dark: '#1e293b', light: '#ffffff' },
@@ -276,7 +275,7 @@ export const generatePdfReport = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text(`${tr('pdf_scan', 'Skannerlang')} →`, qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
-        doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
+        doc.text(PDF_FOOTER_SITE, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
     
     // Move past QR code area
@@ -691,9 +690,9 @@ export const generatePdfReport = async (
 
     // Platform promo text for last page (rasmiy AiDoktor blanka — FJSTI emas)
     const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
-    const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
-    const promoPhone = INSTITUTE_PHONE_1;
-    const promoPhone2 = INSTITUTE_PHONE_2;
+    const promoLink = PDF_FOOTER_SITE;
+    const promoPhone = PDF_FOOTER_PHONE_1;
+    const promoPhone2 = PDF_FOOTER_PHONE_2;
     
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -734,7 +733,7 @@ export const generatePdfReport = async (
     // Row 3: Mahsulot veb-sayti (AiDoktor)
     doc.setFont(fontName, 'italic');
     doc.setTextColor(30, 100, 180);
-    doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);
+    doc.text(PDF_FOOTER_SITE, MARGIN + 3, promoY + 10);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(
@@ -782,7 +781,7 @@ export const generateUziUttPdf = async (
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
-        qrDataUrl = await QRCode.toDataURL(PDF_PRODUCT_PUBLIC_URL, {
+        qrDataUrl = await QRCode.toDataURL(PDF_FOOTER_PUBLIC_URL, {
             width: 80,
             margin: 1,
             color: { dark: '#1e293b', light: '#ffffff' },
@@ -881,7 +880,7 @@ export const generateUziUttPdf = async (
         doc.setFontSize(6);
         doc.setTextColor(120, 120, 120);
         doc.text(`${tr('pdf_scan', 'Skannerlang')} →`, qrX + qrSize / 2, qrY + qrSize + 2, { align: 'center' });
-        doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
+        doc.text(PDF_FOOTER_SITE, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     }
 
     y = Math.max(y + 4, qrY + qrSize + 8);
@@ -923,9 +922,9 @@ export const generateUziUttPdf = async (
     const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
     const pageCount = doc.getNumberOfPages();
     const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
-    const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
-    const promoPhone = INSTITUTE_PHONE_1;
-    const promoPhone2 = INSTITUTE_PHONE_2;
+    const promoLink = PDF_FOOTER_SITE;
+    const promoPhone = PDF_FOOTER_PHONE_1;
+    const promoPhone2 = PDF_FOOTER_PHONE_2;
 
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -955,7 +954,7 @@ export const generateUziUttPdf = async (
     doc.text(`${tr('pdf_tel_label', 'Tel')}: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
     doc.setFont(fontName, 'italic');
     doc.setTextColor(30, 100, 180);
-    doc.text(PDF_PRODUCT_WEBSITE_DISPLAY, MARGIN + 3, promoY + 10);
+    doc.text(PDF_FOOTER_SITE, MARGIN + 3, promoY + 10);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(`  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`, MARGIN + 24, promoY + 10);

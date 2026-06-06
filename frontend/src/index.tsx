@@ -32,7 +32,7 @@ root.render(
  * Service Worker: "sweep" — eski SW/keshni majburan yangilash.
  * Yangi fayl nomi: eski /service-worker.js (50+ qator, fetch) kesh bilan aralashmaydi.
  */
-const SW_CLEANUP_URL = '/medora-sw-cleanup.js?v=medora-sweep-6';
+const SW_CLEANUP_URL = '/medora-sw-cleanup.js?v=medora-sweep-7';
 
 if ('serviceWorker' in navigator) {
   const clearWebCaches = async () => {
