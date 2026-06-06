@@ -10,7 +10,6 @@ import {
     buildImagingExportLines,
     buildProtocolGapsLines,
     buildCareAuditLines,
-    buildMedicationExportLine,
     buildIndividualDietLines,
     buildRoutingExportLines,
     buildRiskExportLines,
@@ -136,13 +135,6 @@ export const generatePdfReport = async (
         return lines.length;
     };
 
-    const sourceUrl = (title: string, url?: string) => {
-        const raw = (url || '').trim();
-        if (/^https?:\/\//i.test(raw)) return raw;
-        const q = encodeURIComponent(title || raw || 'clinical guideline');
-        return `https://pubmed.ncbi.nlm.nih.gov/?term=${q}`;
-    };
-
     // Generate QR code for platform
     let qrDataUrl = '';
     try {
@@ -247,42 +239,6 @@ export const generatePdfReport = async (
             doc.text(line, indent + (i > 0 ? 4 : 0), y);
             y += COMPACT_LINE;
         });
-        y += 1.5;
-    };
-
-    const addLinkedSource = (title: string, url: string, summary?: string) => {
-        const indent = MARGIN + 4;
-        const maxWidth = pageWidth - MARGIN * 2 - 8;
-
-        doc.setFontSize(9);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(25, 90, 180);
-        const titleLines = doc.splitTextToSize(title || url, maxWidth);
-        titleLines.forEach((line: string, i: number) => {
-            ensureSpace(COMPACT_LINE + 2);
-            if (i === 0) doc.text('\u2022', MARGIN + 2, y);
-            const x = indent + (i > 0 ? 4 : 0);
-            doc.text(line, x, y);
-            doc.link(x, y - 3, Math.min(doc.getTextWidth(line), maxWidth), COMPACT_LINE + 1, { url });
-            y += COMPACT_LINE;
-        });
-
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(25, 90, 180);
-        const urlLines = doc.splitTextToSize(url, maxWidth - 4);
-        urlLines.forEach((line: string) => {
-            ensureSpace(COMPACT_LINE + 2);
-            const x = indent + 4;
-            doc.text(line, x, y);
-            doc.link(x, y - 3, Math.min(doc.getTextWidth(line), maxWidth - 4), COMPACT_LINE + 1, { url });
-            y += COMPACT_LINE;
-        });
-
-        if (summary) {
-            doc.setFontSize(7);
-            doc.setTextColor(70, 70, 70);
-            addWrappedText(summary, indent + 4, maxWidth - 4, 3.2);
-        }
         y += 1.5;
     };
 
@@ -463,16 +419,18 @@ export const generatePdfReport = async (
     // === CONSENSUS SECTION ===
     addHeader(tr('pdf_consensus', "Konsilium Konsensusi"));
 
-    // Diagnoses in compact table format
-    addSectionTitle(tr('pdf_diagnoses', "Tashxislar"));
-    const diagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis).slice(0, 4);
-    diagnoses.forEach((diag, idx) => {
+    // Faqat eng yuqori ehtimollikdagi asosiy tashxis
+    addSectionTitle(tr('pdf_diagnosis', 'Tashxis'));
+    const diagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis)
+        .sort((a, b) => (b.probability ?? 0) - (a.probability ?? 0))
+        .slice(0, 1);
+    diagnoses.forEach((diag) => {
         ensureSpace(14);
         const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
         doc.setFontSize(9);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(40, 80, 120);
-        const titleLine = `${idx + 1}. ${diag.name} (${pct}) — ${diag.evidenceLevel || 'N/A'}`;
+        const titleLine = `${diag.name} (${pct}) — ${diag.evidenceLevel || 'N/A'}`;
         const diagnosisLines = doc.splitTextToSize(titleLine, pageWidth - MARGIN * 2);
         diagnosisLines.forEach((line: string) => {
             ensureSpace(COMPACT_LINE + 1);
@@ -546,16 +504,6 @@ export const generatePdfReport = async (
             const s = typeof step === 'string' ? step : 
                 (typeof step === 'object' && step !== null ? Object.values(step as Record<string, unknown>).filter(Boolean).join(' - ') : String(step ?? ''));
             addBullet(s);
-        });
-    }
-
-    // Medications
-    if (report.medicationRecommendations && report.medicationRecommendations.length > 0) {
-        y += 2;
-        addSectionTitle(tr('pdf_medications', "Dori Tavsiyalari"));
-        const meds = report.medicationRecommendations.slice(0, 6);
-        meds.forEach(med => {
-            addBullet(buildMedicationExportLine(med, tr));
         });
     }
 
@@ -703,30 +651,6 @@ export const generatePdfReport = async (
                 ? Math.round(risk.probability <= 1 ? risk.probability * 100 : risk.probability)
                 : 0;
             addBullet(`${pdfText(risk.drug)}: ${pdfText(risk.risk)} (~${prob}%)${mgmt}`);
-        });
-    }
-
-    // Rejected hypotheses
-    if (report.rejectedHypotheses && report.rejectedHypotheses.length > 0) {
-        y += 2;
-        addSectionTitle(tr('pdf_rejected', "Rad Etilgan Gipotezalar"));
-        const hypotheses = report.rejectedHypotheses.slice(0, 3);
-        hypotheses.forEach(hyp => {
-            doc.setFontSize(8);
-            doc.setTextColor(100, 100, 100);
-            addBullet(`${hyp.name}: ${hyp.reason}`);
-        });
-        doc.setFontSize(9);
-        doc.setTextColor(40, 40, 40);
-    }
-
-    // Evidence sources and article/guideline links
-    if (report.relatedResearch && report.relatedResearch.length > 0) {
-        y += 2;
-        addSectionTitle(tr('final_report_related_research_title', 'Dalillar va manbalar'));
-        report.relatedResearch.slice(0, 6).forEach((item) => {
-            const url = sourceUrl(item.title, item.url);
-            addLinkedSource(item.title, url, item.summary);
         });
     }
 
