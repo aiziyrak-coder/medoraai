@@ -2,7 +2,12 @@ import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
-import { PDF_PRODUCT_PUBLIC_URL, PDF_PRODUCT_WEBSITE_DISPLAY } from '../constants/brand';
+import {
+    INSTITUTE_PHONE_1,
+    INSTITUTE_PHONE_2,
+    PDF_PRODUCT_PUBLIC_URL,
+    PDF_PRODUCT_WEBSITE_DISPLAY,
+} from '../constants/brand';
 import type { Language } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translationKeys';
 import {
@@ -687,8 +692,8 @@ export const generatePdfReport = async (
     // Platform promo text for last page (rasmiy AiDoktor blanka — FJSTI emas)
     const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
     const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
-    const promoPhone = "+998 99 575 11 11";
-    const promoPhone2 = "+998 93 777 31 54";
+    const promoPhone = INSTITUTE_PHONE_1;
+    const promoPhone2 = INSTITUTE_PHONE_2;
     
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -919,8 +924,8 @@ export const generateUziUttPdf = async (
     const pageCount = doc.getNumberOfPages();
     const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
     const promoLink = PDF_PRODUCT_WEBSITE_DISPLAY;
-    const promoPhone = "+998 99 575 11 11";
-    const promoPhone2 = "+998 93 777 31 54";
+    const promoPhone = INSTITUTE_PHONE_1;
+    const promoPhone2 = INSTITUTE_PHONE_2;
 
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);

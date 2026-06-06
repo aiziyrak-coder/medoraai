@@ -1,8 +1,8 @@
 """
-FJSTI guruhiga bulk foydalanuvchilar: +998900000000 … +998900000250
-Parol: fjsti123, 1 yillik faol obuna.
+Klinika guruhiga bulk foydalanuvchilar yaratish.
 
   python manage.py create_fjsti_bulk_users
+  python manage.py create_fjsti_bulk_users --start 300 --end 315 --group-name "Oybek raddom" --password raddom123 --days 30
   python manage.py create_fjsti_bulk_users --dry-run
 """
 from datetime import timedelta
@@ -14,29 +14,44 @@ from accounts.models import ClinicGroup, SubscriptionPlan, User
 
 
 class Command(BaseCommand):
-    help = "FJSTI guruhi uchun telefon raqamlari orqali bulk foydalanuvchilar yaratadi"
+    help = "Klinika guruhi uchun telefon raqamlari orqali bulk foydalanuvchilar yaratadi"
 
     def add_arguments(self, parser):
         parser.add_argument('--start', type=int, default=0, help='Raqam suffiksi boshlanishi (default 0)')
         parser.add_argument('--end', type=int, default=250, help='Raqam suffiksi tugashi (default 250)')
         parser.add_argument('--prefix', type=str, default='+998900000', help='Telefon prefiksi')
         parser.add_argument('--password', type=str, default='fjsti123')
+        parser.add_argument('--group-name', type=str, default='FJSTI', help='Klinika guruhi nomi')
+        parser.add_argument('--days', type=int, default=365, help='Obuna davri (kun)')
+        parser.add_argument('--user-prefix', type=str, default='', help='Foydalanuvchi ismi prefiksi (bo\'sh = guruh nomi)')
         parser.add_argument('--dry-run', action='store_true')
+
+    def _resolve_group(self, group_name: str) -> ClinicGroup:
+        if group_name.strip().upper() == 'FJSTI':
+            return ClinicGroup.get_default_fjsti_group()
+        group, _ = ClinicGroup.objects.get_or_create(
+            name=group_name.strip(),
+            defaults={'is_active': True},
+        )
+        return group
 
     def handle(self, *args, **options):
         start = options['start']
         end = options['end']
         prefix = options['prefix']
         password = options['password']
+        group_name = options['group_name']
+        days = max(1, int(options['days']))
+        user_prefix = (options['user_prefix'] or group_name).strip()
         dry = options['dry_run']
 
         if start > end:
             self.stderr.write(self.style.ERROR('start end dan katta bo\'lmasligi kerak'))
             return
 
-        group = ClinicGroup.get_default_fjsti_group()
+        group = self._resolve_group(group_name)
         plan = SubscriptionPlan.objects.filter(slug='clinic').first()
-        expiry = timezone.now() + timedelta(days=365)
+        expiry = timezone.now() + timedelta(days=days)
 
         created = 0
         updated = 0
@@ -44,7 +59,7 @@ class Command(BaseCommand):
 
         for n in range(start, end + 1):
             phone = f'{prefix}{n:03d}'
-            name = f'FJSTI Foydalanuvchi {n:03d}'
+            name = f'{user_prefix} {n:03d}'
 
             if dry:
                 self.stdout.write(f'[dry-run] {phone} / {name}')
@@ -87,6 +102,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f'Tayyor: {created} yangi, {updated} yangilandi, jami {total} ta. '
-                f'Guruh: {group.name}, obuna: 365 kun (gacha {expiry.date()}), parol: {password}'
+                f'Guruh: {group.name}, obuna: {days} kun (gacha {expiry.date()}), parol: {password}'
             )
         )

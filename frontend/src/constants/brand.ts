@@ -26,7 +26,7 @@ export const INSTITUTE_LOGO_SRC = '/institute-logo.png';
 /** Primary phone */
 export const INSTITUTE_PHONE_1 = "+998 99 575 11 11";
 /** Secondary phone */
-export const INSTITUTE_PHONE_2 = "+998 93 777 31 54";
+export const INSTITUTE_PHONE_2 = "+998 90 786 38 88";
 
 /** Primary email */
 export const INSTITUTE_EMAIL_1 = "info@fjsti.uz";
@@ -51,5 +51,5 @@ export const PLATFORM_PUBLIC_URL = `https://${PLATFORM_WEBSITE}`;
  * Chop etilgan hujjatlarda institut (FJSTI) ko‘rinmaydi — mahalliy savdo / mualliflik uchun faqat mahsulot nomi.
  */
 export const PDF_PRODUCT_NAME = PLATFORM_NAME;
-export const PDF_PRODUCT_PUBLIC_URL = 'https://aidoktor.uz';
-export const PDF_PRODUCT_WEBSITE_DISPLAY = 'www.aidoktor.uz';
+export const PDF_PRODUCT_PUBLIC_URL = PLATFORM_PUBLIC_URL;
+export const PDF_PRODUCT_WEBSITE_DISPLAY = PLATFORM_WEBSITE;
