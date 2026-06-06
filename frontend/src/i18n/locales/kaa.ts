@@ -1216,6 +1216,8 @@ export const kaa: Partial<TranslationSet> = {
   portal_stat_followup: 'Keyingi kúzetiw',
   portal_stat_pending: 'Kútilmekte',
   portal_visit_history: 'Tashriflar tariyxı',
+  portal_visits_short: 'tashrif',
+  portal_patient_visits: 'Bul nawqastıń tashrifları',
   portal_urgent_alert_title: 'Muhim eskertpe',
   portal_urgent_alert_action: 'Shashılısh járdem kerek bolıwı múmkin — daraw shifokorǵa múrájat etiń.',
   portal_symptom_check_title: 'Simptomlar tekseriwi',

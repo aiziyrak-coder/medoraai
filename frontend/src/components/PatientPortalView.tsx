@@ -6,6 +6,7 @@ import { SeverityBadge } from './report/RiskFactorsCard';
 import LinkifiedText from './common/LinkifiedText';
 import SpinnerIcon from './icons/SpinnerIcon';
 import { generatePatientEducationContent } from '../services/aiCouncilService';
+import { groupRecentPatientsFromHistory } from '../utils/longitudinalContext';
 
 type PortalTab = 'overview' | 'results' | 'medications' | 'reminders' | 'education';
 
@@ -51,7 +52,13 @@ const StatCard: React.FC<{ icon: string; label: string; value: string; accent?: 
 
 const PatientPortalView: React.FC<PatientPortalViewProps> = ({ analyses, onStartConsultation }) => {
   const { t, language } = useTranslation();
-  const [selectedId, setSelectedId] = useState<string | null>(analyses[0]?.id ?? null);
+  const patientGroups = useMemo(() => groupRecentPatientsFromHistory(analyses), [analyses]);
+  const [selectedPatientKey, setSelectedPatientKey] = useState<string | null>(
+    () => patientGroups[0]?.patientKey ?? null,
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => patientGroups[0]?.records[0]?.id ?? analyses[0]?.id ?? null,
+  );
   const [tab, setTab] = useState<PortalTab>('overview');
   const [symptomText, setSymptomText] = useState('');
   const [urgentFlags, setUrgentFlags] = useState<Record<string, boolean>>({});
@@ -59,10 +66,24 @@ const PatientPortalView: React.FC<PatientPortalViewProps> = ({ analyses, onStart
   const [eduLoading, setEduLoading] = useState(false);
   const [eduError, setEduError] = useState<string | null>(null);
 
-  const selected = useMemo(
-    () => analyses.find((a) => a.id === selectedId) ?? analyses[0] ?? null,
-    [analyses, selectedId],
+  const activeGroup = useMemo(
+    () => patientGroups.find((g) => g.patientKey === selectedPatientKey) ?? patientGroups[0] ?? null,
+    [patientGroups, selectedPatientKey],
   );
+
+  const selected = useMemo(() => {
+    const byId = analyses.find((a) => a.id === selectedId);
+    if (byId) return byId;
+    return activeGroup?.records[0] ?? analyses[0] ?? null;
+  }, [analyses, selectedId, activeGroup]);
+
+  const selectPatientGroup = useCallback((groupKey: string) => {
+    const group = patientGroups.find((g) => g.patientKey === groupKey);
+    if (!group) return;
+    setSelectedPatientKey(groupKey);
+    setSelectedId(group.records[0]?.id ?? null);
+    setTab('overview');
+  }, [patientGroups]);
 
   const report = selected?.finalReport;
   const diagnoses = useMemo(
@@ -198,30 +219,58 @@ const PatientPortalView: React.FC<PatientPortalViewProps> = ({ analyses, onStart
         />
       </div>
 
-      {analyses.length > 1 && (
-        <div className="glass-panel p-4">
-          <p className="text-xs font-semibold text-slate-500 mb-2">{t('portal_visit_history')}</p>
+      {(patientGroups.length > 1 || (activeGroup?.count ?? 0) > 1) && (
+        <div className="glass-panel p-4 space-y-3">
+          <p className="text-xs font-semibold text-slate-500">{t('portal_visit_history')}</p>
           <div className="flex flex-wrap gap-2">
-            {analyses.slice(0, 10).map((rec) => {
-              const name = patientDisplayName(rec);
-              const active = selected?.id === rec.id;
+            {patientGroups.map((group) => {
+              const active = activeGroup?.patientKey === group.patientKey;
               return (
                 <button
-                  key={rec.id}
+                  key={group.patientKey}
                   type="button"
-                  onClick={() => setSelectedId(rec.id)}
-                  className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                  onClick={() => selectPatientGroup(group.patientKey)}
+                  className={`px-3 py-2 rounded-lg text-sm border transition-colors text-left ${
                     active
                       ? 'border-teal-500 bg-teal-50 text-teal-900 font-semibold'
                       : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
                   }`}
                 >
-                  <span className="block font-medium">{name}</span>
-                  <span className="text-[10px] opacity-70">{new Date(rec.date).toLocaleDateString()}</span>
+                  <span className="block font-medium">{group.label}</span>
+                  <span className="text-[10px] opacity-70">
+                    {new Date(group.lastDate).toLocaleDateString()}
+                    {group.count > 1 ? ` · ${group.count} ${t('portal_visits_short')}` : ''}
+                  </span>
                 </button>
               );
             })}
           </div>
+          {(activeGroup?.count ?? 0) > 1 && (
+            <div>
+              <p className="text-[10px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">
+                {t('portal_patient_visits')}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {activeGroup!.records.map((rec) => {
+                  const visitActive = selected?.id === rec.id;
+                  return (
+                    <button
+                      key={rec.id}
+                      type="button"
+                      onClick={() => setSelectedId(rec.id)}
+                      className={`px-2.5 py-1 rounded-md text-xs border ${
+                        visitActive
+                          ? 'border-teal-600 bg-teal-600 text-white'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
+                      }`}
+                    >
+                      {new Date(rec.date).toLocaleDateString()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

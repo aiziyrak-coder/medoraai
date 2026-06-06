@@ -852,6 +852,8 @@ export const en = {
   portal_stat_followup: 'Next follow-up',
   portal_stat_pending: 'Pending',
   portal_visit_history: 'Visit history',
+  portal_visits_short: 'visits',
+  portal_patient_visits: 'Visits for this patient',
   portal_urgent_alert_title: 'Important alert',
   portal_urgent_alert_action: 'Urgent care may be needed — contact your doctor or call emergency services.',
   portal_symptom_check_title: 'Symptom check',

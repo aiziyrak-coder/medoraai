@@ -860,6 +860,8 @@ export const uzL: TranslationSet = {
   portal_stat_followup: 'Keyingi kuzatuv',
   portal_stat_pending: 'Kutilmoqda',
   portal_visit_history: 'Tashriflar tarixi',
+  portal_visits_short: 'tashrif',
+  portal_patient_visits: 'Shu bemorni tashriflari',
   portal_urgent_alert_title: 'Muhim ogohlantirish',
   portal_urgent_alert_action: 'Shoshilinch yordam kerak bo\'lishi mumkin — darhol shifokorga murojaat qiling yoki 103 ga qo\'ng\'iroq qiling.',
   portal_symptom_check_title: 'Alomatlar tekshiruvi',

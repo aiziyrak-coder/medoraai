@@ -849,6 +849,8 @@ export const ru: TranslationSet = {
   portal_stat_followup: 'Следующий визит',
   portal_stat_pending: 'Ожидается',
   portal_visit_history: 'История визитов',
+  portal_visits_short: 'визитов',
+  portal_patient_visits: 'Визиты этого пациента',
   portal_urgent_alert_title: 'Важное предупреждение',
   portal_urgent_alert_action: 'Может потребоваться срочная помощь — обратитесь к врачу или вызовите скорую.',
   portal_symptom_check_title: 'Проверка симптомов',

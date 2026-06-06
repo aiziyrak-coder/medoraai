@@ -816,6 +816,8 @@ export const uzC: TranslationSet = {
   portal_stat_followup: 'Кейинги кузатув',
   portal_stat_pending: 'Кутилмоқда',
   portal_visit_history: 'Ташрифлар тарихи',
+  portal_visits_short: 'ташриф',
+  portal_patient_visits: 'Шу беморнинг ташрифлари',
   portal_urgent_alert_title: 'Муҳим огоҳлантириш',
   portal_urgent_alert_action: 'Шошилинч ёрдам керак бўлиши мумкин — дарҳол шифокорга мурожаат қилинг ёки 103 га қўнғироқ қилинг.',
   portal_symptom_check_title: 'Аломатлар текшируви',
