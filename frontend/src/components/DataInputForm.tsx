@@ -26,6 +26,7 @@ import {
 import { mergeImagingStudiesIntoPatientData } from '../utils/imagingContext';
 import type { ImagingStudyRecord } from '../types';
 import { getAuthToken } from '../services/api';
+import { formatPatientRegistryId } from '../utils/patientRegistryId';
 import SearchIcon from './icons/SearchIcon';
 import AddressCombobox from './address/AddressCombobox';
 
@@ -674,6 +675,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const [nameMatches, setNameMatches] = useState<Patient[]>([]);
     const [recentImagingStudies, setRecentImagingStudies] = useState<ImagingStudyRecord[]>([]);
     const [includePriorImaging, setIncludePriorImaging] = useState(true);
+    const [linkedRegistryNumber, setLinkedRegistryNumber] = useState<string | null>(null);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameMatchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -781,8 +783,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         };
     }, [formData.firstName, formData.lastName, linkedPatientKey]);
 
+    useEffect(() => {
+        if (!linkedPatientKey) {
+            setLinkedRegistryNumber(null);
+        }
+    }, [linkedPatientKey]);
+
     const selectPassportOnly = useCallback(
-        (passportData: PatientData, patientId: number, withClinical = false) => {
+        (passportData: PatientData, patientId: number, withClinical = false, registryNumber?: string) => {
             if (withClinical) {
                 getPatient(patientId)
                     .then((res) => {
@@ -812,6 +820,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             }
             setVitals(emptyVitals());
             onLinkedPatientChange?.(String(patientId));
+            setLinkedRegistryNumber(registryNumber || formatPatientRegistryId({ id: patientId }));
             setPatientSearch('');
             setSmartHits([]);
             setNameMatches([]);
@@ -822,7 +831,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const selectFromApiPatient = useCallback(
         (p: Patient) => {
             const baseline = convertPatientToPatientData(p);
-            selectPassportOnly(baseline, p.id, true);
+            selectPassportOnly(baseline, p.id, true, formatPatientRegistryId(p));
         },
         [selectPassportOnly],
     );
@@ -833,7 +842,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                 .then((res) => {
                     if (res.success && res.data) {
                         const passport = passportToPatientData(res.data);
-                        selectPassportOnly(passport, hit.id, Boolean(hit.can_view_clinical));
+                        selectPassportOnly(
+                            passport,
+                            hit.id,
+                            Boolean(hit.can_view_clinical),
+                            formatPatientRegistryId(hit),
+                        );
                     }
                 })
                 .catch(() => { /* ignore */ });
@@ -1235,7 +1249,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             </div>
                             {linkedPatientKey && (
                                 <p className="text-[9px] text-sky-800 font-mono bg-white/60 rounded px-2 py-1 border border-sky-100">
-                                    {t('data_form_patient_linked', { id: linkedPatientKey })}
+                                    {t('data_form_patient_linked', {
+                                        id: linkedRegistryNumber || formatPatientRegistryId({ id: Number(linkedPatientKey) }),
+                                    })}
                                 </p>
                             )}
                             {getAuthToken() && (
@@ -1265,7 +1281,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                             {hit.last_name} {hit.first_name} {hit.father_name}
                                                         </span>
                                                         <span className="text-slate-500 ml-1">
-                                                            · ID {hit.id} · {hit.age} {t('years_short')}
+                                                            · {formatPatientRegistryId(hit)} · {hit.age} {t('years_short')}
                                                         </span>
                                                         {(hit.region_name || hit.district_name) && (
                                                             <span className="block text-[9px] text-slate-500 mt-0.5">
@@ -1336,7 +1352,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             onClick={() => selectFromApiPatient(p)}
                                             className="block w-full text-left text-[9px] px-2 py-1 rounded bg-white border border-amber-100 hover:border-sky-300"
                                         >
-                                            {p.first_name} {p.last_name} · ID {p.id} · {p.age} {t('years_short')}
+                                            {p.first_name} {p.last_name} · {formatPatientRegistryId(p)} · {p.age} {t('years_short')}
                                         </button>
                                     ))}
                                 </div>

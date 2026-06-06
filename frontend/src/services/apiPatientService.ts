@@ -6,6 +6,7 @@ import type { ImagingStudyRecord, PatientData, UziUttReport } from '../types';
 
 export interface Patient {
   id: number;
+  registry_number: string;
   first_name: string;
   last_name: string;
   father_name?: string;
@@ -37,6 +38,7 @@ export interface Patient {
 
 export interface PatientPassport {
   id: number;
+  registry_number: string;
   first_name: string;
   last_name: string;
   father_name?: string;

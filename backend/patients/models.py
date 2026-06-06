@@ -43,6 +43,14 @@ class Patient(models.Model):
     symptom_timeline = models.JSONField(default=list, blank=True, verbose_name='Simptomlar vaqti')
     mental_health_scores = models.JSONField(default=dict, blank=True, verbose_name='Ruhiy salomatlik skorlari')
     
+    registry_number = models.CharField(
+        max_length=8,
+        unique=True,
+        db_index=True,
+        editable=False,
+        verbose_name='Ro\'yxat raqami (8 xona)',
+    )
+
     # Metadata
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -77,7 +85,16 @@ class Patient(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.age} yosh)"
+        return f"{self.first_name} {self.last_name} ({self.registry_number})"
+
+
+class PatientRegistryCounter(models.Model):
+    """Singleton — keyingi 8 xonali bemor raqami."""
+    last_value = models.PositiveIntegerField(default=0, verbose_name='Oxirgi raqam')
+
+    class Meta:
+        verbose_name = 'Bemor raqam hisoblagichi'
+        verbose_name_plural = 'Bemor raqam hisoblagichi'
 
 
 class PatientAttachment(models.Model):

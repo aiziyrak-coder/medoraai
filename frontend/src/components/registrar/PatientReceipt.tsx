@@ -1,6 +1,7 @@
 import React from 'react';
 import type { PatientPassport } from '../../services/apiPatientService';
 import { useTranslation } from '../../hooks/useTranslation';
+import { formatPatientRegistryId } from '../../utils/patientRegistryId';
 
 interface PatientReceiptProps {
     patient: PatientPassport;
@@ -26,6 +27,7 @@ const PatientReceipt: React.FC<PatientReceiptProps> = ({ patient, clinicName, re
     return (
         <div
             id="patient-receipt-print"
+            data-registry-id={formatPatientRegistryId(patient)}
             className="bg-white text-slate-900 p-6 rounded-xl border-2 border-dashed border-slate-300 max-w-sm mx-auto font-sans"
         >
             <div className="text-center border-b border-slate-200 pb-3 mb-4">
@@ -34,7 +36,9 @@ const PatientReceipt: React.FC<PatientReceiptProps> = ({ patient, clinicName, re
             </div>
             <div className="text-center mb-4">
                 <p className="text-[10px] text-slate-500 uppercase">{t('receipt_patient_id')}</p>
-                <p className="text-4xl font-black tabular-nums text-slate-900 tracking-tight">{patient.id}</p>
+                <p className="text-4xl font-black tabular-nums text-slate-900 tracking-tight">
+                    {formatPatientRegistryId(patient)}
+                </p>
             </div>
             <dl className="space-y-2 text-sm">
                 <div className="flex justify-between gap-2">
@@ -86,7 +90,8 @@ export function printPatientReceipt() {
     if (!el) return;
     const w = window.open('', '_blank', 'width=400,height=600');
     if (!w) return;
-    w.document.write(`<!DOCTYPE html><html><head><title>Chek</title>
+    const idLabel = el.getAttribute('data-registry-id') || 'Bemor ID';
+    w.document.write(`<!DOCTYPE html><html><head><title>${idLabel}</title>
         <style>body{font-family:system-ui,sans-serif;margin:16px;} @media print{body{margin:0;}}</style>
         </head><body>${el.outerHTML}</body></html>`);
     w.document.close();

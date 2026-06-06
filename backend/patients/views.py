@@ -19,6 +19,7 @@ from analyses.imaging_context import build_imaging_context_from_report
 from analyses.serializers import ImagingStudyRecordSerializer, ImagingStudyRecordCreateSerializer
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical
+from .registry_number import registry_number_lookup_q
 from .address_data import load_address_catalog, search_districts
 from .serializers import (
     PatientSerializer, PatientCreateSerializer,
@@ -38,13 +39,15 @@ class PatientViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def filter_queryset(self, queryset):
-        """Raqamli qidiruv — bemor ID bo'yicha aniq topish."""
+        """Raqamli qidiruv — 8 xonali ro'yxat raqami yoki ichki pk."""
         search = (self.request.query_params.get('search') or '').strip()
-        if search.isdigit():
-            return queryset.filter(pk=int(search))
+        lookup = registry_number_lookup_q(search)
+        if lookup is not None:
+            return queryset.filter(lookup)
         patient_id = (self.request.query_params.get('patient_id') or '').strip()
-        if patient_id.isdigit():
-            return queryset.filter(pk=int(patient_id))
+        lookup = registry_number_lookup_q(patient_id)
+        if lookup is not None:
+            return queryset.filter(lookup)
         return super().filter_queryset(queryset)
     
     def get_serializer_class(self):
@@ -190,8 +193,9 @@ class PatientViewSet(viewsets.ModelViewSet):
         if len(q) < 1:
             return Response({'success': True, 'data': []})
         qs = self._global_patient_queryset()
-        if q.isdigit():
-            qs = qs.filter(pk=int(q))
+        lookup = registry_number_lookup_q(q)
+        if lookup is not None:
+            qs = qs.filter(lookup)
         else:
             tokens = [t for t in q.split() if t]
             clause = (
@@ -257,8 +261,9 @@ class PatientViewSet(viewsets.ModelViewSet):
 
         qs = self._global_patient_queryset()
 
-        if q.isdigit():
-            qs = qs.filter(Q(pk=int(q)) | Q(phone__icontains=q))
+        lookup = registry_number_lookup_q(q)
+        if lookup is not None:
+            qs = qs.filter(lookup | Q(phone__icontains=q))
         else:
             tokens = [t for t in q.split() if t]
             clause = (

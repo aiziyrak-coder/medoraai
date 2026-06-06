@@ -8,6 +8,7 @@ import AddressCombobox from '../address/AddressCombobox';
 import PatientReceipt, { printPatientReceipt } from './PatientReceipt';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User } from '../../types';
+import { formatPatientRegistryId } from '../../utils/patientRegistryId';
 
 interface RegistrarPanelProps {
     user: User;
@@ -36,10 +37,12 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
     const [error, setError] = useState<string | null>(null);
     const [receipt, setReceipt] = useState<PatientPassport | null>(null);
     const [editId, setEditId] = useState<number | null>(null);
+    const [registryNumber, setRegistryNumber] = useState<string | null>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const loadFormFromPassport = useCallback((p: PatientPassport) => {
         setEditId(p.id);
+        setRegistryNumber(formatPatientRegistryId(p));
         setForm({
             firstName: p.first_name,
             lastName: p.last_name,
@@ -77,6 +80,7 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
     const resetNew = () => {
         setForm(emptyForm());
         setEditId(null);
+        setRegistryNumber(null);
         setReceipt(null);
         setSearch('');
         setHits([]);
@@ -109,6 +113,7 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
             }
             setReceipt(res.data);
             setEditId(res.data.id);
+            setRegistryNumber(formatPatientRegistryId(res.data));
             window.setTimeout(() => printPatientReceipt(), 400);
         } catch {
             setError(t('error_save_generic_failed'));
@@ -167,7 +172,7 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
                                         {h.last_name} {h.first_name} {h.father_name}
                                     </span>
                                     <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded-lg">
-                                        ID {h.id}
+                                        {formatPatientRegistryId(h)}
                                     </span>
                                 </button>
                             </li>
@@ -179,7 +184,11 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
             <div className="grid lg:grid-cols-2 gap-6">
                 <div className="rounded-2xl p-4 md:p-5 space-y-3" style={glass}>
                     <h2 className="text-sm font-bold text-slate-800">
-                        {editId ? t('registrar_edit_patient', { id: editId }) : t('registrar_register_patient')}
+                        {editId
+                            ? t('registrar_edit_patient', {
+                                  id: registryNumber || formatPatientRegistryId({ id: editId }),
+                              })
+                            : t('registrar_register_patient')}
                     </h2>
                     {error && (
                         <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>

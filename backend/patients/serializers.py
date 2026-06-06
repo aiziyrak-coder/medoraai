@@ -4,6 +4,7 @@ Patient Serializers
 from rest_framework import serializers
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIELDS
+from .registry_number import allocate_patient_registry_number
 from accounts.serializers import UserSerializer
 
 
@@ -25,7 +26,7 @@ class PatientPassportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id', 'first_name', 'last_name', 'father_name', 'age', 'gender',
+            'id', 'registry_number', 'first_name', 'last_name', 'father_name', 'age', 'gender',
             'phone', 'address', 'region_id', 'district_id',
             'region_name', 'district_name',
             'registered_by', 'created_at', 'updated_at',
@@ -63,7 +64,7 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'father_name', 'age', 'gender',
             'phone', 'address', 'region_id', 'district_id',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'registry_number']
 
     def validate(self, attrs):
         if not (attrs.get('first_name') or '').strip():
@@ -80,6 +81,7 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
         validated_data.setdefault('complaints', '')
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
+        validated_data['registry_number'] = allocate_patient_registry_number()
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -99,7 +101,7 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id', 'first_name', 'last_name', 'father_name', 'age', 'gender',
+            'id', 'registry_number', 'first_name', 'last_name', 'father_name', 'age', 'gender',
             'phone', 'address', 'region_id', 'district_id',
             'region_name', 'district_name',
             'complaints', 'history',
@@ -110,7 +112,7 @@ class PatientSerializer(serializers.ModelSerializer):
             'attachments', 'created_by', 'home_clinic_group',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_by', 'home_clinic_group', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'registry_number', 'created_by', 'home_clinic_group', 'created_at', 'updated_at']
 
     def get_region_name(self, obj):
         return PatientPassportSerializer().get_region_name(obj)
@@ -132,7 +134,7 @@ class PatientCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id',
+            'id', 'registry_number',
             'first_name', 'last_name', 'father_name', 'age', 'gender',
             'phone', 'address', 'region_id', 'district_id',
             'complaints', 'history',
@@ -141,7 +143,7 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             'structured_lab_results', 'pharmacogenomics_report',
             'symptom_timeline', 'mental_health_scores',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'registry_number']
     
     def create(self, validated_data):
         user = self.context['request'].user
@@ -149,6 +151,7 @@ class PatientCreateSerializer(serializers.ModelSerializer):
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
         validated_data.setdefault('complaints', validated_data.get('complaints') or '')
+        validated_data['registry_number'] = allocate_patient_registry_number()
         return super().create(validated_data)
 
 
