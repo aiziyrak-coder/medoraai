@@ -67,26 +67,36 @@ function buildWeeklyActivity(analyses: AnalysisRecord[], language: Language) {
 function buildPracticeInsights(analyses: AnalysisRecord[]) {
     const ms30 = 30 * 24 * 60 * 60 * 1000;
     const now = Date.now();
+
+    const firstSeen = new Map<string, number>();
+    for (const r of analyses) {
+        const t = new Date(r.date).getTime();
+        if (Number.isNaN(t)) continue;
+        const key = patientKey(r);
+        const prev = firstSeen.get(key);
+        if (prev === undefined || t < prev) firstSeen.set(key, t);
+    }
+
+    let newPatients = 0;
+    for (const firstT of firstSeen.values()) {
+        if (now - firstT <= ms30) newPatients += 1;
+    }
+
     const recent = analyses.filter((a) => {
         const t = new Date(a.date).getTime();
         return !Number.isNaN(t) && now - t <= ms30;
     });
-
     const visits = new Map<string, number>();
     for (const r of recent) {
         const key = patientKey(r);
         visits.set(key, (visits.get(key) ?? 0) + 1);
     }
-
-    let returnVisits = 0;
+    let returnPatients = 0;
     for (const n of visits.values()) {
-        if (n > 1) returnVisits += 1;
+        if (n > 1) returnPatients += 1;
     }
 
-    return {
-        uniquePatients: visits.size,
-        returnPatients: returnVisits,
-    };
+    return { newPatients, returnPatients };
 }
 
 const LocationBar: React.FC<{
@@ -264,9 +274,10 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
                 <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-xl px-3 py-3 border border-violet-100 bg-gradient-to-br from-violet-50/90 to-white/80">
                         <p className="text-[9px] font-bold uppercase tracking-widest text-violet-600/80">
-                            {t('dashboard_analytics_unique_patients')}
+                            {t('dashboard_analytics_new_patients')}
                         </p>
-                        <p className="text-2xl font-black text-violet-800 tabular-nums mt-1">{insights.uniquePatients}</p>
+                        <p className="text-2xl font-black text-violet-800 tabular-nums mt-1">{insights.newPatients}</p>
+                        <p className="text-[8px] text-violet-600/70 mt-0.5">{t('dashboard_analytics_new_patients_hint')}</p>
                     </div>
                     <div className="rounded-xl px-3 py-3 border border-teal-100 bg-gradient-to-br from-teal-50/90 to-white/80">
                         <p className="text-[9px] font-bold uppercase tracking-widest text-teal-700/80">
