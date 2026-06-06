@@ -267,14 +267,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {/* Analitika Hub */}
                 <div className="lg:col-span-8 flex min-h-0">
                     <div className="w-full flex flex-col min-h-0 lg:min-h-[420px]">
-                        <AnalyticsHubPanel
-                            stats={stats}
-                            allAnalyses={allAnalyses}
-                            onNewAnalysis={onNewAnalysis}
-                            onOpenTools={onOpenTools}
-                            onOpenUziUtt={onOpenUziUtt}
-                            onViewHistory={onViewHistory}
-                        />
+                        <AnalyticsHubPanel stats={stats} allAnalyses={allAnalyses} />
                     </div>
                 </div>
 

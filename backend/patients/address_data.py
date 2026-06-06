@@ -10,11 +10,20 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parent / 'data'
 
 
+_APOSTROPHE_LIKE = (
+    "'", '"', '`', '´', 'ʼ', 'ʻ', '’', '‘', '‛', '′', '＇',
+    '\u02bb', '\u02bc', '\u2018', '\u2019', '\u201a', '\u2032',
+)
+
+
 def _norm(s: str) -> str:
+    """Qidiruv uchun: apostrof/unicode farqlarini yo'qotadi (bog'dod == bogdod)."""
     s = unicodedata.normalize('NFKD', s or '')
     s = ''.join(c for c in s if not unicodedata.combining(c))
-    s = s.lower().replace('ʻ', "'").replace('’', "'").replace('`', "'")
-    s = re.sub(r"[^a-z0-9'\s]", ' ', s)
+    s = s.lower()
+    for ch in _APOSTROPHE_LIKE:
+        s = s.replace(ch, '')
+    s = re.sub(r'[^a-z0-9\s]', ' ', s)
     return re.sub(r'\s+', ' ', s).strip()
 
 
@@ -57,24 +66,38 @@ def load_address_catalog() -> dict:
     return {'regions': regions, 'search_index': search_index}
 
 
-def search_districts(query: str, limit: int = 12) -> list[dict]:
+def search_districts(query: str, limit: int = 30) -> list[dict]:
     q = _norm(query)
     if len(q) < 2:
         return []
     catalog = load_address_catalog()
-    hits = []
+    scored: list[tuple[int, dict]] = []
     for item in catalog['search_index']:
-        if q in item['search_key'] or q in _norm(item['name_uz']):
-            hits.append({
-                'district_id': item['id'],
-                'district_name_uz': item['name_uz'],
-                'district_name_ru': item['name_ru'],
-                'region_id': item['region_id'],
-                'region_name_uz': item['region_name_uz'],
-                'region_name_ru': item['region_name_ru'],
-            })
-            if len(hits) >= limit:
-                break
+        name_n = _norm(item['name_uz'])
+        region_n = _norm(item.get('region_name_uz', ''))
+        combined = f'{name_n} {region_n}'
+        if q not in name_n and q not in combined and q not in item['search_key']:
+            continue
+        score = 0
+        if name_n.startswith(q):
+            score += 20
+        elif q in name_n:
+            score += 10
+        if region_n and q in region_n:
+            score += 3
+        scored.append((score, item))
+
+    scored.sort(key=lambda pair: (-pair[0], pair[1]['name_uz']))
+    hits = []
+    for _, item in scored[:limit]:
+        hits.append({
+            'district_id': item['id'],
+            'district_name_uz': item['name_uz'],
+            'district_name_ru': item['name_ru'],
+            'region_id': item['region_id'],
+            'region_name_uz': item['region_name_uz'],
+            'region_name_ru': item['region_name_ru'],
+        })
     return hits
 
 

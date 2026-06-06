@@ -134,19 +134,48 @@ class PatientViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='location-stats')
     def location_stats(self, request):
-        """Dashboard: viloyat bo'yicha bemorlar statistikasi (guruh)."""
-        user = request.user
-        qs = self.get_queryset().exclude(region_id='')
+        """Dashboard: viloyat va tuman bo'yicha bemorlar statistikasi (guruh)."""
         from collections import Counter
         from .address_data import load_address_catalog
+
         catalog = load_address_catalog()
         region_names = {r['id']: r['name_uz'] for r in catalog['regions']}
-        counts = Counter(qs.values_list('region_id', flat=True))
-        data = [
+        district_meta: dict[str, dict] = {}
+        for r in catalog['regions']:
+            for d in r['districts']:
+                district_meta[str(d['id'])] = {
+                    'district_name': d['name_uz'],
+                    'region_id': r['id'],
+                    'region_name': r['name_uz'],
+                }
+
+        base_qs = self.get_queryset()
+        region_counts = Counter(
+            base_qs.exclude(region_id='').values_list('region_id', flat=True),
+        )
+        district_counts = Counter(
+            base_qs.exclude(district_id='').values_list('district_id', flat=True),
+        )
+
+        regions = [
             {'region_id': rid, 'region_name': region_names.get(rid, rid), 'count': cnt}
-            for rid, cnt in counts.most_common(14)
+            for rid, cnt in region_counts.most_common(14)
         ]
-        return Response({'success': True, 'data': data})
+        districts = []
+        for did, cnt in district_counts.most_common(12):
+            meta = district_meta.get(str(did), {})
+            districts.append({
+                'district_id': did,
+                'district_name': meta.get('district_name', str(did)),
+                'region_id': meta.get('region_id', ''),
+                'region_name': meta.get('region_name', ''),
+                'count': cnt,
+            })
+
+        return Response({
+            'success': True,
+            'data': {'regions': regions, 'districts': districts},
+        })
 
     @action(detail=False, methods=['get'], url_path='registry-search')
     def registry_search(self, request):

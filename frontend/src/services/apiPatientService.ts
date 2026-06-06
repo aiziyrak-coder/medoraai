@@ -101,11 +101,27 @@ export interface DistrictSearchHit {
   region_name_ru: string;
 }
 
-export interface LocationStat {
+export interface RegionLocationStat {
   region_id: string;
   region_name: string;
   count: number;
 }
+
+export interface DistrictLocationStat {
+  district_id: string;
+  district_name: string;
+  region_id: string;
+  region_name: string;
+  count: number;
+}
+
+export interface LocationStatsPayload {
+  regions: RegionLocationStat[];
+  districts: DistrictLocationStat[];
+}
+
+/** @deprecated use LocationStatsPayload */
+export type LocationStat = RegionLocationStat;
 
 export interface ClinicalTimeline {
   patient: Patient;
@@ -270,13 +286,48 @@ export const registrySearchPatients = async (q: string): Promise<ApiResponse<Pat
   return unwrapArray(await apiGet<PatientPassport[] | { data?: PatientPassport[] }>('/patients/registry-search/', { q: query }));
 };
 
+export interface AddressDistrictOption {
+  id: string;
+  region_id: string;
+  name_uz: string;
+  name_ru: string;
+  name_en?: string;
+}
+
+export interface AddressRegionOption {
+  id: string;
+  name_uz: string;
+  name_ru: string;
+  name_en?: string;
+  districts: AddressDistrictOption[];
+}
+
+export const getAddressCatalog = async (): Promise<ApiResponse<AddressRegionOption[]>> => {
+  const res = await apiGet<AddressRegionOption[] | { data?: AddressRegionOption[] }>('/patients/regions/');
+  return unwrapArray(res);
+};
+
 export const searchDistricts = async (q: string): Promise<ApiResponse<DistrictSearchHit[]>> => {
   if (!q.trim()) return { success: true, data: [] };
   return unwrapArray(await apiGet<DistrictSearchHit[] | { data?: DistrictSearchHit[] }>('/patients/district-search/', { q }));
 };
 
-export const getLocationStats = async (): Promise<ApiResponse<LocationStat[]>> =>
-  unwrapArray(await apiGet<LocationStat[] | { data?: LocationStat[] }>('/patients/location-stats/'));
+export const getLocationStats = async (): Promise<ApiResponse<LocationStatsPayload>> => {
+  const res = await apiGet<LocationStatsPayload | { data?: LocationStatsPayload }>('/patients/location-stats/');
+  if (!res.success || res.data == null) return res as ApiResponse<LocationStatsPayload>;
+  const d = res.data;
+  if (d && typeof d === 'object' && 'regions' in d && 'districts' in d) {
+    return { ...res, data: d as LocationStatsPayload };
+  }
+  if (d && typeof d === 'object' && (d as { data?: LocationStatsPayload }).data) {
+    return { ...res, data: (d as { data: LocationStatsPayload }).data };
+  }
+  // Eski API formati (faqat viloyat ro'yxati)
+  if (Array.isArray(d)) {
+    return { ...res, data: { regions: d as RegionLocationStat[], districts: [] } };
+  }
+  return { ...res, data: { regions: [], districts: [] } };
+};
 
 export const findPatientMatches = async (
   firstName: string,

@@ -3,7 +3,11 @@ import type { AnalysisRecord, UserStats } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Language } from '../../i18n/LanguageContext';
 import { feedbackAccuracyToDisplayPercent, FEEDBACK_ACCURACY_SAMPLE_PERCENT } from '../../services/caseService';
-import { getLocationStats, type LocationStat } from '../../services/apiPatientService';
+import {
+    getLocationStats,
+    type DistrictLocationStat,
+    type RegionLocationStat,
+} from '../../services/apiPatientService';
 
 const glass: React.CSSProperties = {
     background: 'rgba(255,255,255,0.62)',
@@ -24,10 +28,6 @@ const WEEKDAY_LOCALE: Record<Language, string> = {
 interface AnalyticsHubPanelProps {
     stats: UserStats | null;
     allAnalyses: AnalysisRecord[];
-    onNewAnalysis?: () => void;
-    onOpenTools?: () => void;
-    onOpenUziUtt?: () => void;
-    onViewHistory?: () => void;
 }
 
 function patientKey(record: AnalysisRecord): string {
@@ -89,76 +89,60 @@ function buildPracticeInsights(analyses: AnalysisRecord[]) {
     };
 }
 
-const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({
-    stats,
-    allAnalyses,
-    onNewAnalysis,
-    onOpenTools,
-    onOpenUziUtt,
-    onViewHistory,
-}) => {
+const LocationBar: React.FC<{
+    label: string;
+    sublabel?: string;
+    count: number;
+    max: number;
+    gradient: string;
+}> = ({ label, sublabel, count, max, gradient }) => (
+    <div className="flex items-center gap-2 text-[10px]">
+        <div className="w-[7.5rem] sm:w-32 shrink-0 min-w-0">
+            <span className="block truncate text-slate-700 font-semibold" title={label}>
+                {label}
+            </span>
+            {sublabel && (
+                <span className="block truncate text-[9px] text-slate-400" title={sublabel}>
+                    {sublabel}
+                </span>
+            )}
+        </div>
+        <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+            <div
+                className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
+                style={{ width: `${Math.max(count > 0 ? 10 : 0, (count / max) * 100)}%` }}
+            />
+        </div>
+        <span className="font-mono font-bold text-slate-700 w-7 text-right tabular-nums">{count}</span>
+    </div>
+);
+
+const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyses }) => {
     const { t, language } = useTranslation();
 
     const weekly = useMemo(() => buildWeeklyActivity(allAnalyses, language), [allAnalyses, language]);
     const insights = useMemo(() => buildPracticeInsights(allAnalyses), [allAnalyses]);
     const maxWeek = Math.max(...weekly.map((d) => d.count), 1);
-    const [locationStats, setLocationStats] = useState<LocationStat[]>([]);
+
+    const [districtStats, setDistrictStats] = useState<DistrictLocationStat[]>([]);
+    const [regionStats, setRegionStats] = useState<RegionLocationStat[]>([]);
 
     useEffect(() => {
         getLocationStats()
             .then((res) => {
-                if (res.success && res.data) setLocationStats(res.data.slice(0, 6));
+                if (res.success && res.data) {
+                    setDistrictStats(res.data.districts ?? []);
+                    setRegionStats(res.data.regions ?? []);
+                }
             })
-            .catch(() => setLocationStats([]));
+            .catch(() => {
+                setDistrictStats([]);
+                setRegionStats([]);
+            });
     }, []);
-    const maxLoc = Math.max(...locationStats.map((l) => l.count), 1);
 
-    const quickActions = [
-        onNewAnalysis && {
-            key: 'new',
-            icon: '⚕️',
-            title: t('dashboard_quick_new_title'),
-            desc: t('dashboard_quick_new_desc'),
-            onClick: onNewAnalysis,
-            gradient: 'from-sky-500/10 to-cyan-500/5',
-            border: 'border-sky-200/80',
-        },
-        onOpenUziUtt && {
-            key: 'imaging',
-            icon: '📡',
-            title: t('dashboard_quick_imaging_title'),
-            desc: t('dashboard_quick_imaging_desc'),
-            onClick: onOpenUziUtt,
-            gradient: 'from-indigo-500/10 to-violet-500/5',
-            border: 'border-indigo-200/80',
-        },
-        onOpenTools && {
-            key: 'tools',
-            icon: '🧰',
-            title: t('mod_tools_title'),
-            desc: t('dashboard_quick_tools_desc'),
-            onClick: onOpenTools,
-            gradient: 'from-emerald-500/10 to-teal-500/5',
-            border: 'border-emerald-200/80',
-        },
-        onViewHistory && {
-            key: 'history',
-            icon: '📋',
-            title: t('dashboard_quick_history_title'),
-            desc: t('dashboard_quick_history_desc'),
-            onClick: onViewHistory,
-            gradient: 'from-amber-500/10 to-orange-500/5',
-            border: 'border-amber-200/80',
-        },
-    ].filter(Boolean) as Array<{
-        key: string;
-        icon: string;
-        title: string;
-        desc: string;
-        onClick: () => void;
-        gradient: string;
-        border: string;
-    }>;
+    const maxDistrict = Math.max(...districtStats.map((l) => l.count), 1);
+    const maxRegion = Math.max(...regionStats.map((l) => l.count), 1);
 
     if (!stats) {
         return (
@@ -214,6 +198,8 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({
             <p className={`text-[9px] mt-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{sub}</p>
         </div>
     );
+
+    const shortRegion = (name: string) => name.replace(/ viloyati| shahri| Respublikasi/gi, '').trim();
 
     return (
         <div
@@ -302,47 +288,43 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({
             </div>
 
             <div className="flex flex-col gap-4 min-h-0 flex-1 min-w-0 xl:border-l xl:border-slate-100 xl:pl-6">
-                {quickActions.length > 0 && (
-                    <div>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">
-                            {t('dashboard_analytics_quick_heading')}
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                            {quickActions.map((action) => (
-                                <button
-                                    key={action.key}
-                                    type="button"
-                                    onClick={action.onClick}
-                                    className={`text-left p-3 rounded-xl border bg-gradient-to-br ${action.gradient} ${action.border} transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0`}
-                                >
-                                    <span className="text-lg" aria-hidden>{action.icon}</span>
-                                    <p className="text-xs font-bold text-slate-800 mt-1 leading-tight">{action.title}</p>
-                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{action.desc}</p>
-                                </button>
+                <div className="rounded-xl border border-emerald-100/80 bg-gradient-to-br from-emerald-50/50 to-white/60 p-3.5">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700/90 mb-1">
+                        {t('dashboard_analytics_district_heading')}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mb-3">{t('dashboard_analytics_district_hint')}</p>
+                    {districtStats.length > 0 ? (
+                        <div className="space-y-2">
+                            {districtStats.map((loc) => (
+                                <LocationBar
+                                    key={loc.district_id}
+                                    label={loc.district_name.replace(/ tumani| shahri/gi, '')}
+                                    sublabel={shortRegion(loc.region_name)}
+                                    count={loc.count}
+                                    max={maxDistrict}
+                                    gradient="from-emerald-400 to-teal-500"
+                                />
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <p className="text-xs text-slate-400 py-4 text-center">{t('dashboard_analytics_location_empty')}</p>
+                    )}
+                </div>
 
-                {locationStats.length > 0 && (
-                    <div>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                {regionStats.length > 0 && (
+                    <div className="rounded-xl border border-violet-100/80 bg-white/40 p-3.5">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600/90 mb-2">
                             {t('dashboard_analytics_location_heading')}
                         </p>
                         <div className="space-y-1.5">
-                            {locationStats.map((loc) => (
-                                <div key={loc.region_id} className="flex items-center gap-2 text-[10px]">
-                                    <span className="w-28 truncate text-slate-600 font-medium" title={loc.region_name}>
-                                        {loc.region_name.replace(/ viloyati| shahri/gi, '')}
-                                    </span>
-                                    <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full bg-gradient-to-r from-violet-400 to-indigo-500"
-                                            style={{ width: `${Math.max(8, (loc.count / maxLoc) * 100)}%` }}
-                                        />
-                                    </div>
-                                    <span className="font-mono font-bold text-slate-700 w-6 text-right">{loc.count}</span>
-                                </div>
+                            {regionStats.map((loc) => (
+                                <LocationBar
+                                    key={loc.region_id}
+                                    label={shortRegion(loc.region_name)}
+                                    count={loc.count}
+                                    max={maxRegion}
+                                    gradient="from-violet-400 to-indigo-500"
+                                />
                             ))}
                         </div>
                     </div>
@@ -352,14 +334,14 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({
                     <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
                         {t('dashboard_analytics_activity_heading')}
                     </p>
-                    <div className="rounded-xl border border-slate-100 bg-white/50 p-4 flex-1 flex flex-col justify-end min-h-[140px]">
-                        <div className="flex items-end justify-between gap-1.5 sm:gap-2 h-28">
+                    <div className="rounded-xl border border-slate-100 bg-white/50 p-4 flex-1 flex flex-col justify-end min-h-[120px]">
+                        <div className="flex items-end justify-between gap-1.5 sm:gap-2 h-24">
                             {weekly.map((day) => (
                                 <div key={day.label} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
                                     <span className="text-[10px] font-mono font-bold text-slate-600 tabular-nums">
                                         {day.count > 0 ? day.count : ''}
                                     </span>
-                                    <div className="w-full flex items-end justify-center h-20">
+                                    <div className="w-full flex items-end justify-center h-16">
                                         <div
                                             className="w-full max-w-[2.25rem] rounded-t-lg transition-all duration-500"
                                             style={{
