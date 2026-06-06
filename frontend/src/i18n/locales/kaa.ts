@@ -55,7 +55,10 @@ export const kaa: Partial<TranslationSet> = {
   
   auth_clinic_login_help: 'Shólkem sıpatında tizimge kiriń.',
   auth_doctor_login_help: 'Jeke shıpaker kabinetine kiriń.',
-  auth_staff_login_help: 'Nawbattı basqarıw bólimine kiriń.',
+  auth_staff_login_help: 'Nawqas pasport maǵlıwmatları hám chek — konsilium joq.',
+  auth_wrong_portal: 'Qáte kiriw bólimi. Akkaunt roli: {role}',
+  registrar_app_title: 'Nawqas qabılxanası',
+  registrar_app_footer: 'Tek registaciya hám chek basıp shıǵarıw',
 
   device_session_banner_title: 'Házirgi qurılma',
   device_session_banner_body:
@@ -208,6 +211,7 @@ export const kaa: Partial<TranslationSet> = {
   doc_stat_rating: 'Reyting',
   
   // Staff Dashboard
+  registrar_clinic_group: 'Klinika toparı: {name}',
   staff_title: 'Registrator',
   staff_queue_mgmt: 'Nawbattı Basqarıw',
   staff_add_patient: 'Nawqas Qosıw',
@@ -884,6 +888,8 @@ export const kaa: Partial<TranslationSet> = {
   data_form_smart_last_dx: 'Sońǵı diagnostika',
   data_form_smart_meta: '{count} analiz · {date} · {doctor}',
   data_form_smart_no_analyses: 'Házirshe analiz joq',
+  data_form_include_imaging_title: 'UZI / UTT / Rengen nátiyjelerin konsiliumda esaplaw',
+  data_form_include_imaging_hint: 'Sońǵı 30 kún ishinde klinika toparıńızda {count} taswir tahlili bar — belgilense, konsilium anıqraq boladı.',
   data_form_patient_search_placeholder: 'At, familiya, telefon yamasa ID',
   data_form_patient_match_banner: 'Bazada usı atlı nawqas tabıldı — tańlań yamasa jańa qaldırıń:',
   data_form_return_visit_anamnesis: 'Anamnez (bazadan — qayta kiritiw shárt emes)',
@@ -1669,6 +1675,9 @@ export const kaa: Partial<TranslationSet> = {
   uzi_utt_modality_xray: 'Rengen (X-ray)',
   uzi_utt_open: 'Ochish',
   uzi_utt_page_subtitle: 'Tizimli o‘qish: barcawa betlar hám rasmlar • shoshilinch belgilar • usınıslar hám farqlovchi diagnozlar.',
+  uzi_utt_smart_search_title: 'Bemor smart izlew (klinika toparı)',
+  uzi_utt_prior_imaging_badge: '30 kún ishinde {count} tahlil qılınǵan',
+  uzi_utt_saved_to_chart: 'Bemor kartasına saqlandı',
   uzi_utt_page_title: 'UTT / UZI / Rengen analizi',
   uzi_utt_patient_age: 'Nawqas jası',
   uzi_utt_patient_age_placeholder: 'Mısalı, 54',

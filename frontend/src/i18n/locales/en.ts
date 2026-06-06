@@ -237,7 +237,10 @@ export const en = {
   
   auth_clinic_login_help: 'Log in as an organization.',
   auth_doctor_login_help: 'Log in to your personal doctor cabinet.',
-  auth_staff_login_help: 'Log in to the queue management section.',
+  auth_staff_login_help: 'Patient passport data and receipt only — no consilium.',
+  auth_wrong_portal: 'Wrong login portal. Your account role: {role}',
+  registrar_app_title: 'Patient registration desk',
+  registrar_app_footer: 'Registration and receipt printing only',
 
   device_session_banner_title: 'This device',
   device_session_banner_body:
@@ -443,6 +446,7 @@ export const en = {
   doc_stat_rating: 'Rating',
   
   // Staff Dashboard
+  registrar_clinic_group: 'Clinic group: {name}',
   staff_title: 'Receptionist',
   staff_queue_mgmt: 'Queue Management',
   staff_add_patient: 'Add Patient',
@@ -949,6 +953,8 @@ report_dosage: 'Dosage',
   data_form_smart_last_dx: 'Last diagnosis',
   data_form_smart_meta: '{count} analyses · {date} · {doctor}',
   data_form_smart_no_analyses: 'No analyses yet',
+  data_form_include_imaging_title: 'Include UZI / UTT / X-ray results in consilium',
+  data_form_include_imaging_hint: '{count} imaging study(ies) in your clinic group within the last 30 days — when checked, consilium analysis is more accurate.',
   data_form_patient_search_placeholder: 'Name, surname, phone or ID',
   data_form_patient_match_banner: 'Existing patients found — select or continue as new:',
   data_form_return_visit_anamnesis: 'Anamnesis (from record — no re-entry needed)',
@@ -1721,6 +1727,9 @@ report_dosage: 'Dosage',
   uzi_utt_strip_subtitle: 'Images or PDF • subspecialty-style structured report',
   uzi_utt_page_title: 'UTT / UZI / X-ray analysis',
   uzi_utt_page_subtitle: 'Systematic read across all pages and images • red flags • differentials and follow-up.',
+  uzi_utt_smart_search_title: 'Smart patient search (clinic group)',
+  uzi_utt_prior_imaging_badge: '{count} analyzed within 30 days',
+  uzi_utt_saved_to_chart: 'Saved to patient chart',
   uzi_utt_upload_cta: 'Add files',
   uzi_utt_upload_hint: 'JPG, PNG, WebP, GIF or PDF — up to 12 files, 15 MB each (48 MB total).',
   uzi_utt_modality_label: 'Imaging modality',

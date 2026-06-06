@@ -166,3 +166,47 @@ class DiagnosisFeedback(models.Model):
     
     def __str__(self):
         return f"{self.diagnosis_name} - {self.get_feedback_display()}"
+
+
+class ImagingStudyRecord(models.Model):
+    """UZI / UTT / Rengen AI tahlili — klinika guruhi bo'yicha saqlanadi."""
+
+    MODALITY_CHOICES = [
+        ('auto', 'Avtomatik'),
+        ('ultrasound', 'UZI / UTT'),
+        ('xray', 'Rengen'),
+        ('mixed', 'Aralash'),
+    ]
+
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name='imaging_studies',
+        verbose_name='Bemor',
+    )
+    modality = models.CharField(max_length=20, choices=MODALITY_CHOICES, default='auto', verbose_name='Modalitet')
+    report = models.JSONField(default=dict, verbose_name='AI hisobot')
+    summary_text = models.TextField(blank=True, verbose_name='Konsilium uchun xulosa')
+    imaging_structured = models.JSONField(default=dict, blank=True, verbose_name='Strukturali tasvir')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='imaging_studies',
+        verbose_name='Yaratgan',
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Yaratilgan sana')
+
+    class Meta:
+        verbose_name = 'Tasvir tahlili'
+        verbose_name_plural = 'Tasvir tahlillari'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['patient'], name='img_patient_idx'),
+            models.Index(fields=['created_by'], name='img_created_by_idx'),
+            models.Index(fields=['created_at'], name='img_created_at_idx'),
+            models.Index(fields=['patient', 'created_at'], name='img_patient_created_idx'),
+        ]
+
+    def __str__(self):
+        return f"Tasvir #{self.id} — bemor {self.patient_id} ({self.created_at.strftime('%Y-%m-%d')})"

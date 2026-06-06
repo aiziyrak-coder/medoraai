@@ -25,6 +25,7 @@ from jwt import decode as jwt_decode
 from django.contrib.auth import get_user_model
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
+    StaffRegistrarCreateSerializer,
     PasswordChangeSerializer, CustomTokenObtainPairSerializer,
     SubscriptionPlanSerializer,
 )
@@ -299,7 +300,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         cache.delete(cache_key)
 
         # Select related data for serializer to avoid N+1
-        user = User.objects.select_related('subscription_plan', 'linked_doctor').get(pk=user.pk)
+        user = User.objects.select_related('subscription_plan', 'clinic_group').get(pk=user.pk)
         return Response({
             'success': True,
             'data': {
@@ -623,26 +624,78 @@ def password_reset_request(request):
         })
 
 
+def _clinic_scoped_users_queryset(user):
+    """Klinika faqat o'z guruhi a'zolarini ko'radi."""
+    qs = User.objects.select_related('subscription_plan', 'clinic_group').order_by('-date_joined')
+    if user.is_superuser or user.is_staff:
+        return qs
+    if user.is_clinic and user.clinic_group_id:
+        return qs.filter(clinic_group_id=user.clinic_group_id)
+    return qs.none()
+
+
 class UserListAPIView(generics.ListAPIView):
-    """List users (for admin/clinic)"""
-    queryset = User.objects.all()
+    """Klinika guruhi a'zolari (shifokorlar va registratorlar)."""
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
-        user = self.request.user
-        queryset = User.objects.select_related('subscription_plan')
-        if user.is_clinic or user.is_superuser:
-            return queryset.all()
-        return queryset.none()
+        return _clinic_scoped_users_queryset(self.request.user)
 
 
 class UserDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    """User detail, update, delete"""
-    queryset = User.objects.all()
+    """User detail, update, delete — faqat o'z klinika guruhi ichida."""
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id'
+
+    def get_queryset(self):
+        return _clinic_scoped_users_queryset(self.request.user)
+
+
+class ClinicRegistrarsAPIView(generics.ListCreateAPIView):
+    """
+    Klinika registratorlari — guruhdagi barcha staff va yangi qo'shish.
+    Registrator klinika guruhiga biriktiriladi, alohida shifokorga emas.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not (user.is_clinic or user.is_superuser or user.is_staff):
+            return User.objects.none()
+        base = _clinic_scoped_users_queryset(user)
+        return base.filter(role='staff')
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return StaffRegistrarCreateSerializer
+        return UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        if not (request.user.is_clinic or request.user.is_superuser or request.user.is_staff):
+            return Response({
+                'success': False,
+                'error': {'message': 'Faqat klinika hisobi registrator qo\'sha oladi.'},
+            }, status=status.HTTP_403_FORBIDDEN)
+        if request.user.is_clinic and not request.user.clinic_group_id:
+            return Response({
+                'success': False,
+                'error': {'message': 'Klinika guruhi topilmadi.'},
+            }, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        registrar = serializer.save()
+        return Response({
+            'success': True,
+            'data': UserSerializer(registrar).data,
+            'message': 'Registrator qo\'shildi',
+        }, status=status.HTTP_201_CREATED)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = UserSerializer(queryset, many=True)
+        return Response({'success': True, 'data': serializer.data})
 
 
 @api_view(['GET'])

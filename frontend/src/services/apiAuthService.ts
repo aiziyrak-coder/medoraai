@@ -41,6 +41,12 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
     hasActiveSubscription: hasSub,
     isStaff: Boolean(apiUser.is_staff ?? apiUser.isStaff),
     isSuperuser: Boolean(apiUser.is_superuser ?? apiUser.isSuperuser),
+    clinicGroupId: typeof apiUser.clinic_group === 'number' ? apiUser.clinic_group : undefined,
+    clinicGroupName: apiUser.clinic_group_name != null
+      ? String(apiUser.clinic_group_name)
+      : apiUser.clinicGroupName != null
+        ? String(apiUser.clinicGroupName)
+        : undefined,
   };
 }
 

@@ -239,7 +239,10 @@ export const ru: TranslationSet = {
 
   auth_clinic_login_help: 'Войдите как организация.',
   auth_doctor_login_help: 'Войдите в личный кабинет врача.',
-  auth_staff_login_help: 'Войдите в раздел управления очередью.',
+  auth_staff_login_help: 'Паспортные данные и чек — без консилиума.',
+  auth_wrong_portal: 'Неверный раздел входа. Роль аккаунта: {role}',
+  registrar_app_title: 'Регистратура',
+  registrar_app_footer: 'Только регистрация и печать чека',
 
   device_session_banner_title: 'Это устройство',
   device_session_banner_body:
@@ -445,6 +448,7 @@ export const ru: TranslationSet = {
   doc_stat_rating: 'Рейтинг',
 
   // Staff Dashboard
+  registrar_clinic_group: 'Клиническая группа: {name}',
   staff_title: 'Регистратор',
   staff_queue_mgmt: 'Управление очередью',
   staff_add_patient: 'Добавить пациента',
@@ -939,6 +943,8 @@ export const ru: TranslationSet = {
   data_form_smart_last_dx: 'Последний диагноз',
   data_form_smart_meta: '{count} анализов · {date} · {doctor}',
   data_form_smart_no_analyses: 'Анализов пока нет',
+  data_form_include_imaging_title: 'Учитывать результаты УЗИ / УЗД / рентгена в консилиуме',
+  data_form_include_imaging_hint: 'За последние 30 дней в вашей клинической группе есть {count} визуализационных анализов — при включении консилиум будет точнее.',
   data_form_patient_search_placeholder: 'Имя, фамилия, телефон или ID',
   data_form_patient_match_banner: 'Найдены пациенты с таким именем — выберите или создайте нового:',
   data_form_return_visit_anamnesis: 'Анамнез (из базы — повторный ввод не нужен)',
@@ -1707,6 +1713,9 @@ export const ru: TranslationSet = {
   uzi_utt_strip_subtitle: 'Снимки или PDF • структурированное заключение',
   uzi_utt_page_title: 'Анализ УЗД / УЗИ / Рентген',
   uzi_utt_page_subtitle: 'Системный разбор всех страниц и снимков • «красные флаги» • дифференциал и тактика.',
+  uzi_utt_smart_search_title: 'Умный поиск пациента (клиническая группа)',
+  uzi_utt_prior_imaging_badge: 'За 30 дней выполнено анализов: {count}',
+  uzi_utt_saved_to_chart: 'Сохранено в карте пациента',
   uzi_utt_upload_cta: 'Добавить файлы',
   uzi_utt_upload_hint: 'JPG, PNG, WebP, GIF или PDF — до 12 файлов, по 15 МБ каждый (всего 48 МБ).',
   uzi_utt_modality_label: 'Тип визуализации',

@@ -112,6 +112,44 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 
+class StaffRegistrarCreateSerializer(serializers.ModelSerializer):
+    """Klinika hisobi o'z guruhi uchun registrator qo'shadi (shifokorga bog'lanmaydi)."""
+
+    password = serializers.CharField(write_only=True, required=True, validators=[_validate_password_length])
+
+    class Meta:
+        model = User
+        fields = ['phone', 'name', 'password']
+
+    def validate_phone(self, value):
+        if not value or len(value) < 9:
+            raise serializers.ValidationError("Telefon raqami to'liq kiritilishi kerak")
+        cleaned = value.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+        if not cleaned.startswith('+'):
+            if cleaned.startswith('998'):
+                cleaned = '+' + cleaned
+            else:
+                cleaned = '+998' + cleaned
+        if User.objects.filter(phone=cleaned).exists():
+            raise serializers.ValidationError("Bu telefon raqami allaqachon ro'yxatdan o'tgan.")
+        return cleaned
+
+    def create(self, validated_data):
+        request = self.context['request']
+        owner = request.user
+        password = validated_data.pop('password')
+        if not owner.clinic_group_id:
+            raise serializers.ValidationError({'clinic_group': 'Klinika guruhi topilmadi.'})
+        return User.objects.create_user(
+            password=password,
+            role='staff',
+            clinic_group_id=owner.clinic_group_id,
+            linked_doctor=None,
+            subscription_status='inactive',
+            **validated_data,
+        )
+
+
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user"""
     

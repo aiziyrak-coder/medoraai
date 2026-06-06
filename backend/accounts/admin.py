@@ -91,10 +91,14 @@ class UserAdmin(BaseUserAdmin):
     
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
-        ('Shaxsiy ma\'lumotlar', {'fields': ('name', 'role', 'specialties', 'linked_doctor')}),
+        ('Shaxsiy ma\'lumotlar', {'fields': ('name', 'role', 'specialties')}),
         ('Klinika guruhi', {
             'fields': ('clinic_group',),
-            'description': 'Bir guruhdagi foydalanuvchilar bemor va tahlillarni bir-biriga ko\'radi. Guruhni yuqorida «Klinika guruhlari» orqali yarating.',
+            'description': (
+                "Shifokor va registratorlar shu guruhga biriktiriladi. "
+                "Registrator uchun majburiy — klinikada 2-3 ta registrator bo'lishi mumkin, "
+                "ular alohida shifokorga bog'lanmaydi."
+            ),
         }),
         ('Obuna', {'fields': ('subscription_plan', 'subscription_status', 'subscription_expiry', 'trial_ends_at')}),
         ('Ruxsatlar', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
@@ -104,9 +108,21 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('phone', 'name', 'password1', 'password2', 'role'),
+            'fields': ('phone', 'name', 'password1', 'password2', 'role', 'clinic_group'),
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        if obj.role == 'staff':
+            obj.linked_doctor = None
+            if not obj.clinic_group_id:
+                self.message_user(
+                    request,
+                    'Registrator uchun klinika guruhi tanlanishi shart.',
+                    level=messages.ERROR,
+                )
+                return
+        super().save_model(request, obj, form, change)
 
     def _clear_user_tokens(self, user_ids):
         """Remove JWT outstanding/blacklisted tokens for given user IDs so user delete does not fail."""

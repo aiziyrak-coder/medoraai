@@ -92,6 +92,8 @@ export interface User {
   hasActiveSubscription?: boolean;
   isStaff?: boolean;
   isSuperuser?: boolean;
+  clinicGroupId?: number;
+  clinicGroupName?: string;
 }
 
 export interface PatientQueueItem {
@@ -182,6 +184,24 @@ export interface PatientData {
   differentialDiagnosesNotes?: string;
   /** Faqat shikoyat bilan davom etish (klinik minimum ogohlantirilgan) */
   allowIncompleteClinical?: boolean;
+  /** Klinika guruhi ichidagi UZI/UTT/Rengen AI xulosasi (konsilium promptiga) */
+  imagingAnalysisSummary?: string;
+  /** Strukturali tasvir (ecg, ultrasound, xray, ...) */
+  imagingStructured?: Record<string, Record<string, unknown>>;
+  /** Konsiliumda so'nggi tasvir tahlillarini hisobga olish */
+  includePriorImaging?: boolean;
+}
+
+/** Bazada saqlangan UZI/UTT/Rengen tahlili */
+export interface ImagingStudyRecord {
+  id: number;
+  patient: number;
+  modality: 'auto' | 'ultrasound' | 'xray' | 'mixed';
+  report: UziUttReport;
+  summary_text: string;
+  imaging_structured: Record<string, Record<string, unknown>>;
+  physician?: string;
+  created_at: string;
 }
 
 export interface ChatMessage {

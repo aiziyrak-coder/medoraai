@@ -138,13 +138,15 @@ def analyze_attachments(patient_data: dict, language: str = "uz-L") -> str:
 
 def merge_imaging_into_context(patient_data: dict, language: str = "uz-L") -> dict:
     """patient_data ga imagingAnalysisSummary va imagingStructured qo'shadi."""
-    if patient_data.get("imagingAnalysisSummary"):
-        return patient_data
-    atts = patient_data.get("attachments") or []
-    if not atts:
-        return patient_data
     patient_data = dict(patient_data)
-    summary = analyze_attachments(patient_data, language)
-    if summary:
-        patient_data["imagingAnalysisSummary"] = summary
+    prior = str(patient_data.get("imagingAnalysisSummary") or patient_data.get("imaging_analysis_summary") or "").strip()
+    atts = patient_data.get("attachments") or []
+    if atts:
+        attachment_summary = analyze_attachments(patient_data, language)
+        if attachment_summary:
+            patient_data["imagingAnalysisSummary"] = (
+                f"{prior}\n\n{attachment_summary}".strip() if prior else attachment_summary
+            )
+    elif prior:
+        patient_data["imagingAnalysisSummary"] = prior
     return patient_data

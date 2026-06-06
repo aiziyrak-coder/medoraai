@@ -18,6 +18,7 @@ from .views import (
     rector_dashboard_stats,
     UserListAPIView,
     UserDetailAPIView,
+    ClinicRegistrarsAPIView,
 )
 
 app_name = 'accounts'
@@ -42,5 +43,6 @@ urlpatterns = [
     # User management
     path('users/', UserListAPIView.as_view(), name='user_list'),
     path('users/<int:id>/', UserDetailAPIView.as_view(), name='user_detail'),
+    path('clinic-registrars/', ClinicRegistrarsAPIView.as_view(), name='clinic_registrars'),
 
 ]

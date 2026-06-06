@@ -45,7 +45,7 @@ const ToolsDashboard = lazy(() => import('./components/ToolsDashboard'));
 import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
-import RegistrarPanel from './components/registrar/RegistrarPanel';
+import RegistrarApp from './components/registrar/RegistrarApp';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
 const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
@@ -121,7 +121,9 @@ const AppContent: React.FC = () => {
         }
     }, [currentUser]);
 
-    const [appView, setAppView] = useState<AppView>('dashboard');
+    const [appView, setAppView] = useState<AppView>(() =>
+        authService.getCurrentUser()?.role === 'staff' ? 'registrar' : 'dashboard',
+    );
     const historyFromPopstateRef = useRef(false);
 
     // i18n — must be before any effect that uses language/t
@@ -179,6 +181,12 @@ const AppContent: React.FC = () => {
     // Sahifa yuklanganida: token bo'lsa barcha rollar uchun tahlillarni faqat API dan yuklash
     useEffect(() => {
         if (!currentUser?.phone) return;
+        if (currentUser.role === 'staff') {
+            setAppView('registrar');
+            setUserHistory([]);
+            setDashboardStats(null);
+            return;
+        }
         if (!getAuthToken()) {
             // Token bo'lmasa, serverdan yuklab bo'lmaydi; lokal saqlashdan foydalanmaymiz
             setUserHistory([]);
@@ -506,6 +514,10 @@ const AppContent: React.FC = () => {
     };
 
     const handleNavigation = (view: AppView) => {
+        if (currentUser?.role === 'staff') {
+            setAppView('registrar');
+            return;
+        }
         if (view === 'new_analysis') resetAnalysisState();
         else setAppView(view);
     };
@@ -1061,13 +1073,6 @@ const AppContent: React.FC = () => {
 
     const renderMainContent = () => {
         switch (appView) {
-            case 'registrar':
-                return (
-                    <ScrollWrapper>
-                        <RegistrarPanel user={currentUser!} />
-                    </ScrollWrapper>
-                );
-
             case 'dashboard':
                 return (
                     <ScrollWrapper>
@@ -1255,6 +1260,18 @@ const AppContent: React.FC = () => {
     // --- SUBSCRIPTION CHECK ---
     if (!authService.hasActiveSubscription(currentUser)) {
         return <SubscriptionPage user={currentUser} onSubscriptionPending={handleSubscriptionPending} onLogout={handleLogout} />;
+    }
+
+    // Registrator — faqat ro'yxat va chek (konsilium / dashboard yo'q)
+    if (currentUser.role === 'staff') {
+        return (
+            <RegistrarApp
+                user={currentUser}
+                onLogout={handleLogout}
+                language={language}
+                onLanguageChange={setLanguage as (lang: Language) => void}
+            />
+        );
     }
 
     return (

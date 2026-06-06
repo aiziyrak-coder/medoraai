@@ -3,7 +3,7 @@ Analysis Serializers
 """
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import AnalysisRecord, DiagnosisFeedback
+from .models import AnalysisRecord, DiagnosisFeedback, ImagingStudyRecord
 from patients.models import Patient
 from patients.serializers import PatientSerializer
 from accounts.serializers import UserSerializer
@@ -161,3 +161,37 @@ class AnalysisRecordUpdateSerializer(serializers.ModelSerializer):
             'patient_data', 'debate_history', 'final_report',
             'follow_up_history', 'selected_specialists', 'detected_medications'
         ]
+
+
+class ImagingStudyRecordSerializer(serializers.ModelSerializer):
+    """UZI/UTT/Rengen tahlili — o'qish."""
+
+    physician = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ImagingStudyRecord
+        fields = [
+            'id', 'patient', 'modality', 'report', 'summary_text',
+            'imaging_structured', 'physician', 'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_physician(self, obj):
+        if obj.created_by:
+            return str(getattr(obj.created_by, 'name', '') or obj.created_by)
+        return ''
+
+
+class ImagingStudyRecordCreateSerializer(serializers.Serializer):
+    """UZI/UTT/Rengen tahlilini bemor bilan bog'lash."""
+
+    modality = serializers.ChoiceField(
+        choices=['auto', 'ultrasound', 'xray', 'mixed'],
+        default='auto',
+    )
+    report = serializers.JSONField()
+
+    def validate_report(self, value):
+        if not isinstance(value, dict) or not value:
+            raise serializers.ValidationError('Hisobot bo\'sh bo\'lmasligi kerak')
+        return value

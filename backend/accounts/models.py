@@ -195,14 +195,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Doctor specific fields
     specialties = models.JSONField(default=list, blank=True, verbose_name='Mutaxassisliklar')
     
-    # Staff specific fields
+    # Eski maydon — registratorlar endi faqat clinic_group orqali bog'lanadi (shifokorga emas)
     linked_doctor = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='assistants',
-        verbose_name='Bog\'langan shifokor'
+        verbose_name='(Eskirgan) Bog\'langan shifokor',
+        help_text='Ishlatilmaydi. Registratorlar klinika guruhi (clinic_group) orqali biriktiriladi.',
     )
 
     clinic_group = models.ForeignKey(
@@ -262,7 +263,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.name} ({self.phone})"
 
     def save(self, *args, **kwargs):
-        # Admin yoki to'g'ridan-to'g'ri Model.save() — create_user dan tashqari yo'llarda ham FJSTI
+        # Registrator — klinika guruhiga bog'lanadi, alohida shifokorga emas
+        if self.role == 'staff':
+            self.linked_doctor = None
         if self._state.adding and self.clinic_group_id is None:
             self.clinic_group = ClinicGroup.get_default_fjsti_group()
         super().save(*args, **kwargs)

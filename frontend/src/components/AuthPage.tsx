@@ -76,7 +76,9 @@ const RotatingSpecialtyCard: React.FC<{ initialIndex: number, options: string[] 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     const { t, language, setLanguage } = useTranslation();
     const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+    const [loginPortal, setLoginPortal] = useState<'clinic' | 'staff'>('clinic');
     const role = 'clinic';
+    const expectedLoginRole = loginPortal === 'staff' ? 'staff' : 'clinic';
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -168,9 +170,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 if (result.success) {
                     const user = authService.getCurrentUser();
                     // Validation for correct role login
-                    if (user && user.role !== role) {
+                    if (user && user.role !== expectedLoginRole) {
                         const roleLabel = user.role === 'clinic' ? 'Klinika' : user.role === 'doctor' ? 'Shifokor' : user.role === 'staff' ? 'Registrator' : user.role;
-                        setError(`Siz noto'g'ri bo'limdasiz. Sizning rolingiz: ${roleLabel}`);
+                        setError(t('auth_wrong_portal', { role: roleLabel }));
                         authService.logout();
                     } else if (user) {
                         onLoginSuccess(user);
@@ -325,6 +327,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                             </h4>
                             <ul className="text-slate-300 text-xs space-y-0.5">
                                 <li>· <strong>{t('auth_mode_clinic')}:</strong> {t('auth_mode_clinic_desc')}</li>
+                                <li>· <strong>{t('auth_mode_staff')}:</strong> {t('auth_mode_staff_desc')}</li>
                             </ul>
                         </div>
 
@@ -356,9 +359,36 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                                 {mode === 'login' ? t('auth_login_title') : t('auth_register_title')}
                             </h2>
                             <p className="mt-1 text-slate-300 font-medium text-xs sm:text-sm">
-                                {t('auth_clinic_login_help')}
+                                {loginPortal === 'staff' ? t('auth_staff_login_help') : t('auth_clinic_login_help')}
                             </p>
                         </div>
+
+                        {mode === 'login' && (
+                            <div className="flex p-1 rounded-xl bg-white/10 border border-white/10">
+                                <button
+                                    type="button"
+                                    onClick={() => setLoginPortal('clinic')}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
+                                        loginPortal === 'clinic'
+                                            ? 'bg-blue-600 text-white shadow'
+                                            : 'text-slate-300 hover:text-white'
+                                    }`}
+                                >
+                                    {t('auth_mode_clinic')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setLoginPortal('staff')}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
+                                        loginPortal === 'staff'
+                                            ? 'bg-emerald-600 text-white shadow'
+                                            : 'text-slate-300 hover:text-white'
+                                    }`}
+                                >
+                                    {t('auth_mode_staff')}
+                                </button>
+                            </div>
+                        )}
 
                         {(mode === 'login' || mode === 'register') && (
                             <DeviceSessionBanner variant="auth" />

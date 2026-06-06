@@ -2,7 +2,7 @@
  * Patient API Service
  */
 import { apiGet, apiPost, apiPatch, apiDelete, apiUpload, type ApiResponse } from './api';
-import type { PatientData } from '../types';
+import type { ImagingStudyRecord, PatientData, UziUttReport } from '../types';
 
 export interface Patient {
   id: number;
@@ -368,4 +368,61 @@ export const smartSearchPatients = async (q: string): Promise<ApiResponse<SmartP
   const query = q.trim();
   if (!query) return { success: true, data: [] };
   return unwrapArray(await apiGet<SmartPatientHit[] | { data?: SmartPatientHit[] }>('/patients/smart-search/', { q: query }));
+};
+
+export const getRecentImagingStudies = async (
+  patientId: number,
+  days = 30,
+): Promise<ApiResponse<ImagingStudyRecord[]>> => {
+  const res = await apiGet<ImagingStudyRecord[] | { data?: ImagingStudyRecord[] }>(
+    `/patients/${patientId}/imaging-studies/`,
+    { days: String(days) },
+  );
+  if (!res.success || !res.data) return res as ApiResponse<ImagingStudyRecord[]>;
+  const d = res.data;
+  if (Array.isArray(d)) return { ...res, data: d };
+  if (d && typeof d === 'object' && Array.isArray((d as { data?: ImagingStudyRecord[] }).data)) {
+    return { ...res, data: (d as { data: ImagingStudyRecord[] }).data };
+  }
+  return { ...res, data: [] };
+};
+
+export const hasRecentImagingStudies = async (
+  patientId: number,
+  days = 30,
+): Promise<ApiResponse<{ has_recent: boolean; count: number; days: number }>> => {
+  const res = await apiGet<{ has_recent: boolean; count: number; days: number } | { data?: { has_recent: boolean; count: number; days: number } }>(
+    `/patients/${patientId}/imaging-studies/has-recent/`,
+    { days: String(days) },
+  );
+  if (!res.success || !res.data) return res as ApiResponse<{ has_recent: boolean; count: number; days: number }>;
+  const d = res.data;
+  if (d && typeof d === 'object' && 'has_recent' in d) {
+    return { ...res, data: d as { has_recent: boolean; count: number; days: number } };
+  }
+  if (d && typeof d === 'object' && (d as { data?: { has_recent: boolean; count: number } }).data) {
+    const inner = (d as { data: { has_recent: boolean; count: number; days?: number } }).data;
+    return { ...res, data: { ...inner, days: inner.days ?? days } };
+  }
+  return { ...res, data: { has_recent: false, count: 0, days } };
+};
+
+export const saveImagingStudy = async (
+  patientId: number,
+  report: UziUttReport,
+  modality: 'auto' | 'ultrasound' | 'xray' | 'mixed' = 'auto',
+): Promise<ApiResponse<ImagingStudyRecord>> => {
+  const res = await apiPost<ImagingStudyRecord | { data?: ImagingStudyRecord }>(
+    `/patients/${patientId}/imaging-studies/`,
+    { report, modality },
+  );
+  if (!res.success || !res.data) return res as ApiResponse<ImagingStudyRecord>;
+  const d = res.data;
+  if (d && typeof d === 'object' && 'id' in d) {
+    return { ...res, data: d as ImagingStudyRecord };
+  }
+  if (d && typeof d === 'object' && (d as { data?: ImagingStudyRecord }).data) {
+    return { ...res, data: (d as { data: ImagingStudyRecord }).data };
+  }
+  return res as ApiResponse<ImagingStudyRecord>;
 };

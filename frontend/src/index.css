@@ -81,7 +81,12 @@
     }
 
     .data-input-compact textarea {
-      min-height: 5.5rem;
+      min-height: 4.25rem;
+    }
+
+    .data-input-compact textarea[data-compact='true'] {
+      min-height: 2.75rem !important;
+      max-height: 4.5rem;
     }
 
     /* Flex min-h-0 tufayli siqilganda kontent ustma-ust chiqmasin */

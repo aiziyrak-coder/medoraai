@@ -17,11 +17,14 @@ import {
     getPatientPassport,
     findPatientMatches,
     smartSearchPatients,
+    getRecentImagingStudies,
     convertPatientToPatientData,
     passportToPatientData,
     type Patient,
     type SmartPatientHit,
 } from '../services/apiPatientService';
+import { mergeImagingStudiesIntoPatientData } from '../utils/imagingContext';
+import type { ImagingStudyRecord } from '../types';
 import { getAuthToken } from '../services/api';
 import SearchIcon from './icons/SearchIcon';
 import AddressCombobox from './address/AddressCombobox';
@@ -570,13 +573,29 @@ const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { id: string
     </div>
 );
 
-// Ultra-compact Textarea
-const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string }> = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string }>(({ id, label, className, ...props }, ref) => (
-     <div className={`flex flex-col max-lg:min-h-min max-lg:h-auto lg:min-h-0 lg:h-full ${className ?? ''}`}>
+// Ultra-compact Textarea — compact: anamnez, lab (ekran sig'ishi uchun)
+const Textarea: React.FC<
+    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string; compact?: boolean }
+> = React.forwardRef<
+    HTMLTextAreaElement,
+    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string; compact?: boolean }
+>(({ id, label, className, compact = false, rows, ...props }, ref) => (
+     <div className={`flex flex-col ${compact ? 'flex-shrink-0' : 'max-lg:min-h-min max-lg:h-auto lg:min-h-0 lg:h-full'} ${className ?? ''}`}>
         <label htmlFor={id} className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5 break-words">
             {label}
         </label>
-        <textarea id={id} {...props} className="block w-full min-h-[100px] max-lg:flex-none lg:flex-grow text-[11px] sm:text-xs text-slate-800 common-input py-2 px-2 sm:py-1.5 sm:px-1.5 bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 resize-y rounded" ref={ref} />
+        <textarea
+            id={id}
+            {...props}
+            data-compact={compact ? 'true' : undefined}
+            rows={rows ?? (compact ? 2 : undefined)}
+            className={`block w-full text-[11px] sm:text-xs text-slate-800 common-input bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 resize-y rounded ${
+                compact
+                    ? 'min-h-[2.75rem] max-h-[4.5rem] py-1 px-1.5 lg:flex-none'
+                    : 'min-h-[72px] max-lg:flex-none lg:flex-grow py-2 px-2 sm:py-1.5 sm:px-1.5'
+            }`}
+            ref={ref}
+        />
     </div>
 ));
 
@@ -653,6 +672,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const [smartHits, setSmartHits] = useState<SmartPatientHit[]>([]);
     const [patientSearchLoading, setPatientSearchLoading] = useState(false);
     const [nameMatches, setNameMatches] = useState<Patient[]>([]);
+    const [recentImagingStudies, setRecentImagingStudies] = useState<ImagingStudyRecord[]>([]);
+    const [includePriorImaging, setIncludePriorImaging] = useState(true);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nameMatchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -716,6 +737,24 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         };
     }, [patientSearch]);
+
+    useEffect(() => {
+        if (!getAuthToken() || !linkedPatientKey || !/^\d+$/.test(linkedPatientKey.trim())) {
+            setRecentImagingStudies([]);
+            return;
+        }
+        const pid = Number(linkedPatientKey.trim());
+        getRecentImagingStudies(pid, 30)
+            .then((res) => {
+                if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+                    setRecentImagingStudies(res.data);
+                    setIncludePriorImaging(true);
+                } else {
+                    setRecentImagingStudies([]);
+                }
+            })
+            .catch(() => setRecentImagingStudies([]));
+    }, [linkedPatientKey]);
 
     useEffect(() => {
         if (!getAuthToken() || linkedPatientKey) {
@@ -813,6 +852,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
 
     const clearPatientLink = useCallback(() => {
         onLinkedPatientChange?.(null);
+        setRecentImagingStudies([]);
     }, [onLinkedPatientChange]);
 
   const buildObjectivePreview = useCallback((): string | undefined => {
@@ -1106,7 +1146,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             fullPatientData.allowIncompleteClinical = true;
         }
 
-        onSubmit(fullPatientData);
+        let payload = fullPatientData;
+        if (includePriorImaging && recentImagingStudies.length > 0) {
+            payload = mergeImagingStudiesIntoPatientData(fullPatientData, recentImagingStudies);
+        }
+
+        onSubmit(payload);
     };
 
     return (
@@ -1160,88 +1205,6 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                     </button>
                 </div>
 
-                {/* Bemor bazasidan qidiruv va mahalliy arxiv */}
-                <div className="flex-shrink-0 mb-2 rounded-xl border border-sky-100/80 bg-sky-50/40 px-2 py-2 space-y-2">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div>
-                            <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wide">{t('data_form_smart_search_title')}</p>
-                            <p className="text-[8px] text-sky-700/90 mt-0.5">{t('data_form_smart_search_hint')}</p>
-                        </div>
-                        {linkedPatientKey && (
-                            <button
-                                type="button"
-                                onClick={clearPatientLink}
-                                className="text-[9px] font-semibold text-rose-700 hover:underline"
-                            >
-                                {t('data_form_patient_clear_link')}
-                            </button>
-                        )}
-                    </div>
-                    {linkedPatientKey && (
-                        <p className="text-[9px] text-sky-800 font-mono bg-white/60 rounded px-2 py-1 border border-sky-100">
-                            {t('data_form_patient_linked', { id: linkedPatientKey })}
-                        </p>
-                    )}
-                    {getAuthToken() && (
-                        <div className="relative">
-                            <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                            <input
-                                type="search"
-                                value={patientSearch}
-                                onChange={e => setPatientSearch(e.target.value)}
-                                placeholder={t('data_form_patient_search_placeholder')}
-                                className="w-full rounded-lg border border-slate-200 bg-white/90 pl-7 pr-2 py-1.5 text-[10px] text-slate-800 placeholder:text-slate-400"
-                                autoComplete="off"
-                            />
-                            {patientSearchLoading && (
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-slate-500">{t('data_form_patient_searching')}</span>
-                            )}
-                            {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
-                                <ul className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-[10px]">
-                                    {smartHits.map(hit => (
-                                        <li key={hit.id}>
-                                            <button
-                                                type="button"
-                                                className="w-full text-left px-2 py-2 hover:bg-sky-50 border-b border-slate-50 last:border-0"
-                                                onClick={() => selectFromSmartHit(hit)}
-                                            >
-                                                <span className="font-semibold text-slate-900">
-                                                    {hit.last_name} {hit.first_name} {hit.father_name}
-                                                </span>
-                                                <span className="text-slate-500 ml-1">
-                                                    · ID {hit.id} · {hit.age} {t('years_short')}
-                                                </span>
-                                                {(hit.region_name || hit.district_name) && (
-                                                    <span className="block text-[9px] text-slate-500 mt-0.5">
-                                                        {[hit.region_name, hit.district_name].filter(Boolean).join(', ')}
-                                                    </span>
-                                                )}
-                                                {hit.phone && (
-                                                    <span className="block text-[9px] text-slate-500 mt-0.5">{hit.phone}</span>
-                                                )}
-                                                {hit.last_diagnosis && (
-                                                    <span className="block text-[9px] text-indigo-800 mt-0.5">
-                                                        {t('data_form_smart_last_dx')}: {hit.last_diagnosis}
-                                                    </span>
-                                                )}
-                                                <span className="block text-[8px] text-slate-400 mt-0.5">
-                                                    {hit.analysis_count > 0
-                                                        ? t('data_form_smart_meta', {
-                                                            count: hit.analysis_count,
-                                                            date: formatHitDate(hit.last_analysis_at),
-                                                            doctor: hit.last_physician || '—',
-                                                        })
-                                                        : t('data_form_smart_no_analyses')}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    )}
-                </div>
-
                 {/* Aqlli maslahat / ogohlantirish */}
                 {(smartMessage || formErrors._smart) && (
                     <div className={`flex-shrink-0 mb-2 px-2 py-1.5 rounded-lg text-[10px] font-medium ${formErrors._smart ? 'bg-red-100 border border-red-300 text-red-800' : 'bg-blue-100 border border-blue-300 text-blue-900'}`}>
@@ -1253,6 +1216,102 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                     
                     {/* LEFT COLUMN: Demographics & Other Info (3 cols) */}
                     <div className="min-w-0 flex flex-col gap-2 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
+                        {/* Aqlli qidiruv — pasport kartasi ustida */}
+                        <div className="flex-shrink-0 rounded-xl border border-sky-100/80 bg-sky-50/40 px-2 py-2 space-y-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div>
+                                    <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wide">{t('data_form_smart_search_title')}</p>
+                                    <p className="text-[8px] text-sky-700/90 mt-0.5">{t('data_form_smart_search_hint')}</p>
+                                </div>
+                                {linkedPatientKey && (
+                                    <button
+                                        type="button"
+                                        onClick={clearPatientLink}
+                                        className="text-[9px] font-semibold text-rose-700 hover:underline"
+                                    >
+                                        {t('data_form_patient_clear_link')}
+                                    </button>
+                                )}
+                            </div>
+                            {linkedPatientKey && (
+                                <p className="text-[9px] text-sky-800 font-mono bg-white/60 rounded px-2 py-1 border border-sky-100">
+                                    {t('data_form_patient_linked', { id: linkedPatientKey })}
+                                </p>
+                            )}
+                            {getAuthToken() && (
+                                <div className="relative">
+                                    <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <input
+                                        type="search"
+                                        value={patientSearch}
+                                        onChange={e => setPatientSearch(e.target.value)}
+                                        placeholder={t('data_form_patient_search_placeholder')}
+                                        className="w-full rounded-lg border border-slate-200 bg-white/90 pl-7 pr-2 py-1.5 text-[10px] text-slate-800 placeholder:text-slate-400"
+                                        autoComplete="off"
+                                    />
+                                    {patientSearchLoading && (
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-slate-500">{t('data_form_patient_searching')}</span>
+                                    )}
+                                    {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
+                                        <ul className="absolute z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-[10px]">
+                                            {smartHits.map(hit => (
+                                                <li key={hit.id}>
+                                                    <button
+                                                        type="button"
+                                                        className="w-full text-left px-2 py-2 hover:bg-sky-50 border-b border-slate-50 last:border-0"
+                                                        onClick={() => selectFromSmartHit(hit)}
+                                                    >
+                                                        <span className="font-semibold text-slate-900">
+                                                            {hit.last_name} {hit.first_name} {hit.father_name}
+                                                        </span>
+                                                        <span className="text-slate-500 ml-1">
+                                                            · ID {hit.id} · {hit.age} {t('years_short')}
+                                                        </span>
+                                                        {(hit.region_name || hit.district_name) && (
+                                                            <span className="block text-[9px] text-slate-500 mt-0.5">
+                                                                {[hit.region_name, hit.district_name].filter(Boolean).join(', ')}
+                                                            </span>
+                                                        )}
+                                                        {hit.phone && (
+                                                            <span className="block text-[9px] text-slate-500 mt-0.5">{hit.phone}</span>
+                                                        )}
+                                                        {hit.last_diagnosis && (
+                                                            <span className="block text-[9px] text-indigo-800 mt-0.5">
+                                                                {t('data_form_smart_last_dx')}: {hit.last_diagnosis}
+                                                            </span>
+                                                        )}
+                                                        <span className="block text-[8px] text-slate-400 mt-0.5">
+                                                            {hit.analysis_count > 0
+                                                                ? t('data_form_smart_meta', {
+                                                                    count: hit.analysis_count,
+                                                                    date: formatHitDate(hit.last_analysis_at),
+                                                                    doctor: hit.last_physician || '—',
+                                                                })
+                                                                : t('data_form_smart_no_analyses')}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )}
+                            {recentImagingStudies.length > 0 && (
+                                <label className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-2 py-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={includePriorImaging}
+                                        onChange={(e) => setIncludePriorImaging(e.target.checked)}
+                                        className="mt-0.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                    <span className="text-[9px] text-emerald-900 leading-snug">
+                                        <span className="font-bold block">{t('data_form_include_imaging_title')}</span>
+                                        {t('data_form_include_imaging_hint', { count: recentImagingStudies.length })}
+                                    </span>
+                                </label>
+                            )}
+                        </div>
+
                         {/* Demographics */}
                         <div className="glass-panel p-2 sm:p-3 space-y-2 sm:space-y-1.5 flex-shrink-0">
                             <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
@@ -1393,7 +1452,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                     </div>
 
                     {/* MIDDLE COLUMN: Clinical Data & Vitals (5 cols) */}
-                    <div className="min-w-0 flex flex-col gap-5 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-5 lg:h-full lg:min-h-0 lg:gap-2 lg:overflow-hidden">
+                    <div className="min-w-0 flex flex-col gap-2 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
                         <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-min max-lg:flex-none max-lg:overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-hidden">
                             <div className="flex items-center gap-1 mb-1.5 flex-shrink-0">
                                 <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[8px] font-bold">2</div>
@@ -1519,7 +1578,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             placeholder={t('data_input_complaints_placeholder')}
                                             value={formData.complaints || ''} 
                                             onChange={e => handleChange('complaints', e.target.value)} 
-                                            className="min-h-[120px] lg:flex-grow"
+                                            className="min-h-[88px]"
                                         />
                                         {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
@@ -1527,18 +1586,18 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 {returnVisitMode ? (
                                     <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2">
                                         <p className="text-[9px] font-bold text-emerald-900 mb-1">{t('data_form_return_visit_anamnesis')}</p>
-                                        <p className="text-[10px] text-slate-700 whitespace-pre-wrap max-h-28 overflow-y-auto">
+                                        <p className="text-[10px] text-slate-700 whitespace-pre-wrap max-h-16 overflow-y-auto">
                                             {formData.history?.trim() || t('data_form_return_visit_no_history')}
                                         </p>
                                     </div>
                                 ) : (
                                     <Textarea 
                                         id="history" 
+                                        compact
                                         label={t('data_input_history_label')} 
                                         placeholder={t('data_input_history_placeholder')} 
                                         value={formData.history || ''} 
                                         onChange={e => handleChange('history', e.target.value)} 
-                                        className="min-h-[120px] lg:flex-grow"
                                     />
                                 )}
                             </div>
@@ -1569,37 +1628,37 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
 
                     {/* RIGHT COLUMN: Diagnostics & Lab Uploads (4 cols) */}
                     <div className="min-w-0 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
-                         <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-[200px] lg:h-full">
-                            <div className="flex items-center gap-1 mb-1.5 flex-shrink-0">
+                         <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-0 lg:h-full lg:min-h-0">
+                            <div className="flex items-center gap-1 mb-1 flex-shrink-0">
                                 <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[8px] font-bold">3</div>
                                 <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_diagnostics')}</h3>
                             </div>
                             
                             <div 
                                 onClick={() => fileInputRef.current?.click()} 
-                                className="min-h-[150px] max-lg:flex-none border-2 border-dashed border-teal-200 bg-teal-50/30 rounded-lg flex flex-col items-center justify-center p-3 sm:p-2 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group lg:min-h-0 lg:flex-grow relative"
+                                className="min-h-[72px] max-h-[88px] flex-shrink-0 border-2 border-dashed border-teal-200 bg-teal-50/30 rounded-lg flex flex-col items-center justify-center p-1.5 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group relative"
                             >
-                                <UploadCloudIcon className="h-7 w-7 text-teal-400 mb-1 group-hover:scale-110 transition-transform"/>
-                                <p className="text-[11px] font-bold text-teal-700 text-center">{t('data_form_upload_files')}</p>
-                                <p className="text-[9px] text-teal-600/70 text-center mt-0.5 px-2">
+                                <UploadCloudIcon className="h-5 w-5 text-teal-400 mb-0.5 group-hover:scale-110 transition-transform"/>
+                                <p className="text-[10px] font-bold text-teal-700 text-center leading-tight">{t('data_form_upload_files')}</p>
+                                <p className="text-[8px] text-teal-600/70 text-center mt-0.5 px-1 leading-tight">
                                     {t('data_form_upload_hint')}
                                 </p>
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
                             </div>
 
-                            <div className="mt-2 flex-shrink-0">
+                            <div className="mt-1.5 flex-shrink-0">
                                 <Textarea
                                     id="labResults"
+                                    compact
                                     label={t('data_form_lab_results')}
                                     placeholder={t('data_form_lab_results_ph')}
                                     value={formData.labResults || ''}
                                     onChange={e => handleChange('labResults', e.target.value)}
-                                    className="min-h-[72px]"
                                 />
                             </div>
 
                             {/* File List */}
-                            <div className="mt-2 flex-shrink-0 max-h-[120px] overflow-y-auto custom-scrollbar space-y-0.5">
+                            <div className="mt-1.5 flex-shrink-0 max-h-[64px] overflow-y-auto custom-scrollbar space-y-0.5">
                                 {attachments.map(file => (
                                     <div key={file.name} className="flex items-center justify-between bg-white/60 px-2 py-1 rounded border border-slate-200 text-[10px]">
                                         <div className="flex items-center gap-1 overflow-hidden">

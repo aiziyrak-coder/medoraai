@@ -10,7 +10,13 @@ from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q, Count, Max
 from django_filters.rest_framework import DjangoFilterBackend
 from accounts.group_scope import clinic_peer_user_ids
-from analyses.models import AnalysisRecord
+from datetime import timedelta
+
+from django.utils import timezone
+
+from analyses.models import AnalysisRecord, ImagingStudyRecord
+from analyses.imaging_context import build_imaging_context_from_report
+from analyses.serializers import ImagingStudyRecordSerializer, ImagingStudyRecordCreateSerializer
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical
 from .address_data import load_address_catalog, search_districts
@@ -360,6 +366,81 @@ class PatientViewSet(viewsets.ModelViewSet):
                 'analyses': timeline,
                 'analysis_count': total,
             },
+        })
+
+    @action(detail=True, methods=['get', 'post'], url_path='imaging-studies')
+    def imaging_studies(self, request, pk=None):
+        """Klinika guruhi ichida UZI/UTT/Rengen tahlillari (GET so'nggi N kun, POST yangi)."""
+        patient = self.get_object()
+        if not user_can_view_clinical(request.user, patient):
+            return Response({
+                'success': False,
+                'error': {'message': 'Tasvir tahlillari uchun ruxsat yo\'q'},
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        peer_ids = clinic_peer_user_ids(request.user)
+        base_qs = (
+            ImagingStudyRecord.objects
+            .filter(patient=patient, created_by_id__in=peer_ids)
+            .select_related('created_by')
+            .order_by('-created_at')
+        )
+
+        if request.method == 'GET':
+            try:
+                days = min(int(request.query_params.get('days', 30)), 365)
+            except (TypeError, ValueError):
+                days = 30
+            cutoff = timezone.now() - timedelta(days=days)
+            records = base_qs.filter(created_at__gte=cutoff)
+            data = ImagingStudyRecordSerializer(records, many=True).data
+            return Response({
+                'success': True,
+                'data': data,
+                'meta': {'count': len(data), 'days': days},
+            })
+
+        ser = ImagingStudyRecordCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        modality = ser.validated_data['modality']
+        report = ser.validated_data['report']
+        study_date = timezone.now().strftime('%Y-%m-%d')
+        summary_text, imaging_structured = build_imaging_context_from_report(
+            report, modality, study_date,
+        )
+        record = ImagingStudyRecord.objects.create(
+            patient=patient,
+            modality=modality,
+            report=report,
+            summary_text=summary_text,
+            imaging_structured=imaging_structured,
+            created_by=request.user,
+        )
+        return Response({
+            'success': True,
+            'data': ImagingStudyRecordSerializer(record).data,
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], url_path='imaging-studies/has-recent')
+    def imaging_studies_has_recent(self, request, pk=None):
+        """Bemorda so'nggi N kun ichida tahlil qilingan tasvir bormi (tez tekshiruv)."""
+        patient = self.get_object()
+        if not user_can_view_clinical(request.user, patient):
+            return Response({'success': True, 'data': {'has_recent': False, 'count': 0}})
+        try:
+            days = min(int(request.query_params.get('days', 30)), 365)
+        except (TypeError, ValueError):
+            days = 30
+        cutoff = timezone.now() - timedelta(days=days)
+        peer_ids = clinic_peer_user_ids(request.user)
+        count = ImagingStudyRecord.objects.filter(
+            patient=patient,
+            created_by_id__in=peer_ids,
+            created_at__gte=cutoff,
+        ).count()
+        return Response({
+            'success': True,
+            'data': {'has_recent': count > 0, 'count': count, 'days': days},
         })
 
     @action(detail=True, methods=['post'], url_path='upload-attachment')

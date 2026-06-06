@@ -1,11 +1,21 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { analyzeUziUttDocuments } from '../../services/aiCouncilService';
 import { generateUziUttPdf } from '../../services/pdfGenerator';
 import type { UziUttReport, UziUttUrgency } from '../../types';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import UploadCloudIcon from '../icons/UploadCloudIcon';
 import DownloadIcon from '../icons/DownloadIcon';
+import SearchIcon from '../icons/SearchIcon';
 import { useTranslation, type TranslationKey } from '../../hooks/useTranslation';
+import { getAuthToken } from '../../services/api';
+import {
+    getPatientPassport,
+    hasRecentImagingStudies,
+    passportToPatientData,
+    saveImagingStudy,
+    smartSearchPatients,
+    type SmartPatientHit,
+} from '../../services/apiPatientService';
 
 const MAX_FILES = 12;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -57,7 +67,87 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [linkedPatientId, setLinkedPatientId] = useState<number | null>(null);
+    const [patientSearch, setPatientSearch] = useState('');
+    const [smartHits, setSmartHits] = useState<SmartPatientHit[]>([]);
+    const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+    const [hasPriorImaging, setHasPriorImaging] = useState(false);
+    const [priorImagingCount, setPriorImagingCount] = useState(0);
+    const [savedToDb, setSavedToDb] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const refreshPriorImaging = useCallback((patientId: number) => {
+        hasRecentImagingStudies(patientId, 30)
+            .then((res) => {
+                if (res.success && res.data) {
+                    setHasPriorImaging(res.data.has_recent);
+                    setPriorImagingCount(res.data.count);
+                } else {
+                    setHasPriorImaging(false);
+                    setPriorImagingCount(0);
+                }
+            })
+            .catch(() => {
+                setHasPriorImaging(false);
+                setPriorImagingCount(0);
+            });
+    }, []);
+
+    useEffect(() => {
+        if (!getAuthToken()) return;
+        const q = patientSearch.trim();
+        const minLen = /^\d+$/.test(q) ? 1 : 2;
+        if (q.length < minLen) {
+            setSmartHits([]);
+            setPatientSearchLoading(false);
+            return;
+        }
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        setPatientSearchLoading(true);
+        searchDebounceRef.current = setTimeout(() => {
+            smartSearchPatients(q)
+                .then((res) => {
+                    if (res.success && Array.isArray(res.data)) setSmartHits(res.data);
+                    else setSmartHits([]);
+                })
+                .catch(() => setSmartHits([]))
+                .finally(() => setPatientSearchLoading(false));
+        }, 320);
+        return () => {
+            if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        };
+    }, [patientSearch]);
+
+    useEffect(() => {
+        if (linkedPatientId) refreshPriorImaging(linkedPatientId);
+        else {
+            setHasPriorImaging(false);
+            setPriorImagingCount(0);
+        }
+    }, [linkedPatientId, refreshPriorImaging]);
+
+    const selectFromSmartHit = useCallback((hit: SmartPatientHit) => {
+        getPatientPassport(hit.id)
+            .then((res) => {
+                if (res.success && res.data) {
+                    const pd = passportToPatientData(res.data);
+                    setLinkedPatientId(hit.id);
+                    setPatientName(`${pd.lastName} ${pd.firstName}`.trim());
+                    if (pd.age) setPatientAge(pd.age);
+                    if (pd.gender === 'male' || pd.gender === 'female') setPatientSex(pd.gender);
+                    setPatientSearch('');
+                    setSmartHits([]);
+                    setSavedToDb(false);
+                }
+            })
+            .catch(() => { /* ignore */ });
+    }, []);
+
+    const clearPatientLink = useCallback(() => {
+        setLinkedPatientId(null);
+        setSavedToDb(false);
+    }, []);
 
     const addFiles = useCallback(
         (list: FileList | null) => {
@@ -134,6 +224,18 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
             );
             const result = await analyzeUziUttDocuments(payload, language, clinicalContext || undefined);
             setReport(result);
+            setSavedToDb(false);
+            if (linkedPatientId) {
+                try {
+                    const saved = await saveImagingStudy(linkedPatientId, result, modality);
+                    if (saved.success) {
+                        setSavedToDb(true);
+                        refreshPriorImaging(linkedPatientId);
+                    }
+                } catch {
+                    /* saqlash ixtiyoriy */
+                }
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : t('alert_error_generic'));
         } finally {
@@ -239,6 +341,76 @@ const UziUttAnalyzer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                                 </li>
                             ))}
                         </ul>
+                    )}
+
+                    {getAuthToken() && (
+                        <div className="rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-bold text-sky-900">{t('uzi_utt_smart_search_title')}</p>
+                                {linkedPatientId && (
+                                    <button
+                                        type="button"
+                                        onClick={clearPatientLink}
+                                        className="text-[10px] font-semibold text-rose-700 hover:underline"
+                                    >
+                                        {t('data_form_patient_clear_link')}
+                                    </button>
+                                )}
+                            </div>
+                            {linkedPatientId && (
+                                <div className="flex flex-wrap items-center gap-2 text-xs">
+                                    <span className="font-mono bg-white/80 px-2 py-1 rounded border border-sky-100 text-sky-900">
+                                        ID {linkedPatientId}
+                                    </span>
+                                    {hasPriorImaging && (
+                                        <span className="inline-flex items-center gap-1 text-emerald-800 font-semibold bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+                                            ✓ {t('uzi_utt_prior_imaging_badge', { count: priorImagingCount })}
+                                        </span>
+                                    )}
+                                    {savedToDb && (
+                                        <span className="inline-flex items-center gap-1 text-indigo-800 font-semibold bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
+                                            ✓ {t('uzi_utt_saved_to_chart')}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                            <div className="relative">
+                                <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <input
+                                    type="search"
+                                    value={patientSearch}
+                                    onChange={(e) => setPatientSearch(e.target.value)}
+                                    placeholder={t('data_form_patient_search_placeholder')}
+                                    className="w-full rounded-lg border border-slate-200 bg-white/90 pl-7 pr-2 py-1.5 text-xs text-slate-800 placeholder:text-slate-400"
+                                    autoComplete="off"
+                                />
+                                {patientSearchLoading && (
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">
+                                        {t('data_form_patient_searching')}
+                                    </span>
+                                )}
+                                {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
+                                    <ul className="absolute z-20 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-xs">
+                                        {smartHits.map((hit) => (
+                                            <li key={hit.id}>
+                                                <button
+                                                    type="button"
+                                                    className="w-full text-left px-2 py-2 hover:bg-sky-50 border-b border-slate-50 last:border-0"
+                                                    onClick={() => selectFromSmartHit(hit)}
+                                                >
+                                                    <span className="font-semibold text-slate-900">
+                                                        {hit.last_name} {hit.first_name} {hit.father_name}
+                                                    </span>
+                                                    <span className="text-slate-500 ml-1">
+                                                        · ID {hit.id} · {hit.age} {t('years_short')}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
                     )}
 
                     <div>

@@ -109,6 +109,7 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
             }
             setReceipt(res.data);
             setEditId(res.data.id);
+            window.setTimeout(() => printPatientReceipt(), 400);
         } catch {
             setError(t('error_save_generic_failed'));
         } finally {
@@ -123,12 +124,13 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
         boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
     };
 
+    const clinicLabel = user.clinicGroupName || undefined;
+
     return (
-        <div className="page-px py-6 max-w-5xl mx-auto space-y-6">
+        <div className="page-px py-5 max-w-6xl mx-auto space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                 <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-sky-600">{t('staff_title')}</p>
-                    <h1 className="text-2xl font-black text-slate-800">{t('registrar_panel_title')}</h1>
+                    <h2 className="text-xl font-black text-slate-800">{t('registrar_panel_title')}</h2>
                     <p className="text-sm text-slate-500 mt-1">{t('registrar_panel_subtitle')}</p>
                 </div>
                 <button
@@ -273,7 +275,7 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
                     <h2 className="text-sm font-bold text-slate-800 mb-4">{t('receipt_preview')}</h2>
                     {receipt ? (
                         <>
-                            <PatientReceipt patient={receipt} registrarName={user.name} />
+                            <PatientReceipt patient={receipt} clinicName={clinicLabel} registrarName={user.name} />
                             <button
                                 type="button"
                                 onClick={() => printPatientReceipt()}
