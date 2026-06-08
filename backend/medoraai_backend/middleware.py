@@ -26,9 +26,18 @@ class EarlyHealthMiddleware(MiddlewareMixin):
             _meta['HTTP_HOST'] = 'aidoktor.uz'
         if request.method in ('GET', 'OPTIONS') and request.path.rstrip('/') == '/health':
             r = HttpResponse(HEALTH_BODY, content_type='application/json', status=200)
-            r['Access-Control-Allow-Origin'] = '*'
+            req_origin = (request.META.get('HTTP_ORIGIN') or '').strip()
+            allowed = getattr(settings, 'CORS_ALLOWED_ORIGINS', []) or []
+            if req_origin and req_origin in allowed:
+                r['Access-Control-Allow-Origin'] = req_origin
+                r['Access-Control-Allow-Credentials'] = 'true'
+            else:
+                r['Access-Control-Allow-Origin'] = '*'
             r['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-            r['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            r['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Device-Id, X-Device-Info'
+            if request.method == 'OPTIONS':
+                r.status_code = 204
+                r.content = b''
             return r
         return None
 
