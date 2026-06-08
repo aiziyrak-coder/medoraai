@@ -6,10 +6,16 @@ from django.contrib import admin
 from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.db import transaction
-from django.http import HttpResponseRedirect
-from django.urls import reverse
+from django.http import HttpResponse, HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.utils import timezone
 from .models import User, SubscriptionPlan, SubscriptionPayment, ActiveSession, ClinicGroup
+from .session_utils import (
+    revoke_all_sessions_for_user,
+    revoke_all_sessions_globally,
+    revoke_sessions_for_users,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +49,18 @@ class ActiveSessionAdmin(admin.ModelAdmin):
     search_fields = ['user__phone', 'refresh_jti', 'device_id']
     raw_id_fields = ['user']
     readonly_fields = ['created_at', 'last_seen']
+    actions = ['logout_selected_sessions']
+
+    @admin.action(description="Tanlangan sessiyalarni bekor qilish (qurilmadan chiqarish)")
+    def logout_selected_sessions(self, request, queryset):
+        user_ids = list(queryset.values_list('user_id', flat=True).distinct())
+        users = User.objects.filter(pk__in=user_ids)
+        count = revoke_sessions_for_users(users)
+        self.message_user(
+            request,
+            f"{count} ta faol sessiya bekor qilindi ({users.count()} ta foydalanuvchi).",
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(SubscriptionPayment)
@@ -84,10 +102,14 @@ class SubscriptionPaymentAdmin(admin.ModelAdmin):
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Custom User Admin  -  safe delete: clear JWT tokens first to avoid 500."""
-    list_display = ['phone', 'name', 'role', 'clinic_group', 'subscription_status', 'subscription_expiry', 'is_active', 'date_joined']
+    list_display = [
+        'phone', 'name', 'role', 'clinic_group', 'subscription_status',
+        'subscription_expiry', 'active_session_count', 'is_active', 'date_joined',
+    ]
     list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'clinic_group', 'date_joined']
     search_fields = ['phone', 'name']
     ordering = ['-date_joined']
+    actions = ['logout_users_from_all_devices']
     
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
@@ -111,6 +133,64 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('phone', 'name', 'password1', 'password2', 'role', 'clinic_group'),
         }),
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                'logout-all-devices/',
+                self.admin_site.admin_view(self.logout_all_devices_view),
+                name='accounts_user_logout_all_devices',
+            ),
+        ]
+        return custom + urls
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['logout_all_devices_url'] = reverse('admin:accounts_user_logout_all_devices')
+        extra_context['active_sessions_total'] = ActiveSession.objects.count()
+        return super().changelist_view(request, extra_context=extra_context)
+
+    @admin.display(description='Faol sessiyalar')
+    def active_session_count(self, obj):
+        return obj.active_sessions.count()
+
+    @admin.action(description="Tanlangan foydalanuvchilarni barcha qurilmalardan chiqarish")
+    def logout_users_from_all_devices(self, request, queryset):
+        count = revoke_sessions_for_users(queryset)
+        self.message_user(
+            request,
+            f"{queryset.count()} ta foydalanuvchi uchun {count} ta sessiya bekor qilindi. "
+            "Endi ular qayta login qila oladi.",
+            level=messages.SUCCESS,
+        )
+
+    def logout_all_devices_view(self, request):
+        """Barcha foydalanuvchilarni barcha qurilmalardan chiqarish (global logout)."""
+        total_sessions = ActiveSession.objects.count()
+        if request.method == 'POST':
+            if 'confirm' not in request.POST:
+                self.message_user(request, 'Tasdiqlash belgisi yo\'q.', level=messages.ERROR)
+                return HttpResponseRedirect(reverse('admin:accounts_user_changelist'))
+            count = revoke_all_sessions_globally()
+            self.message_user(
+                request,
+                f"Barcha foydalanuvchilar barcha qurilmalardan chiqarildi ({count} ta sessiya bekor qilindi).",
+                level=messages.SUCCESS,
+            )
+            return HttpResponseRedirect(reverse('admin:accounts_user_changelist'))
+
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'Barcha qurilmalardan chiqarish',
+            'total_sessions': total_sessions,
+            'opts': self.model._meta,
+        }
+        return TemplateResponse(
+            request,
+            'admin/accounts/user/logout_all_devices.html',
+            context,
+        )
 
     def save_model(self, request, obj, form, change):
         if obj.role == 'staff':

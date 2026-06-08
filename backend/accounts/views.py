@@ -69,23 +69,9 @@ def _revoke_oldest_sessions(user, keep_count):
 
 
 def _revoke_all_sessions_for_user(user):
-    """
-    Foydalanuvchining barcha refresh-sessiyalarini bekor qiladi (JWT blacklist + ActiveSession).
-    Yangi kirishda faqat joriy qurilma qolishi uchun chaqiriladi.
-    """
-    sessions = list(ActiveSession.objects.filter(user=user))
-    if not sessions:
-        return
-    try:
-        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-    except ImportError:
-        ActiveSession.objects.filter(user=user).delete()
-        return
-    for session in sessions:
-        ot = OutstandingToken.objects.filter(jti=session.refresh_jti).first()
-        if ot:
-            BlacklistedToken.objects.get_or_create(token=ot)
-        session.delete()
+    """Yangi kirishda faqat joriy qurilma qolishi uchun — session_utils ga delegatsiya."""
+    from .session_utils import revoke_all_sessions_for_user
+    revoke_all_sessions_for_user(user)
 
 
 def _extract_device_context(request, fallback_data=None):

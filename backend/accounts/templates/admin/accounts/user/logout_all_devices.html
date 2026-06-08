@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_user_changelist' %}">Foydalanuvchilar</a>
+  &rsaquo; Barcha qurilmalardan chiqarish
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Barcha foydalanuvchilarni barcha qurilmalardan chiqarish</h1>
+
+<p>
+  Hozir <strong>{{ total_sessions }}</strong> ta faol sessiya mavjud.
+  Bu amal barcha foydalanuvchilarning JWT tokenlarini bekor qiladi va
+  <em>«Bu hisob boshqa qurilmada ochiq»</em> xatosini bartaraf etadi.
+</p>
+
+<p>
+  Foydalanuvchilar keyin o'z parollari bilan qayta tizimga kira oladi.
+  Django admin sessiyasi (sizning kirishingiz) o'zgarmaydi.
+</p>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="confirm" value="1">
+  <div class="submit-row">
+    <input type="submit" value="Ha, hammani barcha qurilmalardan chiqarish" class="default" style="background:#ba2121;">
+    <a href="{% url 'admin:accounts_user_changelist' %}" class="button cancel-link">Bekor qilish</a>
+  </div>
+</form>
+{% endblock %}
