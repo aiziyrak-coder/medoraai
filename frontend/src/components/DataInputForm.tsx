@@ -1414,55 +1414,6 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             />
                         </div>
                         
-                        {/* Allergiya va dori-darmonlar (xavfsizlik uchun muhim) */}
-                        <div className="glass-panel p-2 sm:p-3 space-y-2 sm:space-y-1.5 flex-shrink-0">
-                            <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
-                                <span className="w-4 h-4 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[8px]">!</span>
-                                {t('data_form_section_safety')}
-                                {returnVisitMode && (
-                                    <span className="text-[8px] font-normal text-emerald-700 ml-1">({t('data_form_return_visit_saved')})</span>
-                                )}
-                            </h3>
-                            <div>
-                                <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} readOnly={returnVisitMode} />
-                            </div>
-                            <div>
-                                <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} readOnly={returnVisitMode} />
-                                <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
-                            </div>
-                        </div>
-
-                        {/* Other Information */}
-                        <div className="glass-panel p-2 sm:p-3 flex flex-col flex-shrink-0 gap-1">
-                             <h3 className="text-[10px] font-bold text-slate-800 mb-0.5 flex items-center gap-1">
-                                <span className="w-4 h-4 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[8px]">4</span>
-                                {t('data_form_section_other_info')}
-                            </h3>
-                            <Textarea 
-                                id="additionalInfo" 
-                                compact
-                                label={t('data_form_extra_notes')} 
-                                placeholder={t('data_form_extra_notes_placeholder')}
-                                value={formData.additionalInfo || ''} 
-                                onChange={e => handleChange('additionalInfo', e.target.value)} 
-                            />
-                            <Textarea
-                                id="regionalContext"
-                                compact
-                                label={t('data_form_regional_context')}
-                                placeholder={t('data_form_regional_context_ph')}
-                                value={formData.regionalContext || ''}
-                                onChange={e => handleChange('regionalContext', e.target.value)}
-                            />
-                            <Textarea
-                                id="differentialDiagnosesNotes"
-                                compact
-                                label={t('data_form_ddx_notes')}
-                                placeholder={t('data_form_ddx_notes_ph')}
-                                value={formData.differentialDiagnosesNotes || ''}
-                                onChange={e => handleChange('differentialDiagnosesNotes', e.target.value)}
-                            />
-                        </div>
                     </div>
 
                     {/* MIDDLE COLUMN: Clinical Data, Vitals, Diagnostics & Lab (9 cols) */}
@@ -1694,6 +1645,53 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     className="flex-1 min-h-0"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Xavfsizlik + Boshqa ma'lumotlar — to'liq qator, yonma-yon */}
+                    <div className="min-w-0 lg:col-span-2 2xl:col-span-12 grid grid-cols-1 sm:grid-cols-2 gap-2 flex-shrink-0">
+                        <div className="glass-panel p-2 sm:p-3 space-y-2 sm:space-y-1.5 min-w-0">
+                            <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
+                                <span className="w-4 h-4 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[8px]">!</span>
+                                {t('data_form_section_safety')}
+                                {returnVisitMode && (
+                                    <span className="text-[8px] font-normal text-emerald-700 ml-1">({t('data_form_return_visit_saved')})</span>
+                                )}
+                            </h3>
+                            <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} readOnly={returnVisitMode} />
+                            <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} readOnly={returnVisitMode} />
+                            <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
+                        </div>
+
+                        <div className="glass-panel p-2 sm:p-3 flex flex-col gap-1 min-w-0">
+                            <h3 className="text-[10px] font-bold text-slate-800 mb-0.5 flex items-center gap-1">
+                                <span className="w-4 h-4 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[8px]">4</span>
+                                {t('data_form_section_other_info')}
+                            </h3>
+                            <Textarea
+                                id="additionalInfo"
+                                compact
+                                label={t('data_form_extra_notes')}
+                                placeholder={t('data_form_extra_notes_placeholder')}
+                                value={formData.additionalInfo || ''}
+                                onChange={e => handleChange('additionalInfo', e.target.value)}
+                            />
+                            <Textarea
+                                id="regionalContext"
+                                compact
+                                label={t('data_form_regional_context')}
+                                placeholder={t('data_form_regional_context_ph')}
+                                value={formData.regionalContext || ''}
+                                onChange={e => handleChange('regionalContext', e.target.value)}
+                            />
+                            <Textarea
+                                id="differentialDiagnosesNotes"
+                                compact
+                                label={t('data_form_ddx_notes')}
+                                placeholder={t('data_form_ddx_notes_ph')}
+                                value={formData.differentialDiagnosesNotes || ''}
+                                onChange={e => handleChange('differentialDiagnosesNotes', e.target.value)}
+                            />
                         </div>
                     </div>
                 </div>
