@@ -1,0 +1,80 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  {% if logout_user_all_url and user_active_sessions %}
+  <li>
+    <form method="post" action="{{ logout_user_all_url }}" style="display:inline;margin:0"
+          onsubmit="return confirm('{{ original }} — barcha qurilmalardan chiqarilsinmi?');">
+      {% csrf_token %}
+      <button type="submit" class="historylink" style="background:#ba2121;color:#fff;border:none;cursor:pointer;padding:3px 10px;border-radius:4px;font-size:0.6875rem;">
+        Barcha qurilmalardan chiqarish ({{ user_active_sessions|length }})
+      </button>
+    </form>
+  </li>
+  {% endif %}
+  {% if logout_all_global_url %}
+  <li>
+    <a href="{{ logout_all_global_url }}" class="historylink">Barcha foydalanuvchilarni chiqarish</a>
+  </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}
+
+{% block after_field_sets %}
+{{ block.super }}
+{% if original %}
+<fieldset class="module aligned" style="margin-top:1rem;">
+  <h2 style="margin-bottom:0.5rem;">Faol qurilmalar</h2>
+  {% if user_active_sessions %}
+  <p class="help" style="margin:0 0 0.75rem 0;">
+    Har bir qurilmani alohida yoki pastdagi tugma orqali hammasini birdan chiqarishingiz mumkin.
+  </p>
+  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+    <thead>
+      <tr style="background:#f8f8f8;text-align:left;">
+        <th style="padding:6px 8px;border-bottom:1px solid #ddd;">Qurilma</th>
+        <th style="padding:6px 8px;border-bottom:1px solid #ddd;">Device ID</th>
+        <th style="padding:6px 8px;border-bottom:1px solid #ddd;">Oxirgi faollik</th>
+        <th style="padding:6px 8px;border-bottom:1px solid #ddd;width:140px;">Amal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sess in user_active_sessions %}
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;max-width:220px;word-break:break-word;">
+          {{ sess.device_info|default:"—" }}
+        </td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;font-family:monospace;font-size:0.75rem;">
+          {{ sess.device_id|default:"—"|truncatechars:24 }}
+        </td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;">
+          {{ sess.last_seen|date:"d.m.Y H:i" }}
+        </td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;">
+          <form method="post" action="{% url 'admin:accounts_user_logout_one_session' original.pk sess.pk %}"
+                style="display:inline;margin:0"
+                onsubmit="return confirm('Shu qurilmadan chiqarilsinmi?');">
+            {% csrf_token %}
+            <button type="submit" class="button" style="background:#ba2121;color:#fff;padding:4px 10px;">
+              Chiqarish
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <form method="post" action="{{ logout_user_all_url }}" style="margin-top:0.75rem;"
+        onsubmit="return confirm('{{ original }} — BARCHA qurilmalardan chiqarilsinmi?');">
+    {% csrf_token %}
+    <button type="submit" class="button default" style="background:#ba2121;">
+      Bu foydalanuvchini barcha qurilmalardan chiqarish
+    </button>
+  </form>
+  {% else %}
+  <p class="help" style="margin:0;">Hozir faol qurilma sessiyasi yo'q.</p>
+  {% endif %}
+</fieldset>
+{% endif %}
+{% endblock %}

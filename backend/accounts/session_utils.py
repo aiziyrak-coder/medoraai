@@ -10,6 +10,23 @@ from .models import ActiveSession
 logger = logging.getLogger(__name__)
 
 
+def revoke_single_session(session: ActiveSession) -> bool:
+    """Bitta qurilma sessiyasini bekor qiladi (JWT blacklist + ActiveSession o'chirish)."""
+    if session is None:
+        return False
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+    except ImportError:
+        session.delete()
+        return True
+
+    ot = OutstandingToken.objects.filter(jti=session.refresh_jti).first()
+    if ot:
+        BlacklistedToken.objects.get_or_create(token=ot)
+    session.delete()
+    return True
+
+
 def revoke_all_sessions_for_user(user) -> int:
     """
     Foydalanuvchining barcha refresh-sessiyalarini bekor qiladi (JWT blacklist + ActiveSession).
@@ -25,11 +42,8 @@ def revoke_all_sessions_for_user(user) -> int:
 
     removed = 0
     for session in sessions:
-        ot = OutstandingToken.objects.filter(jti=session.refresh_jti).first()
-        if ot:
-            BlacklistedToken.objects.get_or_create(token=ot)
-        session.delete()
-        removed += 1
+        if revoke_single_session(session):
+            removed += 1
     return removed
 
 

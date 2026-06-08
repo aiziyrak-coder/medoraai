@@ -15,6 +15,7 @@ from .session_utils import (
     revoke_all_sessions_for_user,
     revoke_all_sessions_globally,
     revoke_sessions_for_users,
+    revoke_single_session,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,14 +52,12 @@ class ActiveSessionAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'last_seen']
     actions = ['logout_selected_sessions']
 
-    @admin.action(description="Tanlangan sessiyalarni bekor qilish (qurilmadan chiqarish)")
+    @admin.action(description="Tanlangan qurilmalardan chiqarish (faqat shu sessiya)")
     def logout_selected_sessions(self, request, queryset):
-        user_ids = list(queryset.values_list('user_id', flat=True).distinct())
-        users = User.objects.filter(pk__in=user_ids)
-        count = revoke_sessions_for_users(users)
+        count = sum(1 for s in queryset if revoke_single_session(s))
         self.message_user(
             request,
-            f"{count} ta faol sessiya bekor qilindi ({users.count()} ta foydalanuvchi).",
+            f"{count} ta qurilma sessiyasi bekor qilindi.",
             level=messages.SUCCESS,
         )
 
@@ -142,8 +141,32 @@ class UserAdmin(BaseUserAdmin):
                 self.admin_site.admin_view(self.logout_all_devices_view),
                 name='accounts_user_logout_all_devices',
             ),
+            path(
+                '<path:object_id>/logout-all-devices/',
+                self.admin_site.admin_view(self.logout_user_devices_view),
+                name='accounts_user_logout_user_devices',
+            ),
+            path(
+                '<path:object_id>/logout-session/<int:session_id>/',
+                self.admin_site.admin_view(self.logout_one_session_view),
+                name='accounts_user_logout_one_session',
+            ),
         ]
         return custom + urls
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        obj = self.get_object(request, object_id)
+        if obj is not None:
+            sessions = list(
+                ActiveSession.objects.filter(user=obj).order_by('-last_seen', '-created_at')
+            )
+            extra_context['user_active_sessions'] = sessions
+            extra_context['logout_user_all_url'] = reverse(
+                'admin:accounts_user_logout_user_devices', args=[object_id]
+            )
+            extra_context['logout_all_global_url'] = reverse('admin:accounts_user_logout_all_devices')
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -191,6 +214,45 @@ class UserAdmin(BaseUserAdmin):
             'admin/accounts/user/logout_all_devices.html',
             context,
         )
+
+    def logout_user_devices_view(self, request, object_id):
+        """Bitta foydalanuvchini barcha qurilmalardan chiqarish."""
+        from django.contrib.admin.utils import unquote
+        obj = self.get_object(request, unquote(object_id))
+        if obj is None:
+            self.message_user(request, 'Foydalanuvchi topilmadi.', level=messages.ERROR)
+            return HttpResponseRedirect(reverse('admin:accounts_user_changelist'))
+        if not self.has_change_permission(request, obj):
+            self.message_user(request, 'Ruxsat yo\'q.', level=messages.ERROR)
+            return HttpResponseRedirect(reverse('admin:accounts_user_changelist'))
+        if request.method == 'POST':
+            count = revoke_all_sessions_for_user(obj)
+            self.message_user(
+                request,
+                f"{obj.phone} — {count} ta qurilma sessiyasi bekor qilindi.",
+                level=messages.SUCCESS,
+            )
+        return HttpResponseRedirect(reverse('admin:accounts_user_change', args=[object_id]))
+
+    def logout_one_session_view(self, request, object_id, session_id):
+        """Foydalanuvchining bitta qurilmasidan chiqarish."""
+        from django.contrib.admin.utils import unquote
+        obj = self.get_object(request, unquote(object_id))
+        if obj is None or not self.has_change_permission(request, obj):
+            self.message_user(request, 'Ruxsat yo\'q.', level=messages.ERROR)
+            return HttpResponseRedirect(reverse('admin:accounts_user_changelist'))
+        if request.method == 'POST':
+            session = ActiveSession.objects.filter(pk=session_id, user=obj).first()
+            if session and revoke_single_session(session):
+                label = (session.device_info or session.device_id or str(session.pk))[:80]
+                self.message_user(
+                    request,
+                    f"Qurilma chiqarildi: {label}",
+                    level=messages.SUCCESS,
+                )
+            else:
+                self.message_user(request, 'Sessiya topilmadi yoki allaqachon bekor qilingan.', level=messages.WARNING)
+        return HttpResponseRedirect(reverse('admin:accounts_user_change', args=[object_id]))
 
     def save_model(self, request, obj, form, change):
         if obj.role == 'staff':
