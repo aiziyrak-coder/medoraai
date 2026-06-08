@@ -1,0 +1,16 @@
+[Unit]
+Description=AiShifokor Django backend — Gunicorn on 127.0.0.1:8100 (nginx proxy)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/aishifokor/backend
+EnvironmentFile=-/root/aishifokor/backend/.env
+ExecStart=/root/aishifokor/backend/venv/bin/gunicorn medoraai_backend.wsgi:application --bind 127.0.0.1:8100 --workers 5 --threads 2 --timeout 300 --access-logfile /root/aishifokor/backend/logs/access.log --error-logfile /root/aishifokor/backend/logs/error.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

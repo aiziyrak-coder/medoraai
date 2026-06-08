@@ -9,7 +9,7 @@ from accounts.permissions import IsAuthenticatedWithSubscription
 from rest_framework.exceptions import PermissionDenied, NotFound
 from django.db.models import Q, Count, Max
 from django_filters.rest_framework import DjangoFilterBackend
-from accounts.group_scope import clinic_peer_user_ids
+from accounts.group_scope import clinic_peer_user_ids, filter_queryset_by_clinic_peers
 from datetime import timedelta
 
 from django.utils import timezone
@@ -319,13 +319,10 @@ class PatientViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             limit = 200
 
-        peer_ids = clinic_peer_user_ids(request.user)
-        base_qs = (
-            AnalysisRecord.objects
-            .filter(patient=patient, created_by_id__in=peer_ids)
-            .select_related('created_by')
-            .order_by('-created_at')
-        )
+        base_qs = filter_queryset_by_clinic_peers(
+            AnalysisRecord.objects.filter(patient=patient).select_related('created_by'),
+            request.user,
+        ).order_by('-created_at')
         total = base_qs.count()
         records = base_qs.defer('debate_history', 'follow_up_history')[:limit]
 
@@ -380,13 +377,10 @@ class PatientViewSet(viewsets.ModelViewSet):
                 'error': {'message': 'Tasvir tahlillari uchun ruxsat yo\'q'},
             }, status=status.HTTP_403_FORBIDDEN)
 
-        peer_ids = clinic_peer_user_ids(request.user)
-        base_qs = (
-            ImagingStudyRecord.objects
-            .filter(patient=patient, created_by_id__in=peer_ids)
-            .select_related('created_by')
-            .order_by('-created_at')
-        )
+        base_qs = filter_queryset_by_clinic_peers(
+            ImagingStudyRecord.objects.filter(patient=patient).select_related('created_by'),
+            request.user,
+        ).order_by('-created_at')
 
         if request.method == 'GET':
             try:
@@ -434,11 +428,9 @@ class PatientViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             days = 30
         cutoff = timezone.now() - timedelta(days=days)
-        peer_ids = clinic_peer_user_ids(request.user)
-        count = ImagingStudyRecord.objects.filter(
-            patient=patient,
-            created_by_id__in=peer_ids,
-            created_at__gte=cutoff,
+        count = filter_queryset_by_clinic_peers(
+            ImagingStudyRecord.objects.filter(patient=patient, created_at__gte=cutoff),
+            request.user,
         ).count()
         return Response({
             'success': True,
