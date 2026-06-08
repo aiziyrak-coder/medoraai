@@ -165,7 +165,6 @@ class UserAdmin(BaseUserAdmin):
             extra_context['logout_user_all_url'] = reverse(
                 'admin:accounts_user_logout_user_devices', args=[object_id]
             )
-            extra_context['logout_all_global_url'] = reverse('admin:accounts_user_logout_all_devices')
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
 
     def changelist_view(self, request, extra_context=None):
