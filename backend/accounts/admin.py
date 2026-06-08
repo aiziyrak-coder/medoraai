@@ -228,7 +228,8 @@ class UserAdmin(BaseUserAdmin):
             count = revoke_all_sessions_for_user(obj)
             self.message_user(
                 request,
-                f"{obj.phone} — {count} ta qurilma sessiyasi bekor qilindi.",
+                f"{obj.phone} barcha qurilmalardan chiqarildi ({count} ta sessiya). "
+                "Endi faqat bitta yangi qurilmadan kira oladi.",
                 level=messages.SUCCESS,
             )
         return HttpResponseRedirect(reverse('admin:accounts_user_change', args=[object_id]))

@@ -5,10 +5,10 @@
   {% if logout_user_all_url %}
   <li>
     <form method="post" action="{{ logout_user_all_url }}" style="display:inline;margin:0"
-          onsubmit="return confirm('{{ original }} — shu foydalanuvchi barcha qurilmalardan chiqarilsinmi?');">
+          onsubmit="return confirm('{{ original }} — barcha qurilmalardan chiqarilsinmi? Yangi qurilmadan kira oladi.');">
       {% csrf_token %}
       <button type="submit" class="historylink" style="background:#ba2121;color:#fff;border:none;cursor:pointer;padding:3px 10px;border-radius:4px;font-size:0.6875rem;">
-        Shu foydalanuvchini chiqarish{% if user_active_sessions %} ({{ user_active_sessions|length }}){% endif %}
+        Barcha qurilmalardan chiqarish
       </button>
     </form>
   </li>
@@ -18,20 +18,22 @@
 
 {% block after_field_sets %}
 {{ block.super }}
-{% if original %}
-<fieldset class="module aligned" style="margin-top:1rem;">
-  <h2 style="margin-bottom:0.5rem;">{{ original }} — faol qurilmalar</h2>
-  {% if user_active_sessions %}
+{% if original and logout_user_all_url %}
+<fieldset class="module aligned" style="margin-top:1rem;border:1px solid #e8c4c4;background:#fffafa;">
+  <h2 style="margin-bottom:0.35rem;">Qurilma sessiyalari — {{ original }}</h2>
   <p class="help" style="margin:0 0 0.75rem 0;">
-    Faqat shu foydalanuvchi: har bir qurilmani alohida yoki pastdagi tugma bilan barcha qurilmalardan chiqarishingiz mumkin.
+    «Boshqa qurilmada ochiq» xatosi chiqsa, shu foydalanuvchini barcha qurilmalardan chiqaring.
+    Keyin u <strong>faqat bitta</strong> yangi qurilmadan qayta kira oladi.
   </p>
-  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;">
+
+  {% if user_active_sessions %}
+  <table style="width:100%;border-collapse:collapse;font-size:0.8125rem;margin-bottom:0.75rem;">
     <thead>
       <tr style="background:#f8f8f8;text-align:left;">
         <th style="padding:6px 8px;border-bottom:1px solid #ddd;">Qurilma</th>
         <th style="padding:6px 8px;border-bottom:1px solid #ddd;">Device ID</th>
         <th style="padding:6px 8px;border-bottom:1px solid #ddd;">Oxirgi faollik</th>
-        <th style="padding:6px 8px;border-bottom:1px solid #ddd;width:140px;">Amal</th>
+        <th style="padding:6px 8px;border-bottom:1px solid #ddd;width:120px;">Amal</th>
       </tr>
     </thead>
     <tbody>
@@ -49,10 +51,10 @@
         <td style="padding:6px 8px;border-bottom:1px solid #eee;">
           <form method="post" action="{% url 'admin:accounts_user_logout_one_session' original.pk sess.pk %}"
                 style="display:inline;margin:0"
-                onsubmit="return confirm('Shu qurilmadan chiqarilsinmi?');">
+                onsubmit="return confirm('Faqat shu qurilmadan chiqarilsinmi?');">
             {% csrf_token %}
-            <button type="submit" class="button" style="background:#ba2121;color:#fff;padding:4px 10px;">
-              Chiqarish
+            <button type="submit" class="button" style="background:#c45c5c;color:#fff;padding:3px 8px;font-size:0.75rem;">
+              Shu qurilma
             </button>
           </form>
         </td>
@@ -60,25 +62,17 @@
       {% endfor %}
     </tbody>
   </table>
-  <form method="post" action="{{ logout_user_all_url }}" style="margin-top:0.75rem;"
-        onsubmit="return confirm('{{ original }} — shu foydalanuvchi barcha qurilmalardan chiqarilsinmi?');">
-    {% csrf_token %}
-    <button type="submit" class="button default" style="background:#ba2121;">
-      Shu foydalanuvchini barcha qurilmalardan chiqarish
-    </button>
-  </form>
   {% else %}
-  <p class="help" style="margin:0 0 0.75rem 0;">Hozir faol qurilma sessiyasi yo'q.</p>
-  {% if logout_user_all_url %}
+  <p class="help" style="margin:0 0 0.75rem 0;">Faol sessiya yozuvi yo'q (lekin eski token qolgan bo'lishi mumkin).</p>
+  {% endif %}
+
   <form method="post" action="{{ logout_user_all_url }}"
-        onsubmit="return confirm('{{ original }} — shu foydalanuvchi barcha qurilmalardan chiqarilsinmi?');">
+        onsubmit="return confirm('{{ original }} — BARCHA qurilmalardan chiqarilsinmi?');">
     {% csrf_token %}
-    <button type="submit" class="button default" style="background:#ba2121;">
-      Shu foydalanuvchini barcha qurilmalardan chiqarish
+    <button type="submit" class="button default" style="background:#ba2121;font-weight:bold;">
+      Barcha qurilmalardan chiqarish
     </button>
   </form>
-  {% endif %}
-  {% endif %}
 </fieldset>
 {% endif %}
 {% endblock %}
