@@ -1432,48 +1432,48 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Other Information (Replaces old File Upload) */}
-                        <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-grow">
-                             <h3 className="text-[10px] font-bold text-slate-800 mb-1.5 flex items-center gap-1">
+                        {/* Other Information */}
+                        <div className="glass-panel p-2 sm:p-3 flex flex-col flex-shrink-0 gap-1">
+                             <h3 className="text-[10px] font-bold text-slate-800 mb-0.5 flex items-center gap-1">
                                 <span className="w-4 h-4 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[8px]">4</span>
                                 {t('data_form_section_other_info')}
                             </h3>
                             <Textarea 
                                 id="additionalInfo" 
+                                compact
                                 label={t('data_form_extra_notes')} 
                                 placeholder={t('data_form_extra_notes_placeholder')}
                                 value={formData.additionalInfo || ''} 
                                 onChange={e => handleChange('additionalInfo', e.target.value)} 
-                                className="max-lg:min-h-[80px]"
                             />
                             <Textarea
                                 id="regionalContext"
+                                compact
                                 label={t('data_form_regional_context')}
                                 placeholder={t('data_form_regional_context_ph')}
                                 value={formData.regionalContext || ''}
                                 onChange={e => handleChange('regionalContext', e.target.value)}
-                                className="max-lg:min-h-[60px]"
                             />
                             <Textarea
                                 id="differentialDiagnosesNotes"
+                                compact
                                 label={t('data_form_ddx_notes')}
                                 placeholder={t('data_form_ddx_notes_ph')}
                                 value={formData.differentialDiagnosesNotes || ''}
                                 onChange={e => handleChange('differentialDiagnosesNotes', e.target.value)}
-                                className="max-lg:min-h-[60px]"
                             />
                         </div>
                     </div>
 
-                    {/* MIDDLE COLUMN: Clinical Data & Vitals (5 cols) */}
-                    <div className="min-w-0 flex flex-col gap-2 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
-                        <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-min max-lg:flex-none max-lg:overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+                    {/* MIDDLE COLUMN: Clinical Data, Vitals, Diagnostics & Lab (9 cols) */}
+                    <div className="min-w-0 flex flex-col gap-2 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-9 lg:h-full lg:min-h-0 lg:overflow-hidden">
+                        <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-min max-lg:flex-none max-lg:overflow-visible lg:flex-shrink lg:min-h-0 lg:overflow-hidden">
                             <div className="flex items-center gap-1 mb-1.5 flex-shrink-0">
                                 <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[8px] font-bold">2</div>
                                 <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_clinical_data')}</h3>
                             </div>
 
-                            <div className="flex flex-col gap-2 sm:gap-1.5 max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-1">
+                            <div className="flex flex-col gap-2 sm:gap-1.5 max-lg:min-h-min max-lg:flex-none lg:flex-shrink">
                                 <div className="flex flex-col gap-2">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-1.5">
                                         <div className="flex flex-col">
@@ -1567,7 +1567,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-1">
+                                    <div className="flex flex-col max-lg:min-h-min max-lg:flex-none lg:flex-shrink">
                                         <div className="flex items-center justify-between gap-2 mb-0.5">
                                             <span className="text-[10px] font-bold text-slate-700 uppercase">{t('data_input_complaints_label')}</span>
                                             {isSupported && (
@@ -1592,7 +1592,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             placeholder={t('data_input_complaints_placeholder')}
                                             value={formData.complaints || ''} 
                                             onChange={e => handleChange('complaints', e.target.value)} 
-                                            className="min-h-[88px]"
+                                            className="min-h-[64px] max-h-[88px]"
                                         />
                                         {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
@@ -1638,29 +1638,51 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 <VitalInput id="vital-respiration" label={t('data_form_vitals_resp')} unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
                         </div>
-                    </div>
 
-                    {/* RIGHT COLUMN: Diagnostics & Lab Uploads (4 cols) */}
-                    <div className="min-w-0 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
-                         <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-0 lg:h-full lg:min-h-0">
-                            <div className="flex items-center gap-1 mb-1 flex-shrink-0">
-                                <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[8px] font-bold">3</div>
-                                <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_diagnostics')}</h3>
-                            </div>
-                            
-                            <div 
-                                onClick={() => fileInputRef.current?.click()} 
-                                className="min-h-[72px] max-h-[88px] flex-shrink-0 border-2 border-dashed border-teal-200 bg-teal-50/30 rounded-lg flex flex-col items-center justify-center p-1.5 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group relative"
-                            >
-                                <UploadCloudIcon className="h-5 w-5 text-teal-400 mb-0.5 group-hover:scale-110 transition-transform"/>
-                                <p className="text-[10px] font-bold text-teal-700 text-center leading-tight">{t('data_form_upload_files')}</p>
-                                <p className="text-[8px] text-teal-600/70 text-center mt-0.5 px-1 leading-tight">
-                                    {t('data_form_upload_hint')}
-                                </p>
-                                <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
+                        {/* Diagnostics & Laboratory — vitals ostida, ixcham */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-shrink-0">
+                            <div className="glass-panel p-2 sm:p-2.5 flex flex-col min-h-0">
+                                <div className="flex items-center gap-1 mb-1 flex-shrink-0">
+                                    <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[8px] font-bold">3</div>
+                                    <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_diagnostics_card')}</h3>
+                                </div>
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="min-h-[52px] max-h-[60px] flex-shrink-0 border border-dashed border-teal-200 bg-teal-50/30 rounded-lg flex items-center justify-center gap-2 px-2 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group"
+                                >
+                                    <UploadCloudIcon className="h-4 w-4 text-teal-500 shrink-0 group-hover:scale-110 transition-transform" />
+                                    <div className="min-w-0 text-left">
+                                        <p className="text-[9px] font-bold text-teal-700 leading-tight">{t('data_form_upload_files')}</p>
+                                        <p className="text-[7px] text-teal-600/80 leading-tight line-clamp-2">{t('data_form_upload_hint')}</p>
+                                    </div>
+                                    <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
+                                </div>
+                                <div className="mt-1 flex-shrink-0 max-h-[52px] overflow-y-auto custom-scrollbar space-y-0.5">
+                                    {attachments.map(file => (
+                                        <div key={file.name} className="flex items-center justify-between bg-white/60 px-1.5 py-0.5 rounded border border-slate-200 text-[9px]">
+                                            <div className="flex items-center gap-1 overflow-hidden min-w-0">
+                                                <DocumentTextIcon className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                                                <span className="truncate font-medium text-slate-700" title={file.name}>{file.name}</span>
+                                            </div>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); removeAttachment(file.name); }} className="text-slate-400 hover:text-red-500 font-bold p-0.5 rounded hover:bg-red-50 transition-colors text-sm leading-none shrink-0" aria-label={`${t('data_form_remove_file')} ${file.name}`}>&times;</button>
+                                        </div>
+                                    ))}
+                                    {Object.keys(fileErrors).length > 0 && Object.entries(fileErrors).map(([fileName, error]) => (
+                                        <div key={fileName} className="text-[8px] text-red-500 bg-red-50 px-1 py-0.5 rounded border border-red-200">
+                                            <strong>{fileName}:</strong> {error}
+                                        </div>
+                                    ))}
+                                    {attachments.length === 0 && Object.keys(fileErrors).length === 0 && (
+                                        <p className="text-[8px] text-center text-slate-400 italic py-0.5">{t('data_form_no_files')}</p>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="mt-1.5 flex-shrink-0">
+                            <div className="glass-panel p-2 sm:p-2.5 flex flex-col min-h-0">
+                                <div className="flex items-center gap-1 mb-1 flex-shrink-0">
+                                    <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[8px] font-bold">5</div>
+                                    <h3 className="text-[10px] font-bold text-slate-800">{t('analysis_labs_title')}</h3>
+                                </div>
                                 <Textarea
                                     id="labResults"
                                     compact
@@ -1668,33 +1690,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     placeholder={t('data_form_lab_results_ph')}
                                     value={formData.labResults || ''}
                                     onChange={e => handleChange('labResults', e.target.value)}
+                                    rows={3}
+                                    className="flex-1 min-h-0"
                                 />
-                            </div>
-
-                            {/* File List */}
-                            <div className="mt-1.5 flex-shrink-0 max-h-[64px] overflow-y-auto custom-scrollbar space-y-0.5">
-                                {attachments.map(file => (
-                                    <div key={file.name} className="flex items-center justify-between bg-white/60 px-2 py-1 rounded border border-slate-200 text-[10px]">
-                                        <div className="flex items-center gap-1 overflow-hidden">
-                                            <DocumentTextIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                                            <span className="truncate max-w-[130px] font-medium text-slate-700" title={file.name}>{file.name}</span>
-                                            <span className="text-[8px] text-slate-400">({(file.size / 1024 / 1024).toFixed(2)}MB)</span>
-                                        </div>
-                                        <button onClick={(e) => {e.stopPropagation(); removeAttachment(file.name)}} className="text-slate-400 hover:text-red-500 font-bold p-0.5 rounded hover:bg-red-50 transition-colors text-sm leading-none" aria-label={`${t('data_form_remove_file')} ${file.name}`}>&times;</button>
-                                    </div>
-                                ))}
-                                {Object.keys(fileErrors).length > 0 && (
-                                    <div className="space-y-0.5">
-                                        {Object.entries(fileErrors).map(([fileName, error]) => (
-                                            <div key={fileName} className="text-[9px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
-                                                <strong>{fileName}:</strong> {error}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {attachments.length === 0 && Object.keys(fileErrors).length === 0 && (
-                                    <p className="text-[9px] text-center text-slate-400 italic py-1">{t('data_form_no_files')}</p>
-                                )}
                             </div>
                         </div>
                     </div>

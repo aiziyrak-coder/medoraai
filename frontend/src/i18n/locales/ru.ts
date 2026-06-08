@@ -1022,6 +1022,7 @@ export const ru: TranslationSet = {
   data_form_vitals_spo2: 'Сатурация',
   data_form_vitals_resp: 'Дыхание',
   data_form_diagnostics: 'Диагностика и лаборатория',
+  data_form_diagnostics_card: 'Диагностика',
   data_form_upload_files: 'Загрузить файлы',
   data_form_no_files: 'Файлы пока не загружены',
   data_form_extra_notes: 'Дополнительные примечания',

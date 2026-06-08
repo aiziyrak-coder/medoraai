@@ -543,6 +543,7 @@ export const kaa: Partial<TranslationSet> = {
   data_form_vitals_spo2: 'Saturatsiya',
   data_form_vitals_resp: 'Nafas sanı',
   data_form_diagnostics: 'Diagnostika hám laboratoriya',
+  data_form_diagnostics_card: 'Diagnostika',
   data_form_upload_files: 'Fayllardı juklaw',
   data_form_no_files: 'Házirshe fayllar juklanbaǵan',
   data_form_extra_notes: 'Qosımsha izbe-iz',
