@@ -120,7 +120,8 @@ def merge_all_phone_duplicates() -> list[tuple[int, int]]:
         dupes.sort(key=lambda p: (-_analysis_count(p), p.created_at))
         keep = dupes[0]
         for other in dupes[1:]:
+            removed_id = other.pk
             merge_patients(keep, other)
-            merged.append((keep.pk, other.pk))
+            merged.append((keep.pk, removed_id))
         seen_phones.add(key)
     return merged
