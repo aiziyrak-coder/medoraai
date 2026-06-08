@@ -19,6 +19,7 @@ import {
     saveActivePatientSession,
     clearActivePatientSession,
 } from './utils/patientRegistry';
+import { pickPatientMatchId } from './utils/patientMatch';
 import { useApiHealth } from './hooks/useApiHealth';
 import { Language } from './i18n/LanguageContext';
 import { isApiConfigured } from './config/api';
@@ -751,10 +752,16 @@ const AppContent: React.FC = () => {
                     const matches = await findPatientMatches(
                         enrichedPatientData.firstName,
                         enrichedPatientData.lastName,
+                        enrichedPatientData.phone,
+                        enrichedPatientData.fatherName,
+                        enrichedPatientData.age,
                     );
-                    if (matches.success && matches.data?.length === 1) {
-                        n = matches.data[0].id;
-                        handleLinkedPatientChange(String(n));
+                    if (matches.success && matches.data?.length) {
+                        const picked = pickPatientMatchId(matches.data, enrichedPatientData);
+                        if (picked) {
+                            n = picked;
+                            handleLinkedPatientChange(String(n));
+                        }
                     }
                 }
                 if (n != null && n > 0) {
@@ -808,10 +815,16 @@ const AppContent: React.FC = () => {
                     const matches = await findPatientMatches(
                         enrichedPatientData.firstName,
                         enrichedPatientData.lastName,
+                        enrichedPatientData.phone,
+                        enrichedPatientData.fatherName,
+                        enrichedPatientData.age,
                     );
-                    if (matches.success && matches.data?.length === 1) {
-                        n = matches.data[0].id;
-                        handleLinkedPatientChange(String(n));
+                    if (matches.success && matches.data?.length) {
+                        const picked = pickPatientMatchId(matches.data, enrichedPatientData);
+                        if (picked) {
+                            n = picked;
+                            handleLinkedPatientChange(String(n));
+                        }
                     }
                 }
                 if (n != null && n > 0) {

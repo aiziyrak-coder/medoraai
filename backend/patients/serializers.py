@@ -5,6 +5,8 @@ from rest_framework import serializers
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIELDS
 from .registry_number import allocate_patient_registry_number
+from .dedup import find_existing_patient, apply_passport_fields
+from .phone import normalize_patient_phone
 from accounts.serializers import UserSerializer
 
 
@@ -73,10 +75,22 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'last_name': 'Familiya kiritilishi shart.'})
         if not (attrs.get('age') or '').strip():
             raise serializers.ValidationError({'age': 'Yosh kiritilishi shart.'})
+        phone = normalize_patient_phone(attrs.get('phone'))
+        if phone:
+            attrs['phone'] = phone
         return attrs
 
     def create(self, validated_data):
         user = self.context['request'].user
+        existing = find_existing_patient(
+            phone=validated_data.get('phone'),
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            father_name=validated_data.get('father_name'),
+            age=validated_data.get('age'),
+        )
+        if existing:
+            return apply_passport_fields(existing, validated_data)
         validated_data['created_by'] = user
         validated_data.setdefault('complaints', '')
         if user.clinic_group_id:
@@ -145,8 +159,23 @@ class PatientCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'registry_number']
     
+    def validate(self, attrs):
+        phone = normalize_patient_phone(attrs.get('phone'))
+        if phone:
+            attrs['phone'] = phone
+        return attrs
+
     def create(self, validated_data):
         user = self.context['request'].user
+        existing = find_existing_patient(
+            phone=validated_data.get('phone'),
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            father_name=validated_data.get('father_name'),
+            age=validated_data.get('age'),
+        )
+        if existing:
+            return apply_passport_fields(existing, validated_data)
         validated_data['created_by'] = user
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id

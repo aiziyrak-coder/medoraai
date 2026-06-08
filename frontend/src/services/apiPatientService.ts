@@ -336,6 +336,7 @@ export const findPatientMatches = async (
   lastName: string,
   phone?: string,
   fatherName?: string,
+  age?: string,
 ): Promise<ApiResponse<Patient[]>> => {
   const queryParams: Record<string, string> = {};
   const fn = firstName.trim();
@@ -344,6 +345,7 @@ export const findPatientMatches = async (
   if (ln) queryParams.last_name = ln;
   if (phone?.trim()) queryParams.phone = phone.trim();
   if (fatherName?.trim()) queryParams.father_name = fatherName.trim();
+  if (age?.trim()) queryParams.age = age.trim();
   return unwrapArray(await apiGet<Patient[] | { data?: Patient[] }>('/patients/match/', queryParams));
 };
 

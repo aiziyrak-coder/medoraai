@@ -764,13 +764,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         }
         const fn = (formData.firstName || '').trim();
         const ln = (formData.lastName || '').trim();
-        if (fn.length < 2 || ln.length < 2) {
+        const phone = (formData.phone || '').trim();
+        if ((fn.length < 2 || ln.length < 2) && phone.length < 9) {
             setNameMatches([]);
             return;
         }
         if (nameMatchDebounceRef.current) clearTimeout(nameMatchDebounceRef.current);
         nameMatchDebounceRef.current = setTimeout(() => {
-            findPatientMatches(fn, ln)
+            findPatientMatches(fn, ln, formData.phone, formData.fatherName, formData.age)
                 .then(res => {
                     if (res.success && Array.isArray(res.data)) setNameMatches(res.data.slice(0, 5));
                     else setNameMatches([]);
@@ -780,7 +781,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         return () => {
             if (nameMatchDebounceRef.current) clearTimeout(nameMatchDebounceRef.current);
         };
-    }, [formData.firstName, formData.lastName, linkedPatientKey]);
+    }, [formData.firstName, formData.lastName, formData.phone, formData.fatherName, formData.age, linkedPatientKey]);
 
     useEffect(() => {
         if (!linkedPatientKey) {

@@ -20,6 +20,8 @@ from analyses.serializers import ImagingStudyRecordSerializer, ImagingStudyRecor
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload
 from .registry_number import registry_number_lookup_q
+from .phone import normalize_patient_phone, patient_phone_variants
+from .dedup import find_existing_patient
 from .address_data import load_address_catalog, search_districts
 from .serializers import (
     PatientSerializer, PatientCreateSerializer,
@@ -289,17 +291,32 @@ class PatientViewSet(viewsets.ModelViewSet):
         ln = (request.query_params.get('last_name') or '').strip()
         phone = (request.query_params.get('phone') or '').strip()
         father = (request.query_params.get('father_name') or '').strip()
+        age = (request.query_params.get('age') or '').strip()
         if not fn and not ln and not phone:
             return Response({'success': True, 'data': []})
-        qs = self._global_patient_queryset()
-        if phone:
-            qs = qs.filter(phone=phone)
-        if fn:
-            qs = qs.filter(first_name__icontains=fn)
-        if ln:
-            qs = qs.filter(last_name__icontains=ln)
-        if father:
-            qs = qs.filter(father_name__icontains=father)
+
+        exact = find_existing_patient(
+            phone=phone or None,
+            first_name=fn or None,
+            last_name=ln or None,
+            father_name=father or None,
+            age=age or None,
+        )
+        if exact and (phone or (fn and ln)):
+            qs = self._global_patient_queryset().filter(pk=exact.pk)
+        else:
+            qs = self._global_patient_queryset()
+            if phone:
+                variants = patient_phone_variants(phone)
+                normalized = normalize_patient_phone(phone)
+                if variants:
+                    qs = qs.filter(Q(phone__in=variants) | Q(phone=normalized))
+            if fn:
+                qs = qs.filter(first_name__icontains=fn)
+            if ln:
+                qs = qs.filter(last_name__icontains=ln)
+            if father:
+                qs = qs.filter(father_name__icontains=father)
         data = PatientPassportSerializer(
             qs.order_by('-updated_at')[:10], many=True, context={'request': request},
         ).data
