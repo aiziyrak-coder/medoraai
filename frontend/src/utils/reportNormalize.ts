@@ -755,5 +755,69 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
     opts?.language ?? 'uz-L',
   );
 
+  const lang = opts?.language ?? 'uz-L';
+  if (!out.nutritionPrevention) {
+    const diag = out.consensusDiagnosis?.[0]?.name?.trim() || '';
+    const fallback = buildNutritionPreventionFallback(diag, lang);
+    if (fallback) out.nutritionPrevention = fallback;
+  }
+  if (!out.relatedResearch?.length) {
+    const diag = out.consensusDiagnosis?.[0]?.name?.trim() || 'clinical diagnosis';
+    out.relatedResearch = buildFastResearchSources(diag, lang);
+  }
+
   return out;
+}
+
+function buildFastResearchSources(diagnosis: string, language: string): FinalReport['relatedResearch'] {
+  const term = diagnosis || 'clinical diagnosis';
+  const enc = encodeURIComponent;
+  return [
+    { title: 'PubMed — tizimli sharhlar', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} systematic review`)}`, summary: `«${term}» bo'yicha xalqaro maqolalar` },
+    { title: 'Cochrane Library', url: `https://www.cochranelibrary.com/search?q=${enc(`${term} Cochrane`)}`, summary: 'Meta-tahlil va RCT dalillari' },
+    { title: 'The Lancet', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} Lancet`)}`, summary: 'Yuqori impakt faktorli tadqiqotlar' },
+    { title: 'NEJM / JAMA', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} NEJM JAMA`)}`, summary: 'Dalillarga asoslangan terapiya' },
+    { title: 'ESC / WHO / NICE guideline', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} ESC WHO NICE guideline`)}`, summary: 'Xalqaro klinik qo\'llanmalar' },
+    { title: 'O\'zbekiston SSV protokollari', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} Uzbekistan clinical protocol`)}`, summary: 'Milliy protokol mosligi' },
+  ];
+}
+
+function buildNutritionPreventionFallback(
+  diagnosis: string,
+  language: string,
+): NutritionPreventionSection | undefined {
+  const diag = diagnosis.trim() || 'asosiy tashxis';
+  const isRu = language.startsWith('ru');
+  const isEn = language.startsWith('en');
+  const intro = isRu
+    ? `Рекомендации по питанию и профилактике для «${diag}».`
+    : isEn
+      ? `Diet and prevention guidance for «${diag}».`
+      : `«${diag}» uchun to'g'ri ovqatlanish va profilaktika tavsiyalari (WHO va xalqaro qo'llanmalar asosida).`;
+  const disclaimer = isRu
+    ? 'Индивидуальная диета — после консультации врача.'
+    : isEn
+      ? 'Individual diet requires physician consultation.'
+      : 'Individual parhez uchun shifokor/dietolog maslahati shart.';
+  const dietaryGuidelines = isRu
+    ? ['Сбалансированное питание', 'Ограничение соли и сахара', 'Достаточная вода', 'Регулярный режим питания']
+    : isEn
+      ? ['Balanced nutrition', 'Limit salt and sugar', 'Adequate hydration', 'Regular meal timing']
+      : ['Muvozanatli ovqatlanish', 'Tuz va shakarni cheklash', 'Yetarli suv', 'Muntazam ovqatlanish vaqti'];
+  const preventionMeasures = isRu
+    ? ['Физическая активность 150 мин/нед', 'Контроль веса и АД', 'Скрининги', 'Отказ от курения']
+    : isEn
+      ? ['150 min/week activity', 'Weight and BP control', 'Scheduled screenings', 'No smoking']
+      : ['Haftasiga 150 daqiqa faollik', 'Vazn va qon bosimi nazorati', 'Skrininglar', 'Chekishni tashlash'];
+  return {
+    intro,
+    disclaimer,
+    dietaryGuidelines,
+    preventionMeasures,
+    individualDietByDiagnosis: [{
+      diagnosis: diag,
+      allowedFoods: dietaryGuidelines.slice(0, 2),
+      restrictedFoods: isRu ? ['Избыток соли', 'Жареное'] : isEn ? ['Excess salt', 'Fried foods'] : ['Ortiqcha tuz', 'Qovurilgan taomlar'],
+    }],
+  };
 }

@@ -98,6 +98,11 @@ def enrich_consensus_with_diagnosis_tools(
     if not diag_name:
         return consensus
 
+    from .evidence_sources import build_fast_research_sources
+    from .consilium_cost import ai_cost_mode
+
+    _merge_research(consensus, build_fast_research_sources(diag_name, language))
+
     try:
         from .clinical_tools import (
             icd10_codes,
@@ -112,6 +117,8 @@ def enrich_consensus_with_diagnosis_tools(
 
     drugs = _collect_drug_names(patient_data, consensus)
     ctx = f"Tashxis: {diag_name}. {_s(cd.get('justification'))[:600]}"
+    mode = ai_cost_mode()
+    run_heavy = mode in ("balanced", "quality")
 
     def _run_icd10() -> dict:
         codes = icd10_codes(diag_name, language)
@@ -120,6 +127,8 @@ def enrich_consensus_with_diagnosis_tools(
         return {}
 
     def _run_guideline() -> dict:
+        if not run_heavy:
+            return {}
         gl = guideline_search(diag_name, language)
         return gl if isinstance(gl, dict) else {}
 
@@ -130,17 +139,22 @@ def enrich_consensus_with_diagnosis_tools(
         return ddi if isinstance(ddi, dict) else {}
 
     def _run_explain() -> str:
+        if mode != "quality":
+            return ""
         return patient_explain(ctx, language) or ""
 
     results: dict[str, Any] = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    workers = 4 if run_heavy else 2
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         futs = {
             pool.submit(_run_icd10): "icd10",
-            pool.submit(_run_guideline): "guideline",
             pool.submit(_run_ddi): "ddi",
-            pool.submit(_run_explain): "explain",
         }
-        for fut in as_completed(futs, timeout=45):
+        if run_heavy:
+            futs[pool.submit(_run_guideline)] = "guideline"
+        if mode == "quality":
+            futs[pool.submit(_run_explain)] = "explain"
+        for fut in as_completed(futs, timeout=22):
             key = futs[fut]
             try:
                 results[key] = fut.result()

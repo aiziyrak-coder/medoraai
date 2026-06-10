@@ -51,8 +51,8 @@ def phase3_max_tokens() -> int:
 
 
 def pharma_max_tokens() -> int:
-    return {"scale": 1800, "economy": 2000, "balanced": 2500, "quality": 3200}.get(
-        ai_cost_mode(), 1800
+    return {"scale": 1400, "economy": 1600, "balanced": 2000, "quality": 2800}.get(
+        ai_cost_mode(), 1400
     )
 
 

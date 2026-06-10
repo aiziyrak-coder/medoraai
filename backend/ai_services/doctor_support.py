@@ -125,12 +125,13 @@ def _doctor_system_prompt(task_type: str, language_hint: str,
         ),
         TASK_PRESCRIPTION_AUDIT: (
             "Shifokor tomonidan qo'yilgan tashxis(lar) va bemor uchun yozilgan "
-            "dori-darmonlarni O'zbekiston SSV milliy klinik protokollari asosida "
-            "chuqur audit qiling. Har bir tashxis uchun klinik asoslilik, "
+            "dori-darmonlarni O'zbekiston SSV milliy klinik protokollari VA xalqaro "
+            "dalillar (PubMed, Cochrane, Lancet/NEJM, ESC/ADA/NICE/WHO) asosida "
+            "audit qiling. Har bir tashxis uchun klinik asoslilik, "
             "har bir dori uchun: ko'rsatma mosligi, doza to'g'riligi, "
-            "qaysi SSV protokol bandiga tayangan, O'zbekistonda ro'yxatdan o'tganligi, "
-            "qarshi ko'rsatmalar va o'zaro ta'sirlar. Umumiy protokolga muvofiqlik "
-            "balli va xulosani bering."
+            "SSV protokol bandi + xalqaro guideline mosligi, "
+            "O'zbekistonda ro'yxatdan o'tganligi, qarshi ko'rsatmalar va o'zaro ta'sirlar. "
+            "Qisqa, aniq xulosa — ortiqcha takrorlarsiz."
         ),
     }
 
@@ -309,7 +310,7 @@ def doctor_consult(
         + f"Quyidagi JSON strukturada javob bering:\n{schema}"
     )
 
-    max_tokens = 4096 if task_type == TASK_PRESCRIPTION_AUDIT else 3000
+    max_tokens = 2400 if task_type == TASK_PRESCRIPTION_AUDIT else 2800
 
     try:
         raw = call_model(

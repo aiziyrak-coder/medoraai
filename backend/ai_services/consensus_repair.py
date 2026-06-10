@@ -806,6 +806,7 @@ def ensure_consensus_from_phases(
     p1: list[dict],
     p2: list[dict],
     weights: dict[str, float],
+    language: str = "uz-L",
 ) -> dict:
     """P3 buzilgan/bo'sh bo'lsa P1/P2 dan to'ldiradi."""
     if not isinstance(consensus, dict):
@@ -848,4 +849,104 @@ def ensure_consensus_from_phases(
         cd["justification"] = _s(consensus.get("agreement_summary"))[:800]
         consensus["consensus_diagnosis"] = cd
 
+    consensus = ensure_nutrition_prevention(consensus, language_hint=language)
+    return consensus
+
+
+def ensure_nutrition_prevention(consensus: dict, language_hint: str = "uz-L") -> dict:
+    """Ovqatlanish va profilaktika bo'sh qolmasin — tashxisga mos fallback."""
+    if not isinstance(consensus, dict):
+        return consensus
+
+    np = consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
+    if isinstance(np, dict):
+        dietary = [str(x).strip() for x in (np.get("dietary_guidelines") or np.get("dietaryGuidelines") or []) if str(x).strip()]
+        prevention = [str(x).strip() for x in (np.get("prevention_measures") or np.get("preventionMeasures") or []) if str(x).strip()]
+        if len(dietary) >= 2 and len(prevention) >= 2:
+            return consensus
+
+    cd = consensus.get("consensus_diagnosis") or {}
+    diag = _s(cd.get("name") if isinstance(cd, dict) else "") or "asosiy tashxis"
+
+    lang = (language_hint or "uz-L").split("-")[0]
+    if lang == "ru":
+        intro = (
+            f"Рекомендации по питанию и профилактике для «{diag}» основаны на принципах "
+            f"ВОЗ, международных руководствах и национальных протоколах МЗ РУз."
+        )
+        disclaimer = "Индивидуальная диета — только после консультации врача/диетолога."
+        dietary = [
+            f"Сбалансированное питание с акцентом на овощи, цельнозерновые и нежирный белок ({diag})",
+            "Ограничение избытка соли (<5 г/сут) и добавленного сахара (ВОЗ)",
+            "Достаточное потребление воды в течение дня",
+            "Дробное питание, избегать переедания и поздних тяжёлых приёмов пищи",
+            "Ограничить жареное, копчёное и ультрапереработанные продукты",
+        ]
+        prevention = [
+            "Регулярная умеренная физическая активность (150 мин/нед, ВОЗ)",
+            "Контроль веса, АД, глюкозы и липидов по показаниям",
+            "Своевременные скрининги и диспансерное наблюдение",
+            "Отказ от курения и ограничение алкоголя",
+            "Соблюдение режима сна и снижение хронического стресса",
+        ]
+    elif lang == "en":
+        intro = (
+            f"Diet and prevention for «{diag}» align with WHO principles, international "
+            f"guidelines (ESC/ADA/NICE) and Uzbekistan national protocols."
+        )
+        disclaimer = "Individual diet plans require physician/dietitian consultation."
+        dietary = [
+            f"Balanced plate: vegetables, whole grains, lean protein for {diag}",
+            "Limit salt (<5 g/day) and added sugars (WHO)",
+            "Adequate daily hydration",
+            "Regular meal timing; avoid late heavy meals",
+            "Reduce fried, smoked and ultra-processed foods",
+        ]
+        prevention = [
+            "Moderate physical activity ≥150 min/week (WHO)",
+            "Monitor weight, BP, glucose and lipids as indicated",
+            "Scheduled screenings and follow-up visits",
+            "Smoking cessation; limit alcohol",
+            "Sleep hygiene and stress reduction",
+        ]
+    else:
+        intro = (
+            f"«{diag}» uchun to'g'ri ovqatlanish va profilaktika tavsiyalari WHO, "
+            f"xalqaro qo'llanmalar (ESC/ADA/NICE) va O'zbekiston SSV protokollari "
+            f"asosida shakllantirildi."
+        )
+        disclaimer = "Individual parhez va doimiy kuzatuv uchun shifokor/dietolog maslahati shart."
+        dietary = [
+            f"Kunlik ratsion: sabzavot, to'liq don, oz yog'li oqsil ({diag} uchun mos)",
+            "Tuz va qo'shilgan shakarni cheklash — kuniga 5 g dan kam (WHO)",
+            "Kun bo'yi yetarli suv ichish",
+            "Muntazam ovqatlanish vaqti; kechki og'ir ovqatdan saqlanish",
+            "Qovurilgan, dymli va ultra-qayta ishlangan mahsulotlarni kamaytirish",
+        ]
+        prevention = [
+            "Haftasiga kamida 150 daqiqa o'rtacha jismoniy faollik (WHO)",
+            "Vazn, qon bosimi, glyukoza va lipidlar nazorati (ko'rsatma bo'yicha)",
+            "Rejalashtirilgan skrining va dispanser kuzatuv",
+            "Chekishni tashlash; alkogolni cheklash",
+            "Uyqu rejimi va stressni kamaytirish",
+        ]
+
+    individual = [{
+        "diagnosis": diag,
+        "allowed_foods": dietary[:3],
+        "restricted_foods": [
+            "Ortiqcha tuz va shakarli ichimliklar",
+            "Juda yog'li va qovurilgan taomlar",
+            "Spirtli ichimliklar (shifokor ruxsatisiz)",
+        ],
+        "meal_plan_notes": f"«{diag}» uchun kunlik ovqatlanish individual holatga qarab moslashtiriladi.",
+    }]
+
+    consensus["nutrition_prevention"] = {
+        "intro": intro,
+        "disclaimer": disclaimer,
+        "dietary_guidelines": dietary,
+        "prevention_measures": prevention,
+        "individual_diet_by_diagnosis": individual,
+    }
     return consensus

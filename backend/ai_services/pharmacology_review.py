@@ -58,8 +58,11 @@ def run_pharmacology_review(
     )[:3500]
 
     ddi_notes: list[str] = []
+    existing_warn = consensus.get("pharmacology_warnings") or []
+    if isinstance(existing_warn, list) and existing_warn:
+        ddi_notes.extend(str(w)[:300] for w in existing_warn[:4] if w)
     drug_names = _extract_drug_names(patient_data, consensus)
-    if len(drug_names) >= 2:
+    if len(drug_names) >= 2 and not ddi_notes:
         try:
             from .clinical_tools import drug_interactions
             ddi = drug_interactions(drug_names, language)

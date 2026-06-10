@@ -625,6 +625,8 @@ const FinalReportCard: React.FC<{
                     )}
                     {report.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>{t('final_report_cost_effectiveness')}:</strong> {report.costEffectivenessNotes}</p>}
                 </Section>
+
+                {report.nutritionPrevention && <NutritionPreventionCard section={report.nutritionPrevention} />}
                 
                 {report.clinicalRedFlags && report.clinicalRedFlags.length > 0 && (
                     <ClinicalRedFlagsCard flags={report.clinicalRedFlags} />
@@ -688,8 +690,6 @@ const FinalReportCard: React.FC<{
                 </Section>
 
                 {report.folkMedicine && <FolkMedicineCard section={report.folkMedicine} />}
-
-                {report.nutritionPrevention && <NutritionPreventionCard section={report.nutritionPrevention} />}
 
                 <AdverseEventRiskCard risks={report.adverseEventRisks} />
 

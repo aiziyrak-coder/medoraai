@@ -21,6 +21,7 @@ def _s(val: Any) -> str:
 def extended_consensus_json_instructions(language_hint: str = "O'zbek") -> str:
     return f"""
 MANBA FORMATI (majburiy): Muhim klinik da'vo, tashxis, dori yoki tavsiya oxirida qavs ichida: (Manba yoki jurnal/protokol, https://to-liq-url). "Quyida", "pastda", "bo'limda (qisqa)" kabi yo'naltiruvchi matn YO'Q.
+DALIL BAZASI (majburiy): related_research — kamida 5 ta: PubMed/Cochrane, Lancet/NEJM/JAMA/BMJ, ESC/ADA/NICE/WHO guideline, O'zbekiston SSV protokoli.
 QO'SHIMCHA MAJBURIY MAYDONLAR (til: {language_hint}):
 - protocol_compliance_gaps: SSV klinik protokolga nisbatan shifokor amaliyotidagi kamchiliklar (kamida 1 ta agar mavjud; yo'q bo'lsa bo'sh []). Har biri: gap, protocol_reference, severity (high/medium/low), consequences, recommended_correction.
 - care_quality_audit: {{ overall_score (0-100), summary, errors [{{category, description, protocol_reference, impact}}], strengths [] }} — tugallangan karta bo'yicha tibbiy yordam sifati.

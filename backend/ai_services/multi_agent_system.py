@@ -362,7 +362,7 @@ def run_phase1(patient_str: str) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=90))
+                results.append(fut.result(timeout=55))
             except Exception as exc:
                 logger.error("Phase1 timeout[%s]: %s", agent.id, exc)
                 results.append({
@@ -480,7 +480,7 @@ def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=90))
+                results.append(fut.result(timeout=55))
             except Exception as exc:
                 logger.error("Phase2 timeout[%s]: %s", agent.id, exc)
                 results.append({"agent_id": agent.id, "error": str(exc)})
@@ -533,21 +533,24 @@ _P3_SYSTEM = """\
 KONSENSUS QAROR QOIDALARI:
 1. Har bir agentga berilgan WEIGHT e'tiborga oling — kuchli dalil ustun.
 2. Eng kuchli faktlar bilan qo'llab-quvvatlangan tashxisni tanlang.
-3. O'zbekiston SSV protokollariga to'liq muvofiqlik.
-4. Faqat O'zbekistonda ro'yxatdan o'tgan dorilar.
-5. justification va reasoning_chain: har band alohida, manba URL bilan.
-6. Shaxsiy ism yoki AI nomi ISHLATMANG — mutaxassislik yoki "konsilium" deb yozing.
-7. FAQAT JSON formatida javob qaytaring.
-8. individual_diet_by_diagnosis — har bir asosiy tashxis uchun alohida parhez.
-9. rejected_hypotheses: munozarada rad etilgan kamida 2 ta gipoteza + aniq sabab.
-10. treatment_plan: MAJBURIY — kamida 3 ta aniq, ketma-ket amaliy qadam (bo'sh yoki umumiy ibora YO'Q).
-11. debate_synthesis: kelishuvlar, hal qilingan bahslar va g'olib dalillar — har ro'yxatda kamida 2 ta aniq band.
-12. agreement_summary: MAJBURIY 4–6 jumla — munozarada kim qaysi gipotezaga qarshi chiqdi, nima rad etildi, kutilmagan topilma.
-13. unexpected_findings: agreement_summary bilan bir xil mazmun, lekin aniqroq — rad etilgan gipotezalar va bahs natijalari.
-14. Bemor shikoyatini/anamnezni QAYTA AYTMAG — faqat munozara natijasi va yakuniy qaror.
-15. Har bir mutaxassisning ENG KUCHLI dalilini alohida qayd eting — umumiy sintez yetarli emas.
-16. consensus_diagnosis.justification: kamida 4 jumla, har biri aniq klinik fakt + manba.
-17. debate_synthesis: key_agreements, key_disputes_resolved, winning_arguments — har biri kamida 3 ta band.
+3. O'zbekiston SSV protokollari ASOSIY yo'riqnoma; parallel ravishda xalqaro dalillar majburiy:
+   PubMed, Cochrane, Lancet, NEJM, JAMA, BMJ, ESC/ADA/NICE/WHO guideline.
+4. related_research: kamida 5 ta manba — kamida 2 ta xalqaro jurnal/qo'llanma, 1 ta SSV, 1 ta Cochrane/PubMed RCT.
+5. Faqat O'zbekistonda ro'yxatdan o'tgan dorilar.
+6. justification va reasoning_chain: har band alohida, manba URL bilan.
+7. Shaxsiy ism yoki AI nomi ISHLATMANG — mutaxassislik yoki "konsilium" deb yozing.
+8. FAQAT JSON formatida javob qaytaring.
+9. nutrition_prevention MAJBURIY: dietary_guidelines 4-6 ta, prevention_measures 4-6 ta, individual_diet_by_diagnosis.
+10. individual_diet_by_diagnosis — har bir asosiy tashxis uchun alohida parhez.
+11. rejected_hypotheses: munozarada rad etilgan kamida 2 ta gipoteza + aniq sabab.
+12. treatment_plan: MAJBURIY — kamida 3 ta aniq, ketma-ket amaliy qadam (bo'sh yoki umumiy ibora YO'Q).
+13. debate_synthesis: kelishuvlar, hal qilingan bahslar va g'olib dalillar — har ro'yxatda kamida 2 ta aniq band.
+14. agreement_summary: MAJBURIY 4–6 jumla — munozarada kim qaysi gipotezaga qarshi chiqdi, nima rad etildi, kutilmagan topilma.
+15. unexpected_findings: agreement_summary bilan bir xil mazmun, lekin aniqroq — rad etilgan gipotezalar va bahs natijalari.
+16. Bemor shikoyatini/anamnezni QAYTA AYTMAG — faqat munozara natijasi va yakuniy qaror.
+17. Har bir mutaxassisning ENG KUCHLI dalilini alohida qayd eting — umumiy sintez yetarli emas.
+18. consensus_diagnosis.justification: kamida 4 jumla, har biri aniq klinik fakt + manba.
+19. debate_synthesis: key_agreements, key_disputes_resolved, winning_arguments — har biri kamida 3 ta band.
 
 """ + CLINICAL_OUTPUT_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
@@ -643,6 +646,12 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   "risk_factors": [],
   "severity_assessment": {{ "level": "moderate", "score": 5, "rationale": "", "red_flags": [] }},
   "adverse_event_risks": [],
+  "related_research": [
+    {{"title": "PubMed / Lancet / NEJM maqola yoki tizimli sharh", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=...", "summary": "Qaysi tashxis/davolash uchun dalil"}},
+    {{"title": "Cochrane Library", "url": "https://www.cochranelibrary.com/search?q=...", "summary": "Meta-tahlil yoki RCT xulosasi"}},
+    {{"title": "ESC/WHO/NICE xalqaro guideline", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=...", "summary": "Xalqaro protokol bandi"}},
+    {{"title": "O'zbekiston SSV protokoli", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=Uzbekistan+clinical+protocol+...", "summary": "Milliy protokol mosligi"}}
+  ],
   "agent_weights_used": {{}}
 }}"""
 
@@ -926,6 +935,18 @@ def _build_final_report(consensus: dict, p1: list[dict],
     comp = consensus.get("_clinical_completeness")
     if isinstance(comp, dict):
         merged["clinicalCompleteness"] = comp
+    from .consensus_repair import ensure_nutrition_prevention
+    if not merged.get("nutritionPrevention"):
+        patched = ensure_nutrition_prevention(dict(consensus), language_hint=language)
+        np = patched.get("nutrition_prevention") or patched.get("nutritionPrevention")
+        if np:
+            from .report_fields import normalize_nutrition_extended
+            normalized = normalize_nutrition_extended(np)
+            if normalized:
+                merged["nutritionPrevention"] = normalized
+    if not merged.get("relatedResearch"):
+        from .evidence_sources import build_fast_research_sources
+        merged["relatedResearch"] = build_fast_research_sources(_s(cd.get("name")), language)
     return merged
 
 
@@ -1038,7 +1059,7 @@ def run_consilium(
     logger.info("[%s] Phase 3: Weighted consensus started", result.session_id)
     consensus = run_phase3(ptext, p1, p2, weights)
     from .consensus_repair import ensure_consensus_from_phases
-    consensus = ensure_consensus_from_phases(consensus, p1, p2, weights)
+    consensus = ensure_consensus_from_phases(consensus, p1, p2, weights, language)
     consensus = _merge_imaging_into_consensus(consensus, patient_data)
     consensus = _merge_protocol_audit(consensus, patient_data, completeness)
     consensus["_clinical_completeness"] = completeness
