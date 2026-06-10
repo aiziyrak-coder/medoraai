@@ -1660,9 +1660,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             </select>
                                         </div>
                                 </div>
-                                <div className="flex flex-1 min-h-0 gap-2 flex-col lg:flex-row">
-                                    <div className="flex flex-1 flex-col min-h-0">
-                                        <div className="flex items-center justify-between gap-2 mb-0.5 shrink-0">
+                                <div className="flex flex-col flex-1 min-h-0 gap-3">
+                                    <div className="flex flex-col min-h-[6.5rem] flex-1">
+                                        <div className="flex items-center justify-between gap-2 mb-1 shrink-0">
                                             <span className="text-[10px] font-bold text-slate-700 uppercase">{t('data_input_complaints_label')}</span>
                                             {isSupported && (
                                                 <button
@@ -1691,21 +1691,24 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                         {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
                                     {returnVisitMode ? (
-                                        <div className="flex-1 rounded-lg border border-emerald-200 bg-emerald-50/60 p-2 min-h-0 overflow-y-auto">
-                                            <p className="text-[9px] font-bold text-emerald-900 mb-1">{t('data_form_return_visit_anamnesis')}</p>
-                                            <p className="text-[10px] text-slate-700 whitespace-pre-wrap">
+                                        <div className="flex flex-col min-h-[6.5rem] flex-1 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 overflow-y-auto">
+                                            <p className="text-[10px] font-bold text-emerald-900 mb-1.5 uppercase tracking-wide">{t('data_input_history_label')}</p>
+                                            <p className="text-[10px] font-semibold text-emerald-800 mb-1">{t('data_form_return_visit_anamnesis')}</p>
+                                            <p className="text-xs text-slate-700 whitespace-pre-wrap flex-1">
                                                 {formData.history?.trim() || t('data_form_return_visit_no_history')}
                                             </p>
                                         </div>
                                     ) : (
-                                        <Textarea
-                                            id="history"
-                                            grow
-                                            label={t('data_input_history_label')}
-                                            placeholder={t('data_input_history_placeholder')}
-                                            value={formData.history || ''}
-                                            onChange={e => handleChange('history', e.target.value)}
-                                        />
+                                        <div className="flex flex-col min-h-[6.5rem] flex-1">
+                                            <Textarea
+                                                id="history"
+                                                grow
+                                                label={t('data_input_history_label')}
+                                                placeholder={t('data_input_history_placeholder')}
+                                                value={formData.history || ''}
+                                                onChange={e => handleChange('history', e.target.value)}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             </div>
