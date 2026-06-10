@@ -888,7 +888,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     if (vitals.height) lines.push(`${t('data_form_vitals_summary_height')}: ${vitals.height} cm`);
     if (bmiResult) {
       lines.push(
-        `${t('data_form_vitals_summary_bmi')}: ${bmiResult.value} (${t(bmiResult.categoryKey)})`,
+        `${t('data_form_vitals_summary_bmi')}: ${bmiResult.value} — ${t(bmiResult.gradeKey)}`,
       );
     }
     if (vitals.bpSystolic || vitals.heartRate || vitals.temperature || vitals.spO2) {
@@ -1664,13 +1664,13 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     error={vitalErrors.height}
                                 />
                                 <div className={`rounded border p-1.5 sm:p-1 flex flex-col justify-between min-h-[3rem] ${
-                                    bmiResult ? bmiCategoryColor(bmiResult.category) : 'bg-white/70 border-slate-200'
+                                    bmiResult ? bmiCategoryColor(bmiResult.category, bmiResult.grade) : 'bg-white/70 border-slate-200'
                                 }`}>
                                     <span className="text-[8px] font-bold uppercase leading-tight">{t('data_form_vitals_bmi')}</span>
                                     {bmiResult ? (
                                         <>
                                             <div className="text-[13px] font-black leading-none">{bmiResult.value}</div>
-                                            <div className="text-[8px] font-semibold leading-tight mt-0.5">{t(bmiResult.categoryKey)}</div>
+                                            <div className="text-[8px] font-semibold leading-tight mt-0.5 line-clamp-2">{t(bmiResult.gradeKey)}</div>
                                         </>
                                     ) : (
                                         <div className="text-[9px] text-slate-500 leading-tight">{t('data_form_vitals_bmi_hint')}</div>
