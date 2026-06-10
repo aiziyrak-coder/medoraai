@@ -13,10 +13,11 @@ export interface ClinicalCompletenessResult {
 const EMPTY = (v: string | undefined) => !v || String(v).trim() === '';
 
 function hasVitals(data: Partial<PatientData>): boolean {
+  if ((data.weightKg || '').trim() && (data.heightCm || '').trim()) return true;
   const obj = (data.objectiveData || '').trim();
   if (!obj) return false;
   if (/\d{2,3}\s*\/\s*\d{2,3}/.test(obj)) return true;
-  if (/(puls|pulse|HR|bpm|SpO|harorat|°C|temp)/i.test(obj)) return true;
+  if (/(puls|pulse|HR|bpm|SpO|harorat|°C|temp|vazn|weight|bo'y|height|BMI|TMI)/i.test(obj)) return true;
   return obj.length > 25;
 }
 

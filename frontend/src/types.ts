@@ -190,6 +190,11 @@ export interface PatientData {
   imagingStructured?: Record<string, Record<string, unknown>>;
   /** Konsiliumda so'nggi tasvir tahlillarini hisobga olish */
   includePriorImaging?: boolean;
+  /** Antropometriya */
+  weightKg?: string;
+  heightCm?: string;
+  /** Tana massasi indeksi (avtomatik hisoblanadi) */
+  bmi?: string;
 }
 
 /** Bazada saqlangan UZI/UTT/Rengen tahlili */

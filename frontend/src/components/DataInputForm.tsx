@@ -9,6 +9,7 @@ import { useSpeechToText } from '../hooks/useSpeechToText';
 import MicrophoneIcon from './icons/MicrophoneIcon';
 import DocumentTextIcon from './icons/DocumentTextIcon';
 import { validateFileSize, validateFileType, validateAge, validateRequired, validateVitalSign } from '../utils/validation';
+import { calculateBmi, bmiCategoryColor } from '../utils/bmi';
 import { handleError } from '../utils/errorHandler';
 import { validatePatientDataSmart, getSmartValidationMessage } from '../utils/smartValidation';
 import { scoreClinicalCompleteness } from '../utils/clinicalCompleteness';
@@ -526,6 +527,8 @@ interface DataInputFormProps {
 }
 
 type VitalsState = {
+    weight: string;
+    height: string;
     bpSystolic: string;
     bpDiastolic: string;
     heartRate: string;
@@ -535,6 +538,8 @@ type VitalsState = {
 };
 
 const emptyVitals = (): VitalsState => ({
+    weight: '',
+    height: '',
     bpSystolic: '',
     bpDiastolic: '',
     heartRate: '',
@@ -560,6 +565,10 @@ function parseVitalsFromObjective(text: string | undefined): Partial<VitalsState
     if (spo2) out.spO2 = spo2[1];
     const rr = raw.match(/(?:resp|nafas)[:\s]*(\d{1,2})\s*\/?\s*min/i);
     if (rr) out.respirationRate = rr[1];
+    const weight = raw.match(/(?:vazn|weight|tana\s*vazni)[:\s]*(\d{1,3}(?:[.,]\d)?)\s*kg/i);
+    if (weight) out.weight = weight[1].replace(',', '.');
+    const height = raw.match(/(?:bo[''`]y|height|рост)[:\s]*(\d{2,3}(?:[.,]\d)?)\s*(?:cm|sm|см)?/i);
+    if (height) out.height = height[1].replace(',', '.');
     return out;
 }
 
@@ -705,7 +714,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         });
         setAllowIncompleteClinical(!!pd.allowIncompleteClinical);
         const parsed = parseVitalsFromObjective(pd.objectiveData);
-        setVitals({ ...emptyVitals(), ...parsed });
+        setVitals({
+            ...emptyVitals(),
+            ...parsed,
+            weight: pd.weightKg || parsed.weight || '',
+            height: pd.heightCm || parsed.height || '',
+        });
         setVitalErrors({});
         setSelectedSpecialty('');
         setSelectedComplaintIdx('');
@@ -863,21 +877,39 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         setRecentImagingStudies([]);
     }, [onLinkedPatientChange]);
 
+  const bmiResult = React.useMemo(
+    () => calculateBmi(vitals.weight, vitals.height),
+    [vitals.weight, vitals.height],
+  );
+
   const buildObjectivePreview = useCallback((): string | undefined => {
-    if (!vitals.bpSystolic && !vitals.heartRate && !vitals.temperature && !vitals.spO2) return undefined;
-    return [
-      `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
-      `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
-      `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} °C`,
-      `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
-      `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
-    ].join('\n');
-  }, [vitals, t]);
+    const lines: string[] = [];
+    if (vitals.weight) lines.push(`${t('data_form_vitals_summary_weight')}: ${vitals.weight} kg`);
+    if (vitals.height) lines.push(`${t('data_form_vitals_summary_height')}: ${vitals.height} cm`);
+    if (bmiResult) {
+      lines.push(
+        `${t('data_form_vitals_summary_bmi')}: ${bmiResult.value} (${t(bmiResult.categoryKey)})`,
+      );
+    }
+    if (vitals.bpSystolic || vitals.heartRate || vitals.temperature || vitals.spO2) {
+      lines.push(
+        `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
+        `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
+        `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} °C`,
+        `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
+        `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
+      );
+    }
+    return lines.length ? lines.join('\n') : undefined;
+  }, [vitals, bmiResult, t]);
 
     // Aqlli validatsiya: form ma'lumotlari o'zgarganda maslahat/warning yangilash
     React.useEffect(() => {
         const payload: Partial<PatientData> = {
             ...formData,
+            weightKg: vitals.weight,
+            heightCm: vitals.height,
+            bmi: bmiResult ? String(bmiResult.value) : undefined,
             objectiveData: buildObjectivePreview(),
             attachments: attachments.length
                 ? attachments.map(f => ({ name: f.name, base64Data: 'x', mimeType: f.type }))
@@ -886,17 +918,20 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         const res = validatePatientDataSmart(payload);
         const msg = getSmartValidationMessage(res, t);
         setSmartMessage(msg);
-    }, [formData, attachments, buildObjectivePreview, t]);
+    }, [formData, attachments, vitals.weight, vitals.height, bmiResult, buildObjectivePreview, t]);
 
     const completenessLive = React.useMemo(() => {
         return scoreClinicalCompleteness({
             ...formData,
+            weightKg: vitals.weight,
+            heightCm: vitals.height,
+            bmi: bmiResult ? String(bmiResult.value) : undefined,
             objectiveData: buildObjectivePreview(),
             attachments: attachments.length
                 ? attachments.map(f => ({ name: f.name, base64Data: 'x', mimeType: f.type }))
                 : undefined,
         });
-    }, [formData, attachments, buildObjectivePreview]);
+    }, [formData, attachments, vitals.weight, vitals.height, bmiResult, buildObjectivePreview]);
 
     const appendToField = (field: 'complaints' | 'history', text: string) => {
         setFormData(prev => {
@@ -957,7 +992,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         if (value !== '' && !/^-?\d*\.?\d*$/.test(value)) return;
         
         // Validatsiya
-        const vitalTypeMap: Record<string, 'bpSystolic' | 'bpDiastolic' | 'heartRate' | 'temperature' | 'spO2' | 'respirationRate'> = {
+        const vitalTypeMap: Record<string, 'weight' | 'height' | 'bpSystolic' | 'bpDiastolic' | 'heartRate' | 'temperature' | 'spO2' | 'respirationRate'> = {
+            weight: 'weight',
+            height: 'height',
             bpSystolic: 'bpSystolic',
             bpDiastolic: 'bpDiastolic',
             heartRate: 'heartRate',
@@ -1057,6 +1094,23 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         
         if (!formData.gender?.trim()) errors.gender = t('validation_required', { field: t('data_input_gender') });
         if (!formData.complaints?.trim()) errors.complaints = t('validation_required', { field: t('data_input_complaints_label') });
+
+        const nextVitalErrors: Record<string, string> = {};
+        if (!vitals.weight.trim()) {
+            nextVitalErrors.weight = t('validation_required', { field: t('data_form_vitals_weight') });
+        } else {
+            const wv = validateVitalSign(vitals.weight, 'weight');
+            if (!wv.isValid) nextVitalErrors.weight = wv.error || '';
+        }
+        if (!vitals.height.trim()) {
+            nextVitalErrors.height = t('validation_required', { field: t('data_form_vitals_height') });
+        } else {
+            const hv = validateVitalSign(vitals.height, 'height');
+            if (!hv.isValid) nextVitalErrors.height = hv.error || '';
+        }
+        if (Object.keys(nextVitalErrors).length > 0) {
+            setVitalErrors(prev => ({ ...prev, ...nextVitalErrors }));
+        }
         
         // Validate vitals if provided
         if (vitals.bpSystolic) {
@@ -1084,7 +1138,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             if (!respValidation.isValid) errors.respirationRate = respValidation.error || "";
         }
         
-        if (Object.keys(errors).length > 0) {
+        if (Object.keys(errors).length > 0 || Object.keys(nextVitalErrors).length > 0) {
             setFormErrors(errors);
             return;
         }
@@ -1134,6 +1188,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             familyHistory: formData.familyHistory || undefined,
             additionalInfo: formData.additionalInfo || '',
             objectiveData: objectiveString || undefined,
+            weightKg: vitals.weight.trim() || undefined,
+            heightCm: vitals.height.trim() || undefined,
+            bmi: bmiResult ? String(bmiResult.value) : undefined,
             labResults: (formData.labResults || '').trim()
                 || (attachments.length > 0 ? t('data_form_lab_uploaded') : undefined),
             regionalContext: (formData.regionalContext || '').trim() || undefined,
@@ -1582,6 +1639,43 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 </button>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-1.5">
+                                <VitalInput
+                                    id="vital-weight"
+                                    label={`${t('data_form_vitals_weight')} *`}
+                                    unit="kg"
+                                    type="number"
+                                    min="2"
+                                    max="350"
+                                    step="0.1"
+                                    value={vitals.weight}
+                                    onChange={e => handleVitalChange('weight', e.target.value)}
+                                    error={vitalErrors.weight}
+                                />
+                                <VitalInput
+                                    id="vital-height"
+                                    label={`${t('data_form_vitals_height')} *`}
+                                    unit="cm"
+                                    type="number"
+                                    min="40"
+                                    max="250"
+                                    step="0.1"
+                                    value={vitals.height}
+                                    onChange={e => handleVitalChange('height', e.target.value)}
+                                    error={vitalErrors.height}
+                                />
+                                <div className={`rounded border p-1.5 sm:p-1 flex flex-col justify-between min-h-[3rem] ${
+                                    bmiResult ? bmiCategoryColor(bmiResult.category) : 'bg-white/70 border-slate-200'
+                                }`}>
+                                    <span className="text-[8px] font-bold uppercase leading-tight">{t('data_form_vitals_bmi')}</span>
+                                    {bmiResult ? (
+                                        <>
+                                            <div className="text-[13px] font-black leading-none">{bmiResult.value}</div>
+                                            <div className="text-[8px] font-semibold leading-tight mt-0.5">{t(bmiResult.categoryKey)}</div>
+                                        </>
+                                    ) : (
+                                        <div className="text-[9px] text-slate-500 leading-tight">{t('data_form_vitals_bmi_hint')}</div>
+                                    )}
+                                </div>
                                 <VitalInput id="vital-bp-systolic" label={t('data_form_vitals_bp_sys')} unit="mm" value={vitals.bpSystolic} onChange={e => handleVitalChange('bpSystolic', e.target.value)} error={vitalErrors.bpSystolic} />
                                 <VitalInput id="vital-bp-diastolic" label={t('data_form_vitals_bp_dia')} unit="mm" value={vitals.bpDiastolic} onChange={e => handleVitalChange('bpDiastolic', e.target.value)} error={vitalErrors.bpDiastolic} />
                                 <VitalInput id="vital-heart-rate" label={t('data_form_vitals_pulse')} unit="bpm" value={vitals.heartRate} onChange={e => handleVitalChange('heartRate', e.target.value)} error={vitalErrors.heartRate} />

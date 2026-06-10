@@ -46,6 +46,10 @@ export function validatePatientDataSmart(data: Partial<PatientData> | null): Sma
   if (EMPTY(data.age)) {
     result.warningKeys.push('smart_validation_missing_age');
   }
+  if (EMPTY(data.weightKg) || EMPTY(data.heightCm)) {
+    result.missingCriticalKeys.push('smart_validation_missing_weight_height');
+    result.valid = false;
+  }
 
   if (EMPTY(data.allergies)) {
     result.warningKeys.push('smart_validation_missing_allergies');

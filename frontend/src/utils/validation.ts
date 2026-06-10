@@ -172,7 +172,15 @@ export const sanitizeInput = (input: string): string => {
  */
 export const validateVitalSign = (
   value: string | number,
-  type: 'bpSystolic' | 'bpDiastolic' | 'heartRate' | 'temperature' | 'spO2' | 'respirationRate'
+  type:
+    | 'bpSystolic'
+    | 'bpDiastolic'
+    | 'heartRate'
+    | 'temperature'
+    | 'spO2'
+    | 'respirationRate'
+    | 'weight'
+    | 'height'
 ): ValidationResult => {
   if (value === '' || value === null || value === undefined) {
     return { isValid: true }; // Bo'sh qiymat ruxsat etiladi
@@ -221,7 +229,19 @@ export const validateVitalSign = (
       max: 60, 
       unit: '/min',
       errorMessage: 'Nafas soni 5-60 /min oralig\'ida bo\'lishi kerak. Bu hayotiy holat emas.'
-    }
+    },
+    weight: {
+      min: 2,
+      max: 350,
+      unit: 'kg',
+      errorMessage: 'Tana vazni 2-350 kg oralig\'ida bo\'lishi kerak.',
+    },
+    height: {
+      min: 40,
+      max: 250,
+      unit: 'sm',
+      errorMessage: 'Bo\'y 40-250 sm oralig\'ida bo\'lishi kerak.',
+    },
   };
   
   const range = ranges[type];
