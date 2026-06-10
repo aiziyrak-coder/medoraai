@@ -105,6 +105,16 @@
     .data-form-main-grid {
       grid-template-rows: minmax(0, 1.05fr) minmax(0, 0.95fr);
     }
+
+    .data-form-rich select,
+    .data-form-rich input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']),
+    .data-form-rich textarea {
+      font-size: 0.8125rem;
+    }
+
+    .data-form-rich .glass-panel {
+      @apply bg-white/95 shadow-md shadow-slate-200/40;
+    }
   }
 }
 

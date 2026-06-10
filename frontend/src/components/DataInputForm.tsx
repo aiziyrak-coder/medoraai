@@ -28,7 +28,92 @@ import type { ImagingStudyRecord } from '../types';
 import { getAuthToken } from '../services/api';
 import { formatPatientRegistryId } from '../utils/patientRegistryId';
 import SearchIcon from './icons/SearchIcon';
+import UserCircleIcon from './icons/UserCircleIcon';
+import StethoscopeIcon from './icons/StethoscopeIcon';
+import HeartPulseIcon from './icons/HeartPulseIcon';
+import ImageIcon from './icons/ImageIcon';
+import FlaskIcon from './icons/FlaskIcon';
+import ShieldCheckIcon from './icons/ShieldCheckIcon';
+import LightBulbIcon from './icons/LightBulbIcon';
 import AddressCombobox from './address/AddressCombobox';
+
+type SectionTone = 'blue' | 'indigo' | 'violet' | 'teal' | 'emerald' | 'amber' | 'rose';
+
+const SECTION_TONES: Record<
+    SectionTone,
+    { stripe: string; header: string; icon: string; badge: string }
+> = {
+    blue: {
+        stripe: 'border-l-blue-500',
+        header: 'bg-gradient-to-r from-blue-50 via-sky-50/90 to-white',
+        icon: 'bg-gradient-to-br from-blue-500 to-sky-500 shadow-md shadow-blue-300/40',
+        badge: 'bg-gradient-to-br from-blue-600 to-sky-600',
+    },
+    indigo: {
+        stripe: 'border-l-indigo-500',
+        header: 'bg-gradient-to-r from-indigo-50 via-violet-50/90 to-white',
+        icon: 'bg-gradient-to-br from-indigo-500 to-violet-500 shadow-md shadow-indigo-300/40',
+        badge: 'bg-gradient-to-br from-indigo-600 to-violet-600',
+    },
+    violet: {
+        stripe: 'border-l-violet-500',
+        header: 'bg-gradient-to-r from-violet-50 via-purple-50/90 to-white',
+        icon: 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-md shadow-violet-300/40',
+        badge: 'bg-gradient-to-br from-violet-600 to-purple-600',
+    },
+    teal: {
+        stripe: 'border-l-teal-500',
+        header: 'bg-gradient-to-r from-teal-50 via-cyan-50/90 to-white',
+        icon: 'bg-gradient-to-br from-teal-500 to-cyan-500 shadow-md shadow-teal-300/40',
+        badge: 'bg-gradient-to-br from-teal-600 to-cyan-600',
+    },
+    emerald: {
+        stripe: 'border-l-emerald-500',
+        header: 'bg-gradient-to-r from-emerald-50 via-green-50/90 to-white',
+        icon: 'bg-gradient-to-br from-emerald-500 to-green-500 shadow-md shadow-emerald-300/40',
+        badge: 'bg-gradient-to-br from-emerald-600 to-green-600',
+    },
+    amber: {
+        stripe: 'border-l-amber-500',
+        header: 'bg-gradient-to-r from-amber-50 via-orange-50/90 to-white',
+        icon: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-md shadow-amber-300/40',
+        badge: 'bg-gradient-to-br from-amber-600 to-orange-600',
+    },
+    rose: {
+        stripe: 'border-l-rose-500',
+        header: 'bg-gradient-to-r from-rose-50 via-pink-50/90 to-white',
+        icon: 'bg-gradient-to-br from-rose-500 to-pink-500 shadow-md shadow-rose-300/40',
+        badge: 'bg-gradient-to-br from-rose-600 to-pink-600',
+    },
+};
+
+const FormSection: React.FC<{
+    step: number;
+    title: string;
+    tone: SectionTone;
+    icon: React.FC<{ className?: string }>;
+    gridClass?: string;
+    orderClass?: string;
+    children: React.ReactNode;
+}> = ({ step, title, tone, icon: Icon, gridClass = '', orderClass = '', children }) => {
+    const c = SECTION_TONES[tone];
+    return (
+        <section
+            className={`glass-panel flex flex-col min-h-0 h-full overflow-hidden border-l-[5px] ${c.stripe} ${gridClass} ${orderClass}`}
+        >
+            <header className={`flex items-center gap-3 px-3 py-2.5 border-b border-slate-100/90 shrink-0 ${c.header}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 ${c.icon}`}>
+                    <Icon className="w-[18px] h-[18px]" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 leading-tight flex-1 min-w-0">{title}</h3>
+                <span className={`w-7 h-7 rounded-lg text-white text-[11px] font-black flex items-center justify-center shrink-0 shadow-sm ${c.badge}`}>
+                    {step}
+                </span>
+            </header>
+            <div className="p-3 sm:p-3.5 flex flex-col flex-1 min-h-0 gap-2.5 overflow-y-auto custom-scrollbar">{children}</div>
+        </section>
+    );
+};
 
 type SpecialtyKey = 'gastro' | 'cardio' | 'neuro' | 'therapist' | 'endo' | 'pulmo' | 'nephro' | 'derma' | 'ortho' | 'gynec' | 'uro' | 'ophth' | 'ent' | 'reuma' | 'psych';
 
@@ -575,10 +660,10 @@ function parseVitalsFromObjective(text: string | undefined): Partial<VitalsState
 // Ultra-compact Input (barcha yozuvlar kichik — sig‘ishi uchun)
 const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string }> = ({ id, label, className, ...props }) => (
     <div className={`flex flex-col ${className}`}>
-        <label htmlFor={id} className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
+        <label htmlFor={id} className="text-[10px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-1">
             {label}
         </label>
-        <input id={id} {...props} className="block w-full text-[11px] text-slate-800 common-input py-1 px-1.5 bg-white/80 focus:bg-white placeholder-slate-500 transition-all duration-200 border border-slate-200 shadow-sm focus:ring-1 focus:ring-blue-400 rounded" />
+        <input id={id} {...props} className="block w-full text-xs text-slate-800 common-input py-2 px-2.5 bg-white focus:bg-white placeholder-slate-400 transition-all duration-200 border border-slate-200/90 shadow-sm focus:ring-2 focus:ring-blue-400/30 focus:border-blue-400 rounded-lg" />
     </div>
 );
 
@@ -602,7 +687,7 @@ const Textarea: React.FC<
             rows={rows ?? (compact && !grow ? 2 : undefined)}
             className={`block w-full text-[11px] sm:text-xs text-slate-800 common-input bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 rounded ${
                 grow
-                    ? 'flex-1 min-h-[4.5rem] py-1.5 px-2 resize-y'
+                    ? 'flex-1 min-h-[5rem] py-2 px-2.5 resize-y rounded-lg'
                     : compact
                       ? 'min-h-[2.75rem] max-h-[4.5rem] py-1 px-1.5 lg:flex-none resize-y'
                       : 'min-h-[72px] max-lg:flex-none lg:flex-grow py-2 px-2 sm:py-1.5 sm:px-1.5 resize-y'
@@ -616,12 +701,12 @@ const VitalInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label
     const inputId = id || `vital-${label.replace(/\s+/g, '-').toLowerCase()}`;
     return (
         <div className="flex flex-col min-w-0">
-            <div className={`bg-white/70 p-1.5 sm:p-1 rounded border flex flex-col justify-between gap-0.5 min-h-[3rem] ${
-                error ? 'border-red-400 bg-red-50/50' : 'border-slate-200'
+            <div className={`bg-white p-2 rounded-lg border flex flex-col justify-between gap-1 min-h-[3.75rem] lg:min-h-[4.25rem] ${
+                error ? 'border-red-400 bg-red-50/50' : 'border-slate-200/90 shadow-sm'
             }`}>
-                <label htmlFor={inputId} className="text-[8px] font-bold text-slate-700 uppercase leading-tight break-words hyphens-auto">{label}</label>
-                <div className="flex items-baseline gap-0.5 min-w-0">
-                    <input id={inputId} name={inputId} aria-label={label} {...props} className={`min-w-0 flex-1 bg-transparent text-[11px] font-bold outline-none p-0 ${
+                <label htmlFor={inputId} className="text-[9px] font-bold text-slate-600 uppercase leading-tight break-words">{label}</label>
+                <div className="flex items-baseline gap-1 min-w-0">
+                    <input id={inputId} name={inputId} aria-label={label} {...props} className={`min-w-0 flex-1 bg-transparent text-sm font-bold outline-none p-0 ${
                         error ? 'text-red-700' : 'text-slate-800'
                     }`} placeholder="0" />
                     <span className="text-[8px] text-slate-600 shrink-0">{unit}</span>
@@ -1224,7 +1309,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     };
 
     return (
-        <div className="data-input-compact data-form-root w-full min-w-0 max-w-full flex flex-col flex-1 animate-fade-in-up min-h-0 lg:min-h-[calc(100dvh-11rem)]">
+        <div className="data-input-compact data-form-rich data-form-root w-full min-w-0 max-w-full flex flex-col flex-1 animate-fade-in-up min-h-0 lg:min-h-[calc(100dvh-11rem)]">
             
             <form onSubmit={handleSubmit} className="flex flex-col w-full flex-1 min-h-0">
                 
@@ -1280,14 +1365,22 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                     </div>
                 )}
 
-                <div className="data-form-mobile-flow w-full min-w-0 flex flex-col flex-1 gap-2.5 min-h-0 max-lg:pb-2 lg:overflow-hidden">
+                <div className="data-form-mobile-flow w-full min-w-0 flex flex-col flex-1 gap-3 min-h-0 max-lg:pb-2 lg:overflow-hidden">
 
-                    {/* Aqlli qidiruv — to'liq kenglik */}
-                    <div className="flex-shrink-0 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2.5 space-y-2 shadow-sm">
+                    <div className="data-form-main-grid flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-3 auto-rows-min">
+                        <FormSection
+                            step={1}
+                            title={t('data_form_section_passport')}
+                            tone="blue"
+                            icon={UserCircleIcon}
+                            orderClass="order-1"
+                            gridClass="lg:col-start-1 lg:row-start-1 lg:col-span-3 lg:row-span-2"
+                        >
+                            <div className="rounded-xl border border-sky-200/80 bg-gradient-to-br from-sky-50 to-blue-50/50 px-2.5 py-2 space-y-2 shrink-0">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                                 <div>
                                     <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wide">{t('data_form_smart_search_title')}</p>
-                                    <p className="text-[8px] text-sky-700/90 mt-0.5">{t('data_form_smart_search_hint')}</p>
+                                    <p className="text-[9px] text-sky-700/90 mt-0.5">{t('data_form_smart_search_hint')}</p>
                                 </div>
                                 {linkedPatientKey && (
                                     <button
@@ -1383,15 +1476,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     </span>
                                 </label>
                             )}
-                        </div>
-
-                    {/* Asosiy maydon — pasport chapda to'liq balandlik, o'ngda 2 qator */}
-                    <div className="data-form-main-grid flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-2.5 auto-rows-min">
-                        <div className="lg:col-span-3 lg:row-span-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full overflow-y-auto custom-scrollbar space-y-2">
-                            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-[9px] font-black">1</span>
-                                {t('data_form_section_passport')}
-                            </h3>
+                            </div>
                             <div>
                                 <Input id="firstName" label={t('data_input_patient_name')} type="text" value={formData.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required placeholder={t('data_input_placeholder_firstname')} />
                                 {formErrors.firstName && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.firstName}</p>}
@@ -1472,15 +1557,17 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 onChange={(e) => handleChange('address', e.target.value)}
                                 placeholder={t('address_extra_placeholder')}
                             />
-                        </div>
+                        </FormSection>
 
-                        <div className="lg:col-span-5 lg:row-start-1 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full overflow-hidden">
-                            <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                                <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 text-[9px] font-black">2</div>
-                                <h3 className="text-xs font-bold text-slate-900">{t('data_form_clinical_data')}</h3>
-                            </div>
-
-                            <div className="flex flex-col flex-1 min-h-0 gap-2">
+                        <FormSection
+                            step={2}
+                            title={t('data_form_clinical_data')}
+                            tone="indigo"
+                            icon={StethoscopeIcon}
+                            orderClass="order-2"
+                            gridClass="lg:col-start-4 lg:row-start-1 lg:col-span-5"
+                        >
+                            <div className="flex flex-col flex-1 min-h-0 gap-2.5">
                                 <div className="flex-shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
@@ -1622,23 +1709,26 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </FormSection>
 
-                        <div className="lg:col-span-4 lg:row-start-1 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
-                                <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                                    <span className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center text-violet-800 text-[9px] font-black">3</span>
-                                    {t('data_form_vitals_section_title')}
-                                </h3>
+                        <FormSection
+                            step={3}
+                            title={t('data_form_vitals_section_title')}
+                            tone="violet"
+                            icon={HeartPulseIcon}
+                            orderClass="order-3"
+                            gridClass="lg:col-start-9 lg:row-start-1 lg:col-span-4"
+                        >
+                            <div className="flex justify-end shrink-0 -mt-1 mb-1">
                                 <button
                                     type="button"
                                     onClick={fillNormalVitals}
-                                    className="text-[9px] font-semibold px-2.5 py-1 sm:py-0.5 rounded bg-sky-100 text-sky-700 hover:bg-sky-200 border border-sky-200 transition-colors shrink-0 self-start sm:self-auto"
+                                    className="text-[10px] font-semibold px-3 py-1 rounded-lg bg-violet-100 text-violet-800 hover:bg-violet-200 border border-violet-200 transition-colors"
                                 >
                                     {t('vitals_normal_btn')}
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-1.5 flex-1 content-start">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 flex-1 content-stretch">
                                 <VitalInput
                                     id="vital-weight"
                                     label={`${t('data_form_vitals_weight')} *`}
@@ -1683,18 +1773,21 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 <VitalInput id="vital-spo2" label={t('data_form_vitals_spo2')} unit="%" value={vitals.spO2} onChange={e => handleVitalChange('spO2', e.target.value)} error={vitalErrors.spO2} />
                                 <VitalInput id="vital-respiration" label={t('data_form_vitals_resp')} unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
-                        </div>
+                        </FormSection>
 
-                            <div className="lg:col-span-2 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full">
-                                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                                    <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 text-[9px] font-black">4</div>
-                                    <h3 className="text-xs font-bold text-slate-900">{t('data_form_diagnostics_card')}</h3>
-                                </div>
+                        <FormSection
+                            step={4}
+                            title={t('data_form_diagnostics_card')}
+                            tone="teal"
+                            icon={ImageIcon}
+                            orderClass="order-4"
+                            gridClass="lg:col-start-4 lg:row-start-2 lg:col-span-2"
+                        >
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="min-h-[56px] flex-shrink-0 border-2 border-dashed border-teal-200 bg-teal-50/40 rounded-xl flex items-center justify-center gap-2 px-3 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group"
+                                    className="min-h-[72px] flex-shrink-0 border-2 border-dashed border-teal-300 bg-gradient-to-br from-teal-50 to-cyan-50/80 rounded-xl flex items-center justify-center gap-2 px-3 cursor-pointer hover:from-teal-100 hover:border-teal-400 transition-all group"
                                 >
-                                    <UploadCloudIcon className="h-4 w-4 text-teal-500 shrink-0 group-hover:scale-110 transition-transform" />
+                                    <UploadCloudIcon className="h-5 w-5 text-teal-600 shrink-0 group-hover:scale-110 transition-transform" />
                                     <div className="min-w-0 text-left">
                                         <p className="text-[9px] font-bold text-teal-700 leading-tight">{t('data_form_upload_files')}</p>
                                         <p className="text-[7px] text-teal-600/80 leading-tight line-clamp-2">{t('data_form_upload_hint')}</p>
@@ -1717,16 +1810,19 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                         </div>
                                     ))}
                                     {attachments.length === 0 && Object.keys(fileErrors).length === 0 && (
-                                        <p className="text-[8px] text-center text-slate-400 italic py-0.5">{t('data_form_no_files')}</p>
+                                        <p className="text-[9px] text-center text-slate-400 italic py-2">{t('data_form_no_files')}</p>
                                     )}
                                 </div>
-                            </div>
+                        </FormSection>
 
-                            <div className="lg:col-span-3 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full">
-                                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
-                                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 text-[9px] font-black">5</div>
-                                    <h3 className="text-xs font-bold text-slate-900">{t('analysis_labs_title')}</h3>
-                                </div>
+                        <FormSection
+                            step={5}
+                            title={t('analysis_labs_title')}
+                            tone="emerald"
+                            icon={FlaskIcon}
+                            orderClass="order-5"
+                            gridClass="lg:col-start-6 lg:row-start-2 lg:col-span-3"
+                        >
                                 <Textarea
                                     id="labResults"
                                     grow
@@ -1735,26 +1831,32 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     value={formData.labResults || ''}
                                     onChange={e => handleChange('labResults', e.target.value)}
                                 />
-                            </div>
+                        </FormSection>
 
-                        <div className="lg:col-span-2 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full space-y-2 justify-between">
-                            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 text-[9px] font-black">6</span>
-                                {t('data_form_section_safety')}
-                                {returnVisitMode && (
-                                    <span className="text-[8px] font-normal text-emerald-700 ml-1">({t('data_form_return_visit_saved')})</span>
-                                )}
-                            </h3>
-                            <Input id="allergies" label={t('data_input_allergies')} type="text" value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} readOnly={returnVisitMode} />
-                            <Input id="currentMedications" label={t('data_input_current_medications')} type="text" value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} readOnly={returnVisitMode} />
-                            <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
-                        </div>
+                        <FormSection
+                            step={6}
+                            title={t('data_form_section_safety')}
+                            tone="amber"
+                            icon={ShieldCheckIcon}
+                            orderClass="order-6"
+                            gridClass="lg:col-start-9 lg:row-start-2 lg:col-span-2"
+                        >
+                            {returnVisitMode && (
+                                <p className="text-[9px] font-medium text-emerald-700 shrink-0">({t('data_form_return_visit_saved')})</p>
+                            )}
+                            <Textarea id="allergies" grow label={t('data_input_allergies')} value={formData.allergies || ''} onChange={e => handleChange('allergies', e.target.value)} placeholder={t('data_input_allergies_placeholder')} readOnly={returnVisitMode} />
+                            <Textarea id="currentMedications" grow label={t('data_input_current_medications')} value={formData.currentMedications || ''} onChange={e => handleChange('currentMedications', e.target.value)} placeholder={t('data_input_current_medications_placeholder')} readOnly={returnVisitMode} />
+                            <Textarea id="familyHistory" grow label={t('data_input_family_history')} value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
+                        </FormSection>
 
-                        <div className="lg:col-span-2 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col gap-1.5 min-h-0 h-full min-w-0">
-                            <h3 className="text-xs font-bold text-slate-900 mb-0.5 flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 text-[9px] font-black">7</span>
-                                {t('data_form_section_other_info')}
-                            </h3>
+                        <FormSection
+                            step={7}
+                            title={t('data_form_section_other_info')}
+                            tone="rose"
+                            icon={LightBulbIcon}
+                            orderClass="order-7"
+                            gridClass="lg:col-start-11 lg:row-start-2 lg:col-span-2"
+                        >
                             <Textarea
                                 id="additionalInfo"
                                 grow
@@ -1779,7 +1881,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 value={formData.differentialDiagnosesNotes || ''}
                                 onChange={e => handleChange('differentialDiagnosesNotes', e.target.value)}
                             />
-                        </div>
+                        </FormSection>
                     </div>
                 </div>
             </form>
