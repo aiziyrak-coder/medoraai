@@ -584,24 +584,28 @@ const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { id: string
 
 // Ultra-compact Textarea — compact: anamnez, lab (ekran sig'ishi uchun)
 const Textarea: React.FC<
-    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string; compact?: boolean }
+    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string; compact?: boolean; grow?: boolean }
 > = React.forwardRef<
     HTMLTextAreaElement,
-    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string; compact?: boolean }
->(({ id, label, className, compact = false, rows, ...props }, ref) => (
-     <div className={`flex flex-col ${compact ? 'flex-shrink-0' : 'max-lg:min-h-min max-lg:h-auto lg:min-h-0 lg:h-full'} ${className ?? ''}`}>
-        <label htmlFor={id} className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5 break-words">
-            {label}
-        </label>
+    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { id: string; label: string; compact?: boolean; grow?: boolean }
+>(({ id, label, className, compact = false, grow = false, rows, ...props }, ref) => (
+     <div className={`flex flex-col min-h-0 ${grow ? 'flex-1' : compact ? 'flex-shrink-0' : 'max-lg:min-h-min max-lg:h-auto lg:min-h-0 lg:h-full'} ${className ?? ''}`}>
+        {label ? (
+            <label htmlFor={id} className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5 break-words shrink-0">
+                {label}
+            </label>
+        ) : null}
         <textarea
             id={id}
             {...props}
-            data-compact={compact ? 'true' : undefined}
-            rows={rows ?? (compact ? 2 : undefined)}
-            className={`block w-full text-[11px] sm:text-xs text-slate-800 common-input bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 resize-y rounded ${
-                compact
-                    ? 'min-h-[2.75rem] max-h-[4.5rem] py-1 px-1.5 lg:flex-none'
-                    : 'min-h-[72px] max-lg:flex-none lg:flex-grow py-2 px-2 sm:py-1.5 sm:px-1.5'
+            data-compact={compact && !grow ? 'true' : undefined}
+            rows={rows ?? (compact && !grow ? 2 : undefined)}
+            className={`block w-full text-[11px] sm:text-xs text-slate-800 common-input bg-white/80 focus:bg-white placeholder-slate-500 border border-slate-200 transition-all duration-200 shadow-sm focus:ring-1 focus:ring-blue-400 rounded ${
+                grow
+                    ? 'flex-1 min-h-[4.5rem] py-1.5 px-2 resize-y'
+                    : compact
+                      ? 'min-h-[2.75rem] max-h-[4.5rem] py-1 px-1.5 lg:flex-none resize-y'
+                      : 'min-h-[72px] max-lg:flex-none lg:flex-grow py-2 px-2 sm:py-1.5 sm:px-1.5 resize-y'
             }`}
             ref={ref}
         />
@@ -1220,10 +1224,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     };
 
     return (
-        <div className="data-input-compact data-form-root w-full min-w-0 max-w-full flex flex-col animate-fade-in-up max-lg:h-auto lg:h-full lg:min-h-0">
+        <div className="data-input-compact data-form-root w-full min-w-0 max-w-full flex flex-col flex-1 animate-fade-in-up min-h-0 lg:min-h-[calc(100dvh-11rem)]">
             
-            {/* Main Form Content — mobil: tabiiy balandlik; katta ekran: qolgan joyni to‘ldirish */}
-            <form onSubmit={handleSubmit} className="flex flex-col w-full max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-1">
+            <form onSubmit={handleSubmit} className="flex flex-col w-full flex-1 min-h-0">
                 
                 {/* Header & Submit Button */}
                 <div className="flex-shrink-0 flex justify-between items-center mb-3 px-1 gap-3">
@@ -1277,7 +1280,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                     </div>
                 )}
 
-                <div className="data-form-mobile-flow w-full min-w-0 flex flex-col gap-3 max-lg:pb-2 lg:flex-1 lg:min-h-0 lg:overflow-y-auto custom-scrollbar">
+                <div className="data-form-mobile-flow w-full min-w-0 flex flex-col flex-1 gap-2.5 min-h-0 max-lg:pb-2 lg:overflow-hidden">
 
                     {/* Aqlli qidiruv — to'liq kenglik */}
                     <div className="flex-shrink-0 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2.5 space-y-2 shadow-sm">
@@ -1382,9 +1385,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             )}
                         </div>
 
-                    {/* Asosiy qator: Pasport | Klinik | Vitallar */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-                        <div className="lg:col-span-4 xl:col-span-3 glass-panel p-3 sm:p-4 space-y-2.5">
+                    {/* Asosiy maydon — pasport chapda to'liq balandlik, o'ngda 2 qator */}
+                    <div className="data-form-main-grid flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-2.5 auto-rows-min">
+                        <div className="lg:col-span-3 lg:row-span-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full overflow-y-auto custom-scrollbar space-y-2">
                             <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-[9px] font-black">1</span>
                                 {t('data_form_section_passport')}
@@ -1471,15 +1474,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             />
                         </div>
 
-                        <div className="lg:col-span-5 xl:col-span-5 glass-panel p-3 sm:p-4 flex flex-col min-h-0">
+                        <div className="lg:col-span-5 lg:row-start-1 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full overflow-hidden">
                             <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                 <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 text-[9px] font-black">2</div>
                                 <h3 className="text-xs font-bold text-slate-900">{t('data_form_clinical_data')}</h3>
                             </div>
 
-                            <div className="flex flex-col gap-2.5">
-                                <div className="flex flex-col gap-2">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-1.5">
+                            <div className="flex flex-col flex-1 min-h-0 gap-2">
+                                <div className="flex-shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                                         <div className="flex flex-col">
                                             <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide ml-0.5 mb-0.5">
                                                 {t('data_input_specialty_templates')}
@@ -1570,9 +1572,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                     })}
                                             </select>
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col max-lg:min-h-min max-lg:flex-none lg:flex-shrink">
-                                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                                </div>
+                                <div className="flex flex-1 min-h-0 gap-2 flex-col lg:flex-row">
+                                    <div className="flex flex-1 flex-col min-h-0">
+                                        <div className="flex items-center justify-between gap-2 mb-0.5 shrink-0">
                                             <span className="text-[10px] font-bold text-slate-700 uppercase">{t('data_input_complaints_label')}</span>
                                             {isSupported && (
                                                 <button
@@ -1590,38 +1593,38 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                                 </button>
                                             )}
                                         </div>
-                                        <Textarea 
-                                            id="complaints" 
+                                        <Textarea
+                                            id="complaints"
                                             label=""
+                                            grow
                                             placeholder={t('data_input_complaints_placeholder')}
-                                            value={formData.complaints || ''} 
-                                            onChange={e => handleChange('complaints', e.target.value)} 
-                                            className="min-h-[80px] max-h-[120px]"
+                                            value={formData.complaints || ''}
+                                            onChange={e => handleChange('complaints', e.target.value)}
                                         />
                                         {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
+                                    {returnVisitMode ? (
+                                        <div className="flex-1 rounded-lg border border-emerald-200 bg-emerald-50/60 p-2 min-h-0 overflow-y-auto">
+                                            <p className="text-[9px] font-bold text-emerald-900 mb-1">{t('data_form_return_visit_anamnesis')}</p>
+                                            <p className="text-[10px] text-slate-700 whitespace-pre-wrap">
+                                                {formData.history?.trim() || t('data_form_return_visit_no_history')}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <Textarea
+                                            id="history"
+                                            grow
+                                            label={t('data_input_history_label')}
+                                            placeholder={t('data_input_history_placeholder')}
+                                            value={formData.history || ''}
+                                            onChange={e => handleChange('history', e.target.value)}
+                                        />
+                                    )}
                                 </div>
-                                {returnVisitMode ? (
-                                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-2">
-                                        <p className="text-[9px] font-bold text-emerald-900 mb-1">{t('data_form_return_visit_anamnesis')}</p>
-                                        <p className="text-[10px] text-slate-700 whitespace-pre-wrap max-h-16 overflow-y-auto">
-                                            {formData.history?.trim() || t('data_form_return_visit_no_history')}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <Textarea 
-                                        id="history" 
-                                        compact
-                                        label={t('data_input_history_label')} 
-                                        placeholder={t('data_input_history_placeholder')} 
-                                        value={formData.history || ''} 
-                                        onChange={e => handleChange('history', e.target.value)} 
-                                    />
-                                )}
                             </div>
                         </div>
 
-                        <div className="lg:col-span-3 xl:col-span-4 glass-panel p-3 sm:p-4 flex-shrink-0">
+                        <div className="lg:col-span-4 lg:row-start-1 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
                                 <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                                     <span className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center text-violet-800 text-[9px] font-black">3</span>
@@ -1635,7 +1638,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     {t('vitals_normal_btn')}
                                 </button>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-1.5">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-1.5 flex-1 content-start">
                                 <VitalInput
                                     id="vital-weight"
                                     label={`${t('data_form_vitals_weight')} *`}
@@ -1681,18 +1684,15 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 <VitalInput id="vital-respiration" label={t('data_form_vitals_resp')} unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Qo'shimcha qator: Diagnostika | Lab | Xavfsizlik | Boshqa */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                            <div className="glass-panel p-3 sm:p-4 flex flex-col min-h-0">
+                            <div className="lg:col-span-2 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full">
                                 <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                     <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 text-[9px] font-black">4</div>
                                     <h3 className="text-xs font-bold text-slate-900">{t('data_form_diagnostics_card')}</h3>
                                 </div>
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="min-h-[64px] flex-shrink-0 border-2 border-dashed border-teal-200 bg-teal-50/40 rounded-xl flex items-center justify-center gap-2 px-3 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group"
+                                    className="min-h-[56px] flex-shrink-0 border-2 border-dashed border-teal-200 bg-teal-50/40 rounded-xl flex items-center justify-center gap-2 px-3 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group"
                                 >
                                     <UploadCloudIcon className="h-4 w-4 text-teal-500 shrink-0 group-hover:scale-110 transition-transform" />
                                     <div className="min-w-0 text-left">
@@ -1701,7 +1701,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     </div>
                                     <input id="file-upload" name="file-upload" type="file" className="sr-only" ref={fileInputRef} onChange={handleFileChange} multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" />
                                 </div>
-                                <div className="mt-1 flex-shrink-0 max-h-[52px] overflow-y-auto custom-scrollbar space-y-0.5">
+                                <div className="mt-1.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-0.5">
                                     {attachments.map(file => (
                                         <div key={file.name} className="flex items-center justify-between bg-white/60 px-1.5 py-0.5 rounded border border-slate-200 text-[9px]">
                                             <div className="flex items-center gap-1 overflow-hidden min-w-0">
@@ -1722,24 +1722,22 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 </div>
                             </div>
 
-                            <div className="glass-panel p-3 sm:p-4 flex flex-col min-h-0">
+                            <div className="lg:col-span-3 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full">
                                 <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
                                     <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 text-[9px] font-black">5</div>
                                     <h3 className="text-xs font-bold text-slate-900">{t('analysis_labs_title')}</h3>
                                 </div>
                                 <Textarea
                                     id="labResults"
-                                    compact
+                                    grow
                                     label={t('data_form_lab_results')}
                                     placeholder={t('data_form_lab_results_ph')}
                                     value={formData.labResults || ''}
                                     onChange={e => handleChange('labResults', e.target.value)}
-                                    rows={3}
-                                    className="flex-1 min-h-0"
                                 />
                             </div>
 
-                        <div className="glass-panel p-3 sm:p-4 space-y-2 min-w-0">
+                        <div className="lg:col-span-2 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col min-h-0 h-full space-y-2 justify-between">
                             <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 text-[9px] font-black">6</span>
                                 {t('data_form_section_safety')}
@@ -1752,14 +1750,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
                         </div>
 
-                        <div className="glass-panel p-3 sm:p-4 flex flex-col gap-1.5 min-w-0">
+                        <div className="lg:col-span-2 lg:row-start-2 glass-panel p-3 sm:p-4 flex flex-col gap-1.5 min-h-0 h-full min-w-0">
                             <h3 className="text-xs font-bold text-slate-900 mb-0.5 flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 text-[9px] font-black">7</span>
                                 {t('data_form_section_other_info')}
                             </h3>
                             <Textarea
                                 id="additionalInfo"
-                                compact
+                                grow
                                 label={t('data_form_extra_notes')}
                                 placeholder={t('data_form_extra_notes_placeholder')}
                                 value={formData.additionalInfo || ''}
@@ -1767,7 +1765,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             />
                             <Textarea
                                 id="regionalContext"
-                                compact
+                                grow
                                 label={t('data_form_regional_context')}
                                 placeholder={t('data_form_regional_context_ph')}
                                 value={formData.regionalContext || ''}
@@ -1775,7 +1773,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             />
                             <Textarea
                                 id="differentialDiagnosesNotes"
-                                compact
+                                grow
                                 label={t('data_form_ddx_notes')}
                                 placeholder={t('data_form_ddx_notes_ph')}
                                 value={formData.differentialDiagnosesNotes || ''}

@@ -1107,7 +1107,7 @@ const AppContent: React.FC = () => {
 
             case 'new_analysis':
                 return (
-                    <div className="min-h-full flex flex-col min-w-0">
+                    <div className="min-h-0 flex flex-col flex-1 min-w-0 h-full">
                         <BackBar title={t('nav_new_case')} subtitle={t('new_case_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         {error && (
                             <div className="mx-4 mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2" role="alert">
@@ -1116,7 +1116,7 @@ const AppContent: React.FC = () => {
                                 <button type="button" onClick={() => setError(null)} className="shrink-0 underline" aria-label={t('close')}>{t('close')}</button>
                             </div>
                         )}
-                        <div className="page-px py-4">
+                        <div className="page-px py-3 flex-1 min-h-0 flex flex-col">
                             <DataInputForm
                                 onSubmit={handleDataSubmit}
                                 isAnalyzing={isProcessing}
