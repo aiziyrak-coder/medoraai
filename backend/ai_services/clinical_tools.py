@@ -70,33 +70,23 @@ def _pubmed_url(term: str) -> str:
 
 
 def _try_vision(prompt: str, b64: str, mime: str, max_tokens: int = 2500) -> str | None:
-    from django.conf import settings
-    from . import claude_utils
+    """Bitta rasm uchun vision (EKG va boshqalar). OpenAI GPT-4o (matn = DeepSeek)."""
+    from .vision_utils import vision_json, prepare_imaging_images
 
-    client = claude_utils._get_client()
-    if not client or not b64:
+    if not b64:
         return None
-    mime = (mime or "image/jpeg").strip()
-    data_url = f"data:{mime};base64,{b64}"
-    messages: list[dict[str, Any]] = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {"type": "image_url", "image_url": {"url": data_url}},
-            ],
-        }
-    ]
+    images = prepare_imaging_images([{
+        "base64Data": b64,
+        "mimeType": mime or "image/jpeg",
+        "fileName": "image",
+    }])
+    if not images:
+        return None
     try:
-        resp = client.chat.completions.create(
-            model=getattr(settings, "DEEPSEEK_MODEL_FAST", "deepseek-chat"),
-            messages=messages,
-            temperature=0.1,
-            max_tokens=max_tokens,
-        )
-        return (resp.choices[0].message.content or "").strip() or None
+        result = vision_json(prompt, images, max_tokens=max_tokens)
+        return json.dumps(result, ensure_ascii=False)
     except Exception as exc:
-        logger.warning("Vision call failed, fallback to text: %s", exc)
+        logger.warning("Vision call failed: %s", exc)
         return None
 
 
@@ -151,37 +141,52 @@ def drug_interactions(drugs: list[str], language: str) -> dict:
 
 
 def ecg_analyze(b64: str, mime: str, language: str) -> dict:
+    from .vision_utils import VisionAnalysisError, VisionNotConfiguredError
+
     lang = _lang(language)
     prompt = (
-        f"Siz kardiologsiz. EKG tasvirini tahlil qiling. Til: {lang}. "
+        f"Siz kardiologsiz. EKG tasvirini PIKSELLAR BO'YICHA tahlil qiling. Til: {lang}. "
         'FAQAT JSON: {"rhythm":"","heartRate":"","prInterval":"","qrsDuration":"","qtInterval":"",'
         '"axis":"","morphology":"","interpretation":""}. '
         "Aniq bo'lmagan parametrlarni 'aniqlanmadi' deb yozing."
     )
-    vision_raw = _try_vision(prompt, b64, mime)
+    vision_raw = _try_vision(prompt, b64, mime, max_tokens=2500)
     if vision_raw:
         try:
             return _parse_json(vision_raw)
-        except Exception:
-            pass
-    text = _call_text(
-        f"{prompt}\n\nEslatma: tasvir piksellari mavjud emas; fayl turi {mime}. "
-        "Umumiy EKG o'qish tamoyillariga asoslangan ehtiyotkor dastlabki xulosa bering.",
-        max_tokens=1800,
+        except Exception as exc:
+            raise VisionAnalysisError(f"EKG javobi qayta ishlanmadi: {exc}") from exc
+    raise VisionNotConfiguredError(
+        "EKG tahlili uchun OpenAI vision sozlanmagan yoki tasvir o'qilmadi."
     )
-    try:
-        return _parse_json(text)
-    except Exception:
-        return {
-            "rhythm": "aniqlanmadi",
-            "heartRate": "aniqlanmadi",
-            "prInterval": "aniqlanmadi",
-            "qrsDuration": "aniqlanmadi",
-            "qtInterval": "aniqlanmadi",
-            "axis": "aniqlanmadi",
-            "morphology": "aniqlanmadi",
-            "interpretation": text[:1500],
-        }
+
+
+def _uzi_utt_prompt(language: str, clinical_context: str, file_names: list[str]) -> str:
+    lang = _lang(language)
+    ctx = (clinical_context or "").strip()
+    names = ", ".join(file_names[:12]) if file_names else "fayl"
+    schema = (
+        '{"studyType":"","regionOrOrgan":"","techniqueNotes":"","keyFindings":[],"measurements":"",'
+        '"impression":"","clinicalConclusion":"","recommendations":[],"differentialDiagnosis":"",'
+        '"limitations":"","urgencyLevel":"routine|soon|urgent|emergent"}'
+    )
+    return (
+        f"Siz yuqori malakali radiolog/UTT mutaxassisisiz. BIROKTILGAN TASVIRLARNI PIKSELLAR BO'YICHA "
+        f"to'liq o'qing — fayl nomi yoki kontekstga asoslanmang.\n"
+        f"Til: {lang}. Fayllar: {names}.\n"
+        f"Klinik kontekst:\n{ctx[:2000] if ctx else '—'}\n\n"
+        "TIZIMLI O'QISH:\n"
+        "- UZI/UTT: organ, ekhotuzilma, o'lchamlar, Doppler (faqat tasvirda ko'ringanlar).\n"
+        "- Rentgen: proyeksiya, sifat, siluet, konsolidatsiya, plevra, suyak.\n"
+        "- KT/MRT: kesim, kontur, signal intensivligi, o'lchamlar.\n"
+        "- PDF protokol: barcha matn va raqamlarni nusxalang.\n\n"
+        "CHUQURLIK: keyFindings 6–12 ta (agar tasvirda yetarli ma'lumot bo'lsa); measurements — "
+        "ko'rinadigan barcha raqamlar birlik bilan; differentialDiagnosis — bir qatorli string (\\n bilan).\n"
+        "limitations: faqat haqiqiy texnik cheklovlar (past sifat, bitta proyeksiya va h.k.) — "
+        "agar tasvir aniq bo'lsa 'aniq' deb yozmang, bo'sh qoldiring yoki qisqa yozing.\n"
+        "urgencyLevel: emergent|urgent|soon|routine.\n"
+        f"FAQAT JSON: {schema}"
+    )
 
 
 def uzi_utt_analyze(
@@ -189,31 +194,32 @@ def uzi_utt_analyze(
     language: str,
     clinical_context: str = "",
 ) -> dict:
-    lang = _lang(language)
-    names = ", ".join(str(f.get("fileName") or f.get("name") or "fayl") for f in files[:6])
-    ctx = (clinical_context or "").strip()
-    schema = (
-        '{"studyType":"","regionOrOrgan":"","techniqueNotes":"","keyFindings":[],"measurements":"",'
-        '"impression":"","clinicalConclusion":"","recommendations":[],"differentialDiagnosis":"",'
-        '"limitations":"","urgencyLevel":"routine|soon|urgent|emergent"}'
+    from .vision_utils import VisionAnalysisError, prepare_imaging_images, vision_json
+
+    if not files:
+        raise VisionAnalysisError("Kamida bitta fayl yuklang")
+
+    images = prepare_imaging_images(files)
+    if not images:
+        raise VisionAnalysisError(
+            "Tasvirlar qayta ishlanmadi. JPG, PNG yoki PDF formatini tekshiring."
+        )
+
+    file_names = [str(f.get("fileName") or f.get("name") or f"fayl-{i+1}") for i, f in enumerate(files)]
+    prompt = _uzi_utt_prompt(language, clinical_context, file_names)
+
+    # Har bir rasm uchun qisqa label (model konteksti)
+    labeled_images = []
+    for i, img in enumerate(images):
+        labeled = dict(img)
+        labeled["name"] = img.get("name") or f"rasm-{i+1}"
+        labeled_images.append(labeled)
+
+    prompt_with_refs = prompt + "\n\n" + "\n".join(
+        f"Rasm {i+1}: {img['name']}" for i, img in enumerate(labeled_images)
     )
-    prompt = (
-        f"UZI/UTT/rentgen/PDF tahlil. Fayllar: {names}. Klinik kontekst: {ctx[:800]}. Til: {lang}. "
-        f"FAQAT JSON: {schema}"
-    )
-    first = files[0] if files else {}
-    b64 = str(first.get("base64Data") or first.get("base64_data") or "").split(",")[-1]
-    mime = str(first.get("mimeType") or first.get("mime_type") or "image/jpeg")
-    vision_raw = _try_vision(prompt, b64, mime, max_tokens=3500) if b64 and "pdf" not in mime.lower() else None
-    if vision_raw:
-        try:
-            return _parse_json(vision_raw)
-        except Exception:
-            pass
-    return _call_json(
-        f"{prompt}\n\nTasvir piksellari cheklangan — fayl nomi va kontekst asosida ehtiyotkor radiologik xulosa.",
-        max_tokens=3500,
-    )
+
+    return vision_json(prompt_with_refs, labeled_images, max_tokens=4096)
 
 
 def icd10_codes(diagnosis: str, language: str) -> list[dict]:

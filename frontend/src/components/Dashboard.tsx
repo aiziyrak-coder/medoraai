@@ -10,6 +10,7 @@ interface DashboardProps {
     onNewAnalysis: () => void;
     onViewHistory: () => void;
     onOpenUziUtt?: () => void;
+    onOpenPrescriptionAudit?: () => void;
     onOpenTools?: () => void;
     recentAnalyses: AnalysisRecord[];
     allAnalyses: AnalysisRecord[];
@@ -72,7 +73,7 @@ const glass: React.CSSProperties = {
 
 const Dashboard: React.FC<DashboardProps> = ({
     userName, onNewAnalysis, onViewHistory,
-    onOpenUziUtt, onOpenTools,
+    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t, language } = useTranslation();
@@ -262,6 +263,59 @@ const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {/* Retsept va protokol auditi */}
+                    {onOpenPrescriptionAudit && (
+                        <div
+                            onClick={onOpenPrescriptionAudit}
+                            className="relative overflow-hidden rounded-[20px] cursor-pointer"
+                            style={{
+                                background: 'linear-gradient(135deg, #1a1208 0%, #2d1f0a 55%, #3d2a0c 100%)',
+                                border: '1px solid rgba(245,158,11,0.35)',
+                                minHeight: '140px',
+                                boxShadow: '0 0 32px rgba(245,158,11,0.1), 0 12px 32px rgba(0,0,0,0.2)',
+                                transition: 'box-shadow .3s, border-color .3s',
+                            }}
+                            onMouseEnter={e => {
+                                const d = e.currentTarget as HTMLDivElement;
+                                d.style.boxShadow = '0 0 50px rgba(245,158,11,0.2), 0 12px 32px rgba(0,0,0,0.25)';
+                                d.style.borderColor = 'rgba(245,158,11,0.55)';
+                            }}
+                            onMouseLeave={e => {
+                                const d = e.currentTarget as HTMLDivElement;
+                                d.style.boxShadow = '0 0 32px rgba(245,158,11,0.1), 0 12px 32px rgba(0,0,0,0.2)';
+                                d.style.borderColor = 'rgba(245,158,11,0.35)';
+                            }}
+                        >
+                            <div className="absolute inset-0 hex-grid-bg opacity-50" aria-hidden="true" />
+                            <div className="relative z-10 p-6 flex items-center gap-5">
+                                <div className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
+                                     style={{
+                                         background: 'rgba(245,158,11,0.15)',
+                                         border: '1px solid rgba(245,158,11,0.45)',
+                                         boxShadow: '0 0 20px rgba(245,158,11,0.2)',
+                                     }}>
+                                    💊
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1"
+                                       style={{ color: '#fbbf24' }}>
+                                        {t('prescription_audit_badge')}
+                                    </p>
+                                    <h3 className="text-lg font-black text-white leading-tight mb-1">
+                                        {t('prescription_audit_dashboard_title')}
+                                    </h3>
+                                    <p className="text-xs leading-snug line-clamp-2"
+                                       style={{ color: 'rgba(253,230,138,0.85)' }}>
+                                        {t('prescription_audit_dashboard_desc')}
+                                    </p>
+                                </div>
+                                <span className="flex-shrink-0 text-amber-400 text-sm font-bold group-hover:translate-x-0.5 transition-transform hidden sm:inline">
+                                    {t('prescription_audit_open')} →
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Analitika Hub */}

@@ -44,6 +44,7 @@ const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
 const ToolsDashboard = lazy(() => import('./components/ToolsDashboard'));
 import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
+import PrescriptionProtocolAudit from './components/PrescriptionProtocolAudit';
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
 import RegistrarApp from './components/registrar/RegistrarApp';
@@ -1094,6 +1095,7 @@ const AppContent: React.FC = () => {
                             onNewAnalysis={() => handleNavigation('new_analysis')}
                             onViewHistory={() => setAppView('history')}
                             onOpenUziUtt={() => setAppView('uzi_utt')}
+                            onOpenPrescriptionAudit={() => setAppView('prescription_audit')}
                             onOpenTools={() => setAppView('tools')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
@@ -1212,6 +1214,20 @@ const AppContent: React.FC = () => {
                         />
                         <ScrollWrapper>
                             <UziUttAnalyzer />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'prescription_audit':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar
+                            title={t('prescription_audit_page_title')}
+                            subtitle={t('prescription_audit_page_subtitle')}
+                            onBack={() => handleNavigation('dashboard')}
+                        />
+                        <ScrollWrapper>
+                            <PrescriptionProtocolAudit />
                         </ScrollWrapper>
                     </div>
                 );

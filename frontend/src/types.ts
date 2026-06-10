@@ -16,6 +16,7 @@ export type AppView =
   | 'view_history_item'
   | 'case_library'
   | 'uzi_utt'
+  | 'prescription_audit'
   | 'tools'
   | 'prescription'
   | 'tumor_board'

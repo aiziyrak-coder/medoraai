@@ -93,6 +93,61 @@ def _format_attachments_meta(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _format_doctor_diagnoses(data: dict) -> str:
+    raw = data.get("doctorDiagnoses") or data.get("doctor_diagnoses")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    if isinstance(raw, list) and raw:
+        lines = [f"  - {_s(x)}" for x in raw if _s(x)]
+        return "\n".join(lines)
+    return ""
+
+
+def _format_prescribed_medications(data: dict) -> str:
+    raw = data.get("prescribedMedications") or data.get("prescribed_medications")
+    if not isinstance(raw, list) or not raw:
+        return ""
+    lines: list[str] = []
+    for i, med in enumerate(raw[:30], 1):
+        if isinstance(med, str) and med.strip():
+            lines.append(f"  {i}. {med.strip()}")
+            continue
+        if not isinstance(med, dict):
+            continue
+        name = _s(med.get("name"))
+        if not name:
+            continue
+        dose = _s(med.get("dosage") or med.get("dose"))
+        freq = _s(med.get("frequency"))
+        dur = _s(med.get("duration"))
+        instr = _s(med.get("instructions"))
+        parts = [name]
+        if dose:
+            parts.append(f"doza: {dose}")
+        if freq:
+            parts.append(f"chastota: {freq}")
+        if dur:
+            parts.append(f"muddati: {dur}")
+        if instr:
+            parts.append(f"ko'rsatma: {instr}")
+        lines.append(f"  {i}. " + " | ".join(parts))
+    return "\n".join(lines)
+
+
+def _format_vitals(data: dict) -> str:
+    parts: list[str] = []
+    w = data.get("weightKg") or data.get("weight_kg")
+    h = data.get("heightCm") or data.get("height_cm")
+    bmi = data.get("bmi")
+    if w not in (None, ""):
+        parts.append(f"vazn: {w} kg")
+    if h not in (None, ""):
+        parts.append(f"bo'y: {h} sm")
+    if bmi not in (None, ""):
+        parts.append(f"BMI: {bmi}")
+    return ", ".join(parts)
+
+
 def _format_user_feedback(data: dict) -> str:
     fb = data.get("userDiagnosisFeedback") or data.get("user_diagnosis_feedback")
     if not isinstance(fb, dict) or not fb:
@@ -131,6 +186,18 @@ def build_clinical_context(
         name_line += f" {father} o'g'li/qizi"
     display_name = name_line or "Noma'lum"
     parts.append(f"BEMOR: {display_name}, {age or '-'} yosh, jins: {gender or '-'}.")
+
+    vitals = _format_vitals(d)
+    if vitals:
+        parts.append(f"VITAL KO'RSATKICHLAR: {vitals}")
+
+    doctor_dx = _format_doctor_diagnoses(d)
+    if doctor_dx:
+        parts.append(f"SHIFOKOR TOMONIDAN QO'YILGAN TASHXIS(LAR):\n{doctor_dx}")
+
+    prescribed = _format_prescribed_medications(d)
+    if prescribed:
+        parts.append(f"SHIFOKOR TOMONIDAN BERILGAN DORI-DARMONLAR:\n{prescribed}")
 
     for key, label in [
         ("complaints", "SHIKOYATLAR"),

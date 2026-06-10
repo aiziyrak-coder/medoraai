@@ -18,6 +18,7 @@ export const TASK_TREATMENT      = 'treatment_plan';
 export const TASK_DRUG_CHECK     = 'drug_check';
 export const TASK_LAB_INTERPRET  = 'lab_interpretation';
 export const TASK_FOLLOW_UP      = 'follow_up';
+export const TASK_PRESCRIPTION_AUDIT = 'prescription_audit';
 
 export type DoctorTaskType =
   | typeof TASK_QUICK_CONSULT
@@ -25,7 +26,8 @@ export type DoctorTaskType =
   | typeof TASK_TREATMENT
   | typeof TASK_DRUG_CHECK
   | typeof TASK_LAB_INTERPRET
-  | typeof TASK_FOLLOW_UP;
+  | typeof TASK_FOLLOW_UP
+  | typeof TASK_PRESCRIPTION_AUDIT;
 
 // ---
 export interface DebateMessage {
@@ -107,6 +109,39 @@ export interface DoctorSupportResult {
   // lab_interpretation
   interpretations?:      Array<Record<string, unknown>>;
   urgent_findings?:      string[];
+  // prescription_audit
+  diagnosis_analysis?: {
+    doctor_diagnoses?: string[];
+    overall_assessment?: string;
+    assessment_summary?: string;
+    protocol_reference?: string;
+    icd_suggestions?: string[];
+    concerns?: string[];
+    missing_workup?: string[];
+  };
+  medications_review?: Array<{
+    name: string;
+    prescribed_dose?: string;
+    frequency?: string;
+    duration?: string;
+    registered_in_uzbekistan?: boolean;
+    indication_match?: string;
+    indication_comment?: string;
+    dose_assessment?: string;
+    dose_comment?: string;
+    protocol_basis?: string;
+    contraindications?: string;
+    recommendation?: string;
+    adjustment_suggestion?: string;
+  }>;
+  protocol_compliance?: {
+    score?: number;
+    verdict?: string;
+    summary?: string;
+    gaps?: Array<{ gap: string; protocol?: string; severity?: string; recommendation?: string }>;
+  };
+  overall_recommendations?: string[];
+  critical_alerts?: string[];
   // generic
   error?:                string;
 }

@@ -22,6 +22,7 @@ from .doctor_support         import (
     doctor_consult, doctor_consult_stream,
     TASK_QUICK_CONSULT, TASK_DIAGNOSIS, TASK_TREATMENT,
     TASK_DRUG_CHECK, TASK_LAB_INTERPRET, TASK_FOLLOW_UP,
+    TASK_PRESCRIPTION_AUDIT,
 )
 from .physiology_filter      import check as physiology_check
 from .autonomous_protocol_generator import autonomous_generator
@@ -156,7 +157,27 @@ def run_council_debate(request):
 _VALID_TASKS = {
     TASK_QUICK_CONSULT, TASK_DIAGNOSIS, TASK_TREATMENT,
     TASK_DRUG_CHECK, TASK_LAB_INTERPRET, TASK_FOLLOW_UP,
+    TASK_PRESCRIPTION_AUDIT,
 }
+
+
+def _doctor_support_validation_error(patient_data: dict, task_type: str):
+    """Return error Response or None if valid."""
+    if task_type == TASK_PRESCRIPTION_AUDIT:
+        if not patient_data:
+            return _err(400, "Bemor ma'lumotlari kiritilmagan")
+        diags = patient_data.get("doctorDiagnoses") or patient_data.get("doctor_diagnoses")
+        meds = patient_data.get("prescribedMedications") or patient_data.get("prescribed_medications")
+        has_diags = bool(diags) and (not isinstance(diags, list) or len(diags) > 0)
+        has_meds = bool(meds) and (not isinstance(meds, list) or len(meds) > 0)
+        if not has_diags:
+            return _err(400, "Shifokor tashxislari kiritilmagan")
+        if not has_meds:
+            return _err(400, "Bemorga berilgan dorilar kiritilmagan")
+        return None
+    if not patient_data or not patient_data.get("complaints"):
+        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    return None
 
 
 @api_view(["POST"])
@@ -174,8 +195,9 @@ def doctor_support_view(request):
     task_type    = request.data.get("task_type", TASK_QUICK_CONSULT)
     language     = request.data.get("language", "uz-L")
 
-    if not patient_data or not patient_data.get("complaints"):
-        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    validation_err = _doctor_support_validation_error(patient_data, task_type)
+    if validation_err:
+        return validation_err
     if not _claude_ok():
         return _ai_not_configured()
     if task_type not in _VALID_TASKS:
@@ -206,8 +228,9 @@ def doctor_support_stream_view(request):
     task_type    = request.data.get("task_type", TASK_QUICK_CONSULT)
     language     = request.data.get("language", "uz-L")
 
-    if not patient_data or not patient_data.get("complaints"):
-        return _err(400, "Bemor shikoyatlari kiritilmagan")
+    validation_err = _doctor_support_validation_error(patient_data, task_type)
+    if validation_err:
+        return validation_err
     if not _claude_ok():
         return _ai_not_configured()
 
@@ -254,6 +277,11 @@ def clinical_tool_view(request, tool_name: str):
         logger.exception("Clinical tool JSON error (%s): %s", tool_name, exc)
         return _err(500, "AI javobi JSON formatida emas")
     except Exception as exc:
+        from .vision_utils import VisionNotConfiguredError, VisionAnalysisError
+        if isinstance(exc, VisionNotConfiguredError):
+            return _err(503, str(exc))
+        if isinstance(exc, VisionAnalysisError):
+            return _err(422, str(exc))
         logger.exception("Clinical tool error (%s): %s", tool_name, exc)
         return _err(500, str(exc)[:300])
 

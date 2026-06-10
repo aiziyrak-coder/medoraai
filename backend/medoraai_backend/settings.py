@@ -356,6 +356,15 @@ DEEPSEEK_API_KEY = _load_deepseek_key()
 DEEPSEEK_BASE_URL = config('DEEPSEEK_BASE_URL', default='https://api.deepseek.com')
 DEEPSEEK_MODEL_FAST = config('DEEPSEEK_MODEL_FAST', default='deepseek-chat')
 DEEPSEEK_MODEL_PRO = config('DEEPSEEK_MODEL_PRO', default='deepseek-reasoner')
+
+# Vision (UZI/UTT/rentgen/MRT/KT/EKG) — OpenAI GPT-4o asosiy; DeepSeek faqat matn uchun
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+OPENAI_VISION_MODEL = config('OPENAI_VISION_MODEL', default='gpt-4o')
+OPENAI_BASE_URL = config('OPENAI_BASE_URL', default='')  # bo'sh = api.openai.com
+# Zaxira vision provayderlar (ixtiyoriy)
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_VISION_MODEL = config('GEMINI_VISION_MODEL', default='gemini-2.0-flash')
+
 # Legacy aliases (eski kod va deploy skriptlari uchun)
 ANTHROPIC_API_KEY = DEEPSEEK_API_KEY
 # AI xarajat: scale (default, 1000+ user) | economy | balanced | quality

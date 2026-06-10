@@ -2200,12 +2200,15 @@ function normalizeDrugSeverity(sev: string): 'High' | 'Moderate' | 'Low' | 'None
 }
 
 export const analyzeEcgImage = async (image: { base64Data: string, mimeType: string }, language: Language): Promise<EcgReport> => {
-    const fromBackend = await tryBackendTool<EcgReport>('ecg', {
-        base64Data: image.base64Data,
-        mimeType: image.mimeType,
-        language,
-    });
-    if (fromBackend) return fromBackend;
+    if (isApiConfigured()) {
+        const res = await apiPost<EcgReport>('/ai/tools/ecg/', {
+            base64Data: image.base64Data,
+            mimeType: image.mimeType,
+            language,
+        }, API_CONFIG.AI_TIMEOUT_MS);
+        if (res.success && res.data) return res.data;
+        if (res.error?.message) throw new Error(res.error.message);
+    }
     ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const textPart = { text: `Analyze ECG image. Return structured JSON report (rhythm, heartRate, etc.). Output Language: ${langMap[language]}.` };
@@ -2347,12 +2350,15 @@ export const analyzeUziUttDocuments = async (
     if (!files.length) {
         throw new Error("Kamida bitta fayl yuklang.");
     }
-    const fromBackend = await tryBackendTool<UziUttReport>('uzi-utt', {
-        files,
-        clinicalContext: clinicalContext || '',
-        language,
-    });
-    if (fromBackend) return normalizeUziUttReport(fromBackend);
+    if (isApiConfigured()) {
+        const res = await apiPost<UziUttReport>(
+            '/ai/tools/uzi-utt/',
+            { files, clinicalContext: clinicalContext || '', language },
+            API_CONFIG.AI_TIMEOUT_MS,
+        );
+        if (res.success && res.data) return normalizeUziUttReport(res.data);
+        if (res.error?.message) throw new Error(res.error.message);
+    }
     ensureAiAvailable();
     const systemInstr = resolveSystemInstruction(language);
     const lang = langMap[language] || 'Uzbek';

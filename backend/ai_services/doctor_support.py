@@ -77,6 +77,7 @@ TASK_TREATMENT     = "treatment_plan"       # Davolash rejasi
 TASK_DRUG_CHECK    = "drug_check"           # Dori tekshiruvi
 TASK_LAB_INTERPRET = "lab_interpretation"   # Lab tahlili
 TASK_FOLLOW_UP     = "follow_up"            # Kuzatuv rejasi
+TASK_PRESCRIPTION_AUDIT = "prescription_audit"  # Tashxis + retsept protokol auditi
 
 # ---------------------------------------------------------------------------
 # System prompt builder
@@ -121,6 +122,15 @@ def _doctor_system_prompt(task_type: str, language_hint: str,
         TASK_FOLLOW_UP: (
             "Kuzatuv rejasi tuzing: qachon qaytib kelish, qanday belgilarda darhol "
             "murojaat etish, qanday tekshiruvlar kerak."
+        ),
+        TASK_PRESCRIPTION_AUDIT: (
+            "Shifokor tomonidan qo'yilgan tashxis(lar) va bemor uchun yozilgan "
+            "dori-darmonlarni O'zbekiston SSV milliy klinik protokollari asosida "
+            "chuqur audit qiling. Har bir tashxis uchun klinik asoslilik, "
+            "har bir dori uchun: ko'rsatma mosligi, doza to'g'riligi, "
+            "qaysi SSV protokol bandiga tayangan, O'zbekistonda ro'yxatdan o'tganligi, "
+            "qarshi ko'rsatmalar va o'zaro ta'sirlar. Umumiy protokolga muvofiqlik "
+            "balli va xulosani bering."
         ),
     }
 
@@ -219,6 +229,42 @@ _SCHEMA_FOLLOW_UP = (
     '}}'
 )
 
+_SCHEMA_PRESCRIPTION_AUDIT = (
+    '{{'
+    '"diagnosis_analysis": {{'
+    '  "doctor_diagnoses": ["..."],'
+    '  "overall_assessment": "APPROPRIATE/PARTIAL/QUESTIONABLE/INAPPROPRIATE",'
+    '  "assessment_summary": "...",'
+    '  "protocol_reference": "O\'zbekiston SSV protokol nomi",'
+    '  "icd_suggestions": ["..."],'
+    '  "concerns": ["..."],'
+    '  "missing_workup": ["..."]'
+    '}},'
+    '"medications_review": ['
+    '  {{"name":"...","prescribed_dose":"...","frequency":"...","duration":"...",'
+    '    "registered_in_uzbekistan": true,'
+    '    "indication_match": "MATCH/PARTIAL/MISMATCH/UNCLEAR",'
+    '    "indication_comment": "...",'
+    '    "dose_assessment": "CORRECT/UNDERDOSE/OVERDOSE/UNCLEAR",'
+    '    "dose_comment": "...",'
+    '    "protocol_basis": "SSV protokol bo\'yicha asos",'
+    '    "contraindications": "...",'
+    '    "recommendation": "CONTINUE/ADJUST/REPLACE/DISCONTINUE",'
+    '    "adjustment_suggestion": "..."}}'
+    '],'
+    '"interactions": [{{"drugs":["A","B"],"severity":"HIGH/MEDIUM/LOW","description":"...","action":"..."}}],'
+    '"protocol_compliance": {{'
+    '  "score": 85,'
+    '  "verdict": "COMPLIANT/PARTIAL/NON_COMPLIANT",'
+    '  "summary": "...",'
+    '  "gaps": [{{"gap":"...","protocol":"...","severity":"high/medium/low","recommendation":"..."}}]'
+    '}},'
+    '"overall_recommendations": ["..."],'
+    '"critical_alerts": ["..."],'
+    '"critical_alert": {{"present": false, "message": ""}}'
+    '}}'
+)
+
 SCHEMAS = {
     TASK_QUICK_CONSULT: _SCHEMA_QUICK,
     TASK_DIAGNOSIS:     _SCHEMA_DIAGNOSIS,
@@ -226,6 +272,7 @@ SCHEMAS = {
     TASK_DRUG_CHECK:    _SCHEMA_DRUG,
     TASK_LAB_INTERPRET: _SCHEMA_LAB,
     TASK_FOLLOW_UP:     _SCHEMA_FOLLOW_UP,
+    TASK_PRESCRIPTION_AUDIT: _SCHEMA_PRESCRIPTION_AUDIT,
 }
 
 
@@ -262,13 +309,15 @@ def doctor_consult(
         + f"Quyidagi JSON strukturada javob bering:\n{schema}"
     )
 
+    max_tokens = 4096 if task_type == TASK_PRESCRIPTION_AUDIT else 3000
+
     try:
         raw = call_model(
             Deployments.gpt4o(),
             build_messages(system, user, want_json=True),
             response_json=True,
             temperature=0.1,
-            max_tokens=3000,
+            max_tokens=max_tokens,
         )
         result = parse_json(raw, f"doctor_{task_type}")
         if not isinstance(result, dict):
