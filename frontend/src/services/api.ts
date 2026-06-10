@@ -528,6 +528,8 @@ export interface HealthCheckResult {
  */
 const SPLIT_HEALTH_BY_HOST: Record<string, string> = {
   'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/health/',
+  'aishifokor.uz': 'https://api.aishifokor.uz/health/',
+  'www.aishifokor.uz': 'https://api.aishifokor.uz/health/',
 };
 
 function resolveSplitPublicHealthUrl(): string | undefined {
@@ -575,7 +577,8 @@ function getHealthCheckUrls(): string[] {
   }
 
   if (!sameOrigin) {
-    return [...new Set([apiHealth, `${pageOrigin}${path}`])];
+    // Bir xil origin /health/ birinchi — CORS va 502 da api domen xatosini kamaytiradi
+    return [...new Set([`${pageOrigin}${path}`, apiHealth, ...(splitHealth ? [splitHealth] : [])])];
   }
 
   return [apiHealth];

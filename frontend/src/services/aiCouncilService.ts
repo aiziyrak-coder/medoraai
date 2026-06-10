@@ -234,9 +234,39 @@ const localizedMedicalText = (language: Language, key: 'diagnosis' | 'protocol' 
  * Bemor shikoyatlaridan kasallikka xos 3 ta aniqlashtiruvchi savol hosil qiladi.
  * AI ishlamaganda ham shablon emas, balki shu holatga bog'liq savollar chiqadi.
  */
+const GENERIC_CLARIFICATION: Record<Language, string[]> = {
+    'uz-L': [
+        'Asosiy shikoyat qachondan boshlangan va qanday kechmoqda?',
+        'Oldin qanday davolash yoki tekshiruvlar o\'tkazilgan?',
+        'Boshqa shikoyatlar, allergiya yoki joriy dorilar bormi?',
+    ],
+    'uz-C': [
+        'Асосий шикоят қачондан бошланган ва қандай кечмоқда?',
+        'Олдин қандай даволаш ёки текширувлар ўтказилган?',
+        'Бошқа шикоятлар, аллергия ёки жорий дорилар борми?',
+    ],
+    ru: [
+        'Когда началась основная жалоба и как она протекает?',
+        'Какое лечение или обследования проводились ранее?',
+        'Есть ли другие жалобы, аллергии или принимаемые препараты?',
+    ],
+    en: [
+        'When did the main complaint start and how does it progress?',
+        'What treatment or tests were done previously?',
+        'Any other symptoms, allergies, or current medications?',
+    ],
+    kaa: [
+        'Túyın shaǵınıs qashannan baslandı hám qalay ótip atır?',
+        'Ilgeri qanday emlew yamasa tekseriwler ótkerilgen?',
+        'Basqa shaǵınıslar, allergiya yamasa házirgi dári-dármalar barma?',
+    ],
+};
+
 export function getCaseBasedClarificationQuestions(data: PatientData, language: Language): string[] {
     const complaints = (data?.complaints ?? '').trim();
-    if (!complaints || complaints.length < 3) return [];
+    if (!complaints || complaints.length < 3) {
+        return [...(GENERIC_CLARIFICATION[language] ?? GENERIC_CLARIFICATION['uz-L'])];
+    }
 
     const parts = complaints
         .split(/[.,;]|\s+va\s+|\s+ham\s+/i)

@@ -529,13 +529,15 @@ const AppContent: React.FC = () => {
 
     /** Faqat shikoyatda tilga olingan mavzuga aloqador savollarni qoldiradi; mock/umumiy savollarni olib tashlaydi. */
     const filterQuestionsByComplaint = (qs: string[], complaint: string): string[] => {
+        if (qs.length < 2) return qs;
         const c = (complaint || '').toLowerCase().replace(/[^\w\s'-]/g, ' ');
         const words = c.split(/\s+/).filter(w => w.length >= 3);
         if (words.length === 0) return qs;
-        return qs.filter(q => {
+        const filtered = qs.filter(q => {
             const ql = q.toLowerCase();
             return words.some(w => ql.includes(w));
         });
+        return filtered.length >= 2 ? filtered : qs;
     };
 
     const handleLinkedPatientChange = useCallback((key: string | null) => {
@@ -662,16 +664,6 @@ const AppContent: React.FC = () => {
         setError(null);
         const merged = await enrichPatientWithHistory(data);
         setPatientData(merged);
-        const hasPrior = !!linkedPatientKey
-            && (/^\d+$/.test(linkedPatientKey.trim())
-                || returnVisitMode
-                || getPriorAnalysesForPatient(userHistory, linkedPatientKey).length > 0
-                || hasBaselineAnamnesis(patientBaseline));
-        if (hasPrior) {
-            setAppView('team_recommendation');
-            handleRecommendTeamFromData(merged);
-            return;
-        }
         await handleGenerateClarificationQuestions(merged);
     };
     
