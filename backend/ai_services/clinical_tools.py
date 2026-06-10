@@ -69,8 +69,16 @@ def _pubmed_url(term: str) -> str:
     return f"https://pubmed.ncbi.nlm.nih.gov/?term={quote(term)}"
 
 
-def _try_vision(prompt: str, b64: str, mime: str, max_tokens: int = 2500) -> str | None:
+def _try_vision(
+    prompt: str,
+    b64: str,
+    mime: str,
+    max_tokens: int = 2500,
+    *,
+    language: str = "uz-L",
+) -> str | None:
     """Bitta rasm uchun vision (EKG va boshqalar). OpenAI GPT-4o (matn = DeepSeek)."""
+    from .imaging_prompts import vision_system_prompt
     from .vision_utils import vision_json, prepare_imaging_images
 
     if not b64:
@@ -83,7 +91,12 @@ def _try_vision(prompt: str, b64: str, mime: str, max_tokens: int = 2500) -> str
     if not images:
         return None
     try:
-        result = vision_json(prompt, images, max_tokens=max_tokens)
+        result = vision_json(
+            prompt,
+            images,
+            max_tokens=max_tokens,
+            system=vision_system_prompt(language),
+        )
         return json.dumps(result, ensure_ascii=False)
     except Exception as exc:
         logger.warning("Vision call failed: %s", exc)
@@ -143,14 +156,17 @@ def drug_interactions(drugs: list[str], language: str) -> dict:
 def ecg_analyze(b64: str, mime: str, language: str) -> dict:
     from .vision_utils import VisionAnalysisError, VisionNotConfiguredError
 
+    from .imaging_prompts import language_rule_block
+
     lang = _lang(language)
     prompt = (
-        f"Siz kardiologsiz. EKG tasvirini PIKSELLAR BO'YICHA tahlil qiling. Til: {lang}. "
+        f"Siz kardiologsiz. EKG tasvirini PIKSELLAR BO'YICHA tahlil qiling.\n"
+        f"{language_rule_block(language)}\n"
         'FAQAT JSON: {"rhythm":"","heartRate":"","prInterval":"","qrsDuration":"","qtInterval":"",'
         '"axis":"","morphology":"","interpretation":""}. '
-        "Aniq bo'lmagan parametrlarni 'aniqlanmadi' deb yozing."
+        f"Barcha matn maydonlari {lang} tilida. Aniq bo'lmagan parametrlarni 'aniqlanmadi' deb yozing."
     )
-    vision_raw = _try_vision(prompt, b64, mime, max_tokens=2500)
+    vision_raw = _try_vision(prompt, b64, mime, max_tokens=2500, language=language)
     if vision_raw:
         try:
             return _parse_json(vision_raw)
@@ -162,31 +178,9 @@ def ecg_analyze(b64: str, mime: str, language: str) -> dict:
 
 
 def _uzi_utt_prompt(language: str, clinical_context: str, file_names: list[str]) -> str:
-    lang = _lang(language)
-    ctx = (clinical_context or "").strip()
-    names = ", ".join(file_names[:12]) if file_names else "fayl"
-    schema = (
-        '{"studyType":"","regionOrOrgan":"","techniqueNotes":"","keyFindings":[],"measurements":"",'
-        '"impression":"","clinicalConclusion":"","recommendations":[],"differentialDiagnosis":"",'
-        '"limitations":"","urgencyLevel":"routine|soon|urgent|emergent"}'
-    )
-    return (
-        f"Siz yuqori malakali radiolog/UTT mutaxassisisiz. BIROKTILGAN TASVIRLARNI PIKSELLAR BO'YICHA "
-        f"to'liq o'qing — fayl nomi yoki kontekstga asoslanmang.\n"
-        f"Til: {lang}. Fayllar: {names}.\n"
-        f"Klinik kontekst:\n{ctx[:2000] if ctx else '—'}\n\n"
-        "TIZIMLI O'QISH:\n"
-        "- UZI/UTT: organ, ekhotuzilma, o'lchamlar, Doppler (faqat tasvirda ko'ringanlar).\n"
-        "- Rentgen: proyeksiya, sifat, siluet, konsolidatsiya, plevra, suyak.\n"
-        "- KT/MRT: kesim, kontur, signal intensivligi, o'lchamlar.\n"
-        "- PDF protokol: barcha matn va raqamlarni nusxalang.\n\n"
-        "CHUQURLIK: keyFindings 6–12 ta (agar tasvirda yetarli ma'lumot bo'lsa); measurements — "
-        "ko'rinadigan barcha raqamlar birlik bilan; differentialDiagnosis — bir qatorli string (\\n bilan).\n"
-        "limitations: faqat haqiqiy texnik cheklovlar (past sifat, bitta proyeksiya va h.k.) — "
-        "agar tasvir aniq bo'lsa 'aniq' deb yozmang, bo'sh qoldiring yoki qisqa yozing.\n"
-        "urgencyLevel: emergent|urgent|soon|routine.\n"
-        f"FAQAT JSON: {schema}"
-    )
+    from .imaging_prompts import uzi_utt_user_prompt
+
+    return uzi_utt_user_prompt(language, clinical_context, file_names)
 
 
 def uzi_utt_analyze(
@@ -206,9 +200,10 @@ def uzi_utt_analyze(
         )
 
     file_names = [str(f.get("fileName") or f.get("name") or f"fayl-{i+1}") for i, f in enumerate(files)]
+    from .imaging_prompts import vision_system_prompt
+
     prompt = _uzi_utt_prompt(language, clinical_context, file_names)
 
-    # Har bir rasm uchun qisqa label (model konteksti)
     labeled_images = []
     for i, img in enumerate(images):
         labeled = dict(img)
@@ -219,7 +214,12 @@ def uzi_utt_analyze(
         f"Rasm {i+1}: {img['name']}" for i, img in enumerate(labeled_images)
     )
 
-    return vision_json(prompt_with_refs, labeled_images, max_tokens=4096)
+    return vision_json(
+        prompt_with_refs,
+        labeled_images,
+        max_tokens=6000,
+        system=vision_system_prompt(language),
+    )
 
 
 def icd10_codes(diagnosis: str, language: str) -> list[dict]:

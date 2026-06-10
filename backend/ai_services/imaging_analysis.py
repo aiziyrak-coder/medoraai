@@ -9,15 +9,9 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-VISION_MAX_TOKENS = 4096
+VISION_MAX_TOKENS = 6000
 
-_LANG = {
-    "uz-L": "O'zbek (lotin)",
-    "uz-C": "O'zbek (kirill)",
-    "ru": "Rus",
-    "en": "Ingliz",
-    "kaa": "Qoraqalpoq",
-}
+from .imaging_prompts import ANALYSIS_DEPTH, MODALITY_PROTOCOL, language_rule_block, vision_system_prompt
 
 _CONSILIUM_SCHEMA = (
     '{"ecg":null,"ultrasound":null,"xray":null,"ct":null,"mri":null,"general_correlation":""}'
@@ -46,19 +40,18 @@ def _attachments_as_files(patient_data: dict) -> list[dict[str, Any]]:
 
 
 def _consilium_vision_prompt(language: str, complaints: str, image_labels: list[str]) -> str:
-    lang = _LANG.get(language, "O'zbek")
     labels = "\n".join(f"  - {n}" for n in image_labels) if image_labels else "  - attachment"
     ctx = (complaints or "").strip()[:800] or "—"
     return (
-        f"Siz yuqori malakali radiolog/kardiologsiz. BIROKTILGAN BARCHA TASVIRLARNI "
-        f"PIKSELLAR BO'YICHA o'qing — fayl nomiga asoslanmang.\n"
-        f"Til: {lang}.\n"
+        f"BIROKTILGAN BARCHA TASVIRLARNI PIKSELLAR BO'YICHA o'qing — fayl nomiga asoslanmang.\n"
+        f"{language_rule_block(language)}\n"
         f"Shikoyatlar: {ctx}\n\n"
         f"Tasvirlar:\n{labels}\n\n"
         "MODALITETLAR: EKG/ECG, UZI/UTT (ultrasound), rentgen (xray), KT (ct), MRT (mri).\n"
         "Har bir modalitet uchun alohida blok bering (bo'lmasa null).\n"
-        "key_findings: ko'rinadigan aniq topilmalar; measurements raqamlarini nusxalang.\n"
-        "limitations: faqat haqiqiy texnik cheklovlar.\n"
+        "summary, key_findings[], clinical_significance, limitations — hammasi platforma tilida.\n"
+        f"{MODALITY_PROTOCOL}\n\n"
+        f"{ANALYSIS_DEPTH}\n\n"
         "general_correlation: barcha tasvirlarni klinik kontekst bilan bog'lash.\n"
         f"FAQAT JSON: {_CONSILIUM_SCHEMA}"
     )
@@ -132,7 +125,12 @@ def analyze_attachments(patient_data: dict, language: str = "uz-L") -> str:
     prompt = _consilium_vision_prompt(language, complaints, labels)
 
     try:
-        result = vision_json(prompt, images, max_tokens=VISION_MAX_TOKENS)
+        result = vision_json(
+            prompt,
+            images,
+            max_tokens=VISION_MAX_TOKENS,
+            system=vision_system_prompt(language),
+        )
         summary_text, structured = _map_consilium_result(result)
         if structured:
             patient_data["imagingStructured"] = structured

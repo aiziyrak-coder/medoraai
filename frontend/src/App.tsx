@@ -1186,7 +1186,7 @@ const AppContent: React.FC = () => {
                         <BackBar title={t('history_title')} subtitle={t('history_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
-                                <HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onStartConsultation={() => {}} onViewCaseLibrary={() => setAppView('case_library')} />
+                                <HistoryView analyses={userHistory} onSelectAnalysis={viewHistoryItem} onViewCaseLibrary={() => setAppView('case_library')} />
                             </Suspense>
                         </ScrollWrapper>
                     </div>

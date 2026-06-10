@@ -3,7 +3,6 @@ import type { AnalysisRecord } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
 import DocumentReportIcon from './icons/DocumentReportIcon';
-import VideoCameraIcon from './icons/VideoCameraIcon';
 import BookOpenIcon from './icons/BookOpenIcon';
 import SearchIcon from './icons/SearchIcon';
 
@@ -56,11 +55,10 @@ function matchesGender(record: AnalysisRecord, g: GenderFilter): boolean {
 interface HistoryViewProps {
     analyses: AnalysisRecord[];
     onSelectAnalysis: (record: AnalysisRecord) => void;
-    onStartConsultation: (record: AnalysisRecord) => void;
     onViewCaseLibrary: () => void;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, onStartConsultation, onViewCaseLibrary }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, onViewCaseLibrary }) => {
     const { t } = useTranslation();
     
     // State hooks
@@ -272,15 +270,6 @@ const HistoryView: React.FC<HistoryViewProps> = ({ analyses, onSelectAnalysis, o
                                     </div>
                                 </div>
                                 <div className="flex-shrink-0 flex items-center gap-2 self-end sm:self-center">
-                                    <button
-                                        type="button"
-                                        onClick={() => onStartConsultation(record)}
-                                        className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-text-primary bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors"
-                                        title="Telekonsultatsiya boshlash"
-                                    >
-                                        <VideoCameraIcon className="w-5 h-5" />
-                                        <span className="hidden md:inline">Konsultatsiya</span>
-                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => onSelectAnalysis(record)}

@@ -136,7 +136,12 @@ def prepare_imaging_images(files: list[dict[str, Any]]) -> list[dict[str, str]]:
     return out[:MAX_VISION_IMAGES]
 
 
-def _openai_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) -> str | None:
+def _openai_vision(
+    prompt: str,
+    images: list[dict[str, str]],
+    max_tokens: int,
+    system: str | None = None,
+) -> str | None:
     key = (getattr(settings, "OPENAI_API_KEY", None) or "").strip()
     if not key:
         return None
@@ -161,9 +166,13 @@ def _openai_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) -
 
     try:
         client = OpenAI(api_key=key, base_url=base_url, timeout=VISION_TIMEOUT_SEC)
+        messages: list[dict[str, Any]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": content})
         resp = client.chat.completions.create(
             model=model,
-            messages=[{"role": "user", "content": content}],
+            messages=messages,
             temperature=0.1,
             max_tokens=max_tokens,
             response_format={"type": "json_object"},
@@ -174,13 +183,19 @@ def _openai_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) -
         return None
 
 
-def _gemini_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) -> str | None:
+def _gemini_vision(
+    prompt: str,
+    images: list[dict[str, str]],
+    max_tokens: int,
+    system: str | None = None,
+) -> str | None:
     key = (getattr(settings, "GEMINI_API_KEY", None) or "").strip()
     if not key:
         return None
 
     model = (getattr(settings, "GEMINI_VISION_MODEL", None) or "gemini-2.0-flash").strip()
-    parts: list[dict[str, Any]] = [{"text": prompt}]
+    full_prompt = f"{system}\n\n{prompt}" if system else prompt
+    parts: list[dict[str, Any]] = [{"text": full_prompt}]
     for img in images:
         parts.append({
             "inline_data": {
@@ -221,7 +236,12 @@ def _gemini_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) -
         return None
 
 
-def _azure_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) -> str | None:
+def _azure_vision(
+    prompt: str,
+    images: list[dict[str, str]],
+    max_tokens: int,
+    system: str | None = None,
+) -> str | None:
     if not _azure_configured():
         return None
     try:
@@ -251,9 +271,13 @@ def _azure_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) ->
             api_version=api_version,
             timeout=VISION_TIMEOUT_SEC,
         )
+        messages: list[dict[str, Any]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": content})
         resp = client.chat.completions.create(
             model=deployment,
-            messages=[{"role": "user", "content": content}],
+            messages=messages,
             temperature=0.1,
             max_tokens=max_tokens,
             response_format={"type": "json_object"},
@@ -264,10 +288,15 @@ def _azure_vision(prompt: str, images: list[dict[str, str]], max_tokens: int) ->
         return None
 
 
-def _call_vision_raw(prompt: str, images: list[dict[str, str]], max_tokens: int) -> str | None:
+def _call_vision_raw(
+    prompt: str,
+    images: list[dict[str, str]],
+    max_tokens: int,
+    system: str | None = None,
+) -> str | None:
     """OpenAI → Gemini → Azure ketma-ketligi."""
     for fn in (_openai_vision, _gemini_vision, _azure_vision):
-        raw = fn(prompt, images, max_tokens)
+        raw = fn(prompt, images, max_tokens, system)
         if raw:
             return raw
     return None
@@ -278,12 +307,13 @@ def vision_json(
     images: list[dict[str, str]],
     *,
     max_tokens: int = 4096,
+    system: str | None = None,
 ) -> dict:
     """Tasvirlar bilan JSON javob qaytaradi (OpenAI GPT-4o asosiy)."""
     if not images:
         raise VisionAnalysisError("Tahlil uchun rasm topilmadi")
 
-    raw = _call_vision_raw(prompt, images, max_tokens)
+    raw = _call_vision_raw(prompt, images, max_tokens, system)
     if not raw:
         if not vision_available():
             raise VisionNotConfiguredError(
