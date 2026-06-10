@@ -18,6 +18,14 @@ cp {ROOT}/deploy/systemd/aishifokor-backend.service /etc/systemd/system/aishifok
 systemctl daemon-reload
 systemctl restart aishifokor-backend
 cd {ROOT}/backend && ./venv/bin/python manage.py merge_patient_duplicates || true
+FP={ROOT}/frontend/.env.production
+if [ -f "$FP" ]; then
+  grep -q '^VITE_API_BASE_URL=' "$FP" && \\
+    sed -i 's|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=https://aishifokor.uz/api|' "$FP" || \\
+    echo 'VITE_API_BASE_URL=https://aishifokor.uz/api' >> "$FP"
+else
+  echo 'VITE_API_BASE_URL=https://aishifokor.uz/api' > "$FP"
+fi
 cd {ROOT}/frontend && (npm ci --silent 2>/dev/null || npm ci) && npm run build
 chmod -R o+rX {ROOT}/frontend/dist
 nginx -t && systemctl reload nginx

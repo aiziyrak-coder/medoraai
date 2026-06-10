@@ -11,6 +11,12 @@ const API_BASE_BY_PAGE_HOST: Record<string, string> = {
   'fjsti.ziyrak.org': 'https://fjstiapi.ziyrak.org/api',
 };
 
+/** Nginx /api/ proxy — bir xil origin (CORS kerak emas) */
+const SAME_ORIGIN_API_HOSTS = new Set([
+  'aishifokor.uz',
+  'www.aishifokor.uz',
+]);
+
 function stripApiSuffix(u: string): string {
   return u.replace(/\/api\/?$/, '');
 }
@@ -34,6 +40,12 @@ function resolveApiBaseUrl(): string {
   }
 
   const pageHost = window.location.hostname;
+  const pageOrigin = window.location.origin;
+
+  if (SAME_ORIGIN_API_HOSTS.has(pageHost)) {
+    return `${pageOrigin}/api`;
+  }
+
   const preferred = API_BASE_BY_PAGE_HOST[pageHost];
   if (!preferred) {
     return base;
