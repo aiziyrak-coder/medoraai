@@ -1226,10 +1226,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             <form onSubmit={handleSubmit} className="flex flex-col w-full max-lg:min-h-min max-lg:flex-none lg:min-h-0 lg:flex-1">
                 
                 {/* Header & Submit Button */}
-                <div className="flex-shrink-0 flex justify-between items-center mb-2 px-1 gap-2">
+                <div className="flex-shrink-0 flex justify-between items-center mb-3 px-1 gap-3">
                     <div className="min-w-0 flex-1">
-                        <h2 className="text-sm font-bold text-slate-800">{t('data_form_new_case')}</h2>
-                        <p className="text-[10px] text-text-secondary">{t('data_form_subtitle')}</p>
+                        <h2 className="text-base sm:text-lg font-bold text-slate-900">{t('data_form_new_case')}</h2>
+                        <p className="text-[11px] text-slate-600 mt-0.5">{t('data_form_subtitle')}</p>
                         <div className="mt-1.5 flex items-center gap-2">
                             <div className="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden max-w-[140px]">
                                 <div
@@ -1277,12 +1277,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                     </div>
                 )}
 
-                <div className="data-form-mobile-flow w-full min-w-0 flex flex-col gap-4 sm:gap-4 max-lg:pb-2 lg:flex-1 lg:grid lg:grid-cols-2 2xl:grid-cols-12 lg:gap-2 lg:min-h-0"> 
-                    
-                    {/* LEFT COLUMN: Demographics & Other Info (3 cols) */}
-                    <div className="min-w-0 flex flex-col gap-2 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-3 lg:h-full lg:min-h-0 lg:overflow-hidden">
-                        {/* Aqlli qidiruv — pasport kartasi ustida */}
-                        <div className="flex-shrink-0 rounded-xl border border-sky-100/80 bg-sky-50/40 px-2 py-2 space-y-2">
+                <div className="data-form-mobile-flow w-full min-w-0 flex flex-col gap-3 max-lg:pb-2 lg:flex-1 lg:min-h-0 lg:overflow-y-auto custom-scrollbar">
+
+                    {/* Aqlli qidiruv — to'liq kenglik */}
+                    <div className="flex-shrink-0 rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2.5 space-y-2 shadow-sm">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                                 <div>
                                     <p className="text-[10px] font-bold text-sky-900 uppercase tracking-wide">{t('data_form_smart_search_title')}</p>
@@ -1384,10 +1382,11 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             )}
                         </div>
 
-                        {/* Demographics */}
-                        <div className="glass-panel p-2 sm:p-3 space-y-2 sm:space-y-1.5 flex-shrink-0">
-                            <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
-                                <span className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[8px]">1</span>
+                    {/* Asosiy qator: Pasport | Klinik | Vitallar */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+                        <div className="lg:col-span-4 xl:col-span-3 glass-panel p-3 sm:p-4 space-y-2.5">
+                            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-[9px] font-black">1</span>
                                 {t('data_form_section_passport')}
                             </h3>
                             <div>
@@ -1471,18 +1470,14 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 placeholder={t('address_extra_placeholder')}
                             />
                         </div>
-                        
-                    </div>
 
-                    {/* MIDDLE COLUMN: Clinical Data, Vitals, Diagnostics & Lab (9 cols) */}
-                    <div className="min-w-0 flex flex-col gap-2 max-lg:h-auto max-lg:overflow-visible lg:col-span-2 2xl:col-span-9 lg:h-full lg:min-h-0 lg:overflow-hidden">
-                        <div className="glass-panel p-2 sm:p-3 flex flex-col max-lg:min-h-min max-lg:flex-none max-lg:overflow-visible lg:flex-shrink lg:min-h-0 lg:overflow-hidden">
-                            <div className="flex items-center gap-1 mb-1.5 flex-shrink-0">
-                                <div className="w-4 h-4 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-800 text-[8px] font-bold">2</div>
-                                <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_clinical_data')}</h3>
+                        <div className="lg:col-span-5 xl:col-span-5 glass-panel p-3 sm:p-4 flex flex-col min-h-0">
+                            <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                                <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 text-[9px] font-black">2</div>
+                                <h3 className="text-xs font-bold text-slate-900">{t('data_form_clinical_data')}</h3>
                             </div>
 
-                            <div className="flex flex-col gap-2 sm:gap-1.5 max-lg:min-h-min max-lg:flex-none lg:flex-shrink">
+                            <div className="flex flex-col gap-2.5">
                                 <div className="flex flex-col gap-2">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-1.5">
                                         <div className="flex flex-col">
@@ -1601,7 +1596,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                             placeholder={t('data_input_complaints_placeholder')}
                                             value={formData.complaints || ''} 
                                             onChange={e => handleChange('complaints', e.target.value)} 
-                                            className="min-h-[64px] max-h-[88px]"
+                                            className="min-h-[80px] max-h-[120px]"
                                         />
                                         {formErrors.complaints && <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.complaints}</p>}
                                     </div>
@@ -1626,10 +1621,12 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Structured Vitals */}
-                        <div className="glass-panel p-2 sm:p-3 flex-shrink-0 relative z-[2] max-lg:mt-1">
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2 sm:mb-1.5">
-                                <h3 className="text-[10px] font-bold text-slate-800 leading-snug pr-1 shrink min-w-0">{t('data_form_vitals_section_title')}</h3>
+                        <div className="lg:col-span-3 xl:col-span-4 glass-panel p-3 sm:p-4 flex-shrink-0">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
+                                <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                    <span className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center text-violet-800 text-[9px] font-black">3</span>
+                                    {t('data_form_vitals_section_title')}
+                                </h3>
                                 <button
                                     type="button"
                                     onClick={fillNormalVitals}
@@ -1684,17 +1681,18 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 <VitalInput id="vital-respiration" label={t('data_form_vitals_resp')} unit="/min" value={vitals.respirationRate} onChange={e => handleVitalChange('respirationRate', e.target.value)} error={vitalErrors.respirationRate} />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Diagnostics & Laboratory — vitals ostida, ixcham */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-shrink-0">
-                            <div className="glass-panel p-2 sm:p-2.5 flex flex-col min-h-0">
-                                <div className="flex items-center gap-1 mb-1 flex-shrink-0">
-                                    <div className="w-4 h-4 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-[8px] font-bold">3</div>
-                                    <h3 className="text-[10px] font-bold text-slate-800">{t('data_form_diagnostics_card')}</h3>
+                    {/* Qo'shimcha qator: Diagnostika | Lab | Xavfsizlik | Boshqa */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <div className="glass-panel p-3 sm:p-4 flex flex-col min-h-0">
+                                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                                    <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 text-[9px] font-black">4</div>
+                                    <h3 className="text-xs font-bold text-slate-900">{t('data_form_diagnostics_card')}</h3>
                                 </div>
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="min-h-[52px] max-h-[60px] flex-shrink-0 border border-dashed border-teal-200 bg-teal-50/30 rounded-lg flex items-center justify-center gap-2 px-2 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group"
+                                    className="min-h-[64px] flex-shrink-0 border-2 border-dashed border-teal-200 bg-teal-50/40 rounded-xl flex items-center justify-center gap-2 px-3 cursor-pointer hover:bg-teal-50 hover:border-teal-300 transition-all group"
                                 >
                                     <UploadCloudIcon className="h-4 w-4 text-teal-500 shrink-0 group-hover:scale-110 transition-transform" />
                                     <div className="min-w-0 text-left">
@@ -1724,10 +1722,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                 </div>
                             </div>
 
-                            <div className="glass-panel p-2 sm:p-2.5 flex flex-col min-h-0">
-                                <div className="flex items-center gap-1 mb-1 flex-shrink-0">
-                                    <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[8px] font-bold">5</div>
-                                    <h3 className="text-[10px] font-bold text-slate-800">{t('analysis_labs_title')}</h3>
+                            <div className="glass-panel p-3 sm:p-4 flex flex-col min-h-0">
+                                <div className="flex items-center gap-1.5 mb-2 flex-shrink-0">
+                                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 text-[9px] font-black">5</div>
+                                    <h3 className="text-xs font-bold text-slate-900">{t('analysis_labs_title')}</h3>
                                 </div>
                                 <Textarea
                                     id="labResults"
@@ -1740,14 +1738,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     className="flex-1 min-h-0"
                                 />
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Xavfsizlik + Boshqa ma'lumotlar — to'liq qator, yonma-yon */}
-                    <div className="min-w-0 lg:col-span-2 2xl:col-span-12 grid grid-cols-1 sm:grid-cols-2 gap-2 flex-shrink-0">
-                        <div className="glass-panel p-2 sm:p-3 space-y-2 sm:space-y-1.5 min-w-0">
-                            <h3 className="text-[10px] font-bold text-slate-800 flex items-center gap-1">
-                                <span className="w-4 h-4 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 text-[8px]">!</span>
+                        <div className="glass-panel p-3 sm:p-4 space-y-2 min-w-0">
+                            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 text-[9px] font-black">6</span>
                                 {t('data_form_section_safety')}
                                 {returnVisitMode && (
                                     <span className="text-[8px] font-normal text-emerald-700 ml-1">({t('data_form_return_visit_saved')})</span>
@@ -1758,9 +1752,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             <Input id="familyHistory" label={t('data_input_family_history')} type="text" value={formData.familyHistory || ''} onChange={e => handleChange('familyHistory', e.target.value)} placeholder={t('data_input_family_history_placeholder')} readOnly={returnVisitMode} />
                         </div>
 
-                        <div className="glass-panel p-2 sm:p-3 flex flex-col gap-1 min-w-0">
-                            <h3 className="text-[10px] font-bold text-slate-800 mb-0.5 flex items-center gap-1">
-                                <span className="w-4 h-4 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-[8px]">4</span>
+                        <div className="glass-panel p-3 sm:p-4 flex flex-col gap-1.5 min-w-0">
+                            <h3 className="text-xs font-bold text-slate-900 mb-0.5 flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 text-[9px] font-black">7</span>
                                 {t('data_form_section_other_info')}
                             </h3>
                             <Textarea
