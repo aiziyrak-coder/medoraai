@@ -12,6 +12,9 @@ class PatientAdmin(admin.ModelAdmin):
     search_fields = ['registry_number', 'first_name', 'last_name', 'phone', 'complaints']
     readonly_fields = ['registry_number', 'created_at', 'updated_at']
     date_hierarchy = 'created_at'
+    list_select_related = ['created_by']
+    list_per_page = 30
+    show_full_result_count = False
 
 
 @admin.register(PatientRegistryCounter)

@@ -1,0 +1,101 @@
+/* AiShifokor — premium admin panel */
+:root {
+  --aish-teal: #0d9488;
+  --aish-teal-dark: #0f766e;
+  --aish-sky: #0284c7;
+  --aish-card-shadow: 0 8px 30px rgba(13, 148, 136, 0.12);
+}
+
+body.login {
+  background: linear-gradient(135deg, #0f172a 0%, #134e4a 45%, #0e7490 100%) !important;
+  min-height: 100vh;
+}
+
+.login-box,
+.login-card-body,
+.card-primary.card-outline {
+  border-radius: 1.25rem !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
+}
+
+.login-logo a,
+.brand-link .brand-text {
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+}
+
+.main-header.navbar-teal,
+.navbar-dark.navbar-teal {
+  background: linear-gradient(90deg, var(--aish-teal-dark), var(--aish-teal), var(--aish-sky)) !important;
+}
+
+.sidebar-dark-teal .nav-sidebar > .nav-item > .nav-link.active {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 0.75rem;
+  margin: 0 0.5rem;
+}
+
+.content-wrapper {
+  background: #f0fdfa !important;
+}
+
+.aish-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.aish-stat-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--aish-card-shadow);
+  border-left: 4px solid var(--aish-teal);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aish-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(13, 148, 136, 0.18);
+}
+
+.aish-stat-card h3 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0.25rem 0 0;
+}
+
+.aish-stat-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.aish-stat-card.accent-sky { border-left-color: var(--aish-sky); }
+.aish-stat-card.accent-amber { border-left-color: #d97706; }
+.aish-stat-card.accent-rose { border-left-color: #e11d48; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--aish-teal), var(--aish-sky)) !important;
+  border: none !important;
+  border-radius: 0.6rem !important;
+}
+
+.table thead th {
+  background: #f0fdfa !important;
+  color: #134e4a !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid #99f6e4 !important;
+}
+
+.card {
+  border-radius: 1rem !important;
+  box-shadow: var(--aish-card-shadow) !important;
+  border: 1px solid #ccfbf1 !important;
+}

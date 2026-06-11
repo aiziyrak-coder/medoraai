@@ -33,6 +33,8 @@ patch_env CSRF_TRUSTED_ORIGINS 'https://aishifokor.uz,https://www.aishifokor.uz,
 patch_env AI_COST_MODE 'balanced'
 patch_env DEBUG 'False'
 patch_env SECURE_SSL_REDIRECT 'True'
+cd {ROOT}/backend && ./venv/bin/pip install -q django-jazzmin==3.0.1
+cd {ROOT}/backend && ./venv/bin/python manage.py collectstatic --noinput
 systemctl daemon-reload
 systemctl restart aishifokor-backend
 cd {ROOT}/backend && ./venv/bin/python manage.py merge_patient_duplicates || true

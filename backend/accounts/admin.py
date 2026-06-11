@@ -108,6 +108,9 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'clinic_group', 'date_joined']
     search_fields = ['phone', 'name']
     ordering = ['-date_joined']
+    list_select_related = ['clinic_group', 'subscription_plan']
+    list_per_page = 30
+    show_full_result_count = False
     actions = ['logout_users_from_all_devices']
     
     fieldsets = (

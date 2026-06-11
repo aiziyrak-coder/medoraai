@@ -8,7 +8,7 @@ User=root
 Group=root
 WorkingDirectory=/root/aishifokor/backend
 EnvironmentFile=-/root/aishifokor/backend/.env
-ExecStart=/root/aishifokor/backend/venv/bin/gunicorn medoraai_backend.wsgi:application --bind 127.0.0.1:8100 --workers 5 --threads 2 --timeout 300 --limit-request-line 4096 --limit-request-fields 100 --limit-request-field_size 8192 --access-logfile /root/aishifokor/backend/logs/access.log --error-logfile /root/aishifokor/backend/logs/error.log
+ExecStart=/root/aishifokor/backend/venv/bin/gunicorn medoraai_backend.wsgi:application --bind 127.0.0.1:8100 --workers 5 --worker-class gthread --threads 4 --timeout 300 --graceful-timeout 60 --keep-alive 5 --max-requests 2500 --max-requests-jitter 300 --preload --limit-request-line 4096 --limit-request-fields 100 --limit-request-field_size 8192 --access-logfile /root/aishifokor/backend/logs/access.log --error-logfile /root/aishifokor/backend/logs/error.log
 Restart=always
 RestartSec=5
 

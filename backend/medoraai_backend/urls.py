@@ -1,6 +1,10 @@
 """
 URL configuration for medoraai_backend project.
 """
+from medoraai_backend.admin_dashboard import patch_admin_index
+
+patch_admin_index()
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings

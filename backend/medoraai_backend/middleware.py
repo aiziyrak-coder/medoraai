@@ -147,6 +147,8 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
             response['X-XSS-Protection'] = '1; mode=block'
             response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
             response['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+            if request.path.startswith('/admin/'):
+                return response
             response['Cross-Origin-Opener-Policy'] = 'same-origin'
             response['Cross-Origin-Resource-Policy'] = 'same-site'
             if not getattr(settings, 'DEBUG', True):
@@ -160,7 +162,7 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
 
 class RateLimitMiddleware(MiddlewareMixin):
     """IP bo'yicha tiered rate limiting (auth qattiq, AI o'rtacha)."""
-    _SKIP_PREFIXES = ('/static/', '/health')
+    _SKIP_PREFIXES = ('/static/', '/health', '/admin/')
 
     def process_request(self, request):
         try:
