@@ -17,6 +17,7 @@ import UsefulnessFeedbackCard from './UsefulnessFeedbackCard';
 import FollowUpAnalysis from './FollowUpAnalysis';
 import PhysicianSignOffCard from './report/PhysicianSignOffCard';
 import { useTranslation } from '../hooks/useTranslation';
+import { filterDebateForDisplay } from '../utils/debateDisplayFilter';
 
 // --- Icons ---
 import SendIcon from './icons/SendIcon';
@@ -78,7 +79,8 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
     }, [record?.debateHistory, statusMessage, socraticQuestion]);
 
     const { patientData: pd, debateHistory: dh = [], finalReport: fr = null } = record ?? {};
-    const hasDebate = (dh?.length ?? 0) > 0;
+    const displayDebate = useMemo(() => filterDebateForDisplay(dh), [dh]);
+    const hasDebate = displayDebate.length > 0;
     const showRightPanel = !!pd && (!!fr || !!error || isAnalyzing || hasDebate);
 
     const handleInterventionSubmit = useCallback((e: React.FormEvent) => {
@@ -172,17 +174,17 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                         </div>
                     )}
 
-                    {dh.length > 0 && (
+                    {displayDebate.length > 0 && (
                         <div className="space-y-4">
-                            {(Array.isArray(dh) ? dh : []).map(msg => (
+                            {displayDebate.map(msg => (
                                 <ChatMessage key={msg.id} message={msg} onExplainRationale={onExplainRationale} />
                             ))}
                         </div>
                     )}
-                    {dh.length === 0 && !isAnalyzing && !error && (
+                    {displayDebate.length === 0 && !isAnalyzing && !error && (
                         <p className="text-text-secondary text-sm">{t('analysis_debate_placeholder')}</p>
                     )}
-                    {isLive && isAnalyzing && dh.length > 0 && !socraticQuestion && (
+                    {isLive && isAnalyzing && displayDebate.length > 0 && !socraticQuestion && (
                         <DebateStatusIndicator message={statusMessage} />
                     )}
                 </div>

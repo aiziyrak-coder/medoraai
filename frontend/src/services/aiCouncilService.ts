@@ -1517,10 +1517,12 @@ async function runBackendConsilium(
         const authorName = String(m.author ?? 'Orchestrator');
         const msgId = String(m.id ?? '');
         const phase = String(m.phase ?? '');
+        if (phase === 'consensus' || msgId.startsWith('chair-closing')) {
+            continue;
+        }
         const agentId = msgId.split('-')[0];
         const isChair = !!(m.isChair ?? m.is_chair)
             || phase === 'opening'
-            || phase === 'consensus'
             || msgId.startsWith('chair-');
         const msg: ChatMessage = {
             id: msgId || `backend-${i}-${Date.now()}`,

@@ -59,7 +59,6 @@ from .debate_format import (
     debate_author_fields,
     format_p1_debate_content,
     format_p2_debate_content,
-    format_orchestrator_closing,
     format_specialist_roster,
     agent_specialty_label as _specialty_from_agent_obj,
 )
@@ -818,10 +817,6 @@ def _build_final_report(consensus: dict, p1: list[dict],
                     "weight":      w,
                     "content":     p2_content,
                 })
-
-    closing_text = format_orchestrator_closing(consensus)
-    if closing_text:
-        debate_log.append(_chair_debate_entry("chair-closing", "consensus", closing_text))
 
     cf = consensus.get("critical_finding") or {}
     critical = cf if (isinstance(cf, dict) and cf.get("present")) else None

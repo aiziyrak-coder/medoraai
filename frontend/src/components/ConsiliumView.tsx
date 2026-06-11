@@ -279,7 +279,10 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                 ))}
               </div>
 
-              {(Array.isArray(result.final_report?.debateHistory) ? result.final_report.debateHistory : []).map(msg => (
+              {(Array.isArray(result.final_report?.debateHistory) ? result.final_report.debateHistory : [])
+                .filter((msg) => msg.phase !== 'consensus' && !String(msg.id ?? '').includes('chair-closing')
+                  && !/KONSILIUM YOPILDI/i.test(String(msg.content ?? '')))
+                .map(msg => (
                 <DebateCard
                   key={msg.id}
                   msg={msg}
