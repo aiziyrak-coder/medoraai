@@ -940,7 +940,6 @@ def _build_final_report(consensus: dict, p1: list[dict],
         patched = ensure_nutrition_prevention(dict(consensus), language_hint=language)
         np = patched.get("nutrition_prevention") or patched.get("nutritionPrevention")
         if np:
-            from .report_fields import normalize_nutrition_extended
             normalized = normalize_nutrition_extended(np)
             if normalized:
                 merged["nutritionPrevention"] = normalized

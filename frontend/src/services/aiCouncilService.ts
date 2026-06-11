@@ -1619,14 +1619,12 @@ export const runCouncilDebate = async (
             await runBackendConsilium(patientData, language, onProgress);
             return;
         } catch (e) {
-            logger.warn('Backend consilium failed, falling back to browser Claude', e);
-            if (!isBrowserClaudeConfigured()) {
-                onProgress({
-                    type: 'error',
-                    message: e instanceof Error ? e.message : 'Server konsiliumi ishlamadi. AI kalitini tekshiring.',
-                });
-                return;
-            }
+            logger.warn('Backend consilium failed', e);
+            onProgress({
+                type: 'error',
+                message: e instanceof Error ? e.message : 'Server konsiliumi ishlamadi. Keyinroq qayta urinib ko\'ring.',
+            });
+            return;
         }
     } else if (!isBrowserClaudeConfigured()) {
         onProgress({
