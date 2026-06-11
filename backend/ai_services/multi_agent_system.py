@@ -1081,6 +1081,9 @@ def run_consilium(
     # Tashxis asosida klinik vositalar (ICD-10, qo'llanma, DDI, bemor tushuntirishi)
     from .diagnosis_enrichment import enrich_consensus_with_diagnosis_tools
     consensus = enrich_consensus_with_diagnosis_tools(consensus, patient_data, language)
+    from .consensus_repair import ensure_nutrition_prevention, ensure_related_research
+    consensus = ensure_nutrition_prevention(consensus, language_hint=language)
+    consensus = ensure_related_research(consensus, language_hint=language)
     result.phases["diagnosis_enrichment"] = {
         "icd10": (consensus.get("consensus_diagnosis") or {}).get("icd10"),
         "has_family_explanation": bool(consensus.get("simplified_family_explanation")),

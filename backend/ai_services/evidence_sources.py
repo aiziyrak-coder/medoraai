@@ -23,7 +23,16 @@ def build_fast_research_sources(diagnosis: str, language: str = "uz-L") -> list[
     who = f"{term} WHO guideline"
     ssv = f"{term} Uzbekistan clinical protocol"
 
+    kaa_rows = [
+        ("PubMed — sistemalıq sholıwlar", _pubmed(intl), f"«{term}» boyınsha xalıqaralıq maqala"),
+        ("Cochrane Library", f"https://www.cochranelibrary.com/search?q={quote(cochrane)}", "Meta-tahlil hám RCT"),
+        ("The Lancet", _pubmed(lancet), "Joqarı impakt faktorlı tadqiqotlar"),
+        ("NEJM", _pubmed(nejm), "Dalilge tiykarlanǵan terapiya"),
+        ("ESC / WHO / NICE", _pubmed(esc), "Xalıqaralıq klinikalıq qollanmalar"),
+        ("Ózbekstan SSV protokolları", _pubmed(ssv), "Milliy protokol mós kelisi"),
+    ]
     summaries: dict[str, list[tuple[str, str, str]]] = {
+        "kaa": kaa_rows,
         "uz-L": [
             ("PubMed — tizimli sharhlar va RCT", _pubmed(intl), f"«{term}» bo'yicha xalqaro maqolalar"),
             ("Cochrane Library", f"https://www.cochranelibrary.com/search?q={quote(cochrane)}", "Tizimli ko'rib chiqishlar va meta-tahlillar"),

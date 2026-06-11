@@ -789,16 +789,21 @@ function buildNutritionPreventionFallback(
   const diag = diagnosis.trim() || 'asosiy tashxis';
   const isRu = language.startsWith('ru');
   const isEn = language.startsWith('en');
+  const isKaa = language === 'kaa';
   const intro = isRu
     ? `Рекомендации по питанию и профилактике для «${diag}».`
     : isEn
       ? `Diet and prevention guidance for «${diag}».`
-      : `«${diag}» uchun to'g'ri ovqatlanish va profilaktika tavsiyalari (WHO va xalqaro qo'llanmalar asosida).`;
+      : isKaa
+        ? `«${diag}» ushın durıs awqatlanıw hám profilaktika usınısları.`
+        : `«${diag}» uchun to'g'ri ovqatlanish va profilaktika tavsiyalari (WHO va xalqaro qo'llanmalar asosida).`;
   const disclaimer = isRu
     ? 'Индивидуальная диета — после консультации врача.'
     : isEn
       ? 'Individual diet requires physician consultation.'
-      : 'Individual parhez uchun shifokor/dietolog maslahati shart.';
+      : isKaa
+        ? 'Jeke parhez ushın shifokor maslahati shárt.'
+        : 'Individual parhez uchun shifokor/dietolog maslahati shart.';
   const dietaryGuidelines = isRu
     ? ['Сбалансированное питание', 'Ограничение соли и сахара', 'Достаточная вода', 'Регулярный режим питания']
     : isEn

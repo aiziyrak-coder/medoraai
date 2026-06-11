@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type {
   FinalReport,
   FolkMedicineSection,
@@ -36,6 +36,7 @@ import CheckIcon from './icons/CheckIcon';
 import XIcon from './icons/XIcon';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
 import { useTranslation } from '../hooks/useTranslation';
+import { enrichFinalReport } from '../utils/reportNormalize';
 
 /** Hujjat bo'limi — aniq chegaralangan, asosiy matn bilan aralashmasin */
 const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
@@ -411,9 +412,13 @@ const FinalReportCard: React.FC<{
   isScenario?: boolean;
   onUpdateReport?: (updatedReport: Partial<FinalReport>) => void;
 }> = ({ report, patientData, isScenario = false, onUpdateReport }) => {
-    const { t } = useTranslation();
-    const safePlan = (Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString);
-    const consensusDiagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis);
+    const { t, language } = useTranslation();
+    const displayReport = useMemo(
+        () => enrichFinalReport(report, { patientData, language }),
+        [report, patientData, language],
+    );
+    const safePlan = (Array.isArray(displayReport.treatmentPlan) ? displayReport.treatmentPlan : []).map(planItemToString);
+    const consensusDiagnoses = normalizeConsensusDiagnosis(displayReport.consensusDiagnosis);
     const hasRealDiagnosis = consensusDiagnoses.some(
         (d) => d.name.trim() && !/^(tashxis aniqlanmadi|aniqlanmadi|timeout)$/i.test(d.name.trim()),
     );
@@ -422,8 +427,8 @@ const FinalReportCard: React.FC<{
     const [editedPlan, setEditedPlan] = useState<string[]>(safePlan);
 
     useEffect(() => {
-        setEditedPlan((Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString));
-    }, [report.treatmentPlan]);
+        setEditedPlan((Array.isArray(displayReport.treatmentPlan) ? displayReport.treatmentPlan : []).map(planItemToString));
+    }, [displayReport.treatmentPlan]);
     
     const handlePlanChange = (index: number, value: string) => {
         const newPlan = [...editedPlan];
@@ -448,7 +453,7 @@ const FinalReportCard: React.FC<{
     };
 
     const handleCancelEditPlan = () => {
-        setEditedPlan((Array.isArray(report.treatmentPlan) ? report.treatmentPlan : []).map(planItemToString));
+        setEditedPlan((Array.isArray(displayReport.treatmentPlan) ? displayReport.treatmentPlan : []).map(planItemToString));
         setIsEditingPlan(false);
     };
 
@@ -469,16 +474,16 @@ const FinalReportCard: React.FC<{
                     <p className="text-slate-200 text-sm mt-0.5">{t('final_report_main_conclusion_subtitle')}</p>
                 </div>
                 <div className="p-6 space-y-6">
-                    {report.criticalFinding && (
+                    {displayReport.criticalFinding && (
                         <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
                             <div className="flex items-center gap-3">
                                 <AlertTriangleIcon className="w-8 h-8 text-red-600 flex-shrink-0"/>
                                 <div>
                                     <h3 className="text-base font-bold text-red-800">{t('final_report_attention_critical')}</h3>
-                                    <p className="font-semibold text-red-700 text-sm mt-1">{report.criticalFinding.finding}</p>
+                                    <p className="font-semibold text-red-700 text-sm mt-1">{displayReport.criticalFinding.finding}</p>
                                 </div>
                             </div>
-                            <p className="mt-2 text-sm text-red-700 pl-11">{report.criticalFinding.implication}</p>
+                            <p className="mt-2 text-sm text-red-700 pl-11">{displayReport.criticalFinding.implication}</p>
                         </div>
                     )}
                     <div>
@@ -486,8 +491,8 @@ const FinalReportCard: React.FC<{
                         {!hasRealDiagnosis && (
                             <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 mb-4">
                                 <p className="text-sm font-semibold text-amber-900">{t('final_report_consensus_pending')}</p>
-                                {report.unexpectedFindings && String(report.unexpectedFindings).trim() && (
-                                    <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{report.unexpectedFindings}</p>
+                                {displayReport.unexpectedFindings && String(displayReport.unexpectedFindings).trim() && (
+                                    <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{displayReport.unexpectedFindings}</p>
                                 )}
                             </div>
                         )}
@@ -532,10 +537,10 @@ const FinalReportCard: React.FC<{
                             </div>
                         ))}
                     </div>
-                    {report.simplifiedFamilyExplanation && String(report.simplifiedFamilyExplanation).trim() && (
+                    {displayReport.simplifiedFamilyExplanation && String(displayReport.simplifiedFamilyExplanation).trim() && (
                         <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/60">
                             <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wider mb-2">{t('final_report_family_explanation')}</h3>
-                            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{sanitizeClinicalContent(String(report.simplifiedFamilyExplanation))}</p>
+                            <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{sanitizeClinicalContent(String(displayReport.simplifiedFamilyExplanation))}</p>
                         </div>
                     )}
                 </div>
@@ -544,27 +549,27 @@ const FinalReportCard: React.FC<{
             {/* Qolgan bo'limlar — alohida hujjat bo'limlari */}
             <div className="space-y-10">
 
-                <ImagingInterpretationCard imaging={report.imagingInterpretation} />
+                <ImagingInterpretationCard imaging={displayReport.imagingInterpretation} />
 
-                <PatientRoutingCard routing={report.patientRouting} />
-                <RiskFactorsCard riskFactors={report.riskFactors} severityAssessment={report.severityAssessment} />
+                <PatientRoutingCard routing={displayReport.patientRouting} />
+                <RiskFactorsCard riskFactors={displayReport.riskFactors} severityAssessment={displayReport.severityAssessment} />
 
-                {!report.imagingInterpretation && report.imageAnalysis?.findings && (
+                {!displayReport.imagingInterpretation && displayReport.imageAnalysis?.findings && (
                     <Section title={t('final_report_image_analysis_title')} icon={<ImageIcon className="w-6 h-6"/>}>
                         <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
-                            <p><span className='font-semibold'>{t('final_report_image_findings')}:</span> {report.imageAnalysis.findings}</p>
-                            <p className="mt-2"><span className='font-semibold'>{t('final_report_image_correlation')}:</span> {report.imageAnalysis.correlation}</p>
+                            <p><span className='font-semibold'>{t('final_report_image_findings')}:</span> {displayReport.imageAnalysis.findings}</p>
+                            <p className="mt-2"><span className='font-semibold'>{t('final_report_image_correlation')}:</span> {displayReport.imageAnalysis.correlation}</p>
                         </div>
                     </Section>
                 )}
 
-                <ProtocolComplianceGapsCard gaps={report.protocolComplianceGaps} />
-                <CareQualityAuditCard audit={report.careQualityAudit} />
+                <ProtocolComplianceGapsCard gaps={displayReport.protocolComplianceGaps} />
+                <CareQualityAuditCard audit={displayReport.careQualityAudit} />
 
-                {report.unexpectedFindings && String(report.unexpectedFindings).trim() && (
+                {displayReport.unexpectedFindings && String(displayReport.unexpectedFindings).trim() && (
                     <Section title={t('final_report_unexpected_findings')} icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
                         <div className="text-text-primary text-sm whitespace-pre-wrap leading-relaxed">
-                            <LinkifiedText text={sanitizeClinicalContent(String(report.unexpectedFindings))} />
+                            <LinkifiedText text={sanitizeClinicalContent(String(displayReport.unexpectedFindings))} />
                         </div>
                     </Section>
                 )}
@@ -581,7 +586,7 @@ const FinalReportCard: React.FC<{
                                     <p className="italic text-slate-500">
                                         {t('final_report_empty_plan_note')}
                                     </p>
-                                    {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) && (
+                                    {(Array.isArray(displayReport.medicationRecommendations) && displayReport.medicationRecommendations.length > 0) && (
                                         <p className="text-xs text-slate-500">
                                             {t('final_report_empty_plan_hint')}
                                         </p>
@@ -623,28 +628,28 @@ const FinalReportCard: React.FC<{
                             </div>
                         </div>
                     )}
-                    {report.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>{t('final_report_cost_effectiveness')}:</strong> {report.costEffectivenessNotes}</p>}
+                    {displayReport.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>{t('final_report_cost_effectiveness')}:</strong> {displayReport.costEffectivenessNotes}</p>}
                 </Section>
 
-                {report.nutritionPrevention && <NutritionPreventionCard section={report.nutritionPrevention} />}
+                <NutritionPreventionCard section={displayReport.nutritionPrevention!} />
                 
-                {report.clinicalRedFlags && report.clinicalRedFlags.length > 0 && (
-                    <ClinicalRedFlagsCard flags={report.clinicalRedFlags} />
+                {displayReport.clinicalRedFlags && displayReport.clinicalRedFlags.length > 0 && (
+                    <ClinicalRedFlagsCard flags={displayReport.clinicalRedFlags} />
                 )}
 
                 <Section title={t('final_report_medications_uz')} icon={<PillIcon className="w-6 h-6"/>}>
-                    {report.pharmacologyWarnings && report.pharmacologyWarnings.length > 0 && (
+                    {displayReport.pharmacologyWarnings && displayReport.pharmacologyWarnings.length > 0 && (
                         <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
                             <p className="text-sm font-bold text-amber-800 mb-1">{t('consilium_pharmacology_warnings')}</p>
                             <ul className="list-disc list-inside text-sm text-amber-900 space-y-1">
-                                {report.pharmacologyWarnings.map((w, i) => (
+                                {displayReport.pharmacologyWarnings.map((w, i) => (
                                     <li key={i}>{w}</li>
                                 ))}
                             </ul>
                         </div>
                     )}
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {(Array.isArray(report.medicationRecommendations) && report.medicationRecommendations.length > 0) ? report.medicationRecommendations.map((med, index) => {
+                     {(Array.isArray(displayReport.medicationRecommendations) && displayReport.medicationRecommendations.length > 0) ? displayReport.medicationRecommendations.map((med, index) => {
                         const drugName = (med.name && String(med.name).trim()) || (med.localAvailability && String(med.localAvailability).trim()) || 'Dori';
                         const hasRealName = med.name && String(med.name).trim() && !/^(doza|dori|tabletka|tavsiya)$/i.test(String(med.name).trim());
                         const showLocalAvailability = med.localAvailability && (hasRealName || !drugName.includes(med.localAvailability));
@@ -689,32 +694,32 @@ const FinalReportCard: React.FC<{
                     </div>
                 </Section>
 
-                {report.folkMedicine && <FolkMedicineCard section={report.folkMedicine} />}
+                {displayReport.folkMedicine && <FolkMedicineCard section={displayReport.folkMedicine} />}
 
-                <AdverseEventRiskCard risks={report.adverseEventRisks} />
+                <AdverseEventRiskCard risks={displayReport.adverseEventRisks} />
 
                  <Section title={t('final_report_additional_tests_title')} icon={<DocumentTextIcon className="w-6 h-6"/>}>
                     <ul className="list-disc list-inside space-y-2 text-text-primary">
-                        {(Array.isArray(report.recommendedTests) ? report.recommendedTests : []).map((item, index) => (
+                        {(Array.isArray(displayReport.recommendedTests) ? displayReport.recommendedTests : []).map((item, index) => (
                             <li key={index}>{recommendedTestToDisplay(item)}</li>
                         ))}
                     </ul>
                 </Section>
                 
-                <PrognosisCard prognosis={report.prognosisReport} isLoading={false} />
+                <PrognosisCard prognosis={displayReport.prognosisReport} isLoading={false} />
 
-                <LifestylePlanCard plan={report.lifestylePlan} />
+                <LifestylePlanCard plan={displayReport.lifestylePlan} />
 
-                {report.followUpPlan && <FollowUpPlan tasks={report.followUpPlan} />}
+                {displayReport.followUpPlan && <FollowUpPlan tasks={displayReport.followUpPlan} />}
                 
-                {report.referrals && <ReferralGenerator referrals={report.referrals} patientData={patientData} />}
+                {displayReport.referrals && <ReferralGenerator referrals={displayReport.referrals} patientData={patientData} />}
                 
-                <ClinicalTrialsCard trials={report.matchedClinicalTrials} />
+                <ClinicalTrialsCard trials={displayReport.matchedClinicalTrials} />
                 
-                <RelatedResearchCard research={report.relatedResearch} />
+                <RelatedResearchCard research={displayReport.relatedResearch} />
 
                  <Section title={t('final_report_rejected_hypotheses_title')} icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>
-                     {(Array.isArray(report.rejectedHypotheses) && report.rejectedHypotheses.length > 0) ? report.rejectedHypotheses.map((hypo, index) => (
+                     {(Array.isArray(displayReport.rejectedHypotheses) && displayReport.rejectedHypotheses.length > 0) ? displayReport.rejectedHypotheses.map((hypo, index) => (
                         <div key={index} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                            <p className="font-semibold text-text-primary line-through">{hypo.name}</p>
                            <p className="text-sm text-text-secondary mt-1">{t('final_report_reason_inline')} {hypo.reason}</p>
@@ -729,7 +734,7 @@ const FinalReportCard: React.FC<{
                     <p className="font-bold mb-1">{t('final_report_legal_note')}</p>
                     <p>
                         {t('final_report_legal_disclaimer')}
-                        {report.uzbekistanLegislativeNote && <span className="block mt-1 font-semibold">{report.uzbekistanLegislativeNote}</span>}
+                        {displayReport.uzbekistanLegislativeNote && <span className="block mt-1 font-semibold">{displayReport.uzbekistanLegislativeNote}</span>}
                     </p>
                 </div>
             </div>

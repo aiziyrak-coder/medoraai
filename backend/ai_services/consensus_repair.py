@@ -850,23 +850,49 @@ def ensure_consensus_from_phases(
         consensus["consensus_diagnosis"] = cd
 
     consensus = ensure_nutrition_prevention(consensus, language_hint=language)
+    consensus = ensure_related_research(consensus, language_hint=language)
+    return consensus
+
+
+def ensure_related_research(consensus: dict, language_hint: str = "uz-L") -> dict:
+    """Xalqaro dalil manbalari bo'sh qolmasin."""
+    if not isinstance(consensus, dict):
+        return consensus
+    existing = consensus.get("related_research") or consensus.get("relatedResearch") or []
+    if isinstance(existing, list) and len(existing) >= 4:
+        return consensus
+    cd = consensus.get("consensus_diagnosis") or {}
+    diag = _s(cd.get("name") if isinstance(cd, dict) else "") or "klinik holat"
+    from .evidence_sources import build_fast_research_sources
+    from .diagnosis_enrichment import _merge_research
+    _merge_research(consensus, build_fast_research_sources(diag, language_hint))
     return consensus
 
 
 def ensure_nutrition_prevention(consensus: dict, language_hint: str = "uz-L") -> dict:
-    """Ovqatlanish va profilaktika bo'sh qolmasin — tashxisga mos fallback."""
+    """Ovqatlanish va profilaktika bo'sh qolmasin — tashxisga mos fallback yoki to'ldirish."""
     if not isinstance(consensus, dict):
         return consensus
 
-    np = consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
-    if isinstance(np, dict):
-        dietary = [str(x).strip() for x in (np.get("dietary_guidelines") or np.get("dietaryGuidelines") or []) if str(x).strip()]
-        prevention = [str(x).strip() for x in (np.get("prevention_measures") or np.get("preventionMeasures") or []) if str(x).strip()]
-        if len(dietary) >= 2 and len(prevention) >= 2:
-            return consensus
-
     cd = consensus.get("consensus_diagnosis") or {}
     diag = _s(cd.get("name") if isinstance(cd, dict) else "") or "asosiy tashxis"
+
+    np = consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
+    existing_dietary: list[str] = []
+    existing_prevention: list[str] = []
+    existing_intro = ""
+    existing_disclaimer = ""
+    existing_individual: list[dict] = []
+    if isinstance(np, dict):
+        existing_dietary = [str(x).strip() for x in (np.get("dietary_guidelines") or np.get("dietaryGuidelines") or []) if str(x).strip()]
+        existing_prevention = [str(x).strip() for x in (np.get("prevention_measures") or np.get("preventionMeasures") or []) if str(x).strip()]
+        existing_intro = str(np.get("intro") or "").strip()
+        existing_disclaimer = str(np.get("disclaimer") or "").strip()
+        raw_ind = np.get("individual_diet_by_diagnosis") or np.get("individualDietByDiagnosis")
+        if isinstance(raw_ind, list):
+            existing_individual = [x for x in raw_ind if isinstance(x, dict)]
+        if len(existing_dietary) >= 3 and len(existing_prevention) >= 3:
+            return consensus
 
     lang = (language_hint or "uz-L").split("-")[0]
     if lang == "ru":
@@ -943,10 +969,10 @@ def ensure_nutrition_prevention(consensus: dict, language_hint: str = "uz-L") ->
     }]
 
     consensus["nutrition_prevention"] = {
-        "intro": intro,
-        "disclaimer": disclaimer,
-        "dietary_guidelines": dietary,
-        "prevention_measures": prevention,
-        "individual_diet_by_diagnosis": individual,
+        "intro": existing_intro or intro,
+        "disclaimer": existing_disclaimer or disclaimer,
+        "dietary_guidelines": existing_dietary if len(existing_dietary) >= 3 else dietary,
+        "prevention_measures": existing_prevention if len(existing_prevention) >= 3 else prevention,
+        "individual_diet_by_diagnosis": existing_individual if existing_individual else individual,
     }
     return consensus

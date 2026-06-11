@@ -15,6 +15,19 @@ rm -f /etc/nginx/conf.d/aishifokor-cors-map.conf
 cp {ROOT}/deploy/nginx-aishifokor-uz.conf /etc/nginx/sites-available/aishifokor-uz.conf
 cp {ROOT}/deploy/systemd/aishifokor-backend.service /etc/systemd/system/aishifokor-backend.service
 : > {ROOT}/backend/logs/error.log || true
+ENV={ROOT}/backend/.env
+patch_env() {{
+  k="$1"; v="$2"
+  if grep -q "^$k=" "$ENV" 2>/dev/null; then
+    sed -i "s|^$k=.*|$k=$v|" "$ENV"
+  else
+    echo "$k=$v" >> "$ENV"
+  fi
+}}
+patch_env ALLOWED_HOSTS 'aishifokor.uz,www.aishifokor.uz,api.aishifokor.uz,127.0.0.1,localhost'
+patch_env CORS_ALLOWED_ORIGINS 'https://aishifokor.uz,https://www.aishifokor.uz,http://aishifokor.uz,https://api.aishifokor.uz'
+patch_env CSRF_TRUSTED_ORIGINS 'https://aishifokor.uz,https://www.aishifokor.uz,https://api.aishifokor.uz'
+patch_env AI_COST_MODE 'balanced'
 systemctl daemon-reload
 systemctl restart aishifokor-backend
 cd {ROOT}/backend && ./venv/bin/python manage.py merge_patient_duplicates || true
@@ -32,7 +45,9 @@ nginx -t && systemctl reload nginx
 sleep 2
 curl -fsS http://127.0.0.1:8100/health/
 echo
-curl -sk -I -H 'Origin: https://aishifokor.uz' https://api.aishifokor.uz/health/ | head -6
+curl -sk -o /dev/null -w 'cors_api:%{{http_code}}\\n' -X OPTIONS -H 'Origin: https://aishifokor.uz' -H 'Access-Control-Request-Method: POST' https://api.aishifokor.uz/api/patients/
+curl -sk -o /dev/null -w 'cors_front:%{{http_code}}\\n' -X OPTIONS -H 'Origin: https://aishifokor.uz' -H 'Access-Control-Request-Method: POST' https://aishifokor.uz/api/patients/
+cd {ROOT}/backend && ./venv/bin/python -c "from ai_services.consensus_repair import ensure_nutrition_prevention, ensure_related_research; c={{'consensus_diagnosis':{{'name':'Test'}}}}; c=ensure_nutrition_prevention(c); c=ensure_related_research(c); assert c.get('nutrition_prevention'); assert c.get('related_research'); print('audit_ok')"
 """
 
 c = paramiko.SSHClient()
