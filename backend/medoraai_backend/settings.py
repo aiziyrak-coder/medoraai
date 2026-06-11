@@ -74,6 +74,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'medoraai_backend.middleware.CORSFallbackMiddleware',  # CORS for /health/, /api/ when corsheaders missed
+    'medoraai_backend.middleware.AttackProbeBlockMiddleware',  # Skaner / exploit path blok
     'medoraai_backend.middleware.SecurityHeadersMiddleware',  # Custom security headers
     'medoraai_backend.middleware.RateLimitMiddleware',  # Rate limiting
     'django.middleware.common.CommonMiddleware',
@@ -203,10 +204,14 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/hour',   # login + unauthenticated API (DEBUG da yetarli)
-        'user': '1000/hour'
+        'anon': '1000/hour' if DEBUG else '120/hour',
+        'user': '1000/hour' if DEBUG else '600/hour',
     }
 }
+
+# Login brute-force (telefon bo'yicha) — accounts.views bilan mos
+LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=5, cast=int)
+LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=int)  # 15 daqiqa
 
 # JWT Settings
 SIMPLE_JWT = {

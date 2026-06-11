@@ -60,7 +60,8 @@ urlpatterns = [
     path('api/ziyrak/', include('ai_services.ziyrak_urls')),
     path('api/integrations/', include('integrations.urls')),
 ]
-if _schema_view is not None:
+# Swagger faqat DEBUG rejimida (productionda API sxemasi ochiq bo'lmasin)
+if _schema_view is not None and settings.DEBUG:
     urlpatterns += [
         path('swagger/', _schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
         path('redoc/', _schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
