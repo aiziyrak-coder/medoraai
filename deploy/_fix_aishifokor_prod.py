@@ -13,6 +13,8 @@ git fetch origin && git reset --hard origin/main
 echo GIT: $(git log -1 --oneline)
 rm -f /etc/nginx/conf.d/aishifokor-cors-map.conf
 cp {ROOT}/deploy/nginx-aishifokor-security-limits.conf /etc/nginx/conf.d/aishifokor-security-limits.conf
+mkdir -p /etc/nginx/snippets
+cp {ROOT}/deploy/nginx-snippet-aishifokor-sec-headers.conf /etc/nginx/snippets/aishifokor-sec-headers.conf
 cp {ROOT}/deploy/nginx-aishifokor-uz.conf /etc/nginx/sites-available/aishifokor-uz.conf
 cp {ROOT}/deploy/systemd/aishifokor-backend.service /etc/systemd/system/aishifokor-backend.service
 : > {ROOT}/backend/logs/error.log || true
