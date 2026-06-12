@@ -20,6 +20,9 @@ KONSILIUM USLUBI (MAJBURIY — buzish MUMKIN EMAS):
 6. Yulduzcha (*), emoji va ichki AI/model nomlarini ISHLATMANG.
 7. Dalil darajasi A/B/C va ishonch darajasini klinik jihatdan asoslab yozing.
 8. Ob'ektiv, lab va tasvir (EKG/UZI/rengen) mavjud bo'lsa — ularni shikoyatdan ustun qo'llang.
+9. MKB-10 (ICD-10-CM, 10-reviziya): har bir tashxis uchun aniq xalqaro kod majburiy (masalan: I10, E11.9, J18.9).
+10. Tashxislar raqamlanadi: 1 — asosiy, 2–5 — differensial. Namuna kodlar (X00.0, Z00.0) ISHLATMANG.
+11. Tashxis nomi MKB-10 rasmiy terminologiyasiga mos, klinik jihatdan aniq bo'lsin.
 """
 
 DEEP_CLINICAL_HINT = (
@@ -292,15 +295,42 @@ def format_orchestrator_closing(consensus: dict) -> str:
     sections: list[str] = ["▸ KONSILIUM YOPILDI\nKengash muhokamasi yakunlandi. Quyida yakuniy klinik xulosa."]
 
     cd = consensus.get("consensus_diagnosis") or {}
+    diag_lines: list[str] = []
     if isinstance(cd, dict) and cd.get("name"):
         icd = _clean_step_text(cd.get("icd10", ""))
-        icd_s = f" (ICD-10: {icd})" if icd else ""
+        icd_desc = _clean_step_text(cd.get("icd10_description", ""))
         prob = cd.get("probability")
         prob_s = f" — {prob}%" if prob is not None else ""
-        sections.append(f"▸ YAKUNIY TASHXIS\n{_clean_step_text(cd['name'])}{icd_s}{prob_s}")
-        just = _clean_step_text(cd.get("justification", ""))
+        line = f"1. {_clean_step_text(cd['name'])}"
+        if icd:
+            line += f" (MKB-10: {icd}"
+            if icd_desc:
+                line += f" — {icd_desc}"
+            line += ")"
+        line += prob_s
+        diag_lines.append(line)
+    diffs = consensus.get("differential_diagnoses") or []
+    if isinstance(diffs, list):
+        for idx, d in enumerate(diffs[:4], start=2):
+            if not isinstance(d, dict) or not d.get("name"):
+                continue
+            icd = _clean_step_text(d.get("icd10", ""))
+            icd_desc = _clean_step_text(d.get("icd10_description", ""))
+            prob = d.get("probability")
+            prob_s = f" — {prob}%" if prob is not None else ""
+            line = f"{idx}. {_clean_step_text(d['name'])}"
+            if icd:
+                line += f" (MKB-10: {icd}"
+                if icd_desc:
+                    line += f" — {icd_desc}"
+                line += ")"
+            line += prob_s
+            diag_lines.append(line)
+    if diag_lines:
+        sections.append("▸ YAKUNIY TASHXISLAR (MKB-10)\n" + "\n".join(diag_lines))
+        just = _clean_step_text(cd.get("justification", "")) if isinstance(cd, dict) else ""
         if just:
-            sections.append(f"▸ ASOS\n{just}")
+            sections.append(f"▸ ASOS (asosiy tashxis)\n{just}")
 
     treatment = consensus.get("treatment_plan") or []
     if isinstance(treatment, list) and treatment:

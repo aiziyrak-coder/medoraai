@@ -293,7 +293,9 @@ def _final_consensus(
         "Quyidagi JSON strukturada YAKUNIY KONSENSUS hisobotini bering:\n"
         '{\n'
         '  "consensus_diagnosis": {\n'
-        '    "name": "Asosiy tashxis nomi",\n'
+        '    "name": "1-asosiy tashxis (MKB-10 rasmiy termin)",\n'
+        '    "icd10": "I10",\n'
+        '    "icd10_description": "MKB-10 bo\'yicha to\'liq nom",\n'
         '    "probability": 90,\n'
         '    "justification": "Asoslash...",\n'
         '    "evidenceLevel": "High",\n'
@@ -301,7 +303,7 @@ def _final_consensus(
         '    "uzbekProtocolMatch": "SSV protokol nomi"\n'
         '  },\n'
         '  "differential_diagnoses": [\n'
-        '    {"name": "...", "probability": 30, "reason": "..."}\n'
+        '    {"name": "2-differensial tashxis", "icd10": "E11.9", "probability": 30, "reason": "..."}\n'
         '  ],\n'
         '  "rejected_hypotheses": [\n'
         '    {"name": "...", "reason": "Nega rad etildi..."}\n'
@@ -352,7 +354,9 @@ def _final_consensus(
         "Rasmiy dori-darmonlar o'rnini BOSMAYDI. Agar holat uchun ma'qul bo'lmasa, items da bir qator bilan sabab yozing.\n"
         "nutrition_prevention: MAJBURIY. Tashxis va holatga mos: dietary_guidelines 4-8 ta (to'g'ri ovqatlanish), "
         "prevention_measures 4-8 ta (kasalliklarni oldini olish, profilaktika). O'zbekiston oziq-ovqat realiati va umumiy gigiyena.\n"
-        "Barcha matn qiymatlari (critical_finding finding, implication va boshqalar) faqat o'zbek tilida bo'lsin; yulduzcha (*) va inglizcha iboralar ishlatmang."
+        "Barcha matn qiymatlari (critical_finding finding, implication va boshqalar) faqat o'zbek tilida bo'lsin; yulduzcha (*) va inglizcha iboralar ishlatmang.\n"
+        "MKB-10 (ICD-10-CM, 10-reviziya): har bir tashxis uchun aniq kod majburiy. "
+        "Tashxislar raqamlanadi: 1-asosiy, 2-5-differensial. Namuna kodlar (X00.0) ISHLATMANG."
         + extended_consensus_json_instructions(language_hint)
     )
     raw = _chat(DEPLOY_GPT4O(), system, user, response_json=True, max_tokens=4000)
@@ -589,8 +593,15 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
         result["steps"]["pharmacology_review"] = {"error": str(e)}
 
     # -----------------------------------------------------------------------
-    # Build final report
+    # MKB-10 kodlari va yakuniy hisobot
     # -----------------------------------------------------------------------
+    try:
+        from .icd10_lookup import apply_icd10_to_consensus
+        consensus = apply_icd10_to_consensus(consensus, language)
+        result["steps"]["consensus"] = consensus
+    except Exception as e:
+        logger.warning("ICD-10 enrichment failed: %s", e)
+
     final_report = _build_final_report(consensus, initial_opinions, debate_responses)
     result["final_report"] = final_report
     result["completed_at"] = timezone.now().isoformat()
@@ -717,6 +728,9 @@ def _build_final_report(
         "consensusDiagnosis": [
             {
                 "name": str(cd.get("name") or "Tashxis aniqlanmadi"),
+                "icd10": str(cd.get("icd10") or ""),
+                "icd10Description": str(cd.get("icd10_description") or cd.get("icd10Description") or ""),
+                "diagnosisRank": 1,
                 "probability": int(cd.get("probability") or 70),
                 "justification": str(cd.get("justification") or ""),
                 "evidenceLevel": str(cd.get("evidenceLevel") or "Moderate"),
@@ -726,13 +740,16 @@ def _build_final_report(
         ] + [
             {
                 "name": str(d.get("name") or ""),
+                "icd10": str(d.get("icd10") or ""),
+                "icd10Description": str(d.get("icd10_description") or d.get("icd10Description") or ""),
+                "diagnosisRank": idx + 2,
                 "probability": int(d.get("probability") or 30),
                 "justification": str(d.get("reason") or ""),
                 "evidenceLevel": "Moderate",
                 "reasoningChain": [],
                 "uzbekProtocolMatch": "",
             }
-            for d in (consensus.get("differential_diagnoses") or [])[:4]
+            for idx, d in enumerate((consensus.get("differential_diagnoses") or [])[:4])
         ],
         "rejectedHypotheses": [
             {"name": str(r.get("name") or ""), "reason": str(r.get("reason") or "")}

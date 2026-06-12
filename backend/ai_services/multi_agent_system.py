@@ -550,6 +550,8 @@ KONSENSUS QAROR QOIDALARI:
 17. Har bir mutaxassisning ENG KUCHLI dalilini alohida qayd eting — umumiy sintez yetarli emas.
 18. consensus_diagnosis.justification: kamida 4 jumla, har biri aniq klinik fakt + manba.
 19. debate_synthesis: key_agreements, key_disputes_resolved, winning_arguments — har biri kamida 3 ta band.
+20. MKB-10 (ICD-10-CM, 10-reviziya): asosiy va har bir differensial tashxis uchun aniq kod (masalan I10, E11.9).
+21. Tashxislar raqamlanadi: 1-asosiy, 2-5-differensial. Namuna kodlar (X00.0) ISHLATMANG.
 
 """ + CLINICAL_OUTPUT_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
@@ -569,8 +571,9 @@ PHASE 2  -  Debate va refutation'lar:
 Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
 {{
   "consensus_diagnosis": {{
-    "name": "Asosiy tashxis nomi",
-    "icd10": "X00.0",
+    "name": "Asosiy tashxis nomi (MKB-10 rasmiy termin)",
+    "icd10": "I10",
+    "icd10_description": "MKB-10 bo'yicha to'liq nom",
     "probability": 94,
     "justification": "Barcha dalillarni hisobga olgan xulosaning asosi ...",
     "evidence_level": "A",
@@ -578,7 +581,7 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
     "uzbek_protocol_match": "SSV buyrug'i/protokol nomi (https://lex.uz/...)"
   }},
   "differential_diagnoses": [
-    {{"name": "Alt tashxis", "probability": 6, "reason": "Nega kam ehtimol"}}
+    {{"name": "2-tashxis (MKB-10 termin)", "icd10": "E11.9", "probability": 6, "reason": "Nega kam ehtimol"}}
   ],
   "rejected_hypotheses": [
     {{"name": "Rad etilgan tashxis", "reason": "Nevrolog mutaxassisi dalillari asosida rad etildi — faktlar"}}
@@ -834,6 +837,8 @@ def _build_final_report(consensus: dict, p1: list[dict],
             {
                 "name":               str(cd.get("name", "Tashxis aniqlanmadi")),
                 "icd10":              str(cd.get("icd10", "")),
+                "icd10Description":   str(cd.get("icd10_description") or cd.get("icd10Description") or ""),
+                "diagnosisRank":      1,
                 "probability":        int(cd.get("probability") or 70),
                 "justification":      str(cd.get("justification", "")),
                 "evidenceLevel":      str(cd.get("evidence_level") or "Moderate"),
@@ -843,13 +848,16 @@ def _build_final_report(consensus: dict, p1: list[dict],
         ] + [
             {
                 "name":               str(d.get("name", "")),
+                "icd10":              str(d.get("icd10", "")),
+                "icd10Description":   str(d.get("icd10_description") or d.get("icd10Description") or ""),
+                "diagnosisRank":      idx + 2,
                 "probability":        int(d.get("probability") or 25),
                 "justification":      str(d.get("reason", "")),
                 "evidenceLevel":      "Moderate",
                 "reasoningChain":     [],
                 "uzbekProtocolMatch": "",
             }
-            for d in (consensus.get("differential_diagnoses") or [])[:4]
+            for idx, d in enumerate((consensus.get("differential_diagnoses") or [])[:4])
         ],
         "rejectedHypotheses": [
             {"name": nm, "reason": rs}

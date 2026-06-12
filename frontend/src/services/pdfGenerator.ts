@@ -425,15 +425,16 @@ export const generatePdfReport = async (
     // Faqat eng yuqori ehtimollikdagi asosiy tashxis
     addSectionTitle(tr('pdf_diagnosis', 'Tashxis'));
     const diagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis)
-        .sort((a, b) => (b.probability ?? 0) - (a.probability ?? 0))
-        .slice(0, 1);
-    diagnoses.forEach((diag) => {
+        .sort((a, b) => (a.diagnosisRank ?? 99) - (b.diagnosisRank ?? 99) || (b.probability ?? 0) - (a.probability ?? 0));
+    diagnoses.forEach((diag, idx) => {
         ensureSpace(14);
         const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
         doc.setFontSize(9);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(40, 80, 120);
-        const titleLine = `${diag.name} (${pct}) — ${diag.evidenceLevel || 'N/A'}`;
+        const rank = diag.diagnosisRank ?? idx + 1;
+        const icdPart = diag.icd10 ? ` | ${tr('final_report_icd10', 'MKB-10')}: ${diag.icd10}` : '';
+        const titleLine = `${rank}. ${diag.name}${icdPart} (${pct}) — ${diag.evidenceLevel || 'N/A'}`;
         const diagnosisLines = doc.splitTextToSize(titleLine, pageWidth - MARGIN * 2);
         diagnosisLines.forEach((line: string) => {
             ensureSpace(COMPACT_LINE + 1);

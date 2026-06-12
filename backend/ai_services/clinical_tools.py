@@ -223,19 +223,12 @@ def uzi_utt_analyze(
 
 
 def icd10_codes(diagnosis: str, language: str) -> list[dict]:
-    lang = _lang(language)
-    data = _call_json(
-        f'ICD-10 kodlari "{diagnosis}" uchun. Til: {lang}. '
-        'FAQAT JSON massiv: [{"code":"...","description":"..."}]',
-        max_tokens=1200,
-    )
-    if not isinstance(data, list):
+    from .icd10_lookup import resolve_icd10
+
+    hit = resolve_icd10(diagnosis, language)
+    if not hit.get("code"):
         return []
-    out = []
-    for item in data[:12]:
-        if isinstance(item, dict) and item.get("code"):
-            out.append({"code": str(item["code"]), "description": str(item.get("description") or "")})
-    return out
+    return [{"code": hit["code"], "description": hit.get("description") or ""}]
 
 
 def lab_interpret(lab_value: str, language: str) -> str:

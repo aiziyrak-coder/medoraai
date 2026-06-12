@@ -141,8 +141,14 @@ export const generateDocxReport = async (
 
         createHeading1(tr('pdf_consensus', 'Konsilium Konsensusi')),
         createHeading2(tr('docx_most_likely_diagnoses', 'Eng Ehtimolli Tashxis(lar)')),
-        ...normalizeConsensusDiagnosis(report.consensusDiagnosis).flatMap(diag => [
-            createKeyValue(tr('docx_diagnosis', 'Tashxis'), `${diag.name} (${diag.probability}%)`),
+        ...normalizeConsensusDiagnosis(report.consensusDiagnosis).flatMap((diag, idx) => [
+            createKeyValue(
+                tr('docx_diagnosis', 'Tashxis'),
+                `${diag.diagnosisRank ?? idx + 1}. ${diag.name}${diag.icd10 ? ` (${tr('final_report_icd10', 'MKB-10')}: ${diag.icd10})` : ''} (${diag.probability}%)`,
+            ),
+            ...(diag.icd10Description
+                ? [createKeyValue(tr('final_report_icd10', 'MKB-10'), diag.icd10Description)]
+                : []),
             createKeyValue(tr('docx_evidence_level', 'Dalillilik Darajasi'), diag.evidenceLevel || "N/A"),
             createKeyValue(tr('docx_justification', 'Asoslash'), diag.justification),
             new Paragraph({ text: "" }),

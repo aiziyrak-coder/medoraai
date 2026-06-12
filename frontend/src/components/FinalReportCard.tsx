@@ -487,7 +487,8 @@ const FinalReportCard: React.FC<{
                         </div>
                     )}
                     <div>
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">{t('final_report_consensus_diagnoses')}</h3>
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">{t('final_report_consensus_diagnoses')}</h3>
+                        <p className="text-xs text-slate-500 mb-3">{t('final_report_icd10_subtitle')}</p>
                         {!hasRealDiagnosis && (
                             <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 mb-4">
                                 <p className="text-sm font-semibold text-amber-900">{t('final_report_consensus_pending')}</p>
@@ -500,11 +501,18 @@ const FinalReportCard: React.FC<{
                             <div key={index} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 mb-4 last:mb-0">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="min-w-0">
-                                        <span className="text-base font-bold text-slate-900">{diag.name}</span>
+                                        <span className="text-base font-bold text-slate-900">
+                                            {diag.diagnosisRank ?? index + 1}. {diag.name}
+                                        </span>
                                         {diag.icd10 && (
-                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-xs font-mono font-semibold">
-                                                {t('final_report_icd10')}: {diag.icd10}
-                                            </span>
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-xs font-mono font-semibold">
+                                                    {t('final_report_icd10')}: {diag.icd10}
+                                                </span>
+                                                {diag.icd10Description && (
+                                                    <span className="text-xs text-slate-600">{diag.icd10Description}</span>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                     <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded text-sm font-semibold shrink-0">

@@ -11,6 +11,8 @@ Foydalanish:
 
 from __future__ import annotations
 
+import re
+
 # -----------------------------------------------------------------------------
 # MAHALLIY DORI-DARMONLAR MA'LUMOTLAR BAZASI
 # Manba: O'zbekiston Respublikasi SSV ro'yxatidan o'tgan preparatlar (2024)
@@ -201,7 +203,7 @@ PROTOCOL_DB: list[dict] = [
         "id": "uz-ssv-copd-2022",
         "name": "BOOS (Surunkali Obstruktiv O'pka Kasalligi)",
         "icd10": ["J44"],
-        "keywords": ["BOOS", "COPD", "Рѕ'pka", "nafas", "yo'tal", "bronxit surunkali"],
+        "keywords": ["BOOS", "COPD", "Рѕ'pka", "nafas", "yo'tal", "bronxit surunkali", "obstruktiv", "boos"],
         "first_line": ["Berodual inhaler", "Salbutamol", "Budesonid"],
         "targets": "FEV1 monitoringi, sigaretdan voz kechish",
         "ref": "O'zbekiston SSV  -  BOOS protokoli (2022)",
@@ -288,12 +290,23 @@ for _p in PROTOCOL_DB:
 _PROTOCOL_ID_MAP: dict[str, dict] = {p["id"]: p for p in PROTOCOL_DB}
 
 
+def _keyword_in_text(text: str, kw: str) -> bool:
+    """Qisqa kalit so'zlarda (MI, SYI) noto'g'ri qismiy moslikni oldini oladi."""
+    key = kw.lower().strip()
+    if not key:
+        return False
+    if len(key) < 4:
+        words = re.findall(r"[\w'ʻʼ\-]+", text, re.UNICODE)
+        return key in words
+    return key in text
+
+
 def find_protocols(complaints_text: str) -> list[dict]:
     """Shikoyat matni asosida tegishli SSV protokollarni topish."""
     text   = complaints_text.lower()
     found  = set()
     for kw, pid in _PROTOCOL_KEYWORD_INDEX.items():
-        if kw in text:
+        if _keyword_in_text(text, kw):
             found.add(pid)
     return [_PROTOCOL_ID_MAP[pid] for pid in found if pid in _PROTOCOL_ID_MAP]
 

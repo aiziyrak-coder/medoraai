@@ -105,26 +105,23 @@ def enrich_consensus_with_diagnosis_tools(
 
     try:
         from .clinical_tools import (
-            icd10_codes,
             guideline_search,
             drug_interactions,
             patient_explain,
             pediatric_dose,
         )
+        from .icd10_lookup import apply_icd10_to_consensus
     except ImportError as exc:
         logger.warning("Clinical tools import failed: %s", exc)
         return consensus
+
+    consensus = apply_icd10_to_consensus(consensus, language)
+    cd = consensus.get("consensus_diagnosis") or cd
 
     drugs = _collect_drug_names(patient_data, consensus)
     ctx = f"Tashxis: {diag_name}. {_s(cd.get('justification'))[:600]}"
     mode = ai_cost_mode()
     run_heavy = mode in ("balanced", "quality")
-
-    def _run_icd10() -> dict:
-        codes = icd10_codes(diag_name, language)
-        if codes and isinstance(codes[0], dict):
-            return {"code": _s(codes[0].get("code")), "desc": _s(codes[0].get("description"))}
-        return {}
 
     def _run_guideline() -> dict:
         if not run_heavy:
@@ -147,7 +144,6 @@ def enrich_consensus_with_diagnosis_tools(
     workers = 4 if run_heavy else 2
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futs = {
-            pool.submit(_run_icd10): "icd10",
             pool.submit(_run_ddi): "ddi",
         }
         if run_heavy:
@@ -160,13 +156,6 @@ def enrich_consensus_with_diagnosis_tools(
                 results[key] = fut.result()
             except Exception as exc:
                 logger.warning("Enrichment %s failed: %s", key, exc)
-
-    icd = results.get("icd10") or {}
-    if isinstance(icd, dict) and icd.get("code"):
-        cd["icd10"] = icd["code"]
-        if icd.get("desc"):
-            cd["icd10_description"] = icd["desc"]
-        consensus["consensus_diagnosis"] = cd
 
     gl = results.get("guideline") or {}
     if isinstance(gl, dict):

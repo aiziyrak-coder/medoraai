@@ -1169,6 +1169,7 @@ export const ru: TranslationSet = {
   final_report_consensus_diagnoses: 'Консенсусный диагноз(ы)',
   final_report_consensus_pending: 'Консенсусный диагноз формируется по итогам дебатов. Текущее клиническое заключение:',
   final_report_icd10: 'МКБ-10',
+  final_report_icd10_subtitle: 'МКБ-10 — Международная классификация болезней 10-го пересмотра',
   final_report_family_explanation: 'Объяснение для пациента и семьи',
   final_report_justification: 'Обоснование:',
   final_report_reasoning_chain: 'Логическая цепочка',

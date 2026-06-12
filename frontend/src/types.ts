@@ -227,6 +227,10 @@ export interface Diagnosis {
   justification: string;
   evidenceLevel: string;
   icd10?: string;
+  /** MKB-10 bo'yicha rasmiy tashxis nomi */
+  icd10Description?: string;
+  /** 1 = asosiy, 2+ = differensial */
+  diagnosisRank?: number;
   isUserInjected?: boolean;
   // NEW: Deep reasoning fields
   reasoningChain?: string[]; // Step-by-step logic
@@ -535,6 +539,9 @@ export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
       ? (pRaw >= 0 && pRaw <= 1 ? pRaw * 100 : pRaw)
       : 0;
     const icdRaw = item?.icd10 ?? item?.icd_10;
+    const icdDescRaw = item?.icd10Description ?? item?.icd10_description;
+    const rankRaw = item?.diagnosisRank ?? item?.diagnosis_rank;
+    const rankNum = Number(rankRaw);
     return {
       name: String(item?.name ?? item?.diagnosis ?? item?.primary_diagnosis ?? item?.primaryDiagnosis ?? ''),
       probability: Math.max(0, Math.round(pNorm)),
@@ -543,6 +550,8 @@ export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
       ),
       evidenceLevel: String(item?.evidenceLevel ?? 'Moderate'),
       ...(icdRaw ? { icd10: String(icdRaw).trim() } : {}),
+      ...(icdDescRaw ? { icd10Description: String(icdDescRaw).trim() } : {}),
+      ...(Number.isFinite(rankNum) && rankNum > 0 ? { diagnosisRank: rankNum } : {}),
       reasoningChain: Array.isArray(item?.reasoningChain) ? (item.reasoningChain as string[]) : (typeof item?.reasoningChain === 'string' ? [item.reasoningChain] : []),
       uzbekProtocolMatch: String(item?.uzbekProtocolMatch ?? item?.uzbek_protocol_match ?? ''),
     } as Diagnosis;
