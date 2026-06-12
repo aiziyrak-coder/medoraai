@@ -1,7 +1,6 @@
 import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
-import { normalizeConsensusDiagnosis } from '../types';
 /** PDF footer — faqat shu faylda; brauzer keshi uchun aniq qiymatlar */
 const PDF_FOOTER_SITE = 'fjsti.ziyrak.org';
 const PDF_FOOTER_PUBLIC_URL = `https://${PDF_FOOTER_SITE}`;
@@ -9,15 +8,8 @@ const PDF_FOOTER_PHONE_1 = '+998 99 575 11 11';
 const PDF_FOOTER_PHONE_2 = '+998907863888';
 import type { Language } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translationKeys';
-import {
-    prepareExportReport,
-    buildImagingExportLines,
-    buildProtocolGapsLines,
-    buildCareAuditLines,
-    buildIndividualDietLines,
-    buildRoutingExportLines,
-    buildRiskExportLines,
-} from '../utils/exportReportSections';
+import { buildCompactExportData } from '../utils/compactExportSections';
+import { EXPORT_THEME, type ExportSectionKind } from '../utils/exportDocumentTheme';
 import {
     createExportTr,
     exportFileSlug,
@@ -41,8 +33,9 @@ const UNICODE_FONT_VARIANTS: ReadonlyArray<{
 ];
 const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
-const FOOTER_RESERVE = 12;
-const MARGIN = 10;
+const FOOTER_RESERVE = 10;
+const MARGIN = 12;
+const MAX_EXPORT_PAGES = 2;
 export interface InstituteBranding {
     instituteName?: string;
     instituteLogoDataUrl?: string;
@@ -112,643 +105,312 @@ export const generatePdfReport = async (
     language: Language = 'uz-L',
 ) => {
     const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
-    report = prepareExportReport(report);
+    const compact = buildCompactExportData(report, patientData, tr);
     const doc = new jsPDF();
     const fontName = await setupPdfFont(doc);
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
-    let y = MARGIN;
-    const PROMO_RESERVE = 28;
-    const contentBottom = () => pageHeight - FOOTER_RESERVE - PROMO_RESERVE;
+    const contentW = pageWidth - MARGIN * 2;
+    let y = 0;
+    const FOOTER_ZONE = 16;
+    const contentBottom = () => pageHeight - FOOTER_RESERVE - FOOTER_ZONE;
 
-    const ensureSpace = (needed: number) => {
-        if (y + needed > contentBottom()) {
-            doc.addPage();
-            y = MARGIN;
-        }
+    const ensureSpace = (needed: number): boolean => {
+        if (y + needed <= contentBottom()) return true;
+        if (doc.getNumberOfPages() >= MAX_EXPORT_PAGES) return false;
+        doc.addPage();
+        y = MARGIN;
+        return y + needed <= contentBottom();
     };
 
-    const addWrappedText = (text: string, x: number, maxWidth: number, lineHeight = COMPACT_LINE) => {
-        const lines = doc.splitTextToSize(text || '', maxWidth);
-        lines.forEach((line: string) => {
-            ensureSpace(lineHeight + 2);
-            doc.text(line, x, y);
-            y += lineHeight;
-        });
-        return lines.length;
+    const setStroke = (color: [number, number, number], w = 0.2) => {
+        doc.setDrawColor(...color);
+        doc.setLineWidth(w);
     };
 
-    // Generate QR code for platform
+    const drawSectionCard = (
+        kind: ExportSectionKind,
+        title: string,
+        bodyHeight: number,
+    ): boolean => {
+        const colors = {
+            patient: { bar: EXPORT_THEME.primary, bg: EXPORT_THEME.cardBg },
+            diagnosis: { bar: EXPORT_THEME.diagnosis, bg: EXPORT_THEME.diagnosisBg },
+            treatment: { bar: EXPORT_THEME.treatment, bg: EXPORT_THEME.treatmentBg },
+            medication: { bar: EXPORT_THEME.medication, bg: EXPORT_THEME.medicationBg },
+            prevention: { bar: EXPORT_THEME.prevention, bg: EXPORT_THEME.preventionBg },
+            alert: { bar: EXPORT_THEME.alert, bg: EXPORT_THEME.alertBg },
+        }[kind];
+        const totalH = bodyHeight + 10;
+        if (!ensureSpace(totalH + 4)) return false;
+        const cardY = y;
+        doc.setFillColor(...colors.bg);
+        doc.rect(MARGIN, cardY, contentW, totalH, 'F');
+        setStroke(EXPORT_THEME.border);
+        doc.rect(MARGIN, cardY, contentW, totalH, 'S');
+        doc.setFillColor(...colors.bar);
+        doc.rect(MARGIN, cardY, 3, totalH, 'F');
+        doc.setFontSize(9.5);
+        doc.setFont(fontName, 'bold');
+        doc.setTextColor(...EXPORT_THEME.text);
+        doc.text(title.toUpperCase(), MARGIN + 7, cardY + 6);
+        y = cardY + 10;
+        return true;
+    };
+
+    // === PROFESSIONAL HEADER BANNER ===
+    const headerH = 28;
+    doc.setFillColor(...EXPORT_THEME.primaryDark);
+    doc.rect(0, 0, pageWidth, headerH, 'F');
+    doc.setFillColor(...EXPORT_THEME.accent);
+    doc.rect(0, headerH - 1.2, pageWidth, 1.2, 'F');
+
+    doc.setFontSize(15);
+    doc.setFont(fontName, 'bold');
+    doc.setTextColor(...EXPORT_THEME.white);
+    doc.text(tr('pdf_title', 'KONSILIUM: Yakuniy Klinik Xulosa'), MARGIN, 12);
+
+    doc.setFontSize(7.5);
+    doc.setFont(fontName, 'normal');
+    doc.setTextColor(200, 220, 240);
+    doc.text(
+        tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati — faqat ma'lumot uchun."),
+        MARGIN,
+        18,
+    );
+
+    const dateStr = formatExportDate(language);
+    doc.setFillColor(...EXPORT_THEME.accent);
+    doc.rect(pageWidth - MARGIN - 42, 6, 42, 10, 'F');
+    doc.setFontSize(7);
+    doc.setFont(fontName, 'bold');
+    doc.setTextColor(...EXPORT_THEME.white);
+    doc.text(tr('pdf_date', 'Sana'), pageWidth - MARGIN - 39, 10);
+    doc.setFont(fontName, 'normal');
+    doc.text(dateStr, pageWidth - MARGIN - 39, 14);
+
     let qrDataUrl = '';
     try {
         qrDataUrl = await QRCode.toDataURL(PDF_FOOTER_PUBLIC_URL, {
-            width: 80,
-            margin: 1,
-            color: { dark: '#1e293b', light: '#ffffff' },
+            width: 64,
+            margin: 0,
+            color: { dark: '#ffffff', light: '#142a48' },
         });
-    } catch {
-        // QR generation failed, continue without it
-    }
-
-    // Draw horizontal line
-    const drawLine = (yPos: number, color: [number, number, number] = [200, 200, 200]) => {
-        doc.setDrawColor(...color);
-        doc.setLineWidth(0.3);
-        doc.line(MARGIN, yPos, pageWidth - MARGIN, yPos);
-    };
-
-    // Draw box for table cells
-    const drawCell = (x: number, yPos: number, w: number, h: number, fill = false) => {
-        if (fill) {
-            doc.setFillColor(245, 247, 250);
-            doc.rect(x, yPos, w, h, 'F');
-        }
-        doc.setDrawColor(220, 220, 220);
-        doc.setLineWidth(0.1);
-        doc.rect(x, yPos, w, h, 'S');
-    };
-
-    // Compact header with line
-    const addHeader = (text: string) => {
-        ensureSpace(18);
-        doc.setFontSize(14);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(30, 41, 59);
-        doc.text(text, MARGIN, y);
-        y += 2;
-        drawLine(y, [180, 180, 180]);
-        y += 4;
-    };
-
-    // Small section title
-    const addSectionTitle = (text: string) => {
-        ensureSpace(10);
-        doc.setFontSize(10);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(50, 60, 80);
-        doc.text(text, MARGIN, y);
-        y += 4;
-    };
-
-    // Compact key-value pair
-    const addKeyValueCompact = (key: string, value: string | undefined | null, keyWidth = 40) => {
-        if (!value) return;
-        ensureSpace(8);
-        doc.setFontSize(9);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(80, 80, 80);
-        doc.text(key + ':', MARGIN, y);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        const splitValue = doc.splitTextToSize(value, pageWidth - MARGIN * 2 - keyWidth - 4);
-        splitValue.forEach((line: string, i: number) => {
-            if (i > 0) ensureSpace(COMPACT_LINE + 1);
-            doc.text(line, MARGIN + keyWidth + 2, y + i * COMPACT_LINE);
-        });
-        y += splitValue.length * COMPACT_LINE + 1;
-    };
-
-    // Table row helper
-    const addTableRow = (cols: { label: string; value: string; width: number }[]) => {
-        if (y > pageHeight - 30) {
-            doc.addPage();
-            y = MARGIN;
-        }
-        doc.setFontSize(9);
-        let xPos = MARGIN;
-        cols.forEach(col => {
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(80, 80, 80);
-            doc.text(col.label + ':', xPos, y);
-            doc.setFont(fontName, 'normal');
-            doc.setTextColor(40, 40, 40);
-            doc.text(pdfText(col.value), xPos + doc.getTextWidth(col.label + ': ') + 2, y);
-            xPos += col.width;
-        });
-        y += COMPACT_LINE + 1;
-    };
-
-    // Bullet point item
-    const addBullet = (text: string) => {
-        ensureSpace(8);
-        doc.setFontSize(9);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        const indent = MARGIN + 4;
-        const splitText = doc.splitTextToSize(sanitizeClinicalContent(text), pageWidth - MARGIN * 2 - 8);
-        splitText.forEach((line: string, i: number) => {
-            ensureSpace(COMPACT_LINE + 1);
-            if (i === 0) doc.text('\u2022', MARGIN + 2, y);
-            doc.text(line, indent + (i > 0 ? 4 : 0), y);
-            y += COMPACT_LINE;
-        });
-        y += 1.5;
-    };
-
-    // === DOCUMENT HEADER ===
-    // Add QR code on the right side
-    const qrSize = 20;
-    const qrX = pageWidth - MARGIN - qrSize;
-    const qrY = y - 2; // Remember QR code start position
+    } catch { /* ignore */ }
     if (qrDataUrl) {
         try {
-            doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+            doc.addImage(qrDataUrl, 'PNG', pageWidth - MARGIN - 58, 5, 14, 14);
         } catch { /* ignore */ }
     }
-    
-    doc.setFontSize(16);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(30, 41, 59);
-    doc.text(tr('pdf_title', "KONSILIUM: Yakuniy Klinik Xulosa"), MARGIN, y);
-    y += 5;
 
-    doc.setFontSize(8);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati - doktor tavsiyasi sifatida. Faqat ma'lumot uchun."), MARGIN, y);
-    const dateStr = formatExportDate(language);
-    doc.text(`${tr('pdf_date', 'Sana')}: ${dateStr}`, pageWidth - MARGIN - qrSize - 5, y, { align: 'right' });
-    
-    // QR code label (positioned below QR code)
-    if (qrDataUrl) {
-        doc.setFontSize(6);
-        doc.setTextColor(120, 120, 120);
-        doc.text(`${tr('pdf_scan', 'Skannerlang')} →`, qrX + qrSize/2, qrY + qrSize + 2, { align: 'center' });
-        doc.text(PDF_FOOTER_SITE, qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
-    }
-    
-    // Move past QR code area
-    y = Math.max(y + 4, qrY + qrSize + 8);
-    drawLine(y, [150, 150, 150]);
-    y += 3;
+    y = headerH + 6;
 
-    // === PATIENT INFO TABLE ===
-    const col1Width = 60;
-    const col2Width = 65;
-    const col3Width = 50;
-    const rowHeight = 6;
-    const tableStart = y;
-
-    // Table header
-    doc.setFillColor(240, 242, 245);
-    doc.rect(MARGIN, y, pageWidth - MARGIN * 2, rowHeight, 'F');
-    drawLine(y);
-    doc.setFontSize(9);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(50, 60, 80);
-    doc.text(tr('pdf_patient_info', "BEMOR MA'LUMOTLARI"), MARGIN + 2, y + 4);
-    y += rowHeight;
-
-    // Patient name uses the full row so long names do not collide with age/sex.
-    doc.setDrawColor(230, 230, 230);
-    doc.line(MARGIN, y, pageWidth - MARGIN, y);
-    const fullName = `${patientData.lastName} ${patientData.firstName}`.trim() + (patientData.fatherName ? ` ${patientData.fatherName}` : '');
-    const gender = patientData.gender === 'male'
-        ? tr('pdf_gender_male', 'Erkak')
-        : patientData.gender === 'female'
-            ? tr('pdf_gender_female', 'Ayol')
-            : tr('pdf_gender_other', 'Boshqa');
-    
-    doc.setFontSize(9);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(80, 80, 80);
-    doc.text(tr('pdf_patient', "Bemor:") + ' ', MARGIN + 2, y + 4);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(40, 40, 40);
-    const nameLines = doc.splitTextToSize(fullName, pageWidth - MARGIN * 2 - 24);
-    doc.text(nameLines[0] || '', MARGIN + 22, y + 4);
-    y += rowHeight;
-    for (let i = 1; i < Math.min(nameLines.length, 3); i++) {
-        ensureSpace(rowHeight);
-        doc.text(nameLines[i], MARGIN + 22, y + 4);
-        y += rowHeight;
-    }
-
-    doc.line(MARGIN, y, pageWidth - MARGIN, y);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(80, 80, 80);
-    doc.text(tr('pdf_age', "Yoshi:") + ' ', MARGIN + 2, y + 4);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(40, 40, 40);
-    doc.text(pdfText(patientData.age), MARGIN + 24, y + 4);
-
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(80, 80, 80);
-    doc.text(tr('pdf_gender', "Jinsi:") + ' ', MARGIN + col1Width + 2, y + 4);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(40, 40, 40);
-    doc.text(gender, MARGIN + col1Width + 18, y + 4);
-    y += rowHeight;
-
-    // Vital signs row if available
-    if (patientData.objectiveData) {
-        doc.line(MARGIN, y, pageWidth - MARGIN, y);
-        doc.setFontSize(8);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(80, 80, 80);
-        doc.text(tr('pdf_objective', "Ob'ektiv:") + ' ', MARGIN + 2, y + 4);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        const vitalText = patientData.objectiveData.substring(0, 100);
-        const vitalSplit = doc.splitTextToSize(vitalText, pageWidth - MARGIN * 2 - 22);
-        doc.text(vitalSplit.join(' '), MARGIN + 22, y + 4);
-        y += rowHeight;
-    }
-
-    // Complaints row
-    if (patientData.complaints) {
-        doc.line(MARGIN, y, pageWidth - MARGIN, y);
-        doc.setFontSize(8);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(80, 80, 80);
-        doc.text(tr('pdf_complaints', "Shikoyat:") + ' ', MARGIN + 2, y + 4);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        const compSplit = doc.splitTextToSize(patientData.complaints, pageWidth - MARGIN * 2 - 28);
-        doc.text(compSplit[0] || '', MARGIN + 28, y + 4);
-        y += rowHeight;
-        // Continue if needed
-        for (let i = 1; i < compSplit.length && i < 3; i++) {
-            doc.text(compSplit[i], MARGIN + 28, y + 4);
-            y += rowHeight;
+    // === BEMOR KARTASI ===
+    {
+        const bodyH = (compact.complaints ? 18 : 12);
+        if (drawSectionCard('patient', tr('pdf_patient_info', "Bemor ma'lumotlari"), bodyH)) {
+            const colW = contentW / 3;
+            const rowY = y;
+            const cells = [
+                { label: tr('pdf_patient', 'Bemor'), value: compact.patientName },
+                { label: tr('pdf_age', 'Yoshi'), value: `${compact.age} ${tr('pdf_age', 'yosh')}` },
+                { label: tr('pdf_gender', 'Jinsi'), value: compact.gender },
+            ];
+            cells.forEach((cell, i) => {
+                const x = MARGIN + 7 + i * colW;
+                doc.setFontSize(7);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(...EXPORT_THEME.textMuted);
+                doc.text(cell.label, x, rowY);
+                doc.setFontSize(9);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(...EXPORT_THEME.text);
+                const lines = doc.splitTextToSize(cell.value, colW - 4);
+                doc.text(lines[0] || '', x, rowY + 4.5);
+            });
+            y = rowY + 10;
+            if (compact.complaints) {
+                setStroke(EXPORT_THEME.border, 0.15);
+                doc.line(MARGIN + 7, y, pageWidth - MARGIN - 4, y);
+                y += 4;
+                doc.setFontSize(7.5);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(...EXPORT_THEME.textMuted);
+                doc.text(tr('pdf_complaints', 'Shikoyat'), MARGIN + 7, y);
+                doc.setFont(fontName, 'italic');
+                doc.setTextColor(...EXPORT_THEME.text);
+                const comp = doc.splitTextToSize(compact.complaints, contentW - 16);
+                doc.text(comp[0] || '', MARGIN + 7, y + 4);
+                y += 8;
+            } else {
+                y += 2;
+            }
+            y += 4;
         }
     }
 
-    // Lab results row
-    if (patientData.labResults) {
-        doc.line(MARGIN, y, pageWidth - MARGIN, y);
-        doc.setFontSize(8);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(80, 80, 80);
-        doc.text(tr('pdf_lab', "Lab:") + ' ', MARGIN + 2, y + 4);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        const labSplit = doc.splitTextToSize(patientData.labResults.substring(0, 200), pageWidth - MARGIN * 2 - 18);
-        doc.text(labSplit[0] || '', MARGIN + 18, y + 4);
-        y += rowHeight;
-    }
-
-    // Close table
-    doc.line(MARGIN, y, pageWidth - MARGIN, y);
-    y += 4;
-
-    // === CRITICAL FINDING (compact) ===
-    if (report.criticalFinding && report.criticalFinding.finding) {
-        ensureSpace(28);
-        const cfText = (report.criticalFinding.finding + ' - ' + report.criticalFinding.implication).substring(0, 260);
-        const cfSplit = doc.splitTextToSize(cfText, pageWidth - MARGIN * 2 - 8).slice(0, 4);
-        const boxHeight = 10 + cfSplit.length * COMPACT_LINE + 5;
-        const boxY = y;
-        doc.setFillColor(255, 245, 245);
-        doc.rect(MARGIN, boxY, pageWidth - MARGIN * 2, boxHeight, 'F');
-        doc.setDrawColor(220, 100, 100);
-        doc.setLineWidth(0.5);
-        doc.rect(MARGIN, boxY, pageWidth - MARGIN * 2, boxHeight, 'S');
-        doc.setFontSize(8);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(180, 50, 50);
-        doc.text(tr('pdf_critical_finding', "Muhim topilma (Shoshilinch):"), MARGIN + 3, boxY + 4);
-        doc.text(`${tr('pdf_urgency', 'Shoshilinchlik')}: ${pdfText(report.criticalFinding.urgency)}`, pageWidth - MARGIN - 3, boxY + 4, { align: 'right' });
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(80, 40, 40);
-        y = boxY + 9;
-        cfSplit.forEach((line: string) => {
-            doc.text(line, MARGIN + 3, y);
-            y += COMPACT_LINE;
-        });
-        y = boxY + boxHeight + 4;
-    }
-
-    // === CONSENSUS SECTION ===
-    addHeader(tr('pdf_consensus', "Konsilium Konsensusi"));
-
-    // Faqat eng yuqori ehtimollikdagi asosiy tashxis
-    addSectionTitle(tr('pdf_diagnosis', 'Tashxis'));
-    const diagnoses = normalizeConsensusDiagnosis(report.consensusDiagnosis)
-        .sort((a, b) => (a.diagnosisRank ?? 99) - (b.diagnosisRank ?? 99) || (b.probability ?? 0) - (a.probability ?? 0));
-    diagnoses.forEach((diag, idx) => {
-        ensureSpace(14);
-        const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '-';
-        doc.setFontSize(9);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(40, 80, 120);
-        const rank = diag.diagnosisRank ?? idx + 1;
-        const icdPart = diag.icd10 ? ` | ${tr('final_report_icd10', 'MKB-10')}: ${diag.icd10}` : '';
-        const titleLine = `${rank}. ${diag.name}${icdPart} (${pct}) — ${diag.evidenceLevel || 'N/A'}`;
-        const diagnosisLines = doc.splitTextToSize(titleLine, pageWidth - MARGIN * 2);
-        diagnosisLines.forEach((line: string) => {
-            ensureSpace(COMPACT_LINE + 1);
-            doc.text(line, MARGIN, y);
-            y += COMPACT_LINE;
-        });
-        if (diag.justification) {
-            doc.setFontSize(8);
-            doc.setTextColor(80, 80, 80);
-            const justSplit = doc.splitTextToSize(diag.justification, pageWidth - MARGIN * 2 - 10);
-            justSplit.slice(0, 2).forEach((line: string) => {
-                ensureSpace(COMPACT_LINE + 1);
-                doc.text(line, MARGIN + 6, y);
+    // === SHOSHILINCH ===
+    if (compact.criticalAlert) {
+        const alertLines = doc.splitTextToSize(compact.criticalAlert, contentW - 18);
+        const bodyH = alertLines.length * COMPACT_LINE + 2;
+        if (drawSectionCard('alert', tr('pdf_critical_finding', 'Shoshilinch ogohlantirish'), bodyH)) {
+            doc.setFontSize(8.5);
+            doc.setFont(fontName, 'bold');
+            doc.setTextColor(...EXPORT_THEME.alert);
+            alertLines.forEach((line: string) => {
+                doc.text(line, MARGIN + 7, y);
                 y += COMPACT_LINE;
             });
+            y += 4;
         }
-        y += 1;
-    });
-
-    // Imaging (EKG / UZI / X-ray)
-    const imagingLines = buildImagingExportLines(report, tr);
-    if (imagingLines.length > 0) {
-        y += 2;
-        addSectionTitle(tr('final_report_imaging_title', 'Tasvirlash tahlili (EKG / UZI / Rengen)'));
-        imagingLines.forEach((line) => addBullet(line));
     }
 
-    // Protocol compliance gaps
-    const gapLines = buildProtocolGapsLines(report, tr);
-    if (gapLines.length > 0) {
-        y += 2;
-        addSectionTitle(tr('final_report_protocol_gaps_title', 'Klinik protokol kamchiliklari va oqibatlari'));
-        gapLines.forEach((line) => addBullet(line));
-    }
-
-    // Care quality audit
-    const auditLines = buildCareAuditLines(report, tr);
-    if (auditLines.length > 0) {
-        y += 2;
-        addSectionTitle(tr('final_report_quality_audit_title', 'Tibbiy yordam sifati (protokol asosida)'));
-        auditLines.forEach((line) => addBullet(line));
-    }
-
-    const routingLines = buildRoutingExportLines(report, tr);
-    if (routingLines.length > 0) {
-        y += 2;
-        addSectionTitle(tr('routing_title', 'Bemor marshrutlash'));
-        routingLines.forEach((line) => addBullet(line));
-    }
-
-    const riskLines = buildRiskExportLines(report, tr);
-    if (riskLines.length > 0) {
-        y += 2;
-        addSectionTitle(tr('risk_factors_title', 'Xavf omillari va og\'irlik'));
-        riskLines.forEach((line) => addBullet(line));
-    }
-
-    // Treatment plan
-    if (report.treatmentPlan && report.treatmentPlan.length > 0) {
-        y += 2;
-        addSectionTitle(tr('pdf_treatment_plan', "Davolash Rejasi"));
-        const treatments = (Array.isArray(report.treatmentPlan) ? report.treatmentPlan.slice(0, 6) : []);
-        treatments.forEach(step => {
-            const s = typeof step === 'string' ? step : 
-                (typeof step === 'object' && step !== null ? Object.values(step as Record<string, unknown>).filter(Boolean).join(' - ') : String(step ?? ''));
-            addBullet(s);
-        });
-    }
-
-    // Folk medicine (adjunct, traditional herbs)
-    const fm = report.folkMedicine;
-    if (fm && (fm.items?.length || fm.intro?.trim() || fm.disclaimer?.trim())) {
-        y += 2;
-        addSectionTitle(tr('pdf_folk_medicine', "Xalq tabobati (qo'shimcha)"));
-        doc.setFontSize(8);
-        doc.setFont(fontName, 'italic');
-        doc.setTextColor(100, 120, 100);
-        const warn = tr('pdf_folk_medicine_note', "Rasmiy dori va shifokor ko'rsatmasi o'rnini bosmaydi.");
-        addWrappedText(warn, MARGIN, pageWidth - MARGIN * 2);
-        y += 1;
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        if (fm.intro?.trim()) {
-            addWrappedText(fm.intro, MARGIN, pageWidth - MARGIN * 2);
-            y += 1;
-        }
-        if (fm.disclaimer?.trim()) {
-            doc.setFontSize(7);
-            doc.setTextColor(90, 90, 90);
-            addWrappedText(fm.disclaimer, MARGIN, pageWidth - MARGIN * 2, 3.2);
-            y += 1;
-            doc.setFontSize(9);
-            doc.setTextColor(40, 40, 40);
-        }
-        (fm.items || []).slice(0, 8).forEach(it => {
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(30, 90, 50);
-            addBullet(it.plantName || '');
-            doc.setFont(fontName, 'normal');
-            doc.setTextColor(60, 60, 60);
-            const parts = [it.plantPart, it.preparationOrUsage, it.traditionalContext, it.precautions]
-                .filter(Boolean)
-                .map(String);
-            if (parts.length) {
-                addWrappedText(parts.join(' — '), MARGIN + 6, pageWidth - MARGIN * 2 - 6, 3.2);
+    // === ASOSIY TASHXIS (hero) ===
+    if (compact.topDiagnosis) {
+        const diag = compact.topDiagnosis;
+        const pct = Number.isFinite(diag.probability) ? diag.probability : null;
+        const nameLines = doc.splitTextToSize(diag.name, contentW - (pct != null ? 28 : 10));
+        const bodyH = nameLines.length * 5 + (diag.icd10 ? 5 : 0) + 2;
+        if (drawSectionCard('diagnosis', tr('pdf_diagnosis', 'Asosiy tashxis'), bodyH)) {
+            if (pct != null) {
+                const badgeX = pageWidth - MARGIN - 18;
+                const badgeY = y - 2;
+                doc.setFillColor(...EXPORT_THEME.diagnosis);
+                doc.circle(badgeX + 9, badgeY + 7, 8, 'F');
+                doc.setFontSize(10);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(...EXPORT_THEME.white);
+                doc.text(`${pct}%`, badgeX + 9, badgeY + 8.5, { align: 'center' });
             }
-        });
-    }
-
-    // Nutrition & prevention
-    const np = report.nutritionPrevention;
-    if (
-        np &&
-        ((np.dietaryGuidelines?.length ?? 0) > 0 ||
-            (np.preventionMeasures?.length ?? 0) > 0 ||
-            np.intro?.trim() ||
-            np.disclaimer?.trim())
-    ) {
-        y += 2;
-        addSectionTitle(
-            tr('pdf_nutrition_prevention', "To'g'ri ovqatlanish va kasalliklarni oldini olish (profilaktika)"),
-        );
-        doc.setFontSize(8);
-        doc.setFont(fontName, 'italic');
-        doc.setTextColor(80, 100, 130);
-        addWrappedText(
-            tr('pdf_nutrition_note', "Umumiy tavsiya; individual parhez uchun mutaxassis bilan maslahat."),
-            MARGIN,
-            pageWidth - MARGIN * 2,
-        );
-        y += 1;
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(40, 40, 40);
-        if (np.intro?.trim()) {
-            addWrappedText(np.intro, MARGIN, pageWidth - MARGIN * 2);
-            y += 1;
-        }
-        if ((np.dietaryGuidelines?.length ?? 0) > 0) {
-            doc.setFontSize(9);
+            doc.setFontSize(12);
             doc.setFont(fontName, 'bold');
-            doc.setTextColor(30, 80, 120);
-            doc.text(tr('pdf_dietary_guidelines', "To'g'ri ovqatlanish bo'yicha:"), MARGIN, y);
-            y += COMPACT_LINE;
-            doc.setFont(fontName, 'normal');
-            doc.setTextColor(50, 50, 50);
-            np.dietaryGuidelines.slice(0, 12).forEach((line) => {
-                addBullet(line);
+            doc.setTextColor(...EXPORT_THEME.diagnosis);
+            nameLines.slice(0, 2).forEach((line: string) => {
+                doc.text(line, MARGIN + 7, y);
+                y += 5;
             });
-        }
-        if ((np.preventionMeasures?.length ?? 0) > 0) {
-            y += 1;
-            doc.setFontSize(9);
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(30, 80, 120);
-            doc.text(tr('pdf_prevention_measures', 'Profilaktika va oldini olish:'), MARGIN, y);
-            y += COMPACT_LINE;
-            doc.setFont(fontName, 'normal');
-            doc.setTextColor(50, 50, 50);
-            np.preventionMeasures.slice(0, 12).forEach((line) => {
-                addBullet(line);
-            });
-        }
-        if (np.disclaimer?.trim()) {
-            y += 1;
-            doc.setFontSize(7);
-            doc.setTextColor(90, 90, 90);
-            addWrappedText(np.disclaimer, MARGIN, pageWidth - MARGIN * 2, 3.2);
-            doc.setFontSize(9);
-            doc.setTextColor(40, 40, 40);
-        }
-        const dietLines = buildIndividualDietLines(report, tr);
-        if (dietLines.length > 0) {
-            y += 1;
-            doc.setFontSize(9);
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(30, 80, 120);
-            doc.text(tr('final_report_individual_diet_title', "Tashxis bo'yicha individual parhez"), MARGIN, y);
-            y += COMPACT_LINE;
-            doc.setFont(fontName, 'normal');
-            doc.setTextColor(50, 50, 50);
-            dietLines.forEach((line) => addBullet(line));
-        }
-    }
-
-    // Recommended tests
-    if (report.recommendedTests && report.recommendedTests.length > 0) {
-        y += 2;
-        addSectionTitle(tr('pdf_tests', "Qo'shimcha Tekshiruvlar"));
-        const tests = report.recommendedTests.slice(0, 5);
-        const testStr = (t: unknown): string => {
-            if (typeof t === 'string') return t;
-            if (t && typeof t === 'object') {
-                const o = t as Record<string, unknown>;
-                return [o.testName ?? o.name ?? o.test, o.reason].filter(Boolean).map(String).join(' - ') || '';
+            if (diag.icd10) {
+                doc.setFontSize(8);
+                doc.setFont(fontName, 'normal');
+                doc.setTextColor(...EXPORT_THEME.textMuted);
+                doc.text(`${tr('final_report_icd10', 'MKB-10')}: ${diag.icd10}`, MARGIN + 7, y);
+                y += 4;
             }
-            return '';
-        };
-        tests.forEach(test => {
-            addBullet(testStr(test));
+            y += 4;
+        }
+    }
+
+    // === DAVOLASH ===
+    if (compact.treatmentLines.length > 0) {
+        let bodyH = 0;
+        const wrapped = compact.treatmentLines.map((line) =>
+            doc.splitTextToSize(sanitizeClinicalContent(line), contentW - 20),
+        );
+        wrapped.forEach((lines) => { bodyH += lines.length * COMPACT_LINE + 2; });
+        if (drawSectionCard('treatment', tr('pdf_treatment_plan', 'Davolash rejasi'), bodyH)) {
+            compact.treatmentLines.forEach((line, idx) => {
+                if (!ensureSpace(COMPACT_LINE + 2)) return;
+                doc.setFillColor(...EXPORT_THEME.treatment);
+                doc.circle(MARGIN + 9, y - 1, 2.2, 'F');
+                doc.setFontSize(7);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(...EXPORT_THEME.white);
+                doc.text(String(idx + 1), MARGIN + 9, y, { align: 'center' });
+                doc.setFontSize(8.5);
+                doc.setFont(fontName, 'normal');
+                doc.setTextColor(...EXPORT_THEME.text);
+                const lines = doc.splitTextToSize(sanitizeClinicalContent(line), contentW - 20);
+                lines.forEach((ln: string, i: number) => {
+                    doc.text(ln, MARGIN + 14, y + i * COMPACT_LINE);
+                });
+                y += lines.length * COMPACT_LINE + 2;
+            });
+            y += 2;
+        }
+    }
+
+    // === DORILAR ===
+    if (compact.medications.length > 0) {
+        let bodyH = 0;
+        compact.medications.forEach((med) => {
+            bodyH += 5 + (med.schedule ? 4 : 0) + 1;
         });
+        if (drawSectionCard('medication', tr('pdf_medications', 'Dori-darmonlar'), bodyH)) {
+            compact.medications.forEach((med, idx) => {
+                if (!ensureSpace(9)) return;
+                if (idx % 2 === 0) {
+                    doc.setFillColor(255, 255, 255);
+                    doc.rect(MARGIN + 6, y - 3, contentW - 8, med.schedule ? 9 : 5, 'F');
+                }
+                doc.setFontSize(8.5);
+                doc.setFont(fontName, 'bold');
+                doc.setTextColor(...EXPORT_THEME.medication);
+                doc.text(med.name, MARGIN + 8, y);
+                doc.setFont(fontName, 'normal');
+                doc.setTextColor(...EXPORT_THEME.text);
+                doc.text(med.dosage, MARGIN + 8, y + 4);
+                if (med.schedule) {
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...EXPORT_THEME.textMuted);
+                    doc.text(med.schedule, MARGIN + 8, y + 8);
+                    y += 11;
+                } else {
+                    y += 7;
+                }
+            });
+            y += 3;
+        }
     }
 
-    // Adverse events (compact)
-    if (report.adverseEventRisks && report.adverseEventRisks.length > 0) {
-        y += 2;
-        addSectionTitle(tr('pdf_risks', "Nojo'ya Ta'sir Xavfi"));
-        const risks = report.adverseEventRisks.slice(0, 3);
-        risks.forEach(risk => {
-            const mgmt = risk.management ? ` — ${risk.management}` : '';
-            const prob = Number.isFinite(risk.probability)
-                ? Math.round(risk.probability <= 1 ? risk.probability * 100 : risk.probability)
-                : 0;
-            addBullet(`${pdfText(risk.drug)}: ${pdfText(risk.risk)} (~${prob}%)${mgmt}`);
+    // === PROFILAKTIKA ===
+    if (compact.preventionLines.length > 0) {
+        let bodyH = 0;
+        compact.preventionLines.forEach((line) => {
+            bodyH += doc.splitTextToSize(line, contentW - 20).length * COMPACT_LINE + 1.5;
         });
+        if (drawSectionCard('prevention', tr('pdf_prevention_measures', 'Profilaktika'), bodyH)) {
+            compact.preventionLines.forEach((line) => {
+                if (!ensureSpace(COMPACT_LINE + 2)) return;
+                doc.setFillColor(...EXPORT_THEME.prevention);
+                doc.rect(MARGIN + 7, y - 2.5, 2, 2, 'F');
+                doc.setFontSize(8.5);
+                doc.setFont(fontName, 'normal');
+                doc.setTextColor(...EXPORT_THEME.text);
+                const lines = doc.splitTextToSize(line, contentW - 20);
+                lines.forEach((ln: string, i: number) => {
+                    doc.text(ln, MARGIN + 12, y + i * COMPACT_LINE);
+                });
+                y += lines.length * COMPACT_LINE + 1.5;
+            });
+            y += 2;
+        }
     }
 
-    // Legislative note
-    if (report.uzbekistanLegislativeNote) {
-        y += 3;
-        doc.setFontSize(7);
-        doc.setFont(fontName, 'italic');
-        doc.setTextColor(100, 100, 80);
-        const noteSplit = doc.splitTextToSize(report.uzbekistanLegislativeNote, pageWidth - MARGIN * 2 - 6);
-        const noteHeight = noteSplit.length * COMPACT_LINE + 6;
-        ensureSpace(noteHeight + 2);
-        doc.setFillColor(250, 250, 245);
-        doc.rect(MARGIN, y, pageWidth - MARGIN * 2, noteHeight, 'F');
-        noteSplit.forEach((line: string, i: number) => {
-            doc.text(line, MARGIN + 3, y + 5 + i * COMPACT_LINE);
-        });
-        y += noteHeight + 2;
+    while (doc.getNumberOfPages() > MAX_EXPORT_PAGES) {
+        doc.deletePage(doc.getNumberOfPages());
     }
 
-    const promoY = pageHeight - FOOTER_RESERVE - 18;
-    if (y > promoY - 6) {
-        doc.addPage();
-        y = MARGIN;
-    }
+    const pageCount = Math.min(doc.getNumberOfPages(), MAX_EXPORT_PAGES);
+    const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
 
-    // === FOOTER WITH PLATFORM PROMO ===
-    const footerText = report.uzbekistanLegislativeNote
-        ? tr('pdf_footer_legislative', "O'zbekiston Respublikasi SSV protokollariga muvofiq. Faqat ma'lumot uchun.")
-        : tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
-    
-    const pageCount = doc.getNumberOfPages();
-
-    // Platform promo text for last page (rasmiy AiDoktor blanka — FJSTI emas)
-    const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
-    const promoLink = PDF_FOOTER_SITE;
-    const promoPhone = PDF_FOOTER_PHONE_1;
-    const promoPhone2 = PDF_FOOTER_PHONE_2;
-    
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        
-        // Regular footer line
-        drawLine(pageHeight - FOOTER_RESERVE - 2, [200, 200, 200]);
-        doc.setFontSize(7);
+        const footerY = pageHeight - FOOTER_RESERVE;
+        doc.setFillColor(...EXPORT_THEME.cardBg);
+        doc.rect(0, footerY - 4, pageWidth, FOOTER_RESERVE + 4, 'F');
+        setStroke(EXPORT_THEME.border);
+        doc.line(MARGIN, footerY - 4, pageWidth - MARGIN, footerY - 4);
+        doc.setFontSize(6.5);
+        doc.setFont(fontName, 'bold');
+        doc.setTextColor(...EXPORT_THEME.primary);
+        doc.text('AiDoktor', MARGIN, footerY);
         doc.setFont(fontName, 'normal');
-        doc.setTextColor(120, 120, 120);
-        doc.text(footerText, MARGIN, pageHeight - 5);
-        doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, pageHeight - 5, { align: 'right' });
+        doc.setTextColor(...EXPORT_THEME.textMuted);
+        doc.text(`  |  ${PDF_FOOTER_SITE}  |  ${PDF_FOOTER_PHONE_1}`, MARGIN + 14, footerY);
+        doc.setFontSize(6);
+        doc.text(footerText, MARGIN, footerY + 4);
+        doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, footerY + 2, { align: 'right' });
     }
-    
-    // === PLATFORM PROMO SECTION (on last page) ===
-    doc.setPage(pageCount);
-    
-    // Draw promo background box (taller to fit 3 rows)
-    doc.setFillColor(248, 250, 252);
-    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'F');
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.3);
-    doc.rect(MARGIN, promoY - 2, pageWidth - MARGIN * 2, 16, 'S');
-    
-    // Row 1: Platform name + link
-    doc.setFontSize(7);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(50, 60, 80);
-    doc.text(promoText, MARGIN + 3, promoY + 2);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(30, 100, 180);
-    doc.text(promoLink, MARGIN + 70, promoY + 2);
-    
-    // Row 2: Two phone numbers
-    doc.setTextColor(60, 60, 60);
-    doc.setFont(fontName, 'normal');
-    doc.text(`${tr('pdf_tel_label', 'Tel')}: ${promoPhone}  |  ${promoPhone2}`, MARGIN + 3, promoY + 6);
-
-    // Row 3: Mahsulot veb-sayti (AiDoktor)
-    doc.setFont(fontName, 'italic');
-    doc.setTextColor(30, 100, 180);
-    doc.text(PDF_FOOTER_SITE, MARGIN + 3, promoY + 10);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-        `  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`,
-        MARGIN + 24,
-        promoY + 10,
-    );
-
-    // O‘ng tomonda mahsulot nomi va mualliflik (institut logotipi ishlatilmaydi)
-    doc.setFontSize(8);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(25, 55, 95);
-    doc.text(tr('pdf_product_brand_footer', 'AiDoktor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
-    doc.setFontSize(5);
-    doc.setFont(fontName, 'normal');
-    doc.setTextColor(110, 110, 110);
-    doc.text(
-        tr('pdf_product_copyright_short', '© Mualliflik huquqi himoyalangan'),
-        pageWidth - MARGIN - 3,
-        promoY + 8,
-        { align: 'right' },
-    );
 
     const fileSlug = exportFileSlug(language);
     const lastName = sanitizeExportFilename(pdfText(patientData.lastName));
