@@ -9,7 +9,7 @@ const PDF_FOOTER_PHONE_2 = '+998907863888';
 import type { Language } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translationKeys';
 import { buildCompactExportData } from '../utils/compactExportSections';
-import { EXPORT_THEME, type ExportSectionKind } from '../utils/exportDocumentTheme';
+import { EXPORT_THEME } from '../utils/exportDocumentTheme';
 import {
     createExportTr,
     exportFileSlug,
@@ -33,9 +33,9 @@ const UNICODE_FONT_VARIANTS: ReadonlyArray<{
 ];
 const LINE_HEIGHT = 5;
 const COMPACT_LINE = 3.5;
-const FOOTER_RESERVE = 10;
-const MARGIN = 12;
-const MAX_EXPORT_PAGES = 2;
+const FOOTER_RESERVE = 8;
+const MARGIN = 14;
+const MAX_EXPORT_PAGES = 1;
 export interface InstituteBranding {
     instituteName?: string;
     instituteLogoDataUrl?: string;
@@ -105,312 +105,150 @@ export const generatePdfReport = async (
     language: Language = 'uz-L',
 ) => {
     const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
-    const compact = buildCompactExportData(report, patientData, tr);
+    const c = buildCompactExportData(report, patientData, tr);
     const doc = new jsPDF();
     const fontName = await setupPdfFont(doc);
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     const contentW = pageWidth - MARGIN * 2;
+    const dateStr = formatExportDate(language);
     let y = 0;
-    const FOOTER_ZONE = 16;
-    const contentBottom = () => pageHeight - FOOTER_RESERVE - FOOTER_ZONE;
-
-    const ensureSpace = (needed: number): boolean => {
-        if (y + needed <= contentBottom()) return true;
-        if (doc.getNumberOfPages() >= MAX_EXPORT_PAGES) return false;
-        doc.addPage();
-        y = MARGIN;
-        return y + needed <= contentBottom();
-    };
 
     const setStroke = (color: [number, number, number], w = 0.2) => {
         doc.setDrawColor(...color);
         doc.setLineWidth(w);
     };
 
-    const drawSectionCard = (
-        kind: ExportSectionKind,
+    const drawSection = (
         title: string,
-        bodyHeight: number,
-    ): boolean => {
-        const colors = {
-            patient: { bar: EXPORT_THEME.primary, bg: EXPORT_THEME.cardBg },
-            diagnosis: { bar: EXPORT_THEME.diagnosis, bg: EXPORT_THEME.diagnosisBg },
-            treatment: { bar: EXPORT_THEME.treatment, bg: EXPORT_THEME.treatmentBg },
-            medication: { bar: EXPORT_THEME.medication, bg: EXPORT_THEME.medicationBg },
-            prevention: { bar: EXPORT_THEME.prevention, bg: EXPORT_THEME.preventionBg },
-            alert: { bar: EXPORT_THEME.alert, bg: EXPORT_THEME.alertBg },
-        }[kind];
-        const totalH = bodyHeight + 10;
-        if (!ensureSpace(totalH + 4)) return false;
-        const cardY = y;
-        doc.setFillColor(...colors.bg);
-        doc.rect(MARGIN, cardY, contentW, totalH, 'F');
+        bar: [number, number, number],
+        bg: [number, number, number],
+        items: string[],
+    ) => {
+        if (!items.length) return;
+        const wrapped = items.map((item) =>
+            doc.splitTextToSize(sanitizeClinicalContent(item), contentW - 16).slice(0, 2),
+        );
+        let bodyH = 8;
+        wrapped.forEach((lines) => { bodyH += lines.length * COMPACT_LINE + 1.5; });
+        if (y + bodyH > pageHeight - FOOTER_RESERVE - 6) return;
+
+        doc.setFillColor(...bg);
+        doc.rect(MARGIN, y, contentW, bodyH, 'F');
         setStroke(EXPORT_THEME.border);
-        doc.rect(MARGIN, cardY, contentW, totalH, 'S');
-        doc.setFillColor(...colors.bar);
-        doc.rect(MARGIN, cardY, 3, totalH, 'F');
-        doc.setFontSize(9.5);
+        doc.rect(MARGIN, y, contentW, bodyH, 'S');
+        doc.setFillColor(...bar);
+        doc.rect(MARGIN, y, 2.5, bodyH, 'F');
+        doc.setFontSize(8);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(...EXPORT_THEME.text);
-        doc.text(title.toUpperCase(), MARGIN + 7, cardY + 6);
-        y = cardY + 10;
-        return true;
+        doc.text(title.toUpperCase(), MARGIN + 6, y + 5);
+        let iy = y + 9;
+        items.forEach((item, idx) => {
+            const lines = wrapped[idx];
+            doc.setFontSize(8);
+            doc.setFont(fontName, 'normal');
+            doc.setTextColor(...EXPORT_THEME.text);
+            lines.forEach((ln: string, li: number) => {
+                if (li === 0) {
+                    doc.setFillColor(...bar);
+                    doc.circle(MARGIN + 8, iy - 1, 1.5, 'F');
+                }
+                doc.text(ln, MARGIN + 12, iy + li * COMPACT_LINE);
+            });
+            iy += lines.length * COMPACT_LINE + 1.5;
+        });
+        y += bodyH + 3;
     };
 
-    // === PROFESSIONAL HEADER BANNER ===
-    const headerH = 28;
+    // === IXCHAM SARLAVHA ===
+    const headerH = 20;
     doc.setFillColor(...EXPORT_THEME.primaryDark);
     doc.rect(0, 0, pageWidth, headerH, 'F');
     doc.setFillColor(...EXPORT_THEME.accent);
-    doc.rect(0, headerH - 1.2, pageWidth, 1.2, 'F');
-
-    doc.setFontSize(15);
+    doc.rect(0, headerH - 1, pageWidth, 1, 'F');
+    doc.setFontSize(12);
     doc.setFont(fontName, 'bold');
     doc.setTextColor(...EXPORT_THEME.white);
-    doc.text(tr('pdf_title', 'KONSILIUM: Yakuniy Klinik Xulosa'), MARGIN, 12);
-
-    doc.setFontSize(7.5);
+    doc.text(tr('export_patient_summary_title', 'Tibbiy xulosa'), MARGIN, 9);
+    doc.setFontSize(8);
     doc.setFont(fontName, 'normal');
-    doc.setTextColor(200, 220, 240);
-    doc.text(
-        tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati — faqat ma'lumot uchun."),
-        MARGIN,
-        18,
+    doc.setTextColor(210, 225, 240);
+    doc.text(c.patientLine, MARGIN, 15);
+    doc.text(dateStr, pageWidth - MARGIN, 15, { align: 'right' });
+    y = headerH + 5;
+
+    // === SHOSHILINCH (1 qator) ===
+    if (c.urgentNote) {
+        doc.setFillColor(...EXPORT_THEME.alertBg);
+        doc.rect(MARGIN, y, contentW, 7, 'F');
+        setStroke(EXPORT_THEME.alert, 0.3);
+        doc.rect(MARGIN, y, contentW, 7, 'S');
+        doc.setFontSize(7.5);
+        doc.setFont(fontName, 'bold');
+        doc.setTextColor(...EXPORT_THEME.alert);
+        doc.text(c.urgentNote, MARGIN + 4, y + 4.5);
+        y += 10;
+    }
+
+    // === TASHXIS (asosiy blok) ===
+    if (c.diagnosisName) {
+        const diagH = 16;
+        doc.setFillColor(...EXPORT_THEME.diagnosisBg);
+        doc.rect(MARGIN, y, contentW, diagH, 'F');
+        setStroke(EXPORT_THEME.diagnosis, 0.4);
+        doc.rect(MARGIN, y, contentW, diagH, 'S');
+        doc.setFontSize(7);
+        doc.setFont(fontName, 'bold');
+        doc.setTextColor(...EXPORT_THEME.textMuted);
+        doc.text(tr('export_your_diagnosis', 'Tashxis').toUpperCase(), MARGIN + 5, y + 5);
+        doc.setFontSize(11);
+        doc.setFont(fontName, 'bold');
+        doc.setTextColor(...EXPORT_THEME.diagnosis);
+        const dLines = doc.splitTextToSize(c.diagnosisName, contentW - (c.diagnosisPercent != null ? 22 : 8));
+        doc.text(dLines[0] || '', MARGIN + 5, y + 11);
+        if (c.diagnosisPercent != null) {
+            doc.setFillColor(...EXPORT_THEME.diagnosis);
+            doc.roundedRect(pageWidth - MARGIN - 18, y + 3, 16, 10, 2, 2, 'F');
+            doc.setFontSize(9);
+            doc.setTextColor(...EXPORT_THEME.white);
+            doc.text(`${c.diagnosisPercent}%`, pageWidth - MARGIN - 10, y + 10, { align: 'center' });
+        }
+        y += diagH + 4;
+    }
+
+    drawSection(
+        tr('export_what_to_do', 'Nima qilish kerak'),
+        EXPORT_THEME.treatment,
+        EXPORT_THEME.treatmentBg,
+        c.treatmentLines,
+    );
+    drawSection(
+        tr('pdf_medications', 'Dorilar'),
+        EXPORT_THEME.medication,
+        EXPORT_THEME.medicationBg,
+        c.medicationLines,
+    );
+    drawSection(
+        tr('export_home_care', 'Uyda e\'tibor berish'),
+        EXPORT_THEME.prevention,
+        EXPORT_THEME.preventionBg,
+        c.preventionLines,
     );
 
-    const dateStr = formatExportDate(language);
-    doc.setFillColor(...EXPORT_THEME.accent);
-    doc.rect(pageWidth - MARGIN - 42, 6, 42, 10, 'F');
-    doc.setFontSize(7);
-    doc.setFont(fontName, 'bold');
-    doc.setTextColor(...EXPORT_THEME.white);
-    doc.text(tr('pdf_date', 'Sana'), pageWidth - MARGIN - 39, 10);
+    // === MINI FOOTER ===
+    const footerY = pageHeight - 6;
+    setStroke(EXPORT_THEME.border);
+    doc.line(MARGIN, footerY - 3, pageWidth - MARGIN, footerY - 3);
+    doc.setFontSize(6);
     doc.setFont(fontName, 'normal');
-    doc.text(dateStr, pageWidth - MARGIN - 39, 14);
-
-    let qrDataUrl = '';
-    try {
-        qrDataUrl = await QRCode.toDataURL(PDF_FOOTER_PUBLIC_URL, {
-            width: 64,
-            margin: 0,
-            color: { dark: '#ffffff', light: '#142a48' },
-        });
-    } catch { /* ignore */ }
-    if (qrDataUrl) {
-        try {
-            doc.addImage(qrDataUrl, 'PNG', pageWidth - MARGIN - 58, 5, 14, 14);
-        } catch { /* ignore */ }
-    }
-
-    y = headerH + 6;
-
-    // === BEMOR KARTASI ===
-    {
-        const bodyH = (compact.complaints ? 18 : 12);
-        if (drawSectionCard('patient', tr('pdf_patient_info', "Bemor ma'lumotlari"), bodyH)) {
-            const colW = contentW / 3;
-            const rowY = y;
-            const cells = [
-                { label: tr('pdf_patient', 'Bemor'), value: compact.patientName },
-                { label: tr('pdf_age', 'Yoshi'), value: `${compact.age} ${tr('pdf_age', 'yosh')}` },
-                { label: tr('pdf_gender', 'Jinsi'), value: compact.gender },
-            ];
-            cells.forEach((cell, i) => {
-                const x = MARGIN + 7 + i * colW;
-                doc.setFontSize(7);
-                doc.setFont(fontName, 'bold');
-                doc.setTextColor(...EXPORT_THEME.textMuted);
-                doc.text(cell.label, x, rowY);
-                doc.setFontSize(9);
-                doc.setFont(fontName, 'bold');
-                doc.setTextColor(...EXPORT_THEME.text);
-                const lines = doc.splitTextToSize(cell.value, colW - 4);
-                doc.text(lines[0] || '', x, rowY + 4.5);
-            });
-            y = rowY + 10;
-            if (compact.complaints) {
-                setStroke(EXPORT_THEME.border, 0.15);
-                doc.line(MARGIN + 7, y, pageWidth - MARGIN - 4, y);
-                y += 4;
-                doc.setFontSize(7.5);
-                doc.setFont(fontName, 'bold');
-                doc.setTextColor(...EXPORT_THEME.textMuted);
-                doc.text(tr('pdf_complaints', 'Shikoyat'), MARGIN + 7, y);
-                doc.setFont(fontName, 'italic');
-                doc.setTextColor(...EXPORT_THEME.text);
-                const comp = doc.splitTextToSize(compact.complaints, contentW - 16);
-                doc.text(comp[0] || '', MARGIN + 7, y + 4);
-                y += 8;
-            } else {
-                y += 2;
-            }
-            y += 4;
-        }
-    }
-
-    // === SHOSHILINCH ===
-    if (compact.criticalAlert) {
-        const alertLines = doc.splitTextToSize(compact.criticalAlert, contentW - 18);
-        const bodyH = alertLines.length * COMPACT_LINE + 2;
-        if (drawSectionCard('alert', tr('pdf_critical_finding', 'Shoshilinch ogohlantirish'), bodyH)) {
-            doc.setFontSize(8.5);
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(...EXPORT_THEME.alert);
-            alertLines.forEach((line: string) => {
-                doc.text(line, MARGIN + 7, y);
-                y += COMPACT_LINE;
-            });
-            y += 4;
-        }
-    }
-
-    // === ASOSIY TASHXIS (hero) ===
-    if (compact.topDiagnosis) {
-        const diag = compact.topDiagnosis;
-        const pct = Number.isFinite(diag.probability) ? diag.probability : null;
-        const nameLines = doc.splitTextToSize(diag.name, contentW - (pct != null ? 28 : 10));
-        const bodyH = nameLines.length * 5 + (diag.icd10 ? 5 : 0) + 2;
-        if (drawSectionCard('diagnosis', tr('pdf_diagnosis', 'Asosiy tashxis'), bodyH)) {
-            if (pct != null) {
-                const badgeX = pageWidth - MARGIN - 18;
-                const badgeY = y - 2;
-                doc.setFillColor(...EXPORT_THEME.diagnosis);
-                doc.circle(badgeX + 9, badgeY + 7, 8, 'F');
-                doc.setFontSize(10);
-                doc.setFont(fontName, 'bold');
-                doc.setTextColor(...EXPORT_THEME.white);
-                doc.text(`${pct}%`, badgeX + 9, badgeY + 8.5, { align: 'center' });
-            }
-            doc.setFontSize(12);
-            doc.setFont(fontName, 'bold');
-            doc.setTextColor(...EXPORT_THEME.diagnosis);
-            nameLines.slice(0, 2).forEach((line: string) => {
-                doc.text(line, MARGIN + 7, y);
-                y += 5;
-            });
-            if (diag.icd10) {
-                doc.setFontSize(8);
-                doc.setFont(fontName, 'normal');
-                doc.setTextColor(...EXPORT_THEME.textMuted);
-                doc.text(`${tr('final_report_icd10', 'MKB-10')}: ${diag.icd10}`, MARGIN + 7, y);
-                y += 4;
-            }
-            y += 4;
-        }
-    }
-
-    // === DAVOLASH ===
-    if (compact.treatmentLines.length > 0) {
-        let bodyH = 0;
-        const wrapped = compact.treatmentLines.map((line) =>
-            doc.splitTextToSize(sanitizeClinicalContent(line), contentW - 20),
-        );
-        wrapped.forEach((lines) => { bodyH += lines.length * COMPACT_LINE + 2; });
-        if (drawSectionCard('treatment', tr('pdf_treatment_plan', 'Davolash rejasi'), bodyH)) {
-            compact.treatmentLines.forEach((line, idx) => {
-                if (!ensureSpace(COMPACT_LINE + 2)) return;
-                doc.setFillColor(...EXPORT_THEME.treatment);
-                doc.circle(MARGIN + 9, y - 1, 2.2, 'F');
-                doc.setFontSize(7);
-                doc.setFont(fontName, 'bold');
-                doc.setTextColor(...EXPORT_THEME.white);
-                doc.text(String(idx + 1), MARGIN + 9, y, { align: 'center' });
-                doc.setFontSize(8.5);
-                doc.setFont(fontName, 'normal');
-                doc.setTextColor(...EXPORT_THEME.text);
-                const lines = doc.splitTextToSize(sanitizeClinicalContent(line), contentW - 20);
-                lines.forEach((ln: string, i: number) => {
-                    doc.text(ln, MARGIN + 14, y + i * COMPACT_LINE);
-                });
-                y += lines.length * COMPACT_LINE + 2;
-            });
-            y += 2;
-        }
-    }
-
-    // === DORILAR ===
-    if (compact.medications.length > 0) {
-        let bodyH = 0;
-        compact.medications.forEach((med) => {
-            bodyH += 5 + (med.schedule ? 4 : 0) + 1;
-        });
-        if (drawSectionCard('medication', tr('pdf_medications', 'Dori-darmonlar'), bodyH)) {
-            compact.medications.forEach((med, idx) => {
-                if (!ensureSpace(9)) return;
-                if (idx % 2 === 0) {
-                    doc.setFillColor(255, 255, 255);
-                    doc.rect(MARGIN + 6, y - 3, contentW - 8, med.schedule ? 9 : 5, 'F');
-                }
-                doc.setFontSize(8.5);
-                doc.setFont(fontName, 'bold');
-                doc.setTextColor(...EXPORT_THEME.medication);
-                doc.text(med.name, MARGIN + 8, y);
-                doc.setFont(fontName, 'normal');
-                doc.setTextColor(...EXPORT_THEME.text);
-                doc.text(med.dosage, MARGIN + 8, y + 4);
-                if (med.schedule) {
-                    doc.setFontSize(7.5);
-                    doc.setTextColor(...EXPORT_THEME.textMuted);
-                    doc.text(med.schedule, MARGIN + 8, y + 8);
-                    y += 11;
-                } else {
-                    y += 7;
-                }
-            });
-            y += 3;
-        }
-    }
-
-    // === PROFILAKTIKA ===
-    if (compact.preventionLines.length > 0) {
-        let bodyH = 0;
-        compact.preventionLines.forEach((line) => {
-            bodyH += doc.splitTextToSize(line, contentW - 20).length * COMPACT_LINE + 1.5;
-        });
-        if (drawSectionCard('prevention', tr('pdf_prevention_measures', 'Profilaktika'), bodyH)) {
-            compact.preventionLines.forEach((line) => {
-                if (!ensureSpace(COMPACT_LINE + 2)) return;
-                doc.setFillColor(...EXPORT_THEME.prevention);
-                doc.rect(MARGIN + 7, y - 2.5, 2, 2, 'F');
-                doc.setFontSize(8.5);
-                doc.setFont(fontName, 'normal');
-                doc.setTextColor(...EXPORT_THEME.text);
-                const lines = doc.splitTextToSize(line, contentW - 20);
-                lines.forEach((ln: string, i: number) => {
-                    doc.text(ln, MARGIN + 12, y + i * COMPACT_LINE);
-                });
-                y += lines.length * COMPACT_LINE + 1.5;
-            });
-            y += 2;
-        }
-    }
-
-    while (doc.getNumberOfPages() > MAX_EXPORT_PAGES) {
-        doc.deletePage(doc.getNumberOfPages());
-    }
-
-    const pageCount = Math.min(doc.getNumberOfPages(), MAX_EXPORT_PAGES);
-    const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
-
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        const footerY = pageHeight - FOOTER_RESERVE;
-        doc.setFillColor(...EXPORT_THEME.cardBg);
-        doc.rect(0, footerY - 4, pageWidth, FOOTER_RESERVE + 4, 'F');
-        setStroke(EXPORT_THEME.border);
-        doc.line(MARGIN, footerY - 4, pageWidth - MARGIN, footerY - 4);
-        doc.setFontSize(6.5);
-        doc.setFont(fontName, 'bold');
-        doc.setTextColor(...EXPORT_THEME.primary);
-        doc.text('AiDoktor', MARGIN, footerY);
-        doc.setFont(fontName, 'normal');
-        doc.setTextColor(...EXPORT_THEME.textMuted);
-        doc.text(`  |  ${PDF_FOOTER_SITE}  |  ${PDF_FOOTER_PHONE_1}`, MARGIN + 14, footerY);
-        doc.setFontSize(6);
-        doc.text(footerText, MARGIN, footerY + 4);
-        doc.text(`${tr('pdf_page', 'Sahifa')} ${i}/${pageCount}`, pageWidth - MARGIN, footerY + 2, { align: 'right' });
-    }
+    doc.setTextColor(...EXPORT_THEME.textMuted);
+    doc.text(
+        `AiDoktor · ${tr('pdf_footer_general', "Shifokor ko'rsatmasi bilan birga foydalaning.")}`,
+        pageWidth / 2,
+        footerY,
+        { align: 'center' },
+    );
 
     const fileSlug = exportFileSlug(language);
     const lastName = sanitizeExportFilename(pdfText(patientData.lastName));
