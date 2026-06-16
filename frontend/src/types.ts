@@ -93,6 +93,7 @@ export interface User {
   hasActiveSubscription?: boolean;
   isStaff?: boolean;
   isSuperuser?: boolean;
+  isClinicGroupAdmin?: boolean;
   clinicGroupId?: number;
   clinicGroupName?: string;
 }

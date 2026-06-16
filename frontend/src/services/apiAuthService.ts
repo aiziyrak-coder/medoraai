@@ -41,6 +41,7 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
     hasActiveSubscription: hasSub,
     isStaff: Boolean(apiUser.is_staff ?? apiUser.isStaff),
     isSuperuser: Boolean(apiUser.is_superuser ?? apiUser.isSuperuser),
+    isClinicGroupAdmin: Boolean(apiUser.is_clinic_group_admin ?? apiUser.isClinicGroupAdmin),
     clinicGroupId: typeof apiUser.clinic_group === 'number' ? apiUser.clinic_group : undefined,
     clinicGroupName: apiUser.clinic_group_name != null
       ? String(apiUser.clinic_group_name)
@@ -54,6 +55,7 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
 export function hasActiveSubscription(user: User): boolean {
   if (user.role === 'staff') return true;
   if (user.isStaff || user.isSuperuser) return true;
+  if (user.isClinicGroupAdmin) return true;
   if (typeof user.hasActiveSubscription === 'boolean') return user.hasActiveSubscription;
   if (user.subscriptionStatus === 'pending') return false;
   if (user.subscriptionStatus !== 'active') return false;

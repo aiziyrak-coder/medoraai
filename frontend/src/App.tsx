@@ -39,6 +39,7 @@ import UserGuide from './components/UserGuide';
 import AboutInstitutePage from './components/AboutInstitutePage';
 import SubscriptionPage from './components/SubscriptionPage';
 import RectorDashboard from './components/RectorDashboard';
+import ClinicAdminDashboard from './components/ClinicAdminDashboard';
 import DataInputForm from './components/DataInputForm';
 const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
@@ -85,8 +86,10 @@ const AppContent: React.FC = () => {
     // Initialize from localStorage; only refresh from API when we have a token to avoid 401s
     const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getCurrentUser());
     const rectorPathnames = ['/rektorga', '/rektor'];
+    const clinicAdminPathnames = ['/klinika-admin', '/clinic-admin'];
     const pathNorm = typeof window !== 'undefined' ? (window.location.pathname.replace(/\/$/, '') || '/') : '';
     const isRectorPath = typeof window !== 'undefined' && rectorPathnames.includes(pathNorm);
+    const isClinicAdminPath = typeof window !== 'undefined' && clinicAdminPathnames.includes(pathNorm);
     
     // New States for Landing Page Flow
     const [showLanding, setShowLanding] = useState(!currentUser); // Show landing if not logged in
@@ -1256,6 +1259,21 @@ const AppContent: React.FC = () => {
         return <RectorDashboard onBackToMain={() => { window.location.href = '/'; }} />;
     }
 
+    // --- KLINIKA GURUHI ADMIN PANEL ---
+    if (isClinicAdminPath) {
+        if (!currentUser) {
+            return (
+                <div className="relative">
+                    <button onClick={() => { window.location.href = '/'; }} className="absolute top-4 left-4 z-50 text-white/60 hover:text-white transition-colors">
+                        &larr; Bosh sahifa
+                    </button>
+                    <AuthPage onLoginSuccess={handleLoginSuccess} />
+                </div>
+            );
+        }
+        return <ClinicAdminDashboard onBackToMain={() => { window.location.href = '/'; }} />;
+    }
+
     // --- LANDING PAGE FLOW ---
     if (!currentUser) {
         if (showAbout) {
@@ -1335,6 +1353,14 @@ const AppContent: React.FC = () => {
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
                         <DeviceSessionBanner variant="compact" />
                         <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
+                        {(currentUser?.isClinicGroupAdmin || currentUser?.isStaff || currentUser?.isSuperuser) && (
+                            <a
+                                href="/klinika-admin"
+                                className="text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors px-2 sm:px-3 py-2 hover:bg-teal-50 rounded-xl border border-transparent hover:border-teal-100 shrink-0"
+                            >
+                                Admin
+                            </a>
+                        )}
                         <button
                             onClick={handleLogout}
                             className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors px-2 sm:px-4 py-2 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100 shrink-0"

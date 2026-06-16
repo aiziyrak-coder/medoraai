@@ -24,6 +24,20 @@ class HasActiveSubscription(permissions.BasePermission):
         return bool(request.user.has_active_subscription)
 
 
+class IsClinicGroupAdmin(permissions.BasePermission):
+    """Faqat klinika guruhi admini (yoki superuser/staff)."""
+
+    message = 'Ushbu bo\'lim faqat klinika guruhi administratori uchun.'
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser or request.user.is_staff:
+            return True
+        from .clinic_admin import is_clinic_group_admin
+        return is_clinic_group_admin(request.user)
+
+
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """Permission to allow owners to edit their own objects"""
     

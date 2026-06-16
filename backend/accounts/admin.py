@@ -102,16 +102,16 @@ class SubscriptionPaymentAdmin(admin.ModelAdmin):
 class UserAdmin(BaseUserAdmin):
     """Custom User Admin  -  safe delete: clear JWT tokens first to avoid 500."""
     list_display = [
-        'phone', 'name', 'role', 'clinic_group', 'subscription_status',
-        'subscription_expiry', 'active_session_count', 'is_active', 'date_joined',
+        'phone', 'name', 'role', 'clinic_group', 'is_clinic_group_admin',
+        'subscription_status', 'subscription_expiry', 'active_session_count', 'is_active', 'date_joined',
     ]
-    list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'clinic_group', 'date_joined']
+    list_filter = ['role', 'subscription_status', 'is_active', 'is_staff', 'is_clinic_group_admin', 'clinic_group', 'date_joined']
     search_fields = ['phone', 'name']
     ordering = ['-date_joined']
     list_select_related = ['clinic_group', 'subscription_plan']
     list_per_page = 30
     show_full_result_count = False
-    actions = ['logout_users_from_all_devices']
+    actions = ['logout_users_from_all_devices', 'make_clinic_group_admin', 'remove_clinic_group_admin']
     
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
@@ -125,6 +125,13 @@ class UserAdmin(BaseUserAdmin):
             ),
         }),
         ('Obuna', {'fields': ('subscription_plan', 'subscription_status', 'subscription_expiry', 'trial_ends_at')}),
+        ('Klinika boshqaruvi', {
+            'fields': ('is_clinic_group_admin',),
+            'description': (
+                'Klinika guruhi admini — o\'z guruhidagi barcha foydalanuvchilarni, '
+                'obunalar va to\'lovlarni /klinika-admin panel orqali boshqaradi.'
+            ),
+        }),
         ('Ruxsatlar', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Muhim sanalar', {'fields': ('last_login', 'date_joined')}),
     )
@@ -189,6 +196,21 @@ class UserAdmin(BaseUserAdmin):
             "Endi ular qayta login qila oladi.",
             level=messages.SUCCESS,
         )
+
+    @admin.action(description="Klinika guruhi admini qilib tayinlash")
+    def make_clinic_group_admin(self, request, queryset):
+        updated = 0
+        for u in queryset:
+            if u.clinic_group_id and not u.is_clinic_group_admin:
+                u.is_clinic_group_admin = True
+                u.save(update_fields=['is_clinic_group_admin'])
+                updated += 1
+        self.message_user(request, f"{updated} ta foydalanuvchi guruh admini qilindi.", level=messages.SUCCESS)
+
+    @admin.action(description="Klinika guruhi admini huquqini olib tashlash")
+    def remove_clinic_group_admin(self, request, queryset):
+        updated = queryset.filter(is_clinic_group_admin=True).update(is_clinic_group_admin=False)
+        self.message_user(request, f"{updated} ta foydalanuvchidan admin huquqi olib tashlandi.", level=messages.SUCCESS)
 
     def logout_all_devices_view(self, request):
         """Barcha foydalanuvchilarni barcha qurilmalardan chiqarish (global logout)."""

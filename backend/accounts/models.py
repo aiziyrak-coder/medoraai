@@ -234,6 +234,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     subscription_expiry = models.DateTimeField(null=True, blank=True, verbose_name='Obuna muddati')
     trial_ends_at = models.DateTimeField(null=True, blank=True, verbose_name='Trial tugash sanasi')
     
+    is_clinic_group_admin = models.BooleanField(
+        default=False,
+        verbose_name='Klinika guruhi admini',
+        help_text='Guruhdagi foydalanuvchilar, obuna va to\'lovlarni boshqaradi.',
+    )
+
     # Django auth fields
     is_active = models.BooleanField(default=True, verbose_name='Faol')
     is_staff = models.BooleanField(default=False, verbose_name='Xodim')
@@ -256,6 +262,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             models.Index(fields=['role', 'subscription_status']),  # Role-based queries
             models.Index(fields=['linked_doctor']),  # Staff-doctor relationship
             models.Index(fields=['clinic_group']),
+            models.Index(fields=['clinic_group', 'is_clinic_group_admin']),
             models.Index(fields=['date_joined']),  # User listing
         ]
     
@@ -277,12 +284,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_registrar(self):
         return self.role == 'staff'
+
+    @property
+    def is_group_admin(self):
+        return bool(self.is_clinic_group_admin and self.clinic_group_id)
     
     @property
     def has_active_subscription(self):
         if not self.is_active:
             return False
         if self.is_superuser or self.is_staff:
+            return True
+        if self.is_clinic_group_admin:
             return True
         if self.role == 'staff':
             return True

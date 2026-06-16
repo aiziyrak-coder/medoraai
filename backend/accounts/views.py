@@ -611,13 +611,9 @@ def password_reset_request(request):
 
 
 def _clinic_scoped_users_queryset(user):
-    """Klinika faqat o'z guruhi a'zolarini ko'radi."""
-    qs = User.objects.select_related('subscription_plan', 'clinic_group').order_by('-date_joined')
-    if user.is_superuser or user.is_staff:
-        return qs
-    if user.is_clinic and user.clinic_group_id:
-        return qs.filter(clinic_group_id=user.clinic_group_id)
-    return qs.none()
+    """Klinika guruhi a'zolari — ko'rish uchun; boshqaruv alohida clinic-admin API da."""
+    from .clinic_admin import clinic_group_members_queryset
+    return clinic_group_members_queryset(user)
 
 
 class UserListAPIView(generics.ListAPIView):
@@ -630,13 +626,31 @@ class UserListAPIView(generics.ListAPIView):
 
 
 class UserDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
-    """User detail, update, delete — faqat o'z klinika guruhi ichida."""
+    """User detail — faqat o'z klinika guruhi ichida; o'zgartirish admin uchun."""
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'id'
 
     def get_queryset(self):
         return _clinic_scoped_users_queryset(self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        from .clinic_admin import can_manage_clinic_group
+        if not can_manage_clinic_group(request.user):
+            return Response({
+                'success': False,
+                'error': {'message': 'Foydalanuvchini o\'zgartirish faqat guruh admini uchun.'},
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        from .clinic_admin import can_manage_clinic_group
+        if not can_manage_clinic_group(request.user):
+            return Response({
+                'success': False,
+                'error': {'message': 'Foydalanuvchini o\'chirish faqat guruh admini uchun.'},
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
 
 class ClinicRegistrarsAPIView(generics.ListCreateAPIView):
@@ -659,10 +673,11 @@ class ClinicRegistrarsAPIView(generics.ListCreateAPIView):
         return UserSerializer
 
     def create(self, request, *args, **kwargs):
-        if not (request.user.is_clinic or request.user.is_superuser or request.user.is_staff):
+        from .clinic_admin import can_manage_clinic_group
+        if not can_manage_clinic_group(request.user):
             return Response({
                 'success': False,
-                'error': {'message': 'Faqat klinika hisobi registrator qo\'sha oladi.'},
+                'error': {'message': 'Registrator qo\'shish faqat klinika guruhi admini uchun.'},
             }, status=status.HTTP_403_FORBIDDEN)
         if request.user.is_clinic and not request.user.clinic_group_id:
             return Response({
