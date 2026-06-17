@@ -313,7 +313,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         return False
 
     def max_concurrent_sessions(self):
-        """Barcha rollar uchun qat'iy bitta faol sessiya."""
+        """Klinika guruh adminlari — bir nechta qurilma (masalan, boshqarma xodimlari)."""
+        if self.is_clinic_group_admin:
+            return 5
         return 1
 
 

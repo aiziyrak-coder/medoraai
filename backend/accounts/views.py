@@ -149,18 +149,23 @@ def _other_device_blocks_login(user, current_device_id: str) -> tuple[bool, str]
 
     cur = (current_device_id or '').strip()[:128]
     _cleanup_invalid_active_sessions(user)
+    max_sessions = user.max_concurrent_sessions()
 
+    other_valid = 0
     for sess in ActiveSession.objects.filter(user=user).order_by('-created_at'):
         sd = (sess.device_id or '').strip()[:128]
-        # Bo'sh device_id (eski yozuvlar) — baribir "boshqa sessiya" deb bloklash kerak
         if sd and sd == cur:
             continue
         if _refresh_session_still_valid(sess):
-            return True, (
-                "Bu hisob boshqa qurilmada ochiq. Avval u yerda tizimdan chiqing, "
-                "keyin bu qurilmada qayta kiring."
-            )
-        sess.delete()
+            other_valid += 1
+        else:
+            sess.delete()
+
+    if other_valid >= max_sessions:
+        return True, (
+            "Faol sessiyalar limiti to'lgan. Avval boshqa qurilmalardan chiqing "
+            f"(ruxsat: {max_sessions} ta qurilma)."
+        )
     return False, ''
 
 
@@ -229,6 +234,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             }, status=400, content_type='application/json')
 
         user = serializer.validated_data['user']
+        from .org_catalog import is_org_catalog_phone, normalize_org_phone
+        is_org_login = is_org_catalog_phone(normalize_org_phone(phone))
 
         # Bir vaqtda ikki login (turli workerlar) sessiyani o'tkazib yubormasin — DB qulfi
         with transaction.atomic():
@@ -255,8 +262,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     content_type='application/json',
                 )
 
-            # Shu qurilmadan kirish: avvalgi tokenlarni bekor qilish, keyin yangi juftlik.
-            _revoke_all_sessions_for_user(user)
+            # Guruh admin / tashkilot: bir nechta qurilma; oddiy hisob: faqat bitta qurilma
+            if is_org_login or user.is_clinic_group_admin:
+                ActiveSession.objects.filter(user=user, device_id=device_id).delete()
+            else:
+                _revoke_all_sessions_for_user(user)
 
             refresh = RefreshToken.for_user(user)
             jti = str(refresh.get('jti'))
