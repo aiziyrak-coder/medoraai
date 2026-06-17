@@ -71,7 +71,11 @@ export const PhoneInputWith998: React.FC<PhoneInputWith998Props> = ({
         />
       </div>
       {showHint && (
-        <p className="text-[10px] text-slate-500 mt-1 ml-1">Faqat raqam kiriting</p>
+        <p className="text-[10px] text-slate-500 mt-1 ml-1">
+          {digitsOnly.startsWith('91780')
+            ? 'Tashkilot login: 91780... (9 raqam)'
+            : '9 ta raqam kiriting (masalan 90 123 45 67)'}
+        </p>
       )}
     </div>
   );

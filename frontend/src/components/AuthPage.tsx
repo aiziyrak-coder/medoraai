@@ -12,7 +12,7 @@ import { INSTITUTE_NAME_SHORT, INSTITUTE_LOGO_SRC } from '../constants/brand';
 import { AI_SPECIALISTS } from '../constants';
 import LanguageSwitcher from './LanguageSwitcher';
 import { Language } from '../i18n/LanguageContext';
-import { PhoneInputWith998 } from './PhoneInputWith998';
+import { PhoneInputWith998, toFullPhone, fromFullPhone } from './PhoneInputWith998';
 import DeviceSessionBanner from './DeviceSessionBanner';
 
 interface AuthPageProps {
@@ -123,14 +123,24 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         specialtyPools.push(pool);
     }
 
-    // Auto-fill clinic credentials on mount
+    // Login form — demo avtoto'ldirish yo'q (production)
     useEffect(() => {
         setMode('login');
         setError('');
-        setPassword('');
-        setPhone('+998901234567');
-        setPassword('clinic_demo');
     }, []);
+
+    const resolveFullPhone = (): string => {
+        const normalized = toFullPhone(fromFullPhone(phone));
+        if (normalized) return normalized;
+        const digits = phone.replace(/\D/g, '');
+        if (digits.startsWith('998')) {
+            const local = digits.slice(3);
+            if (local.length >= 9) return `+998${local.slice(0, 9)}`;
+        }
+        return phone.trim();
+    };
+
+    const isOrgCatalogPhone = (fullPhone: string): boolean => /^\+9989178\d{4,5}$/.test(fullPhone);
 
     const handleResetRequest = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -139,9 +149,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         setMessage('');
 
         try {
-            let digits = phone.replace(/\D/g, '');
-            if (digits.startsWith('998')) digits = digits.slice(3);
-            const fullPhone = digits.length >= 9 ? `+998${digits.slice(0, 9)}` : phone;
+            const fullPhone = resolveFullPhone();
+            if (!fullPhone || fullPhone.length < 13) {
+                setError(t('auth_phone_invalid') || "Telefon raqami to'liq kiritilishi kerak (9 raqam).");
+                return;
+            }
+            if (isOrgCatalogPhone(fullPhone)) {
+                setError(
+                    'Tashkilot hisoblari uchun SMS parol tiklash mavjud emas. '
+                    + 'Klinika admin paneli (/klinika-admin) orqali parolni o\'zgartiring.'
+                );
+                return;
+            }
             const result = await authService.requestPasswordReset(fullPhone);
             if (result.success) {
                 setMessage(result.message);
@@ -162,9 +181,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         setMessage('');
 
         try {
-            let digits = phone.replace(/\D/g, '');
-            if (digits.startsWith('998')) digits = digits.slice(3);
-            const fullPhone = digits.length >= 9 ? `+998${digits.slice(0, 9)}` : phone;
+            const fullPhone = resolveFullPhone();
+            if (!fullPhone || fullPhone.length < 13) {
+                setError(t('auth_phone_invalid') || "Telefon raqami to'liq kiritilishi kerak (9 raqam).");
+                return;
+            }
             if (mode === 'login') {
                 const result = await authService.login({ phone: fullPhone, password });
                 if (result.success) {

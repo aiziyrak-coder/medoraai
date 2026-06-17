@@ -1,8 +1,11 @@
 """
 Respublika va OTM tibbiyot tashkilotlari — klinika guruhi + login ro'yxati.
-Telefon: +9989178XXXX (XXXX = tartib raqami).
+Telefon: +9989178 + 5 xonali tartib (+998 dan keyin 9 raqam, masalan +998917800050).
 """
 from __future__ import annotations
+
+import hashlib
+import re
 
 REPUBLIC_ORG_ACCOUNTS: list[dict[str, str | int]] = [
     {"idx": 1, "code": "vahidov-hir", "name": "Академик В.Вахидов номидаги республика ихтисослаштирилган хирургия илмий-амалий тиббиёт маркази"},
@@ -56,13 +59,67 @@ REPUBLIC_ORG_ACCOUNTS: list[dict[str, str | int]] = [
     {"idx": 49, "code": "qmti", "name": "Қорақалпоғистон тиббиёт институти"},
 ]
 
-PHONE_PREFIX = "+9989178"
+REGIONAL_HEALTH_ORG_ACCOUNTS: list[dict[str, str | int]] = [
+    {"idx": 50, "code": "qar-vazirlik", "name": "Қорақалпоғистон Республикаси Соғлиқни сақлаш вазирлиги"},
+    {"idx": 51, "code": "andijon-boshqarma", "name": "Андижон вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 52, "code": "buxoro-boshqarma", "name": "Бухоро вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 53, "code": "jizzax-boshqarma", "name": "Жиззах вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 54, "code": "qashqadaryo-boshqarma", "name": "Қашқадарё вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 55, "code": "navoiy-boshqarma", "name": "Навоий вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 56, "code": "namangan-boshqarma", "name": "Наманган вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 57, "code": "samarqand-boshqarma", "name": "Самарқанд вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 58, "code": "surxandaryo-boshqarma", "name": "Сурхондарё вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 59, "code": "sirdaryo-boshqarma", "name": "Сирдарё вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 60, "code": "toshkent-vil-boshqarma", "name": "Тошкент вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 61, "code": "fargona-boshqarma", "name": "Фарғона вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 62, "code": "xorazm-boshqarma", "name": "Хоразм вилояти Соғлиқни сақлаш бошқармаси"},
+    {"idx": 63, "code": "toshkent-shahar-boshqarma", "name": "Тошкент шаҳар Соғлиқни сақлаш бошқармаси"},
+]
+
+ORG_PHONE_DIGIT_PREFIX = '9989178'
+ORG_PHONE_LEGACY_SUFFIX_LEN = 4
+ORG_PHONE_SUFFIX_LEN = 5
+
+_ORG_PHONE_PATTERN = re.compile(r'^\+9989178\d{4,5}$')
+
+
+def org_phone_legacy(idx: int) -> str:
+    """Eski format (+998 dan keyin 8 raqam) — migratsiya uchun."""
+    return f"+9989178{int(idx):04d}"
 
 
 def org_phone(idx: int) -> str:
-    return f"{PHONE_PREFIX}{int(idx):04d}"
+    """+998 dan keyin 9 raqam (standart UI input bilan mos)."""
+    return f"+9989178{int(idx):05d}"
 
 
-def org_password(code: str) -> str:
-    safe = "".join(ch for ch in str(code).lower() if ch.isalnum() or ch == "-")
-    return f"{safe.replace('-', '')}2026"
+def org_password(code: str, idx: int = 0) -> str:
+    """Har tashkilot uchun barqaror, kuchli parol (CSV da eksport qilinadi)."""
+    safe = "".join(ch for ch in str(code).lower() if ch.isalnum()).replace('-', '')[:12]
+    digest = hashlib.sha256(f"org:{code}:{idx}:aishifokor-2026".encode()).hexdigest()[:4]
+    return f"{safe}{int(idx):02d}Ai{digest}!"
+
+
+def normalize_org_phone(value: str) -> str:
+    cleaned = (value or '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+    if not cleaned.startswith('+'):
+        cleaned = '+' + cleaned if cleaned.startswith('998') else '+998' + cleaned
+    return cleaned
+
+
+def is_org_catalog_phone(phone: str) -> bool:
+    """Tashkilot test/login raqamlari (+9989178...). SMS parol tiklash yo'q."""
+    return bool(_ORG_PHONE_PATTERN.match(normalize_org_phone(phone)))
+
+
+def all_org_catalog_phones() -> set[str]:
+    phones: set[str] = set()
+    for item in REPUBLIC_ORG_ACCOUNTS:
+        idx = int(item['idx'])
+        phones.add(org_phone(idx))
+        phones.add(org_phone_legacy(idx))
+    for item in REGIONAL_HEALTH_ORG_ACCOUNTS:
+        idx = int(item['idx'])
+        phones.add(org_phone(idx))
+        phones.add(org_phone_legacy(idx))
+    return phones

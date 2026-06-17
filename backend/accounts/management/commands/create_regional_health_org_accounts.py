@@ -1,9 +1,9 @@
 """
-Respublika tibbiyot tashkilotlari uchun klinika guruhi + faol obuna (2 oy).
+Viloyat sog'liqni saqlash boshqarmalari uchun klinika guruhi + faol obuna.
 
-  python manage.py create_republic_org_accounts
-  python manage.py create_republic_org_accounts --days 60 --export-csv /tmp/orgs.csv
-  python manage.py create_republic_org_accounts --dry-run
+  python manage.py create_regional_health_org_accounts
+  python manage.py create_regional_health_org_accounts --days 60 --export-csv /tmp/regional.csv
+  python manage.py create_regional_health_org_accounts --dry-run
 """
 from __future__ import annotations
 
@@ -15,12 +15,12 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import SubscriptionPlan
-from accounts.org_catalog import REPUBLIC_ORG_ACCOUNTS, org_password, org_phone
+from accounts.org_catalog import REGIONAL_HEALTH_ORG_ACCOUNTS, org_password, org_phone
 from accounts.org_provisioning import provision_org_account
 
 
 class Command(BaseCommand):
-    help = "Respublika tibbiyot tashkilotlari uchun klinika guruhi va login yaratadi"
+    help = "Viloyat sog'liqni saqlash boshqarmalari uchun klinika guruhi va login yaratadi"
 
     def add_arguments(self, parser):
         parser.add_argument('--days', type=int, default=60, help='Obuna davri (kun), default 60 = 2 oy')
@@ -42,16 +42,17 @@ class Command(BaseCommand):
         created_users = 0
         updated_users = 0
 
-        for item in REPUBLIC_ORG_ACCOUNTS:
+        for item in REGIONAL_HEALTH_ORG_ACCOUNTS:
             idx = int(item['idx'])
             code = str(item['code'])
             name = str(item['name'])
             phone = org_phone(idx)
             password = org_password(code, idx)
+            display_idx = str(idx - 49)
 
             if dry:
                 rows.append({
-                    'tartib': str(idx),
+                    'tartib': display_idx,
                     'tashkilot': name,
                     'klinika_guruhi': name,
                     'kod': code,
@@ -69,7 +70,7 @@ class Command(BaseCommand):
                 name=name,
                 plan=plan,
                 expiry=expiry,
-                slug_fallback_prefix='org',
+                slug_fallback_prefix='regional',
             )
             if group_new:
                 created_groups += 1
@@ -79,7 +80,7 @@ class Command(BaseCommand):
                 updated_users += 1
 
             rows.append({
-                'tartib': str(idx),
+                'tartib': display_idx,
                 'tashkilot': name,
                 'klinika_guruhi': group.name,
                 'kod': code,

@@ -585,8 +585,10 @@ def change_password(request):
 @permission_classes([permissions.AllowAny])
 def password_reset_request(request):
     """Request password reset (sends email/SMS)"""
-    phone = request.data.get('phone')
-    if not phone:
+    from .org_catalog import is_org_catalog_phone, normalize_org_phone
+
+    phone_raw = request.data.get('phone')
+    if not phone_raw:
         return Response({
             'success': False,
             'error': {
@@ -594,7 +596,22 @@ def password_reset_request(request):
                 'message': 'Telefon raqami kiritilishi shart'
             }
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
+    phone = normalize_org_phone(str(phone_raw).strip())
+
+    if is_org_catalog_phone(phone):
+        return Response({
+            'success': False,
+            'error': {
+                'code': status.HTTP_400_BAD_REQUEST,
+                'message': (
+                    'Tashkilot hisoblari uchun SMS orqali parol tiklash mavjud emas. '
+                    'Klinika admin paneli (/klinika-admin) orqali parolni o\'zgartiring '
+                    'yoki platforma administratoriga murojaat qiling.'
+                ),
+            }
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     try:
         user = User.objects.get(phone=phone)
         # TODO: Implement SMS/Email sending
