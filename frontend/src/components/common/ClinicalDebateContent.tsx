@@ -2,6 +2,19 @@ import React from 'react';
 import LinkifiedText from './LinkifiedText';
 import { sanitizeClinicalContent } from '../../utils/sanitizeClinicalContent';
 
+const HIDDEN_DEBATE_SECTIONS = new Set([
+  'TASHXIS',
+  'EHTIMOLLIK VA DALIL DARAJASI',
+  'YAKUNIY TASHXISLAR (MKB-10)',
+]);
+
+function shouldHideDebateSection(title: string): boolean {
+  const t = title.trim().toUpperCase();
+  if (HIDDEN_DEBATE_SECTIONS.has(t)) return true;
+  if (t.startsWith('EHTIMOLLIK')) return true;
+  return false;
+}
+
 function stripLegacyMarkdown(text: string): string {
   return text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
@@ -30,6 +43,7 @@ export const ClinicalDebateContent: React.FC<{ text: string; className?: string 
         const head = lines[0]?.trim() ?? '';
         if (head.startsWith('▸ ')) {
           const title = head.slice(2).trim();
+          if (shouldHideDebateSection(title)) return null;
           const body = lines.slice(1).join('\n').trim();
           const isAlert = /qizil|xavf|shoshilinch/i.test(title);
           return (

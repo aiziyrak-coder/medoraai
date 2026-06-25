@@ -305,25 +305,15 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               {/* Consensus Diagnosis */}
               <div className="rounded-2xl bg-emerald-950/30 border border-emerald-500/30 p-4">
-                <h3 className="font-bold text-emerald-300 mb-1">{t('consilium_consensus_diagnosis')}</h3>
-                <p className="text-slate-500 text-xs mb-2">{t('final_report_icd10_subtitle')}</p>
+                <h3 className="font-bold text-emerald-300 mb-2">{t('consilium_consensus_diagnosis')}</h3>
                 {(normalizeConsensusDiagnosis(result.final_report?.consensusDiagnosis) || []).slice(0, 5).map((d, i) => (
-                  <div key={i} className="mb-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-white font-medium">
-                        {d.diagnosisRank ?? i + 1}. {d.name}
-                        {d.icd10 && (
-                          <span className="ml-2 text-emerald-300/90 text-xs font-mono">
-                            {t('final_report_icd10')}: {d.icd10}
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-emerald-400 text-sm font-mono shrink-0">{d.probability}%</span>
-                    </div>
-                    {d.icd10Description && (
-                      <p className="text-slate-500 text-xs mt-0.5">{d.icd10Description}</p>
+                  <div key={i} className="mb-3 last:mb-0">
+                    <p className="text-white font-medium">
+                      {d.diagnosisRank ?? i + 1}. {d.name}
+                    </p>
+                    {d.justification && (
+                      <p className="text-slate-300 text-sm mt-1 leading-relaxed">{d.justification}</p>
                     )}
-                    <p className="text-slate-400 text-xs mt-0.5">{d.justification}</p>
                   </div>
                 ))}
               </div>

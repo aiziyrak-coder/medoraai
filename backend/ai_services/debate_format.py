@@ -18,11 +18,11 @@ KONSILIUM USLUBI (MAJBURIY — buzish MUMKIN EMAS):
 5. supporting_evidence — aniq klinik FAKTLAR: vital (AB, puls, SpO2), lab qiymatlari, anamnez;
    umumiy gap va spekulyatsiya emas.
 6. Yulduzcha (*), emoji va ichki AI/model nomlarini ISHLATMANG.
-7. Dalil darajasi A/B/C va ishonch darajasini klinik jihatdan asoslab yozing.
+7. Dalil darajasi va foizlarni JSON ichida saqlang; foydalanuvchiga ko'rinadigan matnda
+   «Ishonch», «Dalil darajasi A/B/C», «90%» kabi meta-yozuvlar ISHLATMANG.
 8. Ob'ektiv, lab va tasvir (EKG/UZI/rengen) mavjud bo'lsa — ularni shikoyatdan ustun qo'llang.
-9. MKB-10 (ICD-10-CM, 10-reviziya): har bir tashxis uchun aniq xalqaro kod majburiy (masalan: I10, E11.9, J18.9).
-10. Tashxislar raqamlanadi: 1 — asosiy, 2–5 — differensial. Namuna kodlar (X00.0, Z00.0) ISHLATMANG.
-11. Tashxis nomi MKB-10 rasmiy terminologiyasiga mos, klinik jihatdan aniq bo'lsin.
+9. MKB-10 kodlari faqat yakuniy hisobot uchun; munozara matnida alohida «TASHXIS (F01.9)» bloklari YO'Q.
+10. Munozarada faqat klinik fikr, fakt, tavsiya va tanqid — qisqa va amaliy.
 """
 
 DEEP_CLINICAL_HINT = (
@@ -47,12 +47,12 @@ KONSILIUM CHANGI (MAJBURIY — YUMSHOQ EMAS):
 
 P1_DENSITY_RULES = """
 PHASE 1 CHUQURLIK (MAJBURIY):
-- reasoning_chain: kamida 5-6 qadam — har biri: bemor fakti → klinik talqin → xulosa + manba URL.
+- reasoning_chain: kamida 5-6 qadam — har biri: bemor fakti → klinik talqin → xulosa.
 - supporting_evidence: kamida 5 ta — vital, lab, anamnez, tasvir yoki dori tarixidan ANIQ qiymatlar.
-- differential: kamida 3 ta alternativ tashxis + ehtimollik (%) + rad etish/qoldirish sababi.
-- recommended_tests: kamida 3 ta + klinik indikatsiya + kutilayotgan natija.
+- differential: kamida 2 ta alternativ — faqat klinik sabab (foiz va A/B/C matnda YO'Q).
+- recommended_tests: kamida 3 ta + klinik indikatsiya.
 - red_flags: kamida 1 ta (agar mavjud bo'lsa) — shoshilinch harakat bilan.
-- initial_treatment_notes: kamida 2 jumla — o'z ixtisosligingizdan aniq tavsiya + protokol/manba.
+- initial_treatment_notes: kamida 2 jumla — o'z ixtisosligingizdan aniq tavsiya.
 """
 
 SPECIALIST_THINKING_MANDATE = """
@@ -167,28 +167,28 @@ def format_bullet_items(items: Any, prefix: str = "  • ") -> str:
 
 
 def format_p1_debate_content(p1r: dict) -> str:
+    """Mustaqil faza — faqat klinik fikr va amaliy tavsiyalar (foiz/MKB meta yo'q)."""
     sections: list[str] = []
-
-    diag = _clean_step_text(p1r.get("primary_diagnosis", ""))
-    if diag:
-        sections.append(f"▸ TASHXIS\n{diag}")
-
-    prob = p1r.get("probability", "")
-    conf = _conf_label_uz(str(p1r.get("confidence", "")))
-    evl = p1r.get("evidence_level", "")
-    if prob or conf or evl:
-        sections.append(
-            f"▸ EHTIMOLLIK VA DALIL DARAJASI\n"
-            f"{prob}% · Ishonch: {conf} · Dalil darajasi: {evl}"
-        )
 
     reasoning = format_reasoning_steps(p1r.get("reasoning_chain"))
     if reasoning:
-        sections.append(f"▸ KLINIK ASOSLAR\n{reasoning}")
+        sections.append(f"▸ KLINIK FIKR\n{reasoning}")
 
     evidence = format_bullet_items(p1r.get("supporting_evidence"))
     if evidence:
-        sections.append(f"▸ TASDIQLOVCHI FAKTLAR\n{evidence}")
+        sections.append(f"▸ MUHIM FAKTLAR\n{evidence}")
+
+    notes = _clean_step_text(p1r.get("initial_treatment_notes", ""))
+    if notes:
+        sections.append(f"▸ TAVSIYA\n{notes}")
+
+    tests = format_bullet_items(p1r.get("recommended_tests"))
+    if tests:
+        sections.append(f"▸ TEKSHIRUV\n{tests}")
+
+    reds = format_bullet_items(p1r.get("red_flags"))
+    if reds:
+        sections.append(f"▸ SHOSHILINCH BELGI\n{reds}")
 
     diff_lines: list[str] = []
     for d in p1r.get("differential") or []:
@@ -197,24 +197,15 @@ def format_p1_debate_content(p1r: dict) -> str:
         nm = _clean_step_text(d.get("name", ""))
         if not nm:
             continue
-        prob = d.get("probability")
-        prob_s = f" ({prob}%)" if prob is not None else ""
         rs = _clean_step_text(d.get("reason", ""))
-        diff_lines.append(f"  • {nm}{prob_s}" + (f" — {rs}" if rs else ""))
+        diff_lines.append(f"  • {nm}" + (f" — {rs}" if rs else ""))
     if diff_lines:
-        sections.append("▸ FARQLANUVCHI TASHXISLAR\n" + "\n".join(diff_lines))
+        sections.append("▸ BOSHQA EHTIMOLLAR\n" + "\n".join(diff_lines))
 
-    tests = format_bullet_items(p1r.get("recommended_tests"))
-    if tests:
-        sections.append(f"▸ TAVSIYA ETILGAN TEKSHIRUVLAR\n{tests}")
-
-    reds = format_bullet_items(p1r.get("red_flags"))
-    if reds:
-        sections.append(f"▸ QIZIL BAYROQLAR\n{reds}")
-
-    notes = _clean_step_text(p1r.get("initial_treatment_notes", ""))
-    if notes:
-        sections.append(f"▸ DASTLABKI TAVSIYA\n{notes}")
+    if not sections:
+        diag = _clean_step_text(p1r.get("primary_diagnosis", ""))
+        if diag:
+            sections.append(f"▸ KLINIK FIKR\n{diag}")
 
     return _filter_recap_lines("\n\n".join(sections))
 
@@ -253,9 +244,7 @@ def format_p2_debate_content(
 
     revised = _clean_step_text(p2r.get("revised_diagnosis", ""))
     if revised:
-        prob = p2r.get("revised_probability")
-        prob_s = f" ({prob}%)" if prob is not None else ""
-        sections.append(f"▸ YANGILANGAN TASHXIS{prob_s}\n{revised}")
+        sections.append(f"▸ YANGILANGAN FIKR\n{revised}")
 
     accepted_lines: list[str] = []
     for a in p2r.get("accepted_from_others") or []:
@@ -422,9 +411,7 @@ def format_consilium_debate(debate: dict) -> str:
         sections.append(f"▸ HIMOYA\n{defense}")
     revised = _clean_step_text(debate.get("revised_diagnosis", ""))
     if revised:
-        prob = debate.get("revised_probability")
-        prob_s = f" ({prob}%)" if prob is not None else ""
-        sections.append(f"▸ YANGILANGAN TASHXIS{prob_s}\n{revised}")
+        sections.append(f"▸ YANGILANGAN FIKR\n{revised}")
     key = _clean_step_text(debate.get("key_argument", ""))
     if key:
         sections.append(f"▸ ASOSIY KLINIK DALIL\n{key}")
