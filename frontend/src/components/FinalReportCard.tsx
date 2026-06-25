@@ -37,6 +37,12 @@ import XIcon from './icons/XIcon';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
 import { useTranslation } from '../hooks/useTranslation';
 import { enrichFinalReport } from '../utils/reportNormalize';
+import {
+    condensedUnexpectedFindings,
+    mergeFollowUpAndTests,
+    shouldShowLifestyleSeparate,
+    uniqueReferrals,
+} from '../utils/reportDisplayConsolidation';
 
 /** Hujjat bo'limi — aniq chegaralangan, asosiy matn bilan aralashmasin */
 const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
@@ -422,6 +428,10 @@ const FinalReportCard: React.FC<{
     const hasRealDiagnosis = consensusDiagnoses.some(
         (d) => d.name.trim() && !/^(tashxis aniqlanmadi|aniqlanmadi|timeout)$/i.test(d.name.trim()),
     );
+    const unexpectedText = condensedUnexpectedFindings(displayReport, consensusDiagnoses);
+    const followUpBlock = mergeFollowUpAndTests(displayReport);
+    const extraReferrals = uniqueReferrals(displayReport);
+    const showLifestyle = shouldShowLifestyleSeparate(displayReport);
 
     const [isEditingPlan, setIsEditingPlan] = useState(false);
     const [editedPlan, setEditedPlan] = useState<string[]>(safePlan);
@@ -492,15 +502,17 @@ const FinalReportCard: React.FC<{
                         {!hasRealDiagnosis && (
                             <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 mb-4">
                                 <p className="text-sm font-semibold text-amber-900">{t('final_report_consensus_pending')}</p>
-                                {displayReport.unexpectedFindings && String(displayReport.unexpectedFindings).trim() && (
-                                    <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{displayReport.unexpectedFindings}</p>
-                                )}
                             </div>
                         )}
                         {consensusDiagnoses.filter((d) => d.name.trim()).map((diag, index) => (
                             <div key={index} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 mb-4 last:mb-0">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="min-w-0">
+                                        {index > 0 && (
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                                                {t('final_report_differential_label')}
+                                            </p>
+                                        )}
                                         <span className="text-base font-bold text-slate-900">
                                             {diag.diagnosisRank ?? index + 1}. {diag.name}
                                         </span>
@@ -554,30 +566,26 @@ const FinalReportCard: React.FC<{
                 </div>
             </div>
 
-            {/* Qolgan bo'limlar — alohida hujjat bo'limlari */}
-            <div className="space-y-10">
+            {/* Qolgan bo'limlar — tartibli, takrorlarsiz */}
+            <div className="space-y-8">
+
+                {unexpectedText && (
+                    <Section title={t('final_report_unexpected_findings')} icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
+                        <div className="text-text-primary text-sm whitespace-pre-wrap leading-relaxed">
+                            <LinkifiedText text={sanitizeClinicalContent(unexpectedText)} />
+                        </div>
+                    </Section>
+                )}
 
                 <ImagingInterpretationCard imaging={displayReport.imagingInterpretation} />
-
-                <PatientRoutingCard routing={displayReport.patientRouting} />
-                <RiskFactorsCard riskFactors={displayReport.riskFactors} severityAssessment={displayReport.severityAssessment} />
 
                 {!displayReport.imagingInterpretation && displayReport.imageAnalysis?.findings && (
                     <Section title={t('final_report_image_analysis_title')} icon={<ImageIcon className="w-6 h-6"/>}>
                         <div className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                             <p><span className='font-semibold'>{t('final_report_image_findings')}:</span> {displayReport.imageAnalysis.findings}</p>
-                            <p className="mt-2"><span className='font-semibold'>{t('final_report_image_correlation')}:</span> {displayReport.imageAnalysis.correlation}</p>
-                        </div>
-                    </Section>
-                )}
-
-                <ProtocolComplianceGapsCard gaps={displayReport.protocolComplianceGaps} />
-                <CareQualityAuditCard audit={displayReport.careQualityAudit} />
-
-                {displayReport.unexpectedFindings && String(displayReport.unexpectedFindings).trim() && (
-                    <Section title={t('final_report_unexpected_findings')} icon={<LightBulbIcon className="w-6 h-6 text-amber-500"/>}>
-                        <div className="text-text-primary text-sm whitespace-pre-wrap leading-relaxed">
-                            <LinkifiedText text={sanitizeClinicalContent(String(displayReport.unexpectedFindings))} />
+                            {displayReport.imageAnalysis.correlation && (
+                                <p className="mt-2"><span className='font-semibold'>{t('final_report_image_correlation')}:</span> {displayReport.imageAnalysis.correlation}</p>
+                            )}
                         </div>
                     </Section>
                 )}
@@ -639,12 +647,6 @@ const FinalReportCard: React.FC<{
                     {displayReport.costEffectivenessNotes && <p className="mt-3 text-xs italic p-2 bg-slate-100/50 rounded-md"><strong>{t('final_report_cost_effectiveness')}:</strong> {displayReport.costEffectivenessNotes}</p>}
                 </Section>
 
-                <NutritionPreventionCard section={displayReport.nutritionPrevention!} />
-                
-                {displayReport.clinicalRedFlags && displayReport.clinicalRedFlags.length > 0 && (
-                    <ClinicalRedFlagsCard flags={displayReport.clinicalRedFlags} />
-                )}
-
                 <Section title={t('final_report_medications_uz')} icon={<PillIcon className="w-6 h-6"/>}>
                     {displayReport.pharmacologyWarnings && displayReport.pharmacologyWarnings.length > 0 && (
                         <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
@@ -702,40 +704,67 @@ const FinalReportCard: React.FC<{
                     </div>
                 </Section>
 
-                {displayReport.folkMedicine && <FolkMedicineCard section={displayReport.folkMedicine} />}
-
                 <AdverseEventRiskCard risks={displayReport.adverseEventRisks} />
 
-                 <Section title={t('final_report_additional_tests_title')} icon={<DocumentTextIcon className="w-6 h-6"/>}>
-                    <ul className="list-disc list-inside space-y-2 text-text-primary">
-                        {(Array.isArray(displayReport.recommendedTests) ? displayReport.recommendedTests : []).map((item, index) => (
-                            <li key={index}>{recommendedTestToDisplay(item)}</li>
-                        ))}
-                    </ul>
-                </Section>
-                
+                {(followUpBlock.tests.length > 0 || followUpBlock.tasks.length > 0 || followUpBlock.routingTimeline) && (
+                    <Section title={t('final_report_follow_up_title')} icon={<DocumentTextIcon className="w-6 h-6"/>}>
+                        {followUpBlock.tests.length > 0 && (
+                            <div className="mb-4">
+                                <h4 className="text-sm font-bold text-slate-700 mb-2">{t('final_report_additional_tests_title')}</h4>
+                                <ul className="list-disc list-inside space-y-1.5 text-text-primary">
+                                    {followUpBlock.tests.map((item, index) => (
+                                        <li key={index}>{recommendedTestToDisplay(item)}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {followUpBlock.tasks.length > 0 && <FollowUpPlan tasks={followUpBlock.tasks} embedded />}
+                        {followUpBlock.routingTimeline && (
+                            <p className="text-sm text-slate-700 mt-3">
+                                <span className="font-semibold">{t('routing_followup')}:</span> {followUpBlock.routingTimeline}
+                            </p>
+                        )}
+                    </Section>
+                )}
+
+                <PatientRoutingCard routing={displayReport.patientRouting} />
+                <RiskFactorsCard riskFactors={displayReport.riskFactors} severityAssessment={displayReport.severityAssessment} />
+
+                {displayReport.clinicalRedFlags && displayReport.clinicalRedFlags.length > 0 && (
+                    <ClinicalRedFlagsCard flags={displayReport.clinicalRedFlags} />
+                )}
+
                 <PrognosisCard prognosis={displayReport.prognosisReport} isLoading={false} />
 
-                <LifestylePlanCard plan={displayReport.lifestylePlan} />
+                {displayReport.nutritionPrevention && (
+                    <NutritionPreventionCard section={displayReport.nutritionPrevention} />
+                )}
 
-                {displayReport.followUpPlan && <FollowUpPlan tasks={displayReport.followUpPlan} />}
-                
-                {displayReport.referrals && <ReferralGenerator referrals={displayReport.referrals} patientData={patientData} />}
-                
+                {showLifestyle && <LifestylePlanCard plan={displayReport.lifestylePlan} />}
+
+                {displayReport.folkMedicine && <FolkMedicineCard section={displayReport.folkMedicine} />}
+
+                {extraReferrals.length > 0 && (
+                    <ReferralGenerator referrals={extraReferrals} patientData={patientData} />
+                )}
+
+                <ProtocolComplianceGapsCard gaps={displayReport.protocolComplianceGaps} />
+                <CareQualityAuditCard audit={displayReport.careQualityAudit} />
+
                 <ClinicalTrialsCard trials={displayReport.matchedClinicalTrials} />
-                
+
                 <RelatedResearchCard research={displayReport.relatedResearch} />
 
+                {(displayReport.rejectedHypotheses?.length ?? 0) > 0 && (
                  <Section title={t('final_report_rejected_hypotheses_title')} icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>
-                     {(Array.isArray(displayReport.rejectedHypotheses) && displayReport.rejectedHypotheses.length > 0) ? displayReport.rejectedHypotheses.map((hypo, index) => (
+                     {displayReport.rejectedHypotheses!.map((hypo, index) => (
                         <div key={index} className="p-3 bg-slate-100/50 rounded-lg border border-border-color">
                            <p className="font-semibold text-text-primary line-through">{hypo.name}</p>
                            <p className="text-sm text-text-secondary mt-1">{t('final_report_reason_inline')} {hypo.reason}</p>
                         </div>
-                    )) : (
-                        <p className="text-slate-500 text-sm italic">{t('final_report_no_data')}</p>
-                    )}
+                    ))}
                 </Section>
+                )}
 
                 {/* Legal Disclaimer specific to Uzbekistan */}
                 <div className="mt-8 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 text-center">

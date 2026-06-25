@@ -16,6 +16,7 @@ import type {
 import { normalizeConsensusDiagnosis } from '../types';
 import type { Language } from '../i18n/LanguageContext';
 import { sanitizeClinicalContent } from './sanitizeClinicalContent';
+import { prepareDisplayReport, sanitizeDiagnosisIcd10 } from './reportDisplayConsolidation';
 
 const BAD_TREATMENT_RE = /shifokor tasdiqlashi|konsensus davolash rejasi|kiritilmagan|ma'lumot yo'q/i;
 
@@ -423,54 +424,15 @@ function isGenericUnexpectedFindings(text: string): boolean {
   return !low.includes('▸') && !low.includes('•') && !low.includes('rad etilgan');
 }
 
-/** Kutilmagan topilmalar — umumiy xulosa bo'lsa hisobot maydonlaridan boyitadi */
+/** Kutilmagan topilmalar — faqat noyob klinik xulosa; boshqa bo'limlarni takrorlamaydi */
 export function normalizeUnexpectedFindings(
   raw: Record<string, unknown>,
-  report: FinalReport,
+  _report: FinalReport,
 ): string {
   const u = raw.unexpectedFindings ?? raw.unexpected_findings ?? raw.agreement_summary ?? raw.agreementSummary;
-  let text = typeof u === 'string' ? sanitizeClinicalContent(u.trim()) : '';
-  if (text && !isGenericUnexpectedFindings(text)) return text;
-
-  const parts: string[] = [];
-  const dx = normalizeConsensusDiagnosis(report.consensusDiagnosis);
-  const primary = dx[0]?.name?.trim();
-  if (primary) {
-    parts.push(`▸ YAKUNIY XULOSA\nAsosiy tashxis: ${primary}.`);
-    const just = dx[0]?.justification?.trim();
-    if (just && just.length > 20) {
-      parts.push(`▸ ASOSIY KONSENSUS DALILLARI\n${just}`);
-    }
-  }
-
-  const rejected = report.rejectedHypotheses || [];
-  if (rejected.length) {
-    parts.push(
-      `▸ RAD ETILGAN GIPOTEZALAR\n${rejected
-        .map((h) => `• ${h.name}${h.reason ? ` — ${h.reason}` : ''}`)
-        .join('\n')}`,
-    );
-  }
-
-  const alts = dx.slice(1).filter((d) => d.name?.trim());
-  if (alts.length) {
-    parts.push(
-      `▸ KO'RIB CHIQILGAN MUQOBIL TASHXISLAR\n${alts
-        .map((d) => `• ${d.name}${d.probability ? ` (${d.probability}%)` : ''}${d.justification ? ` — ${d.justification}` : ''}`)
-        .join('\n')}`,
-    );
-  }
-
-  const tests = (report.recommendedTests || []).filter((t) => String(t).trim()).slice(0, 4);
-  if (tests.length) {
-    parts.push(`▸ QO'SHIMCHA TEKSHIRUV TAVSIYALARI\n${tests.map((t) => `• ${t}`).join('\n')}`);
-  }
-
-  if (report.unexpectedFindings && !isGenericUnexpectedFindings(String(report.unexpectedFindings))) {
-    return String(report.unexpectedFindings);
-  }
-
-  return parts.join('\n\n').slice(0, 4500) || text;
+  const text = typeof u === 'string' ? sanitizeClinicalContent(u.trim()) : '';
+  if (!text || isGenericUnexpectedFindings(text)) return '';
+  return text;
 }
 
 const GENERIC_QUALITY_SUMMARIES = new Set([
@@ -678,8 +640,10 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
   const r = raw as FinalReport & Record<string, unknown>;
   const out: FinalReport = { ...raw };
 
-  const cdNorm = normalizeConsensusDiagnosis(
-    r.consensusDiagnosis ?? r.consensus_diagnosis,
+  const cdNorm = sanitizeDiagnosisIcd10(
+    normalizeConsensusDiagnosis(
+      r.consensusDiagnosis ?? r.consensus_diagnosis,
+    ),
   );
   if (cdNorm.length) {
     out.consensusDiagnosis = cdNorm;
@@ -766,7 +730,7 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
     out.relatedResearch = buildFastResearchSources(diag, lang);
   }
 
-  return out;
+  return prepareDisplayReport(out);
 }
 
 function buildFastResearchSources(diagnosis: string, language: string): FinalReport['relatedResearch'] {

@@ -3,8 +3,9 @@ MKB-10 (ICD-10-CM, 10-reviziya) kodlarini tashxis nomi bo'yicha aniqlash.
 
 Ustuvorlik:
   1. O'zbekiston SSV protokollari bazasi (kalit so'z mosligi)
-  2. NIH Clinical Tables ICD-10-CM API
-  3. LLM (faqat tekshirilgan, haqiqiy formatdagi kodlar)
+  2. NIH Clinical Tables — tashxis nomi bo'yicha qidiruv
+  3. NIH — mavjud kodni tasdiqlash (LLM kodini tekshirish)
+  4. LLM + NIH tasdiqlash (faqat mos kelganda)
 """
 from __future__ import annotations
 
@@ -34,6 +35,8 @@ _NIH_URL = "https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search"
 
 # O'zbek tashxis nomlarini NIH qidiruvi uchun inglizcha atamaga moslashtirish
 _UZ_SEARCH_ALIASES: dict[str, str] = {
+    "gipertoniya": "essential hypertension",
+    "arterial gipertoniya": "essential hypertension",
     "giperlipidemiya": "hyperlipidemia",
     "dislipidemiya": "hyperlipidemia",
     "gipotiroidizm": "hypothyroidism",
@@ -51,6 +54,22 @@ _UZ_SEARCH_ALIASES: dict[str, str] = {
     "varikoz": "varicose veins",
     "ekzema": "eczema",
     "dermatit": "dermatitis",
+    "pnevmoniya": "pneumonia",
+    "bronxit": "bronchitis",
+    "astma": "asthma",
+    "diabet": "diabetes mellitus",
+    "qandli diabet": "diabetes mellitus",
+    "yurak yetishmovchiligi": "heart failure",
+    "stendokardiya": "angina pectoris",
+    "infarkt": "myocardial infarction",
+    "gripp": "influenza",
+    "tonzillit": "tonsillitis",
+    "faringit": "pharyngitis",
+    "sinusit": "sinusitis",
+    "appenditsit": "appendicitis",
+    "gastroulser": "peptic ulcer",
+    "reflyuks": "gastroesophageal reflux",
+    "surunkali buyrak yetishmovchiligi": "chronic kidney disease",
 }
 
 
@@ -66,6 +85,38 @@ def _normalize_diag(text: str) -> str:
     s = re.sub(r"\([^)]*\)", " ", s)
     s = re.sub(r"\s+", " ", s)
     return s.strip()
+
+
+def _token_set(text: str) -> set[str]:
+    low = re.sub(r"[^a-z0-9\u0400-\u04ff\s'-]", " ", text.lower())
+    return {w for w in low.split() if len(w) >= 4}
+
+
+def _match_score(diagnosis: str, description: str) -> float:
+    d_tokens = _token_set(diagnosis)
+    desc_tokens = _token_set(description)
+    if not d_tokens or not desc_tokens:
+        return 0.0
+    overlap = len(d_tokens & desc_tokens)
+    return overlap / max(len(d_tokens), 1)
+
+
+def _search_queries(term: str) -> list[str]:
+    queries: list[str] = []
+    base = _normalize_diag(term)
+    if base:
+        queries.append(base)
+    lower = base.lower()
+    for uz_key, en_term in _UZ_SEARCH_ALIASES.items():
+        if uz_key in lower and en_term not in queries:
+            queries.append(en_term)
+    # Birinchi 3–4 so'z (uzun tashxislar uchun)
+    words = base.split()
+    if len(words) > 4:
+        short = " ".join(words[:4])
+        if short not in queries:
+            queries.append(short)
+    return queries[:4]
 
 
 def lookup_from_protocol_db(diagnosis: str) -> dict[str, str] | None:
@@ -91,9 +142,9 @@ def lookup_from_protocol_db(diagnosis: str) -> dict[str, str] | None:
     }
 
 
-def _nih_search(query: str, max_list: int = 8) -> dict[str, str] | None:
+def _nih_search(query: str, max_list: int = 8) -> list[dict[str, str]]:
     if len(query) < 2:
-        return None
+        return []
     try:
         resp = requests.get(
             _NIH_URL,
@@ -103,28 +154,56 @@ def _nih_search(query: str, max_list: int = 8) -> dict[str, str] | None:
         resp.raise_for_status()
         data = resp.json()
         pairs = data[3] if isinstance(data, list) and len(data) > 3 else []
-        if not pairs:
-            return None
-        code = str(pairs[0][0]).strip().upper()
-        desc = str(pairs[0][1]).strip() if len(pairs[0]) > 1 else ""
-        if not is_valid_icd10(code):
-            return None
-        return {"code": code, "description": desc, "source": "nih"}
+        out: list[dict[str, str]] = []
+        for pair in pairs:
+            if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+                continue
+            code = str(pair[0]).strip().upper()
+            desc = str(pair[1]).strip()
+            if is_valid_icd10(code):
+                out.append({"code": code, "description": desc, "source": "nih"})
+        return out
     except Exception as exc:
         logger.warning("NIH ICD-10 lookup failed for %r: %s", query, exc)
+        return []
+
+
+def _best_nih_hit(diagnosis: str, max_list: int = 8) -> dict[str, str] | None:
+    best: dict[str, str] | None = None
+    best_score = 0.0
+    for query in _search_queries(diagnosis):
+        for hit in _nih_search(query, max_list):
+            score = _match_score(diagnosis, hit["description"])
+            if query != diagnosis and query in _UZ_SEARCH_ALIASES.values():
+                score += 0.15
+            if score > best_score:
+                best_score = score
+                best = hit
+    if best and best_score >= 0.12:
+        return best
+    # Juda qisqa nomlar uchun birinchi NIH natijasini qabul qilish
+    if best and len(_normalize_diag(diagnosis)) <= 24:
+        return best
+    return None
+
+
+def _nih_verify_code(code: str, diagnosis: str) -> dict[str, str] | None:
+    c = str(code or "").strip().upper()
+    if not is_valid_icd10(c):
         return None
+    hits = _nih_search(c, max_list=5)
+    for hit in hits:
+        if hit["code"] == c:
+            if _match_score(diagnosis, hit["description"]) >= 0.08:
+                return hit
+            # Kod to'g'ri formatda, lekin tashxis nomi qisqa bo'lsa ham qabul
+            if len(_normalize_diag(diagnosis)) <= 18:
+                return hit
+    return None
 
 
 def lookup_nih(term: str, max_list: int = 8) -> dict[str, str] | None:
-    query = _normalize_diag(term)
-    hit = _nih_search(query, max_list)
-    if hit:
-        return hit
-    lower = query.lower()
-    for uz_key, en_term in _UZ_SEARCH_ALIASES.items():
-        if uz_key in lower:
-            return _nih_search(en_term, max_list)
-    return None
+    return _best_nih_hit(term, max_list)
 
 
 def lookup_llm(diagnosis: str, language: str) -> dict[str, str] | None:
@@ -139,7 +218,7 @@ def lookup_llm(diagnosis: str, language: str) -> dict[str, str] | None:
             f'Tibbiy tashxis: "{name}". '
             f"MKB-10 (ICD-10-CM, 10-reviziya) bo'yicha ENG MOS va ANIQ kodni tanlang. "
             f"Til: {lang}. "
-            "Namuna/placeholder kodlar (X00.0, Z00.0) ISHLATMANG. "
+            "Namuna/placeholder kodlar (X00.0, Z00.0, R00.0) ISHLATMANG. "
             'FAQAT JSON: {"code":"I10","description":"...","search_term":"english diagnosis term"}',
             max_tokens=500,
         )
@@ -153,10 +232,13 @@ def lookup_llm(diagnosis: str, language: str) -> dict[str, str] | None:
         return None
     desc = str(data.get("description") or "").strip()
     search_term = str(data.get("search_term") or "").strip()
-    nih = lookup_nih(search_term or desc or name)
+    verified = _nih_verify_code(code, name)
+    if verified:
+        return verified
+    nih = _best_nih_hit(search_term or desc or name)
     if nih:
         return nih
-    return {"code": code, "description": desc, "source": "llm"}
+    return None
 
 
 def resolve_icd10(
@@ -173,22 +255,18 @@ def resolve_icd10(
     if proto:
         return proto
 
-    if llm_code and is_valid_icd10(llm_code):
-        nih = lookup_nih(name)
-        if nih:
-            return nih
-        nih_code = lookup_nih(llm_code)
-        if nih_code:
-            return nih_code
-        return {
-            "code": str(llm_code).strip().upper(),
-            "description": "",
-            "source": "consensus",
-        }
-
-    nih = lookup_nih(name)
+    nih = _best_nih_hit(name)
     if nih:
+        if llm_code and is_valid_icd10(llm_code):
+            llm_c = str(llm_code).strip().upper()
+            if llm_c == nih["code"]:
+                return nih
         return nih
+
+    if llm_code and is_valid_icd10(llm_code):
+        verified = _nih_verify_code(str(llm_code), name)
+        if verified:
+            return verified
 
     llm = lookup_llm(name, language)
     if llm:
@@ -209,8 +287,11 @@ def apply_icd10_to_consensus(consensus: dict, language: str = "uz-L") -> dict:
             hit = resolve_icd10(diag_name, language, cd.get("icd10"))
             if hit.get("code"):
                 cd["icd10"] = hit["code"]
-            if hit.get("description"):
-                cd["icd10_description"] = hit["description"]
+                if hit.get("description"):
+                    cd["icd10_description"] = hit["description"]
+            elif cd.get("icd10") and not is_valid_icd10(str(cd.get("icd10"))):
+                cd.pop("icd10", None)
+                cd.pop("icd10_description", None)
             consensus["consensus_diagnosis"] = cd
 
     diffs = consensus.get("differential_diagnoses") or []
@@ -225,8 +306,11 @@ def apply_icd10_to_consensus(consensus: dict, language: str = "uz-L") -> dict:
             hit = resolve_icd10(d_name, language, d.get("icd10"))
             if hit.get("code"):
                 d["icd10"] = hit["code"]
-            if hit.get("description"):
-                d["icd10_description"] = hit["description"]
+                if hit.get("description"):
+                    d["icd10_description"] = hit["description"]
+            elif d.get("icd10") and not is_valid_icd10(str(d.get("icd10"))):
+                d.pop("icd10", None)
+                d.pop("icd10_description", None)
         enriched.append(d)
     consensus["differential_diagnoses"] = enriched
     return consensus
