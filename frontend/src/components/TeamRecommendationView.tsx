@@ -16,33 +16,42 @@ interface TeamRecommendationViewProps {
     onConfirm: (confirmedTeam: { role: AIModel, backEndModel: string }[], orchestratorModel: string) => void;
 }
 
-// Internal constant for the most powerful model - not shown to user
 const INTERNAL_BEST_MODEL = "deepseek-chat";
+
+function buildRecommendedSelection(recs: { model: AIModel; reason: string }[]): Set<AIModel> {
+    const out = new Set<AIModel>();
+    for (const r of recs) {
+        if (!r?.model || out.size >= LIMITS.MAX_SPECIALISTS) break;
+        out.add(r.model);
+    }
+    return out;
+}
 
 const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recommendations, isProcessing, onConfirm }) => {
     const { t } = useTranslation();
     const [selectedSpecialists, setSelectedSpecialists] = useState<Set<AIModel>>(new Set());
     const [searchTerm, setSearchTerm] = useState("");
-    const [showAllSpecialists, setShowAllSpecialists] = useState(false);
     const listScrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Partial<Record<AIModel, HTMLDivElement | null>>>({});
-
-    // Initialize state when recommendations load - with null safety
-    useEffect(() => {
-        if (recommendations && Array.isArray(recommendations) && recommendations.length > 0) {
-            const initialSelection = new Set<AIModel>();
-            recommendations.slice(0, Math.min(6, recommendations.length)).forEach(r => {
-                if (r?.model) {
-                    initialSelection.add(r.model);
-                }
-            });
-            setSelectedSpecialists(initialSelection);
-        }
-    }, [recommendations]);
+    const selectionInitializedRef = useRef(false);
+    const userEditedSelectionRef = useRef(false);
 
     const recommendedModels = useMemo(() => {
         const safe = recommendations && Array.isArray(recommendations) ? recommendations : [];
         return new Set(safe.map((r) => r?.model).filter(Boolean) as AIModel[]);
+    }, [recommendations]);
+
+    // Avtomatik belgilash: birinchi tavsiya + DDx yangilanganda (foydalanuvchi o'zgartirmaguncha)
+    useEffect(() => {
+        if (!recommendations?.length) {
+            selectionInitializedRef.current = false;
+            userEditedSelectionRef.current = false;
+            setSelectedSpecialists(new Set());
+            return;
+        }
+        if (userEditedSelectionRef.current) return;
+        setSelectedSpecialists(buildRecommendedSelection(recommendations));
+        selectionInitializedRef.current = true;
     }, [recommendations]);
 
     const scrollToItem = useCallback((model: AIModel) => {
@@ -61,19 +70,21 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     }, []);
 
     const toggleSpecialist = (model: AIModel) => {
-        const newSelection = new Set(selectedSpecialists);
-        if (newSelection.has(model)) {
-            newSelection.delete(model);
-        } else {
-            if (newSelection.size >= LIMITS.MAX_SPECIALISTS) {
-                alert(t('alert_max_specialists').replace('{max}', String(LIMITS.MAX_SPECIALISTS)));
-                return;
+        userEditedSelectionRef.current = true;
+        setSelectedSpecialists((prev) => {
+            const next = new Set(prev);
+            if (next.has(model)) {
+                next.delete(model);
+                return next;
             }
-            newSelection.add(model);
-            // Tanlangan cardga scroll qilamiz
+            if (next.size >= LIMITS.MAX_SPECIALISTS) {
+                alert(t('alert_max_specialists').replace('{max}', String(LIMITS.MAX_SPECIALISTS)));
+                return prev;
+            }
+            next.add(model);
             requestAnimationFrame(() => scrollToItem(model));
-        }
-        setSelectedSpecialists(newSelection);
+            return next;
+        });
     };
 
     const handleConfirm = () => {
@@ -81,7 +92,6 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             alert(t('alert_min_specialists').replace('{min}', String(LIMITS.MIN_SPECIALISTS)));
             return;
         }
-        // Automatically assign the best model to all selected roles
         const teamPayload = Array.from(selectedSpecialists).map(role => ({
             role,
             backEndModel: INTERNAL_BEST_MODEL
@@ -89,15 +99,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
         onConfirm(teamPayload, INTERNAL_BEST_MODEL);
     };
 
-    // Filter and Sort Specialists - with null safety
     const filteredSpecialists = useMemo(() => {
         const allSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
         const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
-        const baseList = showAllSpecialists
-            ? allSpecialists
-            : safeRecommendations.map((r) => r.model).filter(Boolean);
 
-        return baseList.filter(model => {
+        return allSpecialists.filter(model => {
             const specInfo = AI_SPECIALISTS[model];
             if (!specInfo) return false;
             const searchLower = (searchTerm ?? '').toLowerCase();
@@ -108,19 +114,18 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 (specialtyTranslation ?? '').toLowerCase().includes(searchLower)
             );
         }).sort((a, b) => {
-            const isSelA = selectedSpecialists.has(a);
-            const isSelB = selectedSpecialists.has(b);
-            if (isSelA !== isSelB) return isSelA ? -1 : 1;
-
             const isRecA = safeRecommendations.some(r => r?.model === a);
             const isRecB = safeRecommendations.some(r => r?.model === b);
             if (isRecA !== isRecB) return isRecA ? -1 : 1;
 
+            const isSelA = selectedSpecialists.has(a);
+            const isSelB = selectedSpecialists.has(b);
+            if (isSelA !== isSelB) return isSelA ? -1 : 1;
+
             return AI_SPECIALISTS[a].name.localeCompare(AI_SPECIALISTS[b].name);
         });
-    }, [recommendations, selectedSpecialists, searchTerm, showAllSpecialists, t]);
+    }, [recommendations, selectedSpecialists, searchTerm, t]);
 
-    // Faqat boshlang'ich jamoa hali yo'q va kutilyapti — to'liq ekran spinner (DDX/AI fonda bo'lsa ham ko'rinmaydi)
     const waitingInitialTeam =
         isProcessing && (!recommendations || recommendations.length === 0);
 
@@ -147,20 +152,18 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
 
     return (
         <div className="glass-panel p-4 sm:p-6 animate-fade-in-up flex flex-col h-full min-h-0 overflow-hidden">
-            {/* Header */}
             <div className="flex-shrink-0 mb-3 text-center">
                 <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text animated-gradient-text tracking-tight mb-1">
                     Konsilium Tarkibini Shakllantirish
                 </h2>
                 <p className="text-sm text-text-secondary">
-                    <span className="font-bold text-accent-color-blue">{selectedSpecialists.size}</span> / 8 mutaxassis tanlandi (Min: {LIMITS.MIN_SPECIALISTS})
+                    <span className="font-bold text-accent-color-blue">{selectedSpecialists.size}</span> / {LIMITS.MAX_SPECIALISTS} mutaxassis tanlandi (Min: {LIMITS.MIN_SPECIALISTS})
                 </p>
                 <p className="text-xs text-text-secondary mt-1">
-                    Faqat kasallikka tegishli mutaxassislar tavsiya qilinadi
+                    Kasallikka tegishlilar avtomatik belgilangan — kerak bo&apos;lsa ro&apos;yxatdan qo&apos;shing yoki olib tashlang
                 </p>
             </div>
 
-            {/* Orchestrator */}
             <div className="flex-shrink-0 mb-3 p-2 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center gap-2">
                 <UsersIcon className="w-5 h-5 text-indigo-600 flex-shrink-0" />
                 <div>
@@ -169,32 +172,22 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 </div>
             </div>
 
-            {/* Main Content: 2 columns — flex-1 min-h-0 to fill remaining height */}
             <div className="flex-1 min-h-0 flex gap-3 sm:gap-4 overflow-hidden">
-                {/* LEFT: Specialist List */}
                 <div className="flex-1 min-h-0 flex flex-col">
-                    <div className="relative mb-2 flex gap-2">
+                    <div className="relative mb-2">
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Qidirish..."
-                            className="common-input flex-1 pl-9 py-2 text-sm"
+                            className="common-input w-full pl-9 py-2 text-sm"
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <button
-                            type="button"
-                            onClick={() => setShowAllSpecialists((v) => !v)}
-                            className="shrink-0 px-2 py-1 text-[10px] font-semibold rounded border border-slate-300 text-slate-600 hover:bg-white"
-                        >
-                            {showAllSpecialists ? 'Tavsiyalar' : 'Barchasi'}
-                        </button>
                     </div>
                     <div ref={listScrollRef} className="flex-1 min-h-0 overflow-y-auto touch-scroll-y bg-slate-50 rounded-lg border border-slate-200">
                         {filteredSpecialists.map((model) => {
                             const specialistInfo = AI_SPECIALISTS[model];
-                            const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
-                            const recommendation = safeRecommendations.find(r => r?.model === model);
+                            const isRecommended = recommendedModels.has(model);
                             const isSelected = selectedSpecialists.has(model);
                             return (
                                 <div
@@ -203,7 +196,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                     onClick={() => toggleSpecialist(model)}
                                     className={`p-2 flex items-center gap-2 border-b border-slate-100 cursor-pointer transition ${isSelected ? 'bg-blue-50 ring-1 ring-blue-300' : 'hover:bg-white'}`}
                                 >
-                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
                                         {isSelected && <CheckCircleIcon className="w-3 h-3 text-white" />}
                                     </div>
                                     <AIAvatar model={model} size="xs" />
@@ -215,11 +208,8 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                             {t(`specialty_${model.toLowerCase()}` as TranslationKey) || specialistInfo.specialty}
                                         </p>
                                     </div>
-                                    {recommendation && !showAllSpecialists && (
-                                        <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded">Tavsiya</span>
-                                    )}
-                                    {recommendedModels.has(model) && showAllSpecialists && (
-                                        <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded">Tavsiya</span>
+                                    {isRecommended && (
+                                        <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded shrink-0">Tavsiya</span>
                                     )}
                                 </div>
                             );
@@ -230,7 +220,6 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                     </div>
                 </div>
 
-                {/* RIGHT: Selected Specialists */}
                 <div className="w-52 sm:w-64 flex-shrink-0 flex flex-col min-h-0 bg-blue-50/30 rounded-lg border-2 border-blue-200 p-3">
                     <h3 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-1 flex-shrink-0">
                         <UsersIcon className="w-4 h-4" />
@@ -255,7 +244,6 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 </div>
             </div>
 
-            {/* Footer */}
             <div className="flex-shrink-0 pt-4 mt-4 border-t border-border-color">
                 <button
                     onClick={handleConfirm}
