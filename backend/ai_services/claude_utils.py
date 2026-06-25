@@ -57,9 +57,7 @@ def _model_pro():
 
 
 def _model_diagnosis():
-    mode = _ai_cost_mode()
-    if mode in ("scale", "economy"):
-        return _fast_model()
+    """Konsensus/tashxis — kuchli model (gpt-4o)."""
     return _pro_model()
 
 
