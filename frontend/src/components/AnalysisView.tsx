@@ -8,14 +8,11 @@ import SpinnerIcon from './icons/SpinnerIcon';
 import ChatMessage from './ChatMessage';
 import FinalReportCard from './FinalReportCard';
 import PrognosisCard from './report/PrognosisCard';
-import DownloadPanel from './DownloadPanel';
 import ErrorReportPlaceholder from './ErrorReportPlaceholder';
 import DebateStatusIndicator from './DebateStatusIndicator';
 import { ObjectiveVitalsCards } from './analysis/ObjectiveVitalsCards';
 import ErrorWithRetry from './ErrorWithRetry';
-import UsefulnessFeedbackCard from './UsefulnessFeedbackCard';
-import FollowUpAnalysis from './FollowUpAnalysis';
-import PhysicianSignOffCard from './report/PhysicianSignOffCard';
+import ReportFooterPanel from './report/ReportFooterPanel';
 import { useTranslation } from '../hooks/useTranslation';
 import { filterDebateForDisplay } from '../utils/debateDisplayFilter';
 
@@ -224,7 +221,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                         )}
                     </div>
                     <div className="p-5 flex-1 min-h-0 overflow-y-auto touch-scroll-y">
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {fr && <FinalReportCard report={fr} patientData={pd} onUpdateReport={onUpdateReport} />}
                             {!fr && error && <ErrorReportPlaceholder message={error} />}
                             {!fr && !error && (isAnalyzing || hasDebate) && (
@@ -250,26 +247,26 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                                     <p className="text-sm font-semibold text-text-primary italic">{t('analysis_final_report_after_finish')}</p>
                                 </div>
                             )}
-                            {fr && isLive && !isAnalyzing && onFollowUpSubmit && onFollowUpFinalize && (
-                                <FollowUpAnalysis
-                                    isAnalyzing={isFollowUpAnalyzing}
-                                    onSubmit={onFollowUpSubmit}
-                                    followUpHistory={followUpHistory}
-                                    isFinalized={isFollowUpFinalized}
-                                    onFinalize={onFollowUpFinalize}
-                                    isLive={isLive}
+                            {fr && (showDownloadSection || (record?.id && !isNaN(parseInt(record.id, 10)))) && (
+                                <ReportFooterPanel
+                                    analysisId={record?.id ? parseInt(record.id, 10) : undefined}
+                                    record={record}
+                                    hasError={!fr && !!error}
+                                    showDownload={showDownloadSection}
+                                    showSignOff={!isAnalyzing}
+                                    followUp={
+                                        isLive && !isAnalyzing && onFollowUpSubmit && onFollowUpFinalize
+                                            ? {
+                                                isAnalyzing: isFollowUpAnalyzing,
+                                                onSubmit: onFollowUpSubmit,
+                                                followUpHistory,
+                                                isFinalized: isFollowUpFinalized,
+                                                onFinalize: onFollowUpFinalize,
+                                                isLive,
+                                            }
+                                            : undefined
+                                    }
                                 />
-                            )}
-                            {record?.id && !isNaN(parseInt(record.id, 10)) && fr && (
-                                <UsefulnessFeedbackCard analysisId={parseInt(record.id, 10)} />
-                            )}
-                            {record?.id && !isNaN(parseInt(record.id, 10)) && fr && !isAnalyzing && (
-                                <PhysicianSignOffCard analysisId={parseInt(record.id, 10)} />
-                            )}
-                            {showDownloadSection && (
-                                <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-600">
-                                    <DownloadPanel record={record} hasError={!fr && !!error} />
-                                </div>
                             )}
                         </div>
                     </div>

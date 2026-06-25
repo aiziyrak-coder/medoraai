@@ -969,6 +969,7 @@ export const kaa: Partial<TranslationSet> = {
   pdf_tel_label: 'Tel',
   export_partial_note: 'Analiz xato menen tugadi. PDF/Word ishinde nawqas ma\\\'lumotlari hám talqılaw kirgiziledi.',
   export_report_title: 'Umumiy konsilium esabatini júklep alıw',
+  report_footer_panel_title: 'Soraw, tastıyqlaw hám júklep alıw',
   final_report_attention_critical: 'DIQQAT! KRITIK TOPILMA!',
   final_report_consensus_diagnoses: 'Konsensus diagnoz(lar)',
   final_report_consensus_pending: 'Konsensus diagnozı munozara juwmaǵında qáliplesedi. Tómendegi klinikalıq xulasa:',

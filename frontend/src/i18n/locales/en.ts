@@ -557,6 +557,7 @@ export const en = {
   error_retry_button: 'Retry',
 
   export_report_title: 'Download full consilium report',
+  report_footer_panel_title: 'Q&A, sign-off & export',
   export_download_pdf: 'Download PDF',
   export_download_word: 'Download Word',
   export_downloading: 'Downloading…',

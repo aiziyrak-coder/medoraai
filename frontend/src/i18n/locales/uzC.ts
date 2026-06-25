@@ -510,6 +510,7 @@ export const uzC: TranslationSet = {
   error_retry_button: 'Қайта уриниш',
 
   export_report_title: 'Умумий консилиум ҳисоботини юклаб олиш',
+  report_footer_panel_title: 'Савол, тасдиқ ва юклаб олиш',
   export_download_pdf: 'PDF юклаб олиш',
   export_download_word: 'Word юклаб олиш',
   export_downloading: 'Юкланмоқда…',

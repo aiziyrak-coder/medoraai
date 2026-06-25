@@ -9,9 +9,10 @@ interface FollowUpAnalysisProps {
     isFinalized: boolean;
     onFinalize: () => void;
     isLive: boolean;
+    compact?: boolean;
 }
 
-const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubmit, followUpHistory, isFinalized, onFinalize, isLive }) => {
+const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubmit, followUpHistory, isFinalized, onFinalize, isLive, compact }) => {
     const { t } = useTranslation();
     const [question, setQuestion] = useState('');
     const [showFinalizePrompt, setShowFinalizePrompt] = useState(false);
@@ -43,6 +44,57 @@ const FollowUpAnalysis: React.FC<FollowUpAnalysisProps> = ({ isAnalyzing, onSubm
         setShowFinalizePrompt(false);
         onFinalize();
     };
+
+    if (compact) {
+        return (
+            <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-700">{t('follow_up_section_title')}</p>
+                {followUpHistory.length > 0 && (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {followUpHistory.map((item, index) => (
+                            <div key={index} className="text-[11px] space-y-1">
+                                <p className="text-blue-700 font-medium">Q: {item.question}</p>
+                                <p className="text-slate-600 line-clamp-3">A: {item.answer}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {isLive && !isFinalized && (
+                    showFinalizePrompt ? (
+                        <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={handleContinue} className="px-2 py-1 text-xs rounded-md border border-slate-300 bg-white hover:bg-slate-50">
+                                {t('follow_up_btn_yes')}
+                            </button>
+                            <button type="button" onClick={handleFinalize} className="px-2 py-1 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                                {t('follow_up_btn_finalize')}
+                            </button>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="flex gap-2">
+                            <input
+                                type="text"
+                                value={question}
+                                onChange={(e) => setQuestion(e.target.value)}
+                                placeholder={t('follow_up_placeholder_example')}
+                                className="flex-1 min-w-0 rounded-md border border-slate-300 text-xs px-2 py-1.5 common-input"
+                                disabled={isAnalyzing}
+                            />
+                            <button
+                                type="submit"
+                                disabled={isAnalyzing || !question.trim()}
+                                className="shrink-0 px-2.5 py-1.5 text-xs font-semibold rounded-md text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60"
+                            >
+                                {isAnalyzing ? '…' : t('follow_up_submit')}
+                            </button>
+                        </form>
+                    )
+                )}
+                {isLive && isFinalized && followUpHistory.length > 0 && (
+                    <p className="text-[11px] text-emerald-700 font-medium">{t('follow_up_session_done')}</p>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="mt-8 pt-8 border-t-2 border-border-color animate-fade-in-up follow-up-section" style={{ animationDelay: '0.5s' }}>

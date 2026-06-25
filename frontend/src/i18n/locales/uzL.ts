@@ -563,6 +563,7 @@ export const uzL: TranslationSet = {
 
   // Export (Download panel)
   export_report_title: 'Umumiy konsilium hisobotini yuklab olish',
+  report_footer_panel_title: 'Savol, tasdiq va yuklab olish',
   export_download_pdf: 'PDF yuklab olish',
   export_download_word: 'Word yuklab olish',
   export_downloading: 'Yuklanmoqda…',

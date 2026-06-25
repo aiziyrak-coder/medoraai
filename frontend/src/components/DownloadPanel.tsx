@@ -40,11 +40,11 @@ async function getInstituteLogoDataUrl(): Promise<string | undefined> {
 
 interface DownloadPanelProps {
     record: Partial<AnalysisRecord>;
-    /** True when analysis ended with error — still allow export of patient + debate. */
     hasError?: boolean;
+    compact?: boolean;
 }
 
-const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
+const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError, compact }) => {
     const { t, language } = useTranslation();
     const [exporting, setExporting] = useState<'pdf' | 'docx' | null>(null);
     const [exportError, setExportError] = useState<string | null>(null);
@@ -107,55 +107,52 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError }) => {
 
     const canFhir = isApiConfigured() && record.id && !isNaN(parseInt(record.id, 10)) && parseInt(record.id, 10) > 0;
 
+    const btnClass = compact
+        ? 'inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed'
+        : 'flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+
     return (
-        <div className="space-y-4">
+        <div className={compact ? 'space-y-1.5' : 'space-y-4'}>
             {hasError && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500">
                     {t('export_partial_note' as TranslationKey)}
                 </p>
             )}
             {exportError && (
-                <p className="text-xs text-red-600 dark:text-red-400" role="alert">
-                    {exportError}
-                </p>
+                <p className="text-[11px] text-red-600" role="alert">{exportError}</p>
             )}
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-600">
-                <h4 className="font-bold text-text-primary mb-3">{t('export_report_title' as TranslationKey)}</h4>
-                <div className="flex flex-col sm:flex-row gap-3">
+            <div className={compact ? '' : 'p-4 rounded-xl border border-slate-200 dark:border-slate-600'}>
+                {!compact && <h4 className="font-bold text-text-primary mb-3">{t('export_report_title' as TranslationKey)}</h4>}
+                {compact && (
+                    <p className="text-xs font-semibold text-slate-600 mb-2">{t('export_report_title' as TranslationKey)}</p>
+                )}
+                <div className={compact ? 'flex flex-wrap gap-2' : 'flex flex-col sm:flex-row gap-3'}>
                     <button
                         type="button"
                         disabled={exporting !== null}
                         onClick={() => void handlePdfDownload()}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors border border-slate-600"
+                        className={`${btnClass} text-white bg-slate-700 hover:bg-slate-800 border border-slate-600`}
                     >
-                        <DownloadIcon className="w-4 h-4" />
-                        <span>
-                            {exporting === 'pdf'
-                                ? t('export_downloading' as TranslationKey)
-                                : t('export_download_pdf' as TranslationKey)}
-                        </span>
+                        <DownloadIcon className="w-3.5 h-3.5" />
+                        <span>{exporting === 'pdf' ? t('export_downloading' as TranslationKey) : (compact ? 'PDF' : t('export_download_pdf' as TranslationKey))}</span>
                     </button>
                     <button
                         type="button"
                         disabled={exporting !== null}
                         onClick={() => void handleDocxDownload()}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-colors border border-slate-600"
+                        className={`${btnClass} text-white bg-slate-700 hover:bg-slate-800 border border-slate-600`}
                     >
-                        <DownloadIcon className="w-4 h-4" />
-                        <span>
-                            {exporting === 'docx'
-                                ? t('export_downloading' as TranslationKey)
-                                : t('export_download_word' as TranslationKey)}
-                        </span>
+                        <DownloadIcon className="w-3.5 h-3.5" />
+                        <span>{exporting === 'docx' ? t('export_downloading' as TranslationKey) : (compact ? 'Word' : t('export_download_word' as TranslationKey))}</span>
                     </button>
                     {canFhir && (
                         <button
                             type="button"
                             onClick={() => void handleFhirExport()}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 px-4 text-sm font-semibold text-cyan-900 bg-cyan-100 hover:bg-cyan-200 rounded-xl transition-colors border border-cyan-300"
+                            className={`${btnClass} text-cyan-900 bg-cyan-100 hover:bg-cyan-200 border border-cyan-300`}
                         >
-                            <DownloadIcon className="w-4 h-4" />
-                            <span>{t('fhir_export_btn')}</span>
+                            <DownloadIcon className="w-3.5 h-3.5" />
+                            <span>{compact ? 'FHIR' : t('fhir_export_btn')}</span>
                         </button>
                     )}
                 </div>

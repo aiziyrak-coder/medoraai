@@ -559,6 +559,7 @@ export const ru: TranslationSet = {
   error_retry_button: 'Повторить',
 
   export_report_title: 'Скачать общий отчёт консилиума',
+  report_footer_panel_title: 'Вопросы, подтверждение и экспорт',
   export_download_pdf: 'Скачать PDF',
   export_download_word: 'Скачать Word',
   export_downloading: 'Загрузка…',

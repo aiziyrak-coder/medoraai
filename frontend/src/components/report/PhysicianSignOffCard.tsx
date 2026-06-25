@@ -6,9 +6,10 @@ import { physicianSignAnalysis } from '../../services/apiAnalysisService';
 
 interface PhysicianSignOffCardProps {
   analysisId: number;
+  compact?: boolean;
 }
 
-const PhysicianSignOffCard: React.FC<PhysicianSignOffCardProps> = ({ analysisId }) => {
+const PhysicianSignOffCard: React.FC<PhysicianSignOffCardProps> = ({ analysisId, compact }) => {
   const { t } = useTranslation();
   const [note, setNote] = useState('');
   const [signedAt, setSignedAt] = useState<string | null>(null);
@@ -37,17 +38,51 @@ const PhysicianSignOffCard: React.FC<PhysicianSignOffCardProps> = ({ analysisId 
   };
 
   if (signedAt) {
-    return (
-      <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50">
-        <div className="flex items-center gap-2 text-emerald-800 font-semibold">
-          <ShieldCheckIcon className="w-5 h-5" />
+    const inner = (
+      <>
+        <div className={`flex items-center gap-1.5 font-semibold text-emerald-800 ${compact ? 'text-xs' : ''}`}>
+          <ShieldCheckIcon className={compact ? 'w-4 h-4' : 'w-5 h-5'} />
           {t('physician_sign_success')}
         </div>
-        <p className="text-sm text-emerald-700 mt-1">
+        <p className={`text-emerald-700 mt-0.5 ${compact ? 'text-[11px]' : 'text-sm'}`}>
           {signedBy && <span>{signedBy} · </span>}
           {new Date(signedAt).toLocaleString()}
         </p>
-        {note && <p className="text-sm text-emerald-600 mt-2 italic">{note}</p>}
+        {note && <p className={`text-emerald-600 mt-1 italic ${compact ? 'text-[11px]' : 'text-sm'}`}>{note}</p>}
+      </>
+    );
+    return compact ? (
+      <div>{inner}</div>
+    ) : (
+      <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50">{inner}</div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+          <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-600" />
+          {t('physician_sign_title')}
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={t('physician_sign_note_placeholder')}
+            className="flex-1 min-w-0 rounded-md border border-slate-300 bg-white text-xs px-2 py-1.5 common-input"
+          />
+          <button
+            type="button"
+            onClick={handleSign}
+            disabled={loading}
+            className="shrink-0 px-2.5 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {loading ? '…' : t('physician_sign_btn')}
+          </button>
+        </div>
+        {error && <p className="text-[11px] text-red-600">{error}</p>}
       </div>
     );
   }
