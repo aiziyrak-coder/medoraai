@@ -1109,7 +1109,7 @@ report_dosage: 'Дозаси',
   consilium_rerun: '🔄 Қайта ўтказиш',
   consilium_error: 'Консилиум хатоси',
   consilium_phase_independent: '1-фаза: Мустақил таҳлил',
-  consilium_phase_debate: '2-фаза: Баҳслар (cross-examination)',
+  consilium_phase_debate: '2-фаза: Баҳслар (ўзаро сўров)',
   consilium_phase_consensus: '3-фаза: Консенсус хулосаси',
 
   tools_page_title: 'Тиббий ёрдамчи инструментлар',

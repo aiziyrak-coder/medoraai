@@ -21,6 +21,17 @@ import type { TranslationKey } from '../i18n/translationKeys';
 import { buildCompactExportData } from '../utils/compactExportSections';
 import { EXPORT_THEME_HEX } from '../utils/exportDocumentTheme';
 import { createExportTr, formatExportDate, pdfText } from '../utils/exportI18n';
+import {
+    prepareExportReport,
+    buildImagingExportLines,
+    buildFollowUpExportLines,
+    buildReferralExportLines,
+    buildPrognosisExportLines,
+    buildMedicationExportLine,
+    buildRoutingExportLines,
+    buildRiskExportLines,
+} from '../utils/exportReportSections';
+import { normalizeConsensusDiagnosis } from '../types';
 
 const cellMargins = { top: 80, bottom: 80, left: 120, right: 120 };
 const tableBorders = {
@@ -102,7 +113,8 @@ export const generateDocxReport = async (
     language: Language = 'uz-L',
 ) => {
     const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
-    const compact = buildCompactExportData(report, patientData, tr);
+    const reportNorm = prepareExportReport(report);
+    const compact = buildCompactExportData(reportNorm, patientData, tr);
     const dateStr = formatExportDate(language);
     const children: (Paragraph | Table)[] = [];
 
@@ -166,7 +178,7 @@ export const generateDocxReport = async (
                 new TableRow({
                     children: [
                         shadedCell([labelPara(tr('pdf_patient', 'Bemor'), compact.patientName)], EXPORT_THEME_HEX.white, { width: 40 }),
-                        shadedCell([labelPara(tr('pdf_age', 'Yoshi'), `${compact.age} ${tr('pdf_age', 'yosh')}`)], EXPORT_THEME_HEX.white, { width: 30 }),
+                        shadedCell([labelPara(tr('pdf_age', 'Yoshi'), `${compact.age} ${tr('pdf_age_unit', 'yosh')}`)], EXPORT_THEME_HEX.white, { width: 30 }),
                         shadedCell([labelPara(tr('pdf_gender', 'Jinsi'), compact.gender)], EXPORT_THEME_HEX.white, { width: 30 }),
                     ],
                 }),
@@ -319,6 +331,57 @@ export const generateDocxReport = async (
             }),
             new Paragraph({ text: '', spacing: { after: 120 } }),
         );
+    }
+
+    const addBulletSection = (title: string, lines: string[], bar: string, bg: string) => {
+        if (!lines.length) return;
+        children.push(sectionHeader(title, bar));
+        children.push(
+            new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: lines.map((line, idx) => new TableRow({
+                    children: [shadedCell([bulletPara(line)], idx % 2 === 0 ? bg : EXPORT_THEME_HEX.white)],
+                })),
+            }),
+            new Paragraph({ text: '', spacing: { after: 120 } }),
+        );
+    };
+
+    const allDiagnoses = normalizeConsensusDiagnosis(reportNorm.consensusDiagnosis).slice(0, 6);
+    if (allDiagnoses.length > 1) {
+        addBulletSection(
+            tr('pdf_diagnoses', 'Barcha tashxislar'),
+            allDiagnoses.map((d, i) => {
+                const pct = Number.isFinite(d.probability) ? ` (${d.probability}%)` : '';
+                const icd = d.icd10 ? ` [${d.icd10}]` : '';
+                return `${i + 1}. ${d.name}${pct}${icd}`;
+            }),
+            EXPORT_THEME_HEX.diagnosis,
+            EXPORT_THEME_HEX.diagnosisBg,
+        );
+    }
+
+    if (reportNorm.simplifiedFamilyExplanation?.trim()) {
+        children.push(sectionHeader(tr('final_report_family_explanation', 'Bemor va oila uchun tushuntirish'), EXPORT_THEME_HEX.primary));
+        children.push(
+            new Paragraph({
+                children: [new TextRun({ text: reportNorm.simplifiedFamilyExplanation, size: 20, color: EXPORT_THEME_HEX.text })],
+                spacing: { after: 120 },
+            }),
+        );
+    }
+
+    addBulletSection(tr('final_report_imaging_title', 'Tasvirlash tahlili'), buildImagingExportLines(reportNorm, tr), EXPORT_THEME_HEX.accent, EXPORT_THEME_HEX.cardBg);
+    addBulletSection(tr('pdf_tests', "Qo'shimcha tekshiruvlar"), (reportNorm.recommendedTests || []).map(String).filter(Boolean).slice(0, 8), EXPORT_THEME_HEX.treatment, EXPORT_THEME_HEX.treatmentBg);
+    addBulletSection(tr('final_report_follow_up_title', 'Kuzatuv rejasi'), buildFollowUpExportLines(reportNorm, tr), EXPORT_THEME_HEX.primary, EXPORT_THEME_HEX.cardBg);
+    addBulletSection(tr('final_report_referrals_title', 'Mutaxassis konsultatsiyasi'), buildReferralExportLines(reportNorm, tr), EXPORT_THEME_HEX.primary, EXPORT_THEME_HEX.cardBg);
+    addBulletSection(tr('final_report_prognosis_title', 'Kasallik prognozi'), buildPrognosisExportLines(reportNorm, tr), EXPORT_THEME_HEX.diagnosis, EXPORT_THEME_HEX.diagnosisBg);
+    addBulletSection(tr('routing_title', 'Bemor marshrutlash'), buildRoutingExportLines(reportNorm, tr), EXPORT_THEME_HEX.accent, EXPORT_THEME_HEX.cardBg);
+    addBulletSection(tr('risk_factors_title', 'Xavf omillari'), buildRiskExportLines(reportNorm, tr), EXPORT_THEME_HEX.alert, EXPORT_THEME_HEX.alertBg);
+
+    const extraMeds = (reportNorm.medicationRecommendations || []).slice(0, 8).map((m) => buildMedicationExportLine(m, tr));
+    if (extraMeds.length > compact.medications.length) {
+        addBulletSection(tr('pdf_medications', 'Dori-darmonlar (to\'liq)'), extraMeds, EXPORT_THEME_HEX.medication, EXPORT_THEME_HEX.medicationBg);
     }
 
     children.push(

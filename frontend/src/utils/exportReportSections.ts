@@ -130,6 +130,58 @@ export function buildRiskExportLines(report: FinalReport, tr: ExportTr): string[
   return lines;
 }
 
+export function buildFollowUpExportLines(report: FinalReport, tr: ExportTr): string[] {
+  return (report.followUpPlan || []).map((task) => {
+    const who =
+      task.responsible === 'Patient'
+        ? tr('followup_responsible_patient', 'Bemor')
+        : tr('followup_responsible_clinician', 'Shifokor');
+    return [task.task, task.timeline, who].filter(Boolean).join(' — ');
+  });
+}
+
+export function buildReferralExportLines(report: FinalReport, tr: ExportTr): string[] {
+  return (report.referrals || []).map((ref) => {
+    const urg =
+      ref.urgency === 'Urgent'
+        ? tr('routing_urgent', 'Shoshilinch')
+        : tr('routing_routine', 'Rejadagi');
+    return `${ref.specialty}: ${ref.reason} (${urg})`;
+  });
+}
+
+export function buildPrognosisExportLines(report: FinalReport, tr: ExportTr): string[] {
+  const p = report.prognosisReport;
+  if (!p) return [];
+  const lines: string[] = [];
+  if (p.shortTermPrognosis) {
+    lines.push(`${tr('prognosis_section_short', 'Qisqa muddatli (1–3 oy)')}: ${p.shortTermPrognosis}`);
+  }
+  if (p.longTermPrognosis) {
+    lines.push(`${tr('prognosis_section_long', 'Uzoq muddatli (1–5 yil)')}: ${p.longTermPrognosis}`);
+  }
+  (p.keyFactors || []).forEach((f) => lines.push(`• ${f}`));
+  return lines;
+}
+
+export function buildLifestyleExportLines(report: FinalReport, tr: ExportTr): string[] {
+  const lp = report.lifestylePlan;
+  if (!lp) return [];
+  const lines: string[] = [];
+  if (lp.diet?.length) {
+    lines.push(`${tr('final_report_diet_rec', 'Ovqatlanish tavsiyalari')}: ${lp.diet.join('; ')}`);
+  }
+  if (lp.exercise?.length) {
+    lines.push(`${tr('final_report_exercise_rec', 'Jismoniy mashqlar')}: ${lp.exercise.join('; ')}`);
+  }
+  (lp.other || []).forEach((r) => lines.push(`• ${r}`));
+  return lines;
+}
+
+export function buildPharmacologyWarningLines(report: FinalReport): string[] {
+  return (report.pharmacologyWarnings || []).filter(Boolean);
+}
+
 export function buildIndividualDietLines(report: FinalReport, tr: ExportTr): string[] {
   const plans = report.nutritionPrevention?.individualDietByDiagnosis;
   if (!plans?.length) return [];

@@ -694,7 +694,7 @@ export const kaa: Partial<TranslationSet> = {
   consilium_rerun: '🔄 Qayta ótkiziw',
   consilium_error: 'Konsilium qáteligi',
   consilium_phase_independent: '1-faza: Mustaqil tahlil',
-  consilium_phase_debate: '2-faza: Pikir tartısı (cross-examination)',
+  consilium_phase_debate: '2-faza: Pikir tartısı (ózbekara soraw)',
   consilium_phase_consensus: '3-faza: Konsensus xulası',
 
   tools_page_title: 'Medicina járdemshi instrumentleri',
