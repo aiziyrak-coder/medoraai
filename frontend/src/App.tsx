@@ -7,6 +7,7 @@ import * as authService from './services/apiAuthService';
 import * as caseService from './services/caseService';
 import { useTranslation } from './hooks/useTranslation';
 import { getSpecialistsFromComplaint, mergeSpecialistRecommendations } from './utils/specialistRecommendation';
+import { inferFallbackSpecialists } from './utils/specialistTeamFallback';
 import { checkPatientComplaintConsistency } from './utils/smartValidation';
 import {
     getPriorAnalysesForPatient,
@@ -27,7 +28,6 @@ import { getAuthToken, clearTokens } from './services/api';
 import {
     generateClarifyingQuestions as apiBackendClarifyingQuestions,
     generateInitialDiagnoses as apiBackendInitialDiagnoses,
-    recommendSpecialists as apiRecommendSpecialists,
 } from './services/apiAiService';
 import { getAnalysis } from './services/apiAnalysisService';
 import { enrichFinalReport } from './utils/reportNormalize';
@@ -688,7 +688,7 @@ const AppContent: React.FC = () => {
         setRecommendedTeam(instantTeam);
         setAppView('team_recommendation');
 
-        // DDX va mutaxassis API — fonda; global isProcessing yo'q (jamoa sahifasi darhol, spinner bloklamaydi)
+        // DDx fonda — mutaxassis ro'yxatini faqat DDx bo'yicha boyitish
         void (async () => {
             let diagnoses: Diagnosis[] = [];
             try {
@@ -706,16 +706,11 @@ const AppContent: React.FC = () => {
                 }
                 setDifferentialDiagnoses(diagnoses);
                 if (diagnoses.length > 0) {
-                    try {
-                        const recResp = await apiRecommendSpecialists(enrichedPatientData, diagnoses);
-                        if (recResp.success && recResp.data?.recommendations?.length) {
-                            setRecommendedTeam((prev) =>
-                                mergeSpecialistRecommendations(prev ?? [], recResp.data!.recommendations),
-                            );
-                        }
-                    } catch {
-                        /* tavsiya ixtiyoriy */
-                    }
+                    const scored = getSpecialistsFromComplaint(enrichedPatientData, diagnoses);
+                    const ddxBoost = inferFallbackSpecialists(enrichedPatientData, diagnoses);
+                    setRecommendedTeam((prev) =>
+                        mergeSpecialistRecommendations(scored, ddxBoost, 8),
+                    );
                 }
             } catch {
                 /* ignore */

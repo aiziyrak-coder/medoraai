@@ -1496,10 +1496,14 @@ async function runBackendConsilium(
     patientData: PatientData,
     language: Language,
     onProgress: (update: ProgressUpdate) => void,
+    context?: { selectedSpecialists?: string[]; differentialDiagnoses?: Diagnosis[] },
 ): Promise<void> {
     const { runConsilium } = await import('./apiAiService');
     onProgress({ type: 'status', message: backendConsiliumStatus[language] || backendConsiliumStatus['uz-L'] });
-    const resp = await runConsilium(patientData, language);
+    const resp = await runConsilium(patientData, language, {
+        selectedSpecialists: context?.selectedSpecialists,
+        differentialDiagnoses: context?.differentialDiagnoses,
+    });
     if (!resp.success || !resp.data?.final_report) {
         const msg = resp.error?.message || 'Server konsiliumi xatosi';
         throw new Error(msg);
@@ -1618,7 +1622,10 @@ export const runCouncilDebate = async (
 ): Promise<void> => {
     if (isApiConfigured()) {
         try {
-            await runBackendConsilium(patientData, language, onProgress);
+            await runBackendConsilium(patientData, language, onProgress, {
+                selectedSpecialists: specialistsConfig.map((s) => s.role),
+                differentialDiagnoses: diagnoses,
+            });
             return;
         } catch (e) {
             logger.warn('Backend consilium failed', e);

@@ -72,19 +72,10 @@ export function inferFallbackSpecialists(
 
   const pool: AIModel[] = [
     AIModel.INTERNAL_MEDICINE,
-    AIModel.EMERGENCY,
-    AIModel.FAMILY_MEDICINE,
-    AIModel.PULMONOLOGIST,
-    AIModel.GASTRO,
-    AIModel.NEPHROLOGIST,
-    AIModel.HEMATOLOGIST,
-    AIModel.GEMINI,
-    AIModel.CLAUDE,
-    AIModel.GPT,
   ];
   for (const m of pool) {
-    add(m, 'Keng konsilium uchun qo‘llab-quvvatlovchi profil');
-    if (out.length >= 6) break;
+    add(m, 'Umumiy klinik baholash');
+    if (out.length >= 3) break;
   }
 
   return out.slice(0, 8);

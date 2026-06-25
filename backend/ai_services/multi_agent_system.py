@@ -70,6 +70,9 @@ from .consilium_cost import (
     phase2_max_tokens,
     phase3_max_tokens,
     pharma_max_tokens,
+    phase_timeout_sec,
+    skip_phase2_debate,
+    consilium_agent_limit,
 )
 from .clinical_context import build_clinical_context
 from .report_fields import (
@@ -167,6 +170,9 @@ ORCHESTRATOR = Agent(
 _AGENT_ID_MAP: dict[str, Agent] = {a.id: a for a in AGENTS}
 _AGENT_ID_MAP[ORCHESTRATOR.id] = ORCHESTRATOR
 
+# Joriy konsilium uchun faol agentlar (run_consilium boshida o'rnatiladi)
+_active_consilium_agents: list[Agent] = list(AGENTS)
+
 # Konsilium professor idlari (multi_agent_consilium bilan mos)
 _PROF_ID_ALIASES: dict[str, str] = {
     "chair": ORCHESTRATOR.id,
@@ -188,8 +194,36 @@ def _agent_specialty_label(agent_id: str) -> str:
 
 
 def _active_agents() -> list[Agent]:
-    """Barcha konsilium agentlari (4 ta professor) — kamaytirilmaydi."""
-    return list(AGENTS)
+    """Joriy konsilium uchun tanlangan professor agentlari."""
+    return list(_active_consilium_agents)
+
+
+def _configure_consilium_agents(extra: Optional[dict] = None) -> list[Agent]:
+    """Bemor va tanlangan mutaxassislarga mos agentlar."""
+    global _active_consilium_agents
+    from .specialist_routing import agent_ids_for_specialists
+
+    extra = extra or {}
+    patient_data = extra.get("patient_data") or {}
+    selected = extra.get("selected_specialists") or []
+    ddx = extra.get("differential_diagnoses") or []
+
+    agent_ids = agent_ids_for_specialists(selected, patient_data, ddx)
+    limit = consilium_agent_limit()
+    picked: list[Agent] = []
+    for aid in agent_ids:
+        agent = _AGENT_ID_MAP.get(aid)
+        if agent and agent.id != ORCHESTRATOR.id and agent not in picked:
+            picked.append(agent)
+        if len(picked) >= limit:
+            break
+
+    if len(picked) < 2:
+        picked = list(AGENTS)[:limit]
+
+    _active_consilium_agents = picked
+    logger.info("Consilium agents: %s", [a.id for a in picked])
+    return picked
 
 
 _LANG_HINT: dict[str, str] = {
@@ -252,7 +286,7 @@ def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
     from .consilium_cost import ai_cost_mode
 
     lang = _LANG_HINT.get(language, _LANG_HINT["uz-L"])
-    roster = format_specialist_roster(AGENTS)
+    roster = format_specialist_roster(_active_agents())
     t0 = time.monotonic()
 
     if ai_cost_mode() in ("scale", "economy"):
@@ -371,13 +405,14 @@ def run_phase1(patient_str: str) -> list[dict]:
     """Mustaqil tahlil — faol agentlar parallel."""
     agents = _active_agents()
     order = {a.id: i for i, a in enumerate(agents)}
+    timeout = phase_timeout_sec()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
         futures = {pool.submit(_phase1_single, a, patient_str): a for a in agents}
         results = []
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=55))
+                results.append(fut.result(timeout=timeout))
             except Exception as exc:
                 logger.error("Phase1 timeout[%s]: %s", agent.id, exc)
                 results.append({
@@ -386,6 +421,28 @@ def run_phase1(patient_str: str) -> list[dict]:
                 })
     results.sort(key=lambda x: order.get(x.get("agent_id", ""), 99))
     return results
+
+
+def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
+    """Phase 2 o'tkazib yuborilganda — P1 dan yengil sintez."""
+    out: list[dict] = []
+    for row in p1:
+        if not isinstance(row, dict):
+            continue
+        rc = row.get("reasoning_chain") or []
+        key_arg = rc[0] if isinstance(rc, list) and rc else ""
+        out.append({
+            "agent_id": row.get("agent_id"),
+            "agent_name": row.get("agent_name"),
+            "revised_diagnosis": row.get("primary_diagnosis"),
+            "revised_probability": row.get("probability"),
+            "refutations": [],
+            "defense": {"my_diagnosis_stands": True, "argument": "", "new_evidence": ""},
+            "accepted_from_others": [],
+            "key_argument": key_arg,
+            "skipped_debate": True,
+        })
+    return out
 
 
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
@@ -481,10 +538,15 @@ def _phase2_single(agent: Agent, patient_str: str,
 
 
 def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
-    """Bahslashuv — faol agentlar parallel."""
+    """Bahslashuv — faol agentlar parallel (scale rejimida sintez)."""
+    if skip_phase2_debate():
+        logger.info("Phase 2 skipped (scale/economy) — synthesizing from Phase 1")
+        return _synthesize_phase2_from_phase1(p1)
+
     agents = _active_agents()
     order      = {a.id: i for i, a in enumerate(agents)}
     id_to_p1   = {r.get("agent_id"): r for r in p1}
+    timeout = phase_timeout_sec()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
         futures = {}
         for agent in agents:
@@ -495,7 +557,7 @@ def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
             try:
-                results.append(fut.result(timeout=55))
+                results.append(fut.result(timeout=timeout))
             except Exception as exc:
                 logger.error("Phase2 timeout[%s]: %s", agent.id, exc)
                 results.append({"agent_id": agent.id, "error": str(exc)})
@@ -1042,29 +1104,43 @@ def run_consilium(
     t_start = time.monotonic()
     now     = timezone.now()
 
+    ctx_extra = extra or {}
+    ptext = build_clinical_context(patient_data, ctx_extra, language=language)
+
+    agent_ctx = {
+        **ctx_extra,
+        "patient_data": patient_data,
+        "selected_specialists": (
+            ctx_extra.get("selected_specialists")
+            or patient_data.get("selectedSpecialists")
+            or patient_data.get("selected_specialists")
+            or []
+        ),
+        "differential_diagnoses": ctx_extra.get("differential_diagnoses") or [],
+    }
+    active = _configure_consilium_agents(agent_ctx)
+
     result = ConsiliumResult(
         session_id  = f"consilium_{now.strftime('%Y%m%d_%H%M%S')}",
         started_at  = now.isoformat(),
         language    = language,
         professors  = [
             {"id": a.id, "name": a.name, "title": a.title, "specialty": a.specialty}
-            for a in [ORCHESTRATOR] + AGENTS
+            for a in [ORCHESTRATOR] + active
         ],
     )
 
-    ctx_extra = extra or {}
-    ptext = build_clinical_context(patient_data, ctx_extra, language=language)
     # Orchestrator opening
     logger.info("[%s] Orchestrator: konsilium ochilmoqda", result.session_id)
     opening = run_orchestrator_opening(ptext, language)
     result.phases["orchestrator_opening"] = opening
 
     # Phase 1 — to'liq klinik kontekst
-    logger.info("[%s] Phase 1: Independent analysis started", result.session_id)
+    logger.info("[%s] Phase 1: Independent analysis started (%d agents)", result.session_id, len(active))
     p1 = run_phase1(ptext)
     result.phases["phase1_independent"] = p1
 
-    # Phase 2 — to'liq kontekst (mutaxassislar chuqur bahslashadi)
+    # Phase 2 — scale rejimida sintez, aks holda bahslashuv
     logger.info("[%s] Phase 2: Cross-examination started", result.session_id)
     p2 = run_phase2(ptext, p1)
     result.phases["phase2_debate"] = p2

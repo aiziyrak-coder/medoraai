@@ -23,6 +23,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     const { t } = useTranslation();
     const [selectedSpecialists, setSelectedSpecialists] = useState<Set<AIModel>>(new Set());
     const [searchTerm, setSearchTerm] = useState("");
+    const [showAllSpecialists, setShowAllSpecialists] = useState(false);
     const listScrollRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<Partial<Record<AIModel, HTMLDivElement | null>>>({});
 
@@ -30,7 +31,6 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     useEffect(() => {
         if (recommendations && Array.isArray(recommendations) && recommendations.length > 0) {
             const initialSelection = new Set<AIModel>();
-            // Pre-select top 6 recommended (max 10, min 4)
             recommendations.slice(0, Math.min(6, recommendations.length)).forEach(r => {
                 if (r?.model) {
                     initialSelection.add(r.model);
@@ -38,6 +38,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             });
             setSelectedSpecialists(initialSelection);
         }
+    }, [recommendations]);
+
+    const recommendedModels = useMemo(() => {
+        const safe = recommendations && Array.isArray(recommendations) ? recommendations : [];
+        return new Set(safe.map((r) => r?.model).filter(Boolean) as AIModel[]);
     }, [recommendations]);
 
     const scrollToItem = useCallback((model: AIModel) => {
@@ -88,8 +93,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
     const filteredSpecialists = useMemo(() => {
         const allSpecialists = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
         const safeRecommendations = recommendations && Array.isArray(recommendations) ? recommendations : [];
-        
-        return allSpecialists.filter(model => {
+        const baseList = showAllSpecialists
+            ? allSpecialists
+            : safeRecommendations.map((r) => r.model).filter(Boolean);
+
+        return baseList.filter(model => {
             const specInfo = AI_SPECIALISTS[model];
             if (!specInfo) return false;
             const searchLower = (searchTerm ?? '').toLowerCase();
@@ -100,7 +108,6 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                 (specialtyTranslation ?? '').toLowerCase().includes(searchLower)
             );
         }).sort((a, b) => {
-            // Sort: Selected first, then Recommended, then Alphabetical
             const isSelA = selectedSpecialists.has(a);
             const isSelB = selectedSpecialists.has(b);
             if (isSelA !== isSelB) return isSelA ? -1 : 1;
@@ -111,7 +118,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
 
             return AI_SPECIALISTS[a].name.localeCompare(AI_SPECIALISTS[b].name);
         });
-    }, [recommendations, selectedSpecialists, searchTerm, t]);
+    }, [recommendations, selectedSpecialists, searchTerm, showAllSpecialists, t]);
 
     // Faqat boshlang'ich jamoa hali yo'q va kutilyapti — to'liq ekran spinner (DDX/AI fonda bo'lsa ham ko'rinmaydi)
     const waitingInitialTeam =
@@ -146,7 +153,10 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                     Konsilium Tarkibini Shakllantirish
                 </h2>
                 <p className="text-sm text-text-secondary">
-                    <span className="font-bold text-accent-color-blue">{selectedSpecialists.size}</span> / 10 mutaxassis tanlandi (Min: 4)
+                    <span className="font-bold text-accent-color-blue">{selectedSpecialists.size}</span> / 8 mutaxassis tanlandi (Min: {LIMITS.MIN_SPECIALISTS})
+                </p>
+                <p className="text-xs text-text-secondary mt-1">
+                    Faqat kasallikka tegishli mutaxassislar tavsiya qilinadi
                 </p>
             </div>
 
@@ -163,15 +173,22 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
             <div className="flex-1 min-h-0 flex gap-3 sm:gap-4 overflow-hidden">
                 {/* LEFT: Specialist List */}
                 <div className="flex-1 min-h-0 flex flex-col">
-                    <div className="relative mb-2">
+                    <div className="relative mb-2 flex gap-2">
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Qidirish..."
-                            className="common-input w-full pl-9 py-2 text-sm"
+                            className="common-input flex-1 pl-9 py-2 text-sm"
                         />
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <button
+                            type="button"
+                            onClick={() => setShowAllSpecialists((v) => !v)}
+                            className="shrink-0 px-2 py-1 text-[10px] font-semibold rounded border border-slate-300 text-slate-600 hover:bg-white"
+                        >
+                            {showAllSpecialists ? 'Tavsiyalar' : 'Barchasi'}
+                        </button>
                     </div>
                     <div ref={listScrollRef} className="flex-1 min-h-0 overflow-y-auto touch-scroll-y bg-slate-50 rounded-lg border border-slate-200">
                         {filteredSpecialists.map((model) => {
@@ -198,8 +215,11 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                                             {t(`specialty_${model.toLowerCase()}` as TranslationKey) || specialistInfo.specialty}
                                         </p>
                                     </div>
-                                    {recommendation && (
-                                        <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded">AI</span>
+                                    {recommendation && !showAllSpecialists && (
+                                        <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded">Tavsiya</span>
+                                    )}
+                                    {recommendedModels.has(model) && showAllSpecialists && (
+                                        <span className="px-1 py-0.5 bg-green-100 text-green-700 text-[8px] font-bold uppercase rounded">Tavsiya</span>
                                     )}
                                 </div>
                             );

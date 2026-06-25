@@ -29,7 +29,7 @@ export const LIMITS = {
   MAX_ATTACHMENTS: 10,
   
   // Specialists
-  MIN_SPECIALISTS: 4,
+  MIN_SPECIALISTS: 3,
   MAX_SPECIALISTS: 10,
   
   // Vitals ranges - tibbiy jihatdan realistik chegaralar

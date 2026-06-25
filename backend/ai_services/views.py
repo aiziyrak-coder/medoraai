@@ -116,6 +116,12 @@ def run_consilium_view(request):
 
         extra = {
             "differential_diagnoses": request.data.get("differential_diagnoses"),
+            "selected_specialists": (
+                request.data.get("selected_specialists")
+                or patient_data.get("selectedSpecialists")
+                or patient_data.get("selected_specialists")
+                or []
+            ),
             "specialist_debate_summary": (
                 request.data.get("specialist_debate_summary")
                 or patient_data.get("specialistDebateSummary")

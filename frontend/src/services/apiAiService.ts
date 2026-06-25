@@ -157,6 +157,7 @@ export interface FilteredError {
 
 export type ConsiliumContextExtra = {
   differentialDiagnoses?: Diagnosis[];
+  selectedSpecialists?: string[];
   specialistDebateSummary?: string;
   regionalContext?: string;
   allowIncomplete?: boolean;
@@ -175,6 +176,7 @@ export const runConsilium = async (
       language,
       allow_incomplete: contextExtra?.allowIncomplete ?? patientData.allowIncompleteClinical ?? false,
       differential_diagnoses: contextExtra?.differentialDiagnoses,
+      selected_specialists: contextExtra?.selectedSpecialists,
       specialist_debate_summary: contextExtra?.specialistDebateSummary ?? patientData.specialistDebateSummary,
       regional_context: contextExtra?.regionalContext ?? patientData.regionalContext,
     },

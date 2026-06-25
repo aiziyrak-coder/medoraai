@@ -5,14 +5,14 @@
  */
 
 import { AIModel } from '../constants/specialists';
-import type { PatientData } from '../types';
+import type { Diagnosis, PatientData } from '../types';
 
 /** Shikoyat kalit so'zlari -> mutaxassis(lar) — kengaytirilgan ro'yxat, kasallik bo'yicha farq qiladi */
 const KEYWORD_TO_SPECIALISTS: { keywords: RegExp; models: AIModel[] }[] = [
   // Yurak-qon tomir (kengaytirilgan kalit so'zlar)
   { keywords: /\b(yurak|qon\s*bosimi|puls|aritmiya|stenokardiya|infarkt|kardiolog|gipertoniya|gipotoniya|blokada|tachycardia|bradikardiya|kardiomiopatiya|yurak\s*yetishmovchilik|koronar|stent|bypass|ekg|elektrokardiogram|qon\s*tomir|ateroskleroz|varikoz|tromb|emboliya|insuffitsiensiya|angina|miokard|perikard|endokard|сердце|сердцебиение|давление|аритмия|стенокардия|инфаркт|кардиолог|гипертония|гипотония|ишемия|миокард|перикард|эндокард|heart|chest\s*pain|blood\s*pressure|arrhythmia|angina|myocardial|cardiac|coronary|jurek|qan\s*basımı|aritmiya|infarkt|kardiolog)\b/i, models: [AIModel.GEMINI] },
   // Nerv tizimi (kengaytirilgan)
-  { keywords: /\b(bosh\s*og'riq|bosh\s*ogriq|nevrolog|falaj|paralich|epilepsiya|stroke|migren|bell\s*palsy|yuz\s*falaj|miasteniya|parkinson|altsgeymer|dementsiya|neyropatiya|radikulit|iskeymiya|miya|orqa\s*miya|neyroxirurg|konuslar|psixonevrolog|asab|nevrit|polinevrit|головная\s*боль|невролог|паралич|эпилепсия|инсульт|мигрень|паркинсон|деменция|нейропатия|радикулит|мозг|нерв|headache|neurolog|seizure|epilepsy|stroke|migraine|paralysis|dementia|neuropathy|brain|nerve|bas\s*awırıw|nevrolog|falaj|insult|migren|miya|asab)\b/i, models: [AIModel.CLAUDE] },
+  { keywords: /\b(bosh\s*og'riq|bosh\s*ogriq|nevrolog|falaj|paralich|epilepsiya|stroke|migren|bell\s*palsy|yuz\s*falaj|miasteniya|parkinson|altsgeymer|dementsiya|demensiya|neyropatiya|radikulit|iskeymiya|miya|orqa\s*miya|asab|nevrit|polinevrit)\b/i, models: [AIModel.CLAUDE, AIModel.GERIATRICIAN] },
   // Radiologiya / tasvir
   { keywords: /\b(rentgen|röntgen|ct|mrt|mri|tasvir|radiolog|skaner|ushlash|ultratovush|usk|diagnostik\s*tasvir|tomografiya|fluorografiya|mammografiya|angiografiya|рентген|кт|мрт|узи|узд|радиолог|томография|флюорография|маммография|ангиография|xray|x-ray|ultrasound|radiology|scan|imaging|tomography|rentgen|uzi|utt|súwret|radiolog)\b/i, models: [AIModel.GPT] },
   // Onkologiya (kengaytirilgan)
@@ -40,8 +40,8 @@ const KEYWORD_TO_SPECIALISTS: { keywords: RegExp; models: AIModel[] }[] = [
   { keywords: /\b(ko'z|retina|glaukoma|katarakta|kon'yunktivit|ko'rish|oftalmolog|blefarit|xalazion|mayda|ko'z\s*ostini|makula|degeneratsiya|diabetik\s*retinopatiya)\b/i, models: [AIModel.OPHTHALMOLOGIST] },
   // LOR (kengaytirilgan)
   { keywords: /\b(quloq|tomoq|burun|lor|tonzillit|otit|sinusit|labirintit|eshitish|otolaringolog|rinit|faringit|laringit|traxeit|adenoidit|angina|bezlar|farinhgeal|maxilla\s*bo'shliq)\b/i, models: [AIModel.OTOLARYNGOLOGIST] },
-  // Ruhiyat (kengaytirilgan)
-  { keywords: /\b(psix|depressiya|ruhiy|stress|anksiyete|shizofreniya|bipolyar|psixolog|psixoterapevt|nevroz|panika|fobiya|obsessiv|manik|demensiya|autizm)\b/i, models: [AIModel.PSYCHIATRIST] },
+  // Ruhiyat (depressiya, anksiyete — demensiya nevrologiyada)
+  { keywords: /\b(psix|depressiya|ruhiy|stress|anksiyete|shizofreniya|bipolyar|nevroz|panika|fobiya)\b/i, models: [AIModel.PSYCHIATRIST] },
   // Obstetrika, pediatriya (kengaytirilgan)
   { keywords: /\b(homilador|tug'ruq|obstetr|bachadon|qisqa\s*muddat|tug'ish|homila|platsenta|chesarevo|sech|sezoar|abort|tushish|homiladorlik|gestoz|eklampsiya|preeklampsiya|беремен|роды|акушер|матка|плод|плацента|кесар|аборт|гестоз|эклампсия|pregnan|delivery|obstetric|uterus|fetus|placenta|cesarean|miscarriage|pre[- ]?eclampsia|hámile|tuwıw|bachadon|homila)\b/i, models: [AIModel.OBGYN] },
   { keywords: /\b(bola|chaqaloq|pediatr|bola\s*kasallik|yosh\s*bemor|go'dak|maktab\s*yoshi|qizcha|o'g'ilcha|bolalar|emlash|ребенок|детск|педиатр|младенец|вакцинац|child|children|pediatric|infant|baby|vaccination|bala|shaqalaq|pediatr|emlew)\b/i, models: [AIModel.PEDIATRICIAN] },
@@ -83,15 +83,39 @@ const KEYWORD_TO_SPECIALISTS: { keywords: RegExp; models: AIModel[] }[] = [
   { keywords: /\b(torakal|o'pka\s*jarrohligi|ko'krak\s*qafasi\s*jarrohlik)\b/i, models: [AIModel.CARDIO_SURGEON] },
 ];
 
-/** Barcha mutaxassislar (tizimdan tashqari) — to'ldirishda xilma-xil tanlash uchun */
-const ALL_SPECIALISTS: AIModel[] = Object.values(AIModel).filter(m => m !== AIModel.SYSTEM);
+/** DDx nomlaridan mutaxassis skorlash */
+const DDX_TO_SPECIALISTS: { pattern: RegExp; models: AIModel[] }[] = [
+  { pattern: /nefr|renal|kidney|buyrak/i, models: [AIModel.NEPHROLOGIST] },
+  { pattern: /kardio|yurak|koronar|infarkt|aritm/i, models: [AIModel.GEMINI] },
+  { pattern: /nevro|insult|stroke|epilep|demen|parkinson/i, models: [AIModel.CLAUDE] },
+  { pattern: /pulmon|pnevmon|astma|nafas|o'pka/i, models: [AIModel.PULMONOLOGIST] },
+  { pattern: /gastro|jigar|hepat|pankreat|oshqozon/i, models: [AIModel.GASTRO] },
+  { pattern: /diabet|endokrin|tireoid|tiroid|gormon/i, models: [AIModel.GROK] },
+  { pattern: /onko|saraton|cancer|tumor|leykem/i, models: [AIModel.LLAMA, AIModel.HEMATOLOGIST] },
+  { pattern: /psix|depress|anksiyet/i, models: [AIModel.PSYCHIATRIST] },
+];
 
-/** Shikoyat matnidan oddiy hash (raqam) — bir xil shikoyat uchun bir xil tartib */
-function simpleHash(str: string): number {
-  let h = 0;
-  const s = (str || '').trim();
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
+function scoreSpecialists(text: string, diagnoses: Diagnosis[] = []): Map<AIModel, number> {
+  const scores = new Map<AIModel, number>();
+
+  const add = (models: AIModel[], pts: number) => {
+    for (const m of models) {
+      scores.set(m, (scores.get(m) ?? 0) + pts);
+    }
+  };
+
+  for (const { keywords, models } of KEYWORD_TO_SPECIALISTS) {
+    if (keywords.test(text)) add(models, 3);
+  }
+
+  for (const d of diagnoses) {
+    const dxText = `${d.name || ''} ${d.justification || ''}`;
+    for (const { pattern, models } of DDX_TO_SPECIALISTS) {
+      if (pattern.test(dxText)) add(models, 4);
+    }
+  }
+
+  return scores;
 }
 
 /**
@@ -135,74 +159,63 @@ function buildFullPatientText(data: PatientData): string {
 }
 
 /**
- * Bemorning barcha ma'lumotlari asosida 6–10 ta tegishli mutaxassisni aniqlaydi.
- * Har xil kasalliklar uchun har xil jamoa; bir xil standart jamoa takrorlanmaydi.
- * 
- * @param data - Bemor ma'lumotlari (PatientData) yoki shikoyat matni (string - orqaga moslik uchun)
+ * Bemor ma'lumotlari asosida faqat tegishli mutaxassislarni qaytaradi (3–8 ta).
  */
-export function getSpecialistsFromComplaint(data: PatientData | string): { model: AIModel; reason: string }[] {
-  // Orqaga moslik: string uzatilsa, faqat shu matnni ishlatish
-  const text = typeof data === 'string' 
+export function getSpecialistsFromComplaint(
+  data: PatientData | string,
+  diagnoses: Diagnosis[] = [],
+): { model: AIModel; reason: string }[] {
+  const text = typeof data === 'string'
     ? (data || '').trim()
     : buildFullPatientText(data).trim();
-  
-  const seen = new Set<AIModel>();
-  const result: { model: AIModel; reason: string }[] = [];
 
-  // 1-QADAM: Kasallik bo'yicha aniq mutaxassislarni topish
-  for (const { keywords, models } of KEYWORD_TO_SPECIALISTS) {
-    if (!keywords.test(text)) continue;
-    for (const model of models) {
-      if (seen.has(model)) continue;
-      seen.add(model);
-      result.push({ model, reason: 'Kasallik bo\'yicha tavsiya' });
+  const scores = scoreSpecialists(text, diagnoses);
+  const ranked = [...scores.entries()].sort((a, b) => b[1] - a[1]);
+
+  if (ranked.length === 0) {
+    return [{ model: AIModel.INTERNAL_MEDICINE, reason: 'Umumiy klinik baholash' }];
+  }
+
+  const out: { model: AIModel; reason: string }[] = [];
+  for (const [model, pts] of ranked.slice(0, 8)) {
+    const reason = pts >= 4 ? 'Kasallik/DDx bo\'yicha tavsiya' : 'Kasallik bo\'yicha tavsiya';
+    out.push({ model, reason });
+  }
+
+  // Dorilar bo'lsa farmakolog qo'shiladi
+  if (/\b(dori|darmon|doza|antibiotik|retsept|tabletk)\b/i.test(text)) {
+    if (!out.some((r) => r.model === AIModel.PHARMACOLOGIST)) {
+      out.push({ model: AIModel.PHARMACOLOGIST, reason: 'Dori-darmonlar mavjud' });
     }
   }
 
-  // 2-QADAM: Faqat hech qanday kalit so'z topilmasa — umumiy konsilium asoslari (kasallikka oid bo'lmagan "to'ldiruvchi" kam)
-  if (result.length === 0) {
-    const defaultModels: AIModel[] = [
-      AIModel.INTERNAL_MEDICINE,
-      AIModel.FAMILY_MEDICINE,
-      AIModel.GEMINI,
-      AIModel.PHARMACOLOGIST,
-      AIModel.EMERGENCY,
-    ];
-    for (const model of defaultModels) {
-      if (result.length >= 6) break;
-      if (seen.has(model)) continue;
-      seen.add(model);
-      result.push({ model, reason: 'Umumiy klinik konsilium' });
-    }
-  } else if (result.length < 4) {
-    // Kamida 4 ta tanlash uchun: faqat mavjud yo'nalishni qo'llab-quvvatlovchi profillar
-    const support: AIModel[] = [AIModel.INTERNAL_MEDICINE, AIModel.FAMILY_MEDICINE, AIModel.PHARMACOLOGIST];
-    for (const model of support) {
-      if (result.length >= 4) break;
-      if (seen.has(model)) continue;
-      seen.add(model);
-      result.push({ model, reason: 'Asosiy holat bilan bog\'liq qo\'llab-quvvatlash' });
-    }
-  }
-
-  return result.slice(0, 10);
+  return out.slice(0, 8);
 }
 
-/** API/DDx dan kelgan tavsiyalarni birinchi o'ringa qo'shib, takrorlarni olib tashlaydi */
+/** API/DDx dan kelgan tavsiyalarni faqat asosiy ro'yxatga mos bo'lsa qo'shadi */
 export function mergeSpecialistRecommendations(
   primary: { model: AIModel; reason: string }[],
   refinement: { model: AIModel; reason: string }[],
-  max = 12,
+  max = 8,
 ): { model: AIModel; reason: string }[] {
   const seen = new Set<AIModel>();
+  const primaryModels = new Set(primary.map((r) => r.model));
   const out: { model: AIModel; reason: string }[] = [];
-  // Kasallik matnidan chiqqan deterministic jamoa birinchi turadi; API/DDx faqat qo'shimcha qiladi.
-  for (const list of [primary, refinement]) {
-    for (const r of list) {
-      if (!r?.model || seen.has(r.model)) continue;
-      seen.add(r.model);
-      out.push({ model: r.model, reason: (r.reason || '').trim() || 'Tavsiya' });
-    }
+
+  for (const r of primary) {
+    if (!r?.model || seen.has(r.model)) continue;
+    seen.add(r.model);
+    out.push({ model: r.model, reason: (r.reason || '').trim() || 'Tavsiya' });
   }
+
+  for (const r of refinement) {
+    if (!r?.model || seen.has(r.model)) continue;
+    // Faqat DDx asosida kelgan yoki asosiy bilan bog'liq tavsiyalar
+    const isDdx = /ddx|differensial|tashxis/i.test(r.reason || '');
+    if (!isDdx && !primaryModels.has(r.model)) continue;
+    seen.add(r.model);
+    out.push({ model: r.model, reason: (r.reason || '').trim() || 'Tavsiya' });
+  }
+
   return out.slice(0, max);
 }

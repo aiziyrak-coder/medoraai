@@ -15,12 +15,25 @@ def ai_cost_mode() -> str:
 
 
 def consilium_agent_limit() -> int:
-    """Frontend jamoa 4–10; backend professor agentlari doim 4."""
+    """Scale rejimida 3 ta agent — tezroq konsilium."""
+    mode = ai_cost_mode()
+    default = 3 if mode in ("scale", "economy") else 4
     try:
-        n = int(getattr(settings, "CONSILIUM_AGENT_LIMIT", 4) or 4)
+        n = int(getattr(settings, "CONSILIUM_AGENT_LIMIT", default) or default)
     except (TypeError, ValueError):
-        n = 4
-    return max(4, min(10, n))
+        n = default
+    return max(2, min(4, n))
+
+
+def phase_timeout_sec() -> int:
+    return {"scale": 38, "economy": 42, "balanced": 50, "quality": 55}.get(
+        ai_cost_mode(), 38
+    )
+
+
+def skip_phase2_debate() -> bool:
+    """Scale/economy: Phase 2 LLM chaqiruvlarini o'tkazib yuborish."""
+    return ai_cost_mode() in ("scale", "economy")
 
 
 def default_max_tokens() -> int:
@@ -45,8 +58,8 @@ def phase2_max_tokens() -> int:
 
 
 def phase3_max_tokens() -> int:
-    return {"scale": 4096, "economy": 4800, "balanced": 6144, "quality": 10000}.get(
-        ai_cost_mode(), 4096
+    return {"scale": 3200, "economy": 4000, "balanced": 6144, "quality": 10000}.get(
+        ai_cost_mode(), 3200
     )
 
 
