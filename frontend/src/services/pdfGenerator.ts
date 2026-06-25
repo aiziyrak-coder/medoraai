@@ -1,11 +1,17 @@
 import { jsPDF } from "jspdf";
 import QRCode from 'qrcode';
 import type { FinalReport, PatientData, UziUttReport } from '../types';
-/** PDF footer — faqat shu faylda; brauzer keshi uchun aniq qiymatlar */
-const PDF_FOOTER_SITE = 'fjsti.ziyrak.org';
-const PDF_FOOTER_PUBLIC_URL = `https://${PDF_FOOTER_SITE}`;
-const PDF_FOOTER_PHONE_1 = '+998 99 575 11 11';
-const PDF_FOOTER_PHONE_2 = '+998907863888';
+import {
+    PDF_PRODUCT_NAME,
+    PDF_PRODUCT_PUBLIC_URL,
+    PDF_PRODUCT_WEBSITE_DISPLAY,
+    PDF_FOOTER_PHONE,
+    PDF_FOOTER_PHONE_2,
+} from '../constants/brand';
+
+const PDF_FOOTER_SITE = PDF_PRODUCT_WEBSITE_DISPLAY;
+const PDF_FOOTER_PUBLIC_URL = PDF_PRODUCT_PUBLIC_URL;
+const PDF_FOOTER_PHONE_1 = PDF_FOOTER_PHONE;
 import type { Language } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translationKeys';
 import { buildCompactExportData } from '../utils/compactExportSections';
@@ -262,7 +268,7 @@ export const generateUziUttPdf = async (
 
     const footerText = tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun.");
     const pageCount = doc.getNumberOfPages();
-    const promoText = tr('pdf_promo_text', 'AiDoktor — AI tibbiy konsilium platformasi');
+    const promoText = tr('pdf_promo_text', 'AiShifokor — AI tibbiy konsilium platformasi');
     const promoLink = PDF_FOOTER_SITE;
     const promoPhone = PDF_FOOTER_PHONE_1;
     const promoPhone2 = PDF_FOOTER_PHONE_2;
@@ -298,11 +304,11 @@ export const generateUziUttPdf = async (
     doc.text(PDF_FOOTER_SITE, MARGIN + 3, promoY + 10);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(`  — ${tr('pdf_product_site_note', 'AiDoktor mahsuloti rasmiy veb-sahifasi')}`, MARGIN + 24, promoY + 10);
+    doc.text(`  — ${tr('pdf_product_site_note', 'AiShifokor mahsuloti rasmiy veb-sahifasi')}`, MARGIN + 24, promoY + 10);
     doc.setFontSize(8);
     doc.setFont(fontName, 'bold');
     doc.setTextColor(25, 55, 95);
-    doc.text(tr('pdf_product_brand_footer', 'AiDoktor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
+    doc.text(tr('pdf_product_brand_footer', 'AiShifokor'), pageWidth - MARGIN - 3, promoY + 3, { align: 'right' });
     doc.setFontSize(5);
     doc.setFont(fontName, 'normal');
     doc.setTextColor(110, 110, 110);

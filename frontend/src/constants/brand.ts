@@ -12,7 +12,7 @@ export const INSTITUTE_NAME_FULL = "Farg'ona jamoat salomatligi tibbiyot institu
 export const INSTITUTE_TITLE = `${INSTITUTE_NAME_SHORT} - ${INSTITUTE_NAME_FULL}`;
 
 /** AI platform brand name */
-export const PLATFORM_NAME = "AiDoktor";
+export const PLATFORM_NAME = "AiShifokor";
 
 /** AI platform version */
 export const PLATFORM_VERSION = "v3.0";
@@ -42,14 +42,15 @@ export const FOOTER_COPYRIGHT = "© 2026 FARG'ONA JAMOAT SALOMATLIGI TIBBIYOT IN
 /** Institute official website */
 export const INSTITUTE_WEBSITE = "https://fjsti.uz/";
 /** Platforma veb-manzili (frontend domen) */
-export const PLATFORM_WEBSITE = "fjsti.ziyrak.org";
+export const PLATFORM_WEBSITE = "aishifokor.uz";
 /** To'liq URL (QR kod, tashqi havolalar) */
 export const PLATFORM_PUBLIC_URL = `https://${PLATFORM_WEBSITE}`;
 
 /**
- * PDF va boshqa eksport qilinadigan rasmiy blankalar uchun mahsulot brendi (AiDoktor).
- * Chop etilgan hujjatlarda institut (FJSTI) ko‘rinmaydi — mahalliy savdo / mualliflik uchun faqat mahsulot nomi.
+ * PDF va boshqa eksport qilinadigan rasmiy blankalar uchun mahsulot brendi.
  */
 export const PDF_PRODUCT_NAME = PLATFORM_NAME;
 export const PDF_PRODUCT_PUBLIC_URL = PLATFORM_PUBLIC_URL;
 export const PDF_PRODUCT_WEBSITE_DISPLAY = PLATFORM_WEBSITE;
+export const PDF_FOOTER_PHONE = INSTITUTE_PHONE_1;
+export const PDF_FOOTER_PHONE_2 = INSTITUTE_PHONE_2;

@@ -7,4 +7,4 @@ export { PLATFORM_PUBLIC_URL as MEDORA_PLATFORM_URL } from './brand';
 
 /** PDF pastki qismidagi qisqa platforma reklamasi */
 export const PDF_FOOTER_PROMO_LINE =
-    "Medora Ai — sun'iy intellekt yordamida klinik qaror va konsilium platformasi.";
+    "AiShifokor — sun'iy intellekt yordamida klinik qaror va konsilium platformasi.";

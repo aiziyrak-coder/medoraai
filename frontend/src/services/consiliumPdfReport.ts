@@ -31,10 +31,16 @@ import {
     sanitizeExportFilename,
 } from '../utils/exportI18n';
 import { sanitizeClinicalContent } from '../utils/sanitizeClinicalContent';
+import {
+    PDF_PRODUCT_NAME,
+    PDF_PRODUCT_PUBLIC_URL,
+    PDF_PRODUCT_WEBSITE_DISPLAY,
+    PDF_FOOTER_PHONE,
+} from '../constants/brand';
 
-const PDF_FOOTER_SITE = 'fjsti.ziyrak.org';
-const PDF_FOOTER_PUBLIC_URL = `https://${PDF_FOOTER_SITE}`;
-const PDF_FOOTER_PHONE_1 = '+998 99 575 11 11';
+const PDF_FOOTER_SITE = PDF_PRODUCT_WEBSITE_DISPLAY;
+const PDF_FOOTER_PUBLIC_URL = PDF_PRODUCT_PUBLIC_URL;
+const PDF_FOOTER_PHONE_1 = PDF_FOOTER_PHONE;
 
 const PDF_FONT = 'times' as const;
 const PDF_UNICODE_FONT = 'DejaVuSans';
@@ -495,7 +501,7 @@ export async function renderConsiliumPdfReport(
         doc.setFontSize(7);
         doc.setFont(fontName, 'bold');
         doc.setTextColor(50, 60, 80);
-        doc.text('AiDoktor', MARGIN, pageHeight - FOOTER_RESERVE + 4);
+        doc.text(PDF_PRODUCT_NAME, MARGIN, pageHeight - FOOTER_RESERVE + 4);
         doc.setFont(fontName, 'normal');
         doc.setTextColor(100, 100, 100);
         doc.text(`  |  ${PDF_FOOTER_SITE}  |  ${PDF_FOOTER_PHONE_1}`, MARGIN + 16, pageHeight - FOOTER_RESERVE + 4);

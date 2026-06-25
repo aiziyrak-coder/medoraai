@@ -20,6 +20,7 @@ import type { Language } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translationKeys';
 import { buildCompactExportData } from '../utils/compactExportSections';
 import { EXPORT_THEME_HEX } from '../utils/exportDocumentTheme';
+import { PDF_PRODUCT_NAME } from '../constants/brand';
 import { createExportTr, formatExportDate, pdfText } from '../utils/exportI18n';
 import {
     prepareExportReport,
@@ -393,7 +394,7 @@ export const generateDocxReport = async (
                         shadedCell(
                             [
                                 new Paragraph({
-                                    children: [new TextRun({ text: 'AiDoktor', bold: true, size: 18, color: EXPORT_THEME_HEX.primary })],
+                                    children: [new TextRun({ text: PDF_PRODUCT_NAME, bold: true, size: 18, color: EXPORT_THEME_HEX.primary })],
                                 }),
                                 new Paragraph({
                                     children: [new TextRun({
