@@ -12,10 +12,9 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# When True, all AI calls use DeepSeek (claude_utils shim).
-USE_CLAUDE = bool(
-    getattr(settings, "DEEPSEEK_API_KEY", None) or getattr(settings, "ANTHROPIC_API_KEY", None)
-)
+# When True, all text AI calls use OpenAI (claude_utils shim).
+USE_OPENAI_TEXT = bool(getattr(settings, "OPENAI_API_KEY", None))
+USE_CLAUDE = USE_OPENAI_TEXT  # backwards-compat alias
 USE_GEMINI = USE_CLAUDE  # backwards-compat alias (deprecated)
 
 # ---------------------------------------------------------------------------
@@ -62,7 +61,7 @@ def _make_client(endpoint: str, api_key: str, api_version: str):
 def _get_client(deployment_key: str) -> "AzureOpenAI":  # type: ignore[name-defined]
     """Return a cached AzureOpenAI client. Not used when USE_CLAUDE."""
     if USE_CLAUDE:
-        raise RuntimeError("Azure is disabled; DeepSeek is used. Set DEEPSEEK_API_KEY in .env")
+        raise RuntimeError("Azure is disabled; OpenAI is used. Set OPENAI_API_KEY in .env")
     if deployment_key not in _clients:
         endpoint   = _require_cfg("AZURE_OPENAI_ENDPOINT")
         api_key    = _require_cfg("AZURE_OPENAI_API_KEY")
@@ -150,7 +149,7 @@ def call_model(
     stream: bool = False,
 ) -> str:
     """
-    Call AI model. When DEEPSEEK_API_KEY is set, uses DeepSeek; otherwise Azure (legacy).
+    Call AI model. When OPENAI_API_KEY is set, uses OpenAI; otherwise Azure (legacy).
     """
     if USE_CLAUDE:
         from . import claude_utils

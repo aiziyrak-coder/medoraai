@@ -366,24 +366,26 @@ DEEPSEEK_BASE_URL = config('DEEPSEEK_BASE_URL', default='https://api.deepseek.co
 DEEPSEEK_MODEL_FAST = config('DEEPSEEK_MODEL_FAST', default='deepseek-chat')
 DEEPSEEK_MODEL_PRO = config('DEEPSEEK_MODEL_PRO', default='deepseek-reasoner')
 
-# Vision (UZI/UTT/rentgen/MRT/KT/EKG) — OpenAI GPT-4o asosiy; DeepSeek faqat matn uchun
+# Vision (UZI/UTT/rentgen/MRT/KT/EKG) — OpenAI GPT-4o
 OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
 OPENAI_VISION_MODEL = config('OPENAI_VISION_MODEL', default='gpt-4o')
 OPENAI_BASE_URL = config('OPENAI_BASE_URL', default='')  # bo'sh = api.openai.com
+OPENAI_MODEL_FAST = config('OPENAI_MODEL_FAST', default='gpt-4o-mini')
+OPENAI_MODEL_PRO = config('OPENAI_MODEL_PRO', default='gpt-4o')
 # Zaxira vision provayderlar (ixtiyoriy)
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 GEMINI_VISION_MODEL = config('GEMINI_VISION_MODEL', default='gemini-2.0-flash')
 
 # Legacy aliases (eski kod va deploy skriptlari uchun)
 ANTHROPIC_API_KEY = DEEPSEEK_API_KEY
-# AI xarajat: scale (default, 1000+ user) | economy | balanced | quality
-AI_COST_MODE = config('AI_COST_MODE', default='balanced')
+# AI xarajat: scale (default, tez) | economy | balanced | quality
+AI_COST_MODE = config('AI_COST_MODE', default='scale')
 CONSILIUM_AGENT_LIMIT = config('CONSILIUM_AGENT_LIMIT', default=4, cast=int)
-CLAUDE_MODEL_HAIKU = DEEPSEEK_MODEL_FAST
-CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default=DEEPSEEK_MODEL_FAST)
-CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default=DEEPSEEK_MODEL_PRO)
+CLAUDE_MODEL_HAIKU = OPENAI_MODEL_FAST
+CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default=OPENAI_MODEL_FAST)
+CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default=OPENAI_MODEL_PRO)
 CLAUDE_USE_SONNET_DIAGNOSIS = config('CLAUDE_USE_SONNET_DIAGNOSIS', default=False, cast=bool)
-AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default=DEEPSEEK_MODEL_FAST)
+AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default=OPENAI_MODEL_FAST)
 
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:

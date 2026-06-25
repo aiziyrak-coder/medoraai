@@ -248,9 +248,25 @@ class ConsiliumResult:
 
 
 def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
-    """Rais konsiliumni ochadi — to'liq bemor ma'lumoti va mutaxassislarni chorlash."""
+    """Rais konsiliumni ochadi — scale rejimida shablon (tez), aks holda AI."""
+    from .consilium_cost import ai_cost_mode
+
     lang = _LANG_HINT.get(language, _LANG_HINT["uz-L"])
     roster = format_specialist_roster(AGENTS)
+    t0 = time.monotonic()
+
+    if ai_cost_mode() in ("scale", "economy"):
+        content = (
+            "▸ KONSILIUM OCHILDI\n"
+            f"{patient_str[:1200]}\n\n"
+            f"▸ CHORLANGAN MUTAXASSISLAR\n{roster}\n\n"
+            "Har bir mutaxassis o'z ixtisosligi bo'yicha mustaqil tashxis va dalil bildirsin."
+        )
+        return {
+            "content": content,
+            "elapsed_ms": round((time.monotonic() - t0) * 1000),
+        }
+
     system = _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
     user = (
         f"BEMOR MA'LUMOTLARI:\n{patient_str}\n\n"

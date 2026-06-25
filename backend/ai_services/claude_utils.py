@@ -1,6 +1,6 @@
 """
-AI helpers — DeepSeek API (OpenAI-compatible).
-API key from settings.DEEPSEEK_API_KEY (legacy: ANTHROPIC_API_KEY alias).
+AI helpers — OpenAI API (matn: konsilium, tashxis, savollar).
+API key: settings.OPENAI_API_KEY
 """
 import hashlib
 import json
@@ -14,15 +14,12 @@ logger = logging.getLogger(__name__)
 
 _client = None
 
-CLAUDE_FAST = "deepseek-chat"
-CLAUDE_PRO = "deepseek-reasoner"
+CLAUDE_FAST = "gpt-4o-mini"
+CLAUDE_PRO = "gpt-4o"
 
 
 def _api_key() -> str:
-    return (
-        (getattr(settings, "DEEPSEEK_API_KEY", None) or "")
-        or (getattr(settings, "ANTHROPIC_API_KEY", None) or "")
-    ).strip()
+    return (getattr(settings, "OPENAI_API_KEY", None) or "").strip()
 
 
 def _ai_cost_mode():
@@ -39,47 +36,36 @@ def _default_max_tokens():
 
 
 def _fast_model():
-    return getattr(settings, "DEEPSEEK_MODEL_FAST", None) or getattr(
-        settings, "CLAUDE_MODEL_HAIKU", "deepseek-chat"
-    )
+    return getattr(settings, "OPENAI_MODEL_FAST", None) or "gpt-4o-mini"
 
 
 def _pro_model():
-    return getattr(settings, "DEEPSEEK_MODEL_PRO", None) or getattr(
-        settings, "CLAUDE_MODEL_PRO", "deepseek-reasoner"
-    )
-
-
-def _use_reasoner_diagnosis():
-    return bool(getattr(settings, "CLAUDE_USE_SONNET_DIAGNOSIS", False))
+    return getattr(settings, "OPENAI_MODEL_PRO", None) or "gpt-4o"
 
 
 def _model_fast():
-    fast = _fast_model()
-    if _ai_cost_mode() in ("scale", "economy"):
-        return fast
-    return getattr(settings, "CLAUDE_MODEL_FAST", fast) or fast
+    return _fast_model()
 
 
 def _model_pro():
     mode = _ai_cost_mode()
-    pro = _pro_model()
-    if mode == "quality":
-        return pro
+    if mode in ("scale", "economy"):
+        return _fast_model()
     if mode == "balanced":
-        return getattr(settings, "CLAUDE_MODEL_FAST", pro) or pro
-    if _use_reasoner_diagnosis() and mode == "scale":
-        return getattr(settings, "CLAUDE_MODEL_FAST", pro) or pro
-    return _fast_model()
+        return _pro_model()
+    return _pro_model()
 
 
 def _model_diagnosis():
-    return _model_pro()
+    mode = _ai_cost_mode()
+    if mode in ("scale", "economy"):
+        return _fast_model()
+    return _pro_model()
 
 
 def _cache_key(prefix: str, text: str) -> str:
     digest = hashlib.sha256((text or "").encode("utf-8", errors="ignore")).hexdigest()[:32]
-    return f"deepseek:{prefix}:{digest}"
+    return f"openai:{prefix}:{digest}"
 
 
 SPECIALIST_ALIASES = {
@@ -123,8 +109,11 @@ def _get_client():
     try:
         from openai import OpenAI
 
-        base_url = getattr(settings, "DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-        _client = OpenAI(api_key=key, base_url=base_url)
+        base_url = (getattr(settings, "OPENAI_BASE_URL", None) or "").strip()
+        kwargs: dict = {"api_key": key}
+        if base_url:
+            kwargs["base_url"] = base_url
+        _client = OpenAI(**kwargs)
         return _client
     except ImportError:
         logger.warning("openai not installed: pip install openai")
@@ -154,7 +143,7 @@ def _call_claude(
     client = _get_client()
     if not client:
         raise RuntimeError(
-            "DeepSeek API kaliti sozlanmagan. DEEPSEEK_API_KEY ni backend/.env ga kiriting."
+            "OpenAI API kaliti sozlanmagan. OPENAI_API_KEY ni backend/.env ga kiriting."
         )
 
     user_content = prompt
@@ -176,19 +165,19 @@ def _call_claude(
     try:
         response = client.chat.completions.create(**kwargs)
     except Exception as e:
-        logger.exception("DeepSeek API xatosi: %s", e)
+        logger.exception("OpenAI API xatosi: %s", e)
         raise
 
     text = (response.choices[0].message.content or "").strip()
     if not text:
-        raise ValueError("DeepSeek bo'sh javob qaytardi")
+        raise ValueError("OpenAI bo'sh javob qaytardi")
     return text
 
 
 def generate_clarifying_questions(patient_data):
     if _get_client() is None:
         raise RuntimeError(
-            "DeepSeek API kaliti sozlanmagan. DEEPSEEK_API_KEY ni backend/.env ga kiriting."
+            "OpenAI API kaliti sozlanmagan. OPENAI_API_KEY ni backend/.env ga kiriting."
         )
     text = _patient_text(patient_data)
     cache_key = _cache_key("clarify", text)
@@ -202,32 +191,22 @@ QAT'IY QOIDA: Har bir savol FAQAT yuqoridagi SHIKOYAT (complaints) matnida tilga
 TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmagan mavzular.
 
 3–5 ta qisqa savol. Javobni faqat JSON massiv: ["Savol 1?", "Savol 2?"]. O'zbek tilida (Lotin)."""
-    raw = None
-    last_exc = None
-    for model in (CLAUDE_FAST, CLAUDE_PRO):
-        if model == CLAUDE_PRO and _ai_cost_mode() != "quality":
-            continue
-        try:
-            raw = _call_claude(
-                prompt,
-                model,
-                response_mime_type="application/json",
-                max_output_tokens=1024,
-            )
-            break
-        except Exception as e:
-            last_exc = e
-            logger.warning("DeepSeek clarifying_questions (model=%s) failed: %s", model, e)
-    if not raw and last_exc is not None:
-        raise last_exc
-    if not raw:
+    try:
+        raw = _call_claude(
+            prompt,
+            CLAUDE_FAST,
+            response_mime_type="application/json",
+            max_output_tokens=768,
+        )
+    except Exception as e:
+        logger.warning("OpenAI clarifying_questions failed: %s", e)
         return []
 
     raw = (raw or "").replace("```json", "").replace("```", "").replace("```text", "").strip()
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as e:
-        logger.warning("DeepSeek clarifying_questions: invalid JSON (error=%s), raw=%s", e, raw[:500])
+        logger.warning("OpenAI clarifying_questions: invalid JSON (error=%s), raw=%s", e, raw[:500])
         match = re.search(r"\[[\s\S]*\]", raw)
         if match:
             try:
@@ -250,7 +229,7 @@ TAQIQLANGAN: Umumiy tibbiy savollar, shablon savollar, shikoyatda tilga olinmaga
 def recommend_specialists(patient_data):
     if _get_client() is None:
         raise RuntimeError(
-            "DeepSeek API kaliti sozlanmagan. DEEPSEEK_API_KEY ni .env ga kiriting."
+            "OpenAI API kaliti sozlanmagan. OPENAI_API_KEY ni .env ga kiriting."
         )
     text = _patient_text(patient_data)
     names_str = ", ".join(SPECIALIST_NAMES[:40])
@@ -261,37 +240,31 @@ Ushbu klinik holat uchun 6–8 ta mutaxassis tanlang. Faqat quyidagi nomlardan: 
 Har biri uchun qisqa sabab. JSON:
 {{ "recommendations": [ {{ "model": "Nom exactly from list", "reason": "Sabab" }} ] }}
 O'zbek tilida (Lotin)."""
-    last_exc = None
-    for model_name in (CLAUDE_FAST, CLAUDE_PRO):
-        if model_name == CLAUDE_PRO and _ai_cost_mode() != "quality":
-            continue
-        try:
-            raw = _call_claude(
-                prompt,
-                model_name,
-                response_mime_type="application/json",
-                max_output_tokens=1536,
-            )
-            raw = (raw or "").replace("```json", "").replace("```", "").strip()
-            data = json.loads(raw)
-            recs = (data or {}).get("recommendations") or []
-            out = []
-            for r in recs:
-                model = _normalize_specialist_model((r.get("model") or "").strip())
-                if model not in SPECIALIST_NAMES:
-                    for n in SPECIALIST_NAMES:
-                        if n.lower() in model.lower() or model.lower() in n.lower():
-                            model = n
-                            break
-                if model in SPECIALIST_NAMES:
-                    out.append({"model": model, "reason": (r.get("reason") or "Holatga mos.")[:200]})
-            if out:
-                return out[:8]
-        except Exception as e:
-            last_exc = e
-            logger.warning("DeepSeek recommend_specialists (model=%s) failed: %s", model_name, e)
-    if last_exc is not None:
-        raise last_exc
+    try:
+        raw = _call_claude(
+            prompt,
+            CLAUDE_FAST,
+            response_mime_type="application/json",
+            max_output_tokens=1024,
+        )
+        raw = (raw or "").replace("```json", "").replace("```", "").strip()
+        data = json.loads(raw)
+        recs = (data or {}).get("recommendations") or []
+        out = []
+        for r in recs:
+            model = _normalize_specialist_model((r.get("model") or "").strip())
+            if model not in SPECIALIST_NAMES:
+                for n in SPECIALIST_NAMES:
+                    if n.lower() in model.lower() or model.lower() in n.lower():
+                        model = n
+                        break
+            if model in SPECIALIST_NAMES:
+                out.append({"model": model, "reason": (r.get("reason") or "Holatga mos.")[:200]})
+        if out:
+            return out[:8]
+    except Exception as e:
+        logger.warning("OpenAI recommend_specialists failed: %s", e)
+        raise
     return []
 
 
@@ -309,52 +282,46 @@ Javobni faqat JSON massiv:
 [ {{ "name": "...", "probability": 70, "justification": "...", "evidenceLevel": "High", "reasoningChain": ["..."], "uzbekProtocolMatch": "..." }} ]
 O'zbek tilida (Lotin)."""
 
-    model_order = [_model_diagnosis()]
-    if _ai_cost_mode() in ("quality", "balanced") and _model_fast() not in model_order:
-        model_order.append(_model_fast())
-
-    for model_name in model_order:
+    try:
+        raw = _call_claude(
+            prompt,
+            _model_diagnosis(),
+            response_mime_type="application/json",
+            max_output_tokens=min(_default_max_tokens(), 2048),
+        )
+        raw = (raw or "").replace("```json", "").replace("```", "").strip()
         try:
-            raw = _call_claude(
-                prompt,
-                model_name,
-                response_mime_type="application/json",
-                max_output_tokens=min(_default_max_tokens(), 3072),
-            )
-            raw = (raw or "").replace("```json", "").replace("```", "").strip()
-            try:
-                data = json.loads(raw)
-            except json.JSONDecodeError:
-                match = re.search(r"\[[\s\S]*\]", raw)
-                if not match:
-                    continue
-                data = json.loads(match.group(0))
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            match = re.search(r"\[[\s\S]*\]", raw)
+            if not match:
+                return []
+            data = json.loads(match.group(0))
 
-            if not isinstance(data, list):
-                data = [data] if isinstance(data, dict) else []
-            out = []
-            for d in data[:8]:
-                if not isinstance(d, dict):
-                    continue
-                name = (d.get("name") or "Tashxis").strip()
-                prob = max(0, min(100, int(d.get("probability", 50))))
-                rc = d.get("reasoningChain")
-                if isinstance(rc, list):
-                    reasoning_chain = [str(x).strip() for x in rc if str(x).strip()]
-                elif isinstance(rc, str) and rc.strip():
-                    reasoning_chain = [rc.strip()]
-                else:
-                    reasoning_chain = []
-                out.append({
-                    "name": name,
-                    "probability": prob,
-                    "justification": (d.get("justification") or "")[:500],
-                    "evidenceLevel": (d.get("evidenceLevel") or "Moderate")[:50],
-                    "reasoningChain": reasoning_chain,
-                    "uzbekProtocolMatch": (d.get("uzbekProtocolMatch") or "")[:300],
-                })
-            if out:
-                return out
-        except Exception as e:
-            logger.warning("DeepSeek generate_diagnoses (model=%s) failed: %s", model_name, e)
+        if not isinstance(data, list):
+            data = [data] if isinstance(data, dict) else []
+        out = []
+        for d in data[:8]:
+            if not isinstance(d, dict):
+                continue
+            name = (d.get("name") or "Tashxis").strip()
+            prob = max(0, min(100, int(d.get("probability", 50))))
+            rc = d.get("reasoningChain")
+            if isinstance(rc, list):
+                reasoning_chain = [str(x).strip() for x in rc if str(x).strip()]
+            elif isinstance(rc, str) and rc.strip():
+                reasoning_chain = [rc.strip()]
+            else:
+                reasoning_chain = []
+            out.append({
+                "name": name,
+                "probability": prob,
+                "justification": (d.get("justification") or "")[:500],
+                "evidenceLevel": (d.get("evidenceLevel") or "Moderate")[:50],
+                "reasoningChain": reasoning_chain,
+                "uzbekProtocolMatch": (d.get("uzbekProtocolMatch") or "")[:300],
+            })
+        return out
+    except Exception as e:
+        logger.warning("OpenAI generate_diagnoses failed: %s", e)
     return []

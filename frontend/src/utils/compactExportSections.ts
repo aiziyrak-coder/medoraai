@@ -3,15 +3,14 @@ import { normalizeConsensusDiagnosis } from '../types';
 import { prepareExportReport, type ExportTr } from './exportReportSections';
 import { pdfText } from './exportI18n';
 
-/** Bemor uchun qisqa xulosa — faqat foydali, tushunarli ma'lumotlar */
-const MAX_TREATMENT = 3;
-const MAX_MEDICATIONS = 4;
-const MAX_PREVENTION = 4;
-const MAX_LINE_CHARS = 72;
-const MAX_ALERT_CHARS = 90;
+const MAX_TREATMENT = 5;
+const MAX_MEDICATIONS = 6;
+const MAX_PREVENTION = 6;
+const MAX_LINE_CHARS = 140;
+const MAX_COMPLAINTS_CHARS = 120;
 
 function truncate(text: string, max = MAX_LINE_CHARS): string {
-    const t = (text || '').trim().replace(/\s+/g, ' ');
+    const t = (text || '').trim();
     if (t.length <= max) return t;
     return `${t.slice(0, max - 1).trim()}…`;
 }
@@ -20,22 +19,33 @@ function treatmentToLine(step: unknown): string {
     if (typeof step === 'string') return truncate(step);
     if (step && typeof step === 'object') {
         const o = step as Record<string, unknown>;
-        const main = String(o.step || o.text || o.details || '').trim();
-        return truncate(main || Object.values(o).filter(Boolean).map(String).join(' '));
+        const parts = [o.step, o.details, o.text].filter(Boolean).map(String);
+        return truncate(parts.join(' — ') || JSON.stringify(step));
     }
     return truncate(String(step ?? ''));
 }
 
 export interface CompactMedication {
+    name: string;
+    dosage: string;
+    schedule: string;
     line: string;
 }
 
-function medicationToLine(
+function medicationToStructured(
     med: FinalReport['medicationRecommendations'][number],
-): string {
-    const how = [med.frequency, med.timing].filter(Boolean).map(String).join(', ');
-    const parts = [med.name, med.dosage, how].filter(Boolean);
-    return truncate(parts.join(' — '));
+): CompactMedication {
+    const schedule = [med.frequency, med.duration, med.timing, med.instructions || med.notes]
+        .filter(Boolean)
+        .map(String)
+        .join(' · ');
+    const line = truncate([med.name, med.dosage, schedule].filter(Boolean).join(' — '));
+    return {
+        name: truncate(med.name, 60),
+        dosage: truncate(med.dosage, 40),
+        schedule: truncate(schedule, 80),
+        line,
+    };
 }
 
 export function getTopDiagnosis(diagnoses: Diagnosis[]): Diagnosis | undefined {
@@ -47,13 +57,15 @@ export function getTopDiagnosis(diagnoses: Diagnosis[]): Diagnosis | undefined {
     return sorted[0];
 }
 
-/** Bemorga beriladigan qisqa xulosa */
 export interface CompactExportData {
-    patientLine: string;
-    diagnosisName?: string;
-    diagnosisPercent?: number;
-    urgentNote?: string;
+    patientName: string;
+    age: string;
+    gender: string;
+    complaints?: string;
+    topDiagnosis?: Diagnosis;
+    criticalAlert?: string;
     treatmentLines: string[];
+    medications: CompactMedication[];
     medicationLines: string[];
     preventionLines: string[];
 }
@@ -65,19 +77,27 @@ export function buildCompactExportData(
 ): CompactExportData {
     report = prepareExportReport(report);
 
-    const shortName = `${patientData.lastName} ${patientData.firstName}`.trim();
-    const patientLine = truncate(
-        `${pdfText(shortName)}, ${pdfText(patientData.age)} ${tr('pdf_age', 'yosh')}`,
-        55,
-    );
+    const fullName =
+        `${patientData.lastName} ${patientData.firstName}`.trim() +
+        (patientData.fatherName ? ` ${patientData.fatherName}` : '');
 
-    const top = getTopDiagnosis(report.consensusDiagnosis);
+    const gender =
+        patientData.gender === 'male'
+            ? tr('pdf_gender_male', 'Erkak')
+            : patientData.gender === 'female'
+                ? tr('pdf_gender_female', 'Ayol')
+                : tr('pdf_gender_other', 'Boshqa');
 
-    let urgentNote: string | undefined;
+    const topDiagnosis = getTopDiagnosis(report.consensusDiagnosis);
+
+    let criticalAlert: string | undefined;
     if (report.criticalFinding?.finding) {
-        const urg = report.criticalFinding.urgency?.toLowerCase() ?? '';
+        const urg = report.criticalFinding.urgency?.toLowerCase();
         if (urg === 'urgent' || urg === 'high' || urg === 'shoshilinch') {
-            urgentNote = truncate(report.criticalFinding.finding, MAX_ALERT_CHARS);
+            criticalAlert = truncate(
+                `${report.criticalFinding.finding} — ${report.criticalFinding.implication || ''}`,
+                180,
+            );
         }
     }
 
@@ -86,22 +106,31 @@ export function buildCompactExportData(
         .filter(Boolean)
         .slice(0, MAX_TREATMENT);
 
-    const medicationLines = (report.medicationRecommendations || [])
-        .map(medicationToLine)
-        .filter(Boolean)
+    const medications = (report.medicationRecommendations || [])
+        .map(medicationToStructured)
+        .filter((m) => m.name)
         .slice(0, MAX_MEDICATIONS);
+    const medicationLines = medications.map((m) => m.line);
 
-    const preventionLines = (report.nutritionPrevention?.preventionMeasures || [])
-        .map((l) => truncate(l))
+    const np = report.nutritionPrevention;
+    const preventionLines = [
+        ...(np?.preventionMeasures || []).map((l) => truncate(l)),
+        ...(np?.dietaryGuidelines || []).map((l) => truncate(l)),
+    ]
         .filter(Boolean)
         .slice(0, MAX_PREVENTION);
 
     return {
-        patientLine,
-        diagnosisName: top?.name ? truncate(top.name, 80) : undefined,
-        diagnosisPercent: top && Number.isFinite(top.probability) ? top.probability : undefined,
-        urgentNote,
+        patientName: pdfText(fullName),
+        age: pdfText(patientData.age),
+        gender,
+        complaints: patientData.complaints
+            ? truncate(patientData.complaints, MAX_COMPLAINTS_CHARS)
+            : undefined,
+        topDiagnosis,
+        criticalAlert,
         treatmentLines,
+        medications,
         medicationLines,
         preventionLines,
     };

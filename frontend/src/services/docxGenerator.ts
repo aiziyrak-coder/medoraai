@@ -9,6 +9,7 @@ import {
     TableRow,
     TableCell,
     WidthType,
+    BorderStyle,
     ShadingType,
     VerticalAlign,
 } from 'docx';
@@ -21,51 +22,75 @@ import { buildCompactExportData } from '../utils/compactExportSections';
 import { EXPORT_THEME_HEX } from '../utils/exportDocumentTheme';
 import { createExportTr, formatExportDate, pdfText } from '../utils/exportI18n';
 
-const cellPad = { top: 60, bottom: 60, left: 100, right: 100 };
+const cellMargins = { top: 80, bottom: 80, left: 120, right: 120 };
+const tableBorders = {
+    top: { style: BorderStyle.SINGLE, size: 1, color: EXPORT_THEME_HEX.border },
+    bottom: { style: BorderStyle.SINGLE, size: 1, color: EXPORT_THEME_HEX.border },
+    left: { style: BorderStyle.SINGLE, size: 1, color: EXPORT_THEME_HEX.border },
+    right: { style: BorderStyle.SINGLE, size: 1, color: EXPORT_THEME_HEX.border },
+};
 
-function cell(children: Paragraph[], fill: string, width?: number): TableCell {
+function shadedCell(
+    children: Paragraph[],
+    fill: string,
+    opts?: { columnSpan?: number; width?: number },
+): TableCell {
     return new TableCell({
-        shading: { fill, type: ShadingType.CLEAR },
-        margins: cellPad,
+        shading: { fill, type: ShadingType.CLEAR, color: 'auto' },
+        margins: cellMargins,
         verticalAlign: VerticalAlign.CENTER,
-        width: width ? { size: width, type: WidthType.PERCENTAGE } : undefined,
+        columnSpan: opts?.columnSpan,
+        width: opts?.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
+        borders: tableBorders,
         children,
     });
 }
 
-function sectionBlock(title: string, bar: string, bg: string, lines: string[]): Table | null {
-    if (!lines.length) return null;
+function labelPara(label: string, value: string, boldValue = true): Paragraph {
+    return new Paragraph({
+        children: [
+            new TextRun({ text: `${label}: `, bold: true, size: 18, color: EXPORT_THEME_HEX.textMuted }),
+            new TextRun({ text: value, bold: boldValue, size: 20, color: EXPORT_THEME_HEX.text }),
+        ],
+        spacing: { after: 60 },
+    });
+}
+
+function sectionHeader(title: string, barColor: string): Table {
     return new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
             new TableRow({
                 children: [
                     new TableCell({
-                        width: { size: 2, type: WidthType.PERCENTAGE },
-                        shading: { fill: bar, type: ShadingType.CLEAR },
+                        width: { size: 3, type: WidthType.PERCENTAGE },
+                        shading: { fill: barColor, type: ShadingType.CLEAR },
                         margins: { top: 0, bottom: 0, left: 0, right: 0 },
                         children: [new Paragraph({ text: '' })],
                     }),
-                    cell(
-                        [
-                            new Paragraph({
-                                children: [new TextRun({ text: title.toUpperCase(), bold: true, size: 18, color: EXPORT_THEME_HEX.text })],
-                                spacing: { after: 60 },
-                            }),
-                            ...lines.map((line) => new Paragraph({
-                                children: [
-                                    new TextRun({ text: '• ', bold: true, color: bar }),
-                                    new TextRun({ text: line, size: 20, color: EXPORT_THEME_HEX.text }),
-                                ],
-                                spacing: { after: 50 },
-                            })),
-                        ],
-                        bg,
-                        98,
+                    shadedCell(
+                        [new Paragraph({
+                            children: [new TextRun({ text: title.toUpperCase(), bold: true, size: 20, color: EXPORT_THEME_HEX.text })],
+                            spacing: { before: 80, after: 80 },
+                        })],
+                        EXPORT_THEME_HEX.cardBg,
+                        { width: 97 },
                     ),
                 ],
             }),
         ],
+    });
+}
+
+function bulletPara(text: string, index?: number): Paragraph {
+    const prefix = index != null ? `${index}. ` : '• ';
+    return new Paragraph({
+        children: [
+            new TextRun({ text: prefix, bold: true, color: EXPORT_THEME_HEX.accent }),
+            new TextRun({ text, size: 20, color: EXPORT_THEME_HEX.text }),
+        ],
+        spacing: { after: 80 },
+        indent: { left: 200 },
     });
 }
 
@@ -77,131 +102,250 @@ export const generateDocxReport = async (
     language: Language = 'uz-L',
 ) => {
     const tr = createExportTr(language, t as ((key: TranslationKey) => string) | undefined);
-    const c = buildCompactExportData(report, patientData, tr);
+    const compact = buildCompactExportData(report, patientData, tr);
     const dateStr = formatExportDate(language);
     const children: (Paragraph | Table)[] = [];
 
-    // Sarlavha
+    // Header banner
     children.push(
         new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
                 new TableRow({
                     children: [
-                        cell(
+                        shadedCell(
                             [
                                 new Paragraph({
                                     children: [new TextRun({
-                                        text: tr('export_patient_summary_title', 'Tibbiy xulosa'),
+                                        text: tr('pdf_title', 'KONSILIUM: Yakuniy Klinik Xulosa'),
                                         bold: true,
-                                        size: 30,
+                                        size: 32,
                                         color: EXPORT_THEME_HEX.white,
                                     })],
+                                    spacing: { after: 60 },
                                 }),
                                 new Paragraph({
-                                    children: [new TextRun({ text: `${c.patientLine}  ·  ${dateStr}`, size: 18, color: 'D0E4F5' })],
+                                    children: [new TextRun({
+                                        text: tr('pdf_subtitle', "Rasmiy tibbiy maslahat hujjati — faqat ma'lumot uchun."),
+                                        size: 16,
+                                        color: 'C8DCF0',
+                                        italics: true,
+                                    })],
                                 }),
                             ],
                             EXPORT_THEME_HEX.primary,
-                            100,
+                            { width: 70 },
+                        ),
+                        shadedCell(
+                            [
+                                new Paragraph({
+                                    children: [new TextRun({ text: tr('pdf_date', 'Sana'), bold: true, size: 16, color: EXPORT_THEME_HEX.white })],
+                                    alignment: AlignmentType.CENTER,
+                                }),
+                                new Paragraph({
+                                    children: [new TextRun({ text: dateStr, size: 20, color: EXPORT_THEME_HEX.white })],
+                                    alignment: AlignmentType.CENTER,
+                                }),
+                            ],
+                            EXPORT_THEME_HEX.accent,
+                            { width: 30 },
                         ),
                     ],
                 }),
             ],
         }),
-        new Paragraph({ text: '', spacing: { after: 80 } }),
+        new Paragraph({ text: '', spacing: { after: 120 } }),
     );
 
-    if (c.urgentNote) {
+    // Patient table
+    children.push(sectionHeader(tr('pdf_patient_info', "Bemor ma'lumotlari"), EXPORT_THEME_HEX.primary));
+    children.push(
+        new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+                new TableRow({
+                    children: [
+                        shadedCell([labelPara(tr('pdf_patient', 'Bemor'), compact.patientName)], EXPORT_THEME_HEX.white, { width: 40 }),
+                        shadedCell([labelPara(tr('pdf_age', 'Yoshi'), `${compact.age} ${tr('pdf_age', 'yosh')}`)], EXPORT_THEME_HEX.white, { width: 30 }),
+                        shadedCell([labelPara(tr('pdf_gender', 'Jinsi'), compact.gender)], EXPORT_THEME_HEX.white, { width: 30 }),
+                    ],
+                }),
+                ...(compact.complaints
+                    ? [new TableRow({
+                        children: [
+                            shadedCell(
+                                [new Paragraph({
+                                    children: [
+                                        new TextRun({ text: `${tr('pdf_complaints', 'Shikoyat')}: `, bold: true, size: 18, color: EXPORT_THEME_HEX.textMuted }),
+                                        new TextRun({ text: compact.complaints, italics: true, size: 20, color: EXPORT_THEME_HEX.text }),
+                                    ],
+                                })],
+                                EXPORT_THEME_HEX.cardBg,
+                                { columnSpan: 3 },
+                            ),
+                        ],
+                    })]
+                    : []),
+            ],
+        }),
+        new Paragraph({ text: '', spacing: { after: 120 } }),
+    );
+
+    if (compact.criticalAlert) {
+        children.push(sectionHeader(tr('pdf_critical_finding', 'Shoshilinch ogohlantirish'), EXPORT_THEME_HEX.alert));
         children.push(
             new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
                     new TableRow({
                         children: [
-                            cell(
+                            shadedCell(
                                 [new Paragraph({
-                                    children: [new TextRun({ text: c.urgentNote, bold: true, size: 20, color: EXPORT_THEME_HEX.alert })],
+                                    children: [new TextRun({ text: compact.criticalAlert, bold: true, size: 20, color: EXPORT_THEME_HEX.alert })],
                                 })],
                                 EXPORT_THEME_HEX.alertBg,
+                                { columnSpan: 1 },
                             ),
                         ],
                     }),
                 ],
             }),
-            new Paragraph({ text: '', spacing: { after: 80 } }),
+            new Paragraph({ text: '', spacing: { after: 120 } }),
         );
     }
 
-    if (c.diagnosisName) {
-        const pct = c.diagnosisPercent != null ? `${c.diagnosisPercent}%` : '';
+    if (compact.topDiagnosis) {
+        const diag = compact.topDiagnosis;
+        const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '';
+        children.push(sectionHeader(tr('pdf_diagnosis', 'Asosiy tashxis'), EXPORT_THEME_HEX.diagnosis));
         children.push(
             new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
                     new TableRow({
                         children: [
-                            cell(
+                            shadedCell(
                                 [
                                     new Paragraph({
                                         children: [new TextRun({
-                                            text: tr('export_your_diagnosis', 'Tashxis').toUpperCase(),
-                                            size: 16,
-                                            color: EXPORT_THEME_HEX.textMuted,
-                                            bold: true,
-                                        })],
-                                    }),
-                                    new Paragraph({
-                                        children: [new TextRun({
-                                            text: c.diagnosisName,
+                                            text: diag.name,
                                             bold: true,
                                             size: 28,
                                             color: EXPORT_THEME_HEX.diagnosis,
                                         })],
                                     }),
+                                    ...(diag.icd10
+                                        ? [new Paragraph({
+                                            children: [new TextRun({
+                                                text: `${tr('final_report_icd10', 'MKB-10')}: ${diag.icd10}`,
+                                                size: 18,
+                                                color: EXPORT_THEME_HEX.textMuted,
+                                            })],
+                                        })]
+                                        : []),
                                 ],
                                 EXPORT_THEME_HEX.diagnosisBg,
-                                pct ? 78 : 100,
+                                { width: pct ? 78 : 100 },
                             ),
                             ...(pct
-                                ? [cell(
+                                ? [shadedCell(
                                     [new Paragraph({
                                         children: [new TextRun({ text: pct, bold: true, size: 36, color: EXPORT_THEME_HEX.white })],
                                         alignment: AlignmentType.CENTER,
                                     })],
                                     EXPORT_THEME_HEX.diagnosis,
-                                    22,
+                                    { width: 22 },
                                 )]
                                 : []),
                         ],
                     }),
                 ],
             }),
-            new Paragraph({ text: '', spacing: { after: 80 } }),
+            new Paragraph({ text: '', spacing: { after: 120 } }),
         );
     }
 
-    const sections = [
-        sectionBlock(tr('export_what_to_do', 'Nima qilish kerak'), EXPORT_THEME_HEX.treatment, EXPORT_THEME_HEX.treatmentBg, c.treatmentLines),
-        sectionBlock(tr('pdf_medications', 'Dorilar'), EXPORT_THEME_HEX.medication, EXPORT_THEME_HEX.medicationBg, c.medicationLines),
-        sectionBlock(tr('export_home_care', "Uyda e'tibor berish"), EXPORT_THEME_HEX.prevention, EXPORT_THEME_HEX.preventionBg, c.preventionLines),
-    ];
-    sections.forEach((tbl) => {
-        if (tbl) {
-            children.push(tbl, new Paragraph({ text: '', spacing: { after: 60 } }));
-        }
-    });
+    if (compact.treatmentLines.length > 0) {
+        children.push(sectionHeader(tr('pdf_treatment_plan', 'Davolash rejasi'), EXPORT_THEME_HEX.treatment));
+        children.push(
+            new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: compact.treatmentLines.map((line, idx) => new TableRow({
+                    children: [
+                        shadedCell([bulletPara(line, idx + 1)], idx % 2 === 0 ? EXPORT_THEME_HEX.treatmentBg : EXPORT_THEME_HEX.white),
+                    ],
+                })),
+            }),
+            new Paragraph({ text: '', spacing: { after: 120 } }),
+        );
+    }
+
+    if (compact.medications.length > 0) {
+        children.push(sectionHeader(tr('pdf_medications', 'Dori-darmonlar'), EXPORT_THEME_HEX.medication));
+        children.push(
+            new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({
+                        children: [
+                            shadedCell([new Paragraph({ children: [new TextRun({ text: tr('docx_med_name', 'Nomi'), bold: true, size: 18 })] })], EXPORT_THEME_HEX.medication, { width: 35 }),
+                            shadedCell([new Paragraph({ children: [new TextRun({ text: tr('docx_dose', 'Doza'), bold: true, size: 18 })] })], EXPORT_THEME_HEX.medication, { width: 25 }),
+                            shadedCell([new Paragraph({ children: [new TextRun({ text: tr('docx_note', 'Qo\'llash'), bold: true, size: 18 })] })], EXPORT_THEME_HEX.medication, { width: 40 }),
+                        ],
+                    }),
+                    ...compact.medications.map((med, idx) => new TableRow({
+                        children: [
+                            shadedCell([new Paragraph({ children: [new TextRun({ text: med.name, bold: true, size: 20, color: EXPORT_THEME_HEX.medication })] })], idx % 2 === 0 ? EXPORT_THEME_HEX.medicationBg : EXPORT_THEME_HEX.white, { width: 35 }),
+                            shadedCell([new Paragraph({ children: [new TextRun({ text: med.dosage, size: 20 })] })], idx % 2 === 0 ? EXPORT_THEME_HEX.medicationBg : EXPORT_THEME_HEX.white, { width: 25 }),
+                            shadedCell([new Paragraph({ children: [new TextRun({ text: med.schedule, size: 18, color: EXPORT_THEME_HEX.textMuted })] })], idx % 2 === 0 ? EXPORT_THEME_HEX.medicationBg : EXPORT_THEME_HEX.white, { width: 40 }),
+                        ],
+                    })),
+                ],
+            }),
+            new Paragraph({ text: '', spacing: { after: 120 } }),
+        );
+    }
+
+    if (compact.preventionLines.length > 0) {
+        children.push(sectionHeader(tr('pdf_prevention_measures', 'Profilaktika'), EXPORT_THEME_HEX.prevention));
+        children.push(
+            new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: compact.preventionLines.map((line, idx) => new TableRow({
+                    children: [
+                        shadedCell([bulletPara(line)], idx % 2 === 0 ? EXPORT_THEME_HEX.preventionBg : EXPORT_THEME_HEX.white),
+                    ],
+                })),
+            }),
+            new Paragraph({ text: '', spacing: { after: 120 } }),
+        );
+    }
 
     children.push(
-        new Paragraph({
-            children: [new TextRun({
-                text: `AiDoktor · ${tr('pdf_footer_general', "Shifokor ko'rsatmasi bilan birga foydalaning.")}`,
-                italics: true,
-                size: 16,
-                color: EXPORT_THEME_HEX.textMuted,
-            })],
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 120 },
+        new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+                new TableRow({
+                    children: [
+                        shadedCell(
+                            [
+                                new Paragraph({
+                                    children: [new TextRun({ text: 'AiDoktor', bold: true, size: 18, color: EXPORT_THEME_HEX.primary })],
+                                }),
+                                new Paragraph({
+                                    children: [new TextRun({
+                                        text: tr('pdf_footer_general', "Raqamli tizim yordamida shakllantirilgan. Faqat ma'lumot uchun."),
+                                        italics: true,
+                                        size: 16,
+                                        color: EXPORT_THEME_HEX.textMuted,
+                                    })],
+                                }),
+                            ],
+                            EXPORT_THEME_HEX.cardBg,
+                        ),
+                    ],
+                }),
+            ],
         }),
     );
 
@@ -209,7 +353,7 @@ export const generateDocxReport = async (
         styles: {
             default: new DocumentDefaults({
                 run: { font: 'Calibri', size: 22 },
-                paragraph: { spacing: { after: 80, line: 260 } },
+                paragraph: { spacing: { after: 100, line: 276 } },
             }),
         },
         sections: [{ children }],

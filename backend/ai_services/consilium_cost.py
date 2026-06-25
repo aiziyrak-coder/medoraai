@@ -33,26 +33,26 @@ def default_max_tokens() -> int:
 
 
 def phase1_max_tokens() -> int:
-    return {"scale": 2600, "economy": 2800, "balanced": 3200, "quality": 4096}.get(
-        ai_cost_mode(), 2600
+    return {"scale": 1800, "economy": 2200, "balanced": 2800, "quality": 4096}.get(
+        ai_cost_mode(), 1800
     )
 
 
 def phase2_max_tokens() -> int:
-    return {"scale": 2800, "economy": 3000, "balanced": 3600, "quality": 4500}.get(
-        ai_cost_mode(), 2800
+    return {"scale": 2000, "economy": 2400, "balanced": 3200, "quality": 4500}.get(
+        ai_cost_mode(), 2000
     )
 
 
 def phase3_max_tokens() -> int:
-    return {"scale": 6144, "economy": 5120, "balanced": 7168, "quality": 10000}.get(
-        ai_cost_mode(), 6144
+    return {"scale": 4096, "economy": 4800, "balanced": 6144, "quality": 10000}.get(
+        ai_cost_mode(), 4096
     )
 
 
 def pharma_max_tokens() -> int:
-    return {"scale": 1400, "economy": 1600, "balanced": 2000, "quality": 2800}.get(
-        ai_cost_mode(), 1400
+    return {"scale": 900, "economy": 1100, "balanced": 1600, "quality": 2800}.get(
+        ai_cost_mode(), 900
     )
 
 

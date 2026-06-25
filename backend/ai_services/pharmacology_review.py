@@ -45,6 +45,8 @@ def run_pharmacology_review(
     if not meds and not consensus.get("treatment_plan"):
         return {"warnings": [], "validated_medications": [], "interactions_found": []}
 
+    from .consilium_cost import ai_cost_mode
+
     lang = {
         "uz-L": "O'zbek (lotin)",
         "uz-C": "O'zbek (kirill)",
@@ -74,6 +76,15 @@ def run_pharmacology_review(
                 ddi_notes.append(str(rec)[:200])
         except Exception as exc:
             logger.warning("DDI check failed: %s", exc)
+
+    if ai_cost_mode() in ("scale", "economy"):
+        validated = [m for m in meds if isinstance(m, dict)] if isinstance(meds, list) else []
+        return {
+            "warnings": ddi_notes,
+            "validated_medications": validated,
+            "interactions_found": ddi_notes[:4],
+            "skipped_llm": True,
+        }
 
     allergies = str(patient_data.get("allergies") or "")[:300]
     allergy_line = allergies if allergies else "ko'rsatilmagan"
