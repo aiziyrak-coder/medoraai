@@ -4,7 +4,7 @@ Patient Serializers
 from rest_framework import serializers
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIELDS
-from .registry_number import allocate_patient_registry_number
+from .passport_serial import normalize_passport_serial, validate_passport_serial_format
 from .dedup import find_existing_patient, apply_passport_fields
 from .phone import normalize_patient_phone
 from accounts.serializers import UserSerializer
@@ -62,11 +62,16 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id',
+            'id', 'registry_number',
             'first_name', 'last_name', 'father_name', 'age', 'gender',
             'phone', 'address', 'region_id', 'district_id',
         ]
-        read_only_fields = ['id', 'registry_number']
+        read_only_fields = ['id']
+
+    def validate_registry_number(self, value):
+        if self.instance:
+            return self.instance.registry_number
+        return validate_passport_serial_format(value)
 
     def validate(self, attrs):
         if not (attrs.get('first_name') or '').strip():
@@ -75,6 +80,12 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'last_name': 'Familiya kiritilishi shart.'})
         if not (attrs.get('age') or '').strip():
             raise serializers.ValidationError({'age': 'Yosh kiritilishi shart.'})
+        if not self.instance and not normalize_passport_serial(
+            self.initial_data.get('registry_number') or attrs.get('registry_number')
+        ):
+            raise serializers.ValidationError({
+                'registry_number': 'Pasport seriya raqami kiritilishi shart.',
+            })
         phone = normalize_patient_phone(attrs.get('phone'))
         if phone:
             attrs['phone'] = phone
@@ -82,7 +93,13 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
+        registry_number = validated_data.pop('registry_number', None)
+        if not registry_number:
+            raise serializers.ValidationError({
+                'registry_number': 'Pasport seriya raqami kiritilishi shart.',
+            })
         existing = find_existing_patient(
+            registry_number=registry_number,
             phone=validated_data.get('phone'),
             first_name=validated_data.get('first_name'),
             last_name=validated_data.get('last_name'),
@@ -95,10 +112,11 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
         validated_data.setdefault('complaints', '')
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
-        validated_data['registry_number'] = allocate_patient_registry_number()
+        validated_data['registry_number'] = registry_number
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
+        validated_data.pop('registry_number', None)
         clinical_keys = set(CLINICAL_FIELDS) - {'attachments'}
         for key in clinical_keys:
             validated_data.pop(key, None)
@@ -157,17 +175,34 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             'structured_lab_results', 'pharmacogenomics_report',
             'symptom_timeline', 'mental_health_scores',
         ]
-        read_only_fields = ['id', 'registry_number']
+        read_only_fields = ['id']
     
+    def validate_registry_number(self, value):
+        if self.instance:
+            return self.instance.registry_number
+        return validate_passport_serial_format(value)
+
     def validate(self, attrs):
         phone = normalize_patient_phone(attrs.get('phone'))
         if phone:
             attrs['phone'] = phone
+        if not self.instance and not normalize_passport_serial(
+            self.initial_data.get('registry_number') or attrs.get('registry_number')
+        ):
+            raise serializers.ValidationError({
+                'registry_number': 'Pasport seriya raqami kiritilishi shart.',
+            })
         return attrs
 
     def create(self, validated_data):
         user = self.context['request'].user
+        registry_number = validated_data.pop('registry_number', None)
+        if not registry_number:
+            raise serializers.ValidationError({
+                'registry_number': 'Pasport seriya raqami kiritilishi shart.',
+            })
         existing = find_existing_patient(
+            registry_number=registry_number,
             phone=validated_data.get('phone'),
             first_name=validated_data.get('first_name'),
             last_name=validated_data.get('last_name'),
@@ -180,8 +215,12 @@ class PatientCreateSerializer(serializers.ModelSerializer):
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
         validated_data.setdefault('complaints', validated_data.get('complaints') or '')
-        validated_data['registry_number'] = allocate_patient_registry_number()
+        validated_data['registry_number'] = registry_number
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('registry_number', None)
+        return super().update(instance, validated_data)
 
 
 class PatientUpdateSerializer(serializers.ModelSerializer):

@@ -44,11 +44,10 @@ class Patient(models.Model):
     mental_health_scores = models.JSONField(default=dict, blank=True, verbose_name='Ruhiy salomatlik skorlari')
     
     registry_number = models.CharField(
-        max_length=8,
+        max_length=20,
         unique=True,
         db_index=True,
-        editable=False,
-        verbose_name='Ro\'yxat raqami (8 xona)',
+        verbose_name='Pasport seriya raqami (bemor ID)',
     )
 
     # Metadata

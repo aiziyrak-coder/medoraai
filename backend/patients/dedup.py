@@ -21,12 +21,21 @@ def find_existing_patient(
     last_name: str | None = None,
     father_name: str | None = None,
     age: str | None = None,
+    registry_number: str | None = None,
     exclude_id: int | None = None,
 ) -> Patient | None:
-    """Mavjud bemorni telefon (asosiy) yoki to'liq FIO+yosh bo'yicha topish."""
+    """Mavjud bemorni pasport ID, telefon yoki to'liq FIO+yosh bo'yicha topish."""
     qs = Patient.objects.all()
     if exclude_id:
         qs = qs.exclude(pk=exclude_id)
+
+    from .passport_serial import normalize_passport_serial
+
+    rn = normalize_passport_serial(registry_number)
+    if rn:
+        by_rn = qs.filter(registry_number__iexact=rn)
+        if by_rn.exists():
+            return by_rn.first()
 
     normalized = normalize_patient_phone(phone)
     if normalized:

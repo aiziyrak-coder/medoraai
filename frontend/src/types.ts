@@ -141,6 +141,8 @@ export interface SymptomTimelineEvent {
 
 export interface PatientData {
   // --- Basic Info ---
+  /** Pasport seriya raqami — bemorning doimiy ID raqami (masalan AB1234567) */
+  registryNumber?: string;
   firstName: string;
   lastName: string;
   /** Otasining ismi (patronimik) */

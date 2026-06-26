@@ -27,6 +27,7 @@ import { mergeImagingStudiesIntoPatientData } from '../utils/imagingContext';
 import type { ImagingStudyRecord } from '../types';
 import { getAuthToken } from '../services/api';
 import { formatPatientRegistryId } from '../utils/patientRegistryId';
+import { formatPassportSerialInput, isValidPassportSerial, normalizePassportSerial } from '../utils/passportSerial';
 import SearchIcon from './icons/SearchIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import StethoscopeIcon from './icons/StethoscopeIcon';
@@ -734,6 +735,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const [districtId, setDistrictId] = useState('');
 
     const [formData, setFormData] = useState<Partial<PatientData>>({
+        registryNumber: '',
         firstName: '',
         lastName: '',
         fatherName: '',
@@ -784,6 +786,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         setRegionId(pd.regionId || '');
         setDistrictId(pd.districtId || '');
         setFormData({
+            registryNumber: pd.registryNumber || '',
             firstName: pd.firstName || '',
             lastName: pd.lastName || '',
             fatherName: pd.fatherName || '',
@@ -1183,6 +1186,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         
         if (!formData.gender?.trim()) errors.gender = t('validation_required', { field: t('data_input_gender') });
         if (!formData.complaints?.trim()) errors.complaints = t('validation_required', { field: t('data_input_complaints_label') });
+        if (!linkedPatientKey && !isValidPassportSerial(formData.registryNumber)) {
+            errors.registryNumber = t('passport_serial_invalid');
+        }
 
         const nextVitalErrors: Record<string, string> = {};
         if (!vitals.weight.trim()) {
@@ -1261,6 +1267,9 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         }
 
         const fullPatientData: PatientData = {
+            registryNumber: linkedPatientKey
+                ? (linkedRegistryNumber || formData.registryNumber)
+                : normalizePassportSerial(formData.registryNumber),
             firstName: formData.firstName || '',
             lastName: formData.lastName || '',
             fatherName: formData.fatherName || '',
@@ -1476,6 +1485,26 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     </span>
                                 </label>
                             )}
+                            </div>
+                            <div>
+                                <Input
+                                    id="registryNumber"
+                                    label={t('passport_serial_label')}
+                                    type="text"
+                                    value={linkedPatientKey ? (linkedRegistryNumber || formData.registryNumber || '') : (formData.registryNumber || '')}
+                                    onChange={e => handleChange('registryNumber', formatPassportSerialInput(e.target.value))}
+                                    placeholder={t('passport_serial_placeholder')}
+                                    maxLength={9}
+                                    disabled={Boolean(linkedPatientKey)}
+                                    required={!linkedPatientKey}
+                                    className="font-mono uppercase tracking-wide"
+                                />
+                                {formErrors.registryNumber && (
+                                    <p className="text-[9px] text-red-500 mt-0.5 ml-0.5">{formErrors.registryNumber}</p>
+                                )}
+                                {!linkedPatientKey && (
+                                    <p className="text-[8px] text-sky-700/80 mt-0.5 ml-0.5">{t('passport_serial_hint')}</p>
+                                )}
                             </div>
                             <div>
                                 <Input id="firstName" label={t('data_input_patient_name')} type="text" value={formData.firstName || ''} onChange={e => handleChange('firstName', e.target.value)} required placeholder={t('data_input_placeholder_firstname')} />

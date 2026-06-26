@@ -9,12 +9,14 @@ import PatientReceipt, { printPatientReceipt } from './PatientReceipt';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { User } from '../../types';
 import { formatPatientRegistryId } from '../../utils/patientRegistryId';
+import { formatPassportSerialInput, isValidPassportSerial, normalizePassportSerial } from '../../utils/passportSerial';
 
 interface RegistrarPanelProps {
     user: User;
 }
 
 const emptyForm = () => ({
+    passportSerial: '',
     firstName: '',
     lastName: '',
     fatherName: '',
@@ -44,6 +46,7 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
         setEditId(p.id);
         setRegistryNumber(formatPatientRegistryId(p));
         setForm({
+            passportSerial: formatPatientRegistryId(p),
             firstName: p.first_name,
             lastName: p.last_name,
             fatherName: p.father_name || '',
@@ -93,10 +96,15 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
             setError(t('registrar_validation_required'));
             return;
         }
+        if (!editId && !isValidPassportSerial(form.passportSerial)) {
+            setError(t('passport_serial_invalid'));
+            return;
+        }
         setSaving(true);
         try {
             const res = await registerPatientPassport({
                 id: editId ?? undefined,
+                registry_number: normalizePassportSerial(form.passportSerial),
                 first_name: form.firstName.trim(),
                 last_name: form.lastName.trim(),
                 father_name: form.fatherName.trim(),
@@ -193,6 +201,21 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
                     {error && (
                         <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
                     )}
+                    <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">{t('passport_serial_label')}</label>
+                        <input
+                            className="w-full mt-0.5 rounded-lg border border-slate-200 px-2 py-2 text-sm font-mono uppercase tracking-wide disabled:bg-slate-50 disabled:text-slate-600"
+                            value={form.passportSerial}
+                            onChange={(e) =>
+                                setForm((f) => ({ ...f, passportSerial: formatPassportSerialInput(e.target.value) }))
+                            }
+                            placeholder={t('passport_serial_placeholder')}
+                            maxLength={9}
+                            disabled={Boolean(editId)}
+                            required={!editId}
+                        />
+                        <p className="text-[9px] text-slate-400 mt-0.5">{t('passport_serial_hint')}</p>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                         <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase">{t('last_name_label')}</label>

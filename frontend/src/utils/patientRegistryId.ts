@@ -1,4 +1,4 @@
-/** Bemorning doimiy 8 xonali ID raqami (chek/navbat emas — qidiruv kaliti). */
+/** Bemorning pasport seriya raqami (doimiy ID — chek va qidiruv kaliti). */
 export function formatPatientRegistryId(
   patient: { registry_number?: string | null; id?: number | null },
 ): string {

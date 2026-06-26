@@ -1,8 +1,10 @@
-"""8 xonali ketma-ket bemor ro'yxat raqami (00000001 …)."""
+"""Bemor ID — pasport seriya raqami bo'yicha qidiruv."""
 from __future__ import annotations
 
 from django.db import transaction
 from django.db.models import Q
+
+from .passport_serial import normalize_passport_serial
 
 
 REGISTRY_NUMBER_WIDTH = 8
@@ -17,6 +19,7 @@ def format_registry_number(value: int) -> str:
 
 @transaction.atomic
 def allocate_patient_registry_number() -> str:
+    """Eski avtomatik raqamlar — faqat migratsiya / maxsus holatlar uchun."""
     from .models import PatientRegistryCounter
 
     counter, _ = PatientRegistryCounter.objects.select_for_update().get_or_create(
@@ -31,19 +34,24 @@ def allocate_patient_registry_number() -> str:
 
 
 def registry_number_lookup_q(query: str) -> Q | None:
-    """Raqamli qidiruv — 8 xonali bemor ID (qisman ham: 42 → …00000042)."""
-    q = (query or '').strip()
-    if not q.isdigit():
+    """Pasport seriyasi yoki eski raqamli ID bo'yicha qidiruv."""
+    raw = (query or '').strip()
+    if not raw:
         return None
-    clause = Q()
-    if len(q) <= REGISTRY_NUMBER_WIDTH:
-        clause |= Q(registry_number=q.zfill(REGISTRY_NUMBER_WIDTH))
-        if len(q) < REGISTRY_NUMBER_WIDTH:
-            clause |= Q(registry_number__endswith=q)
-    else:
-        clause |= Q(registry_number=q)
-    try:
-        clause |= Q(pk=int(q))
-    except (TypeError, ValueError):
-        pass
+
+    normalized = normalize_passport_serial(raw)
+    clause = Q(registry_number__iexact=normalized) | Q(registry_number__icontains=normalized)
+
+    if raw.isdigit():
+        if len(raw) <= REGISTRY_NUMBER_WIDTH:
+            clause |= Q(registry_number=raw.zfill(REGISTRY_NUMBER_WIDTH))
+            if len(raw) < REGISTRY_NUMBER_WIDTH:
+                clause |= Q(registry_number__endswith=raw)
+        else:
+            clause |= Q(registry_number=raw)
+        try:
+            clause |= Q(pk=int(raw))
+        except (TypeError, ValueError):
+            pass
+
     return clause

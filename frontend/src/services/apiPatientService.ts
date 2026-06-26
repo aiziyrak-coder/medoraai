@@ -132,6 +132,7 @@ export interface ClinicalTimeline {
 }
 
 const patientDataToApi = (data: PatientData): Partial<Patient> => ({
+  registry_number: data.registryNumber,
   first_name: data.firstName,
   last_name: data.lastName,
   father_name: data.fatherName,
@@ -156,6 +157,7 @@ const patientDataToApi = (data: PatientData): Partial<Patient> => ({
 });
 
 const apiToPatientData = (patient: Patient): PatientData => ({
+  registryNumber: patient.registry_number,
   firstName: patient.first_name,
   lastName: patient.last_name,
   fatherName: patient.father_name,
@@ -187,6 +189,7 @@ const apiToPatientData = (patient: Patient): PatientData => ({
 });
 
 export const passportToPatientData = (p: PatientPassport): PatientData => ({
+  registryNumber: p.registry_number,
   firstName: p.first_name,
   lastName: p.last_name,
   fatherName: p.father_name,
