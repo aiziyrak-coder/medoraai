@@ -20,6 +20,7 @@ from .views import (
     UserDetailAPIView,
     ClinicRegistrarsAPIView,
 )
+from .regional_stats_views import regional_stats_overview, regional_stats_me
 from .clinic_admin_views import (
     clinic_admin_stats,
     clinic_admin_me,
@@ -49,6 +50,10 @@ urlpatterns = [
     path('telegram-webhook/', telegram_webhook, name='telegram_webhook'),
     path('logout-session/', logout_session, name='logout_session'),
     path('rektorga/stats/', rector_dashboard_stats, name='rector_dashboard_stats'),
+
+    # Viloyat sog'liqni saqlash boshqarmasi statistikasi
+    path('regional-stats/me/', regional_stats_me, name='regional_stats_me'),
+    path('regional-stats/overview/', regional_stats_overview, name='regional_stats_overview'),
     
     # User management
     path('users/', UserListAPIView.as_view(), name='user_list'),

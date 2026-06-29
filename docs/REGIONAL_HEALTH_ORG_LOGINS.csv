@@ -1,15 +1,15 @@
-﻿tartib,tashkilot,klinika_guruhi,kod,login_telefon,parol,obuna_kun,obuna_tugash
-1,Qoraqalpog'iston Respublikasi Sog'liqni saqlash vazirligi,Qoraqalpog'iston Respublikasi Sog'liqni saqlash vazirligi,qar-vazirlik,+99891780050,qarvazirlik2026,30,2026-07-17
-2,Andijon viloyati Sog'liqni saqlash boshqarmasi,Andijon viloyati Sog'liqni saqlash boshqarmasi,andijon-boshqarma,+99891780051,andijonboshqarma2026,30,2026-07-17
-3,Buxoro viloyati Sog'liqni saqlash boshqarmasi,Buxoro viloyati Sog'liqni saqlash boshqarmasi,buxoro-boshqarma,+99891780052,buxoroboshqarma2026,30,2026-07-17
-4,Jizzax viloyati Sog'liqni saqlash boshqarmasi,Jizzax viloyati Sog'liqni saqlash boshqarmasi,jizzax-boshqarma,+99891780053,jizzaxboshqarma2026,30,2026-07-17
-5,Qashqadaryo viloyati Sog'liqni saqlash boshqarmasi,Qashqadaryo viloyati Sog'liqni saqlash boshqarmasi,qashqadaryo-boshqarma,+99891780054,qashqadaryoboshqarma2026,30,2026-07-17
-6,Navoiy viloyati Sog'liqni saqlash boshqarmasi,Navoiy viloyati Sog'liqni saqlash boshqarmasi,navoiy-boshqarma,+99891780055,navoiyboshqarma2026,30,2026-07-17
-7,Namangan viloyati Sog'liqni saqlash boshqarmasi,Namangan viloyati Sog'liqni saqlash boshqarmasi,namangan-boshqarma,+99891780056,namanganboshqarma2026,30,2026-07-17
-8,Samarqand viloyati Sog'liqni saqlash boshqarmasi,Samarqand viloyati Sog'liqni saqlash boshqarmasi,samarqand-boshqarma,+99891780057,samarqandboshqarma2026,30,2026-07-17
-9,Surxondaryo viloyati Sog'liqni saqlash boshqarmasi,Surxondaryo viloyati Sog'liqni saqlash boshqarmasi,surxondaryo-boshqarma,+99891780058,surxondaryoboshqarma2026,30,2026-07-17
-10,Sirdaryo viloyati Sog'liqni saqlash boshqarmasi,Sirdaryo viloyati Sog'liqni saqlash boshqarmasi,sirdaryo-boshqarma,+99891780059,sirdaryoboshqarma2026,30,2026-07-17
-11,Toshkent viloyati Sog'liqni saqlash boshqarmasi,Toshkent viloyati Sog'liqni saqlash boshqarmasi,toshkent-vil-boshqarma,+99891780060,toshkentvilboshqarma2026,30,2026-07-17
-12,Farg'ona viloyati Sog'liqni saqlash boshqarmasi,Farg'ona viloyati Sog'liqni saqlash boshqarmasi,fargona-boshqarma,+99891780061,fargonaboshqarma2026,30,2026-07-17
-13,Xorazm viloyati Sog'liqni saqlash boshqarmasi,Xorazm viloyati Sog'liqni saqlash boshqarmasi,xorazm-boshqarma,+99891780062,xorazmboshqarma2026,30,2026-07-17
-14,Toshkent shahar Sog'liqni saqlash bosh boshqarmasi,Toshkent shahar Sog'liqni saqlash bosh boshqarmasi,toshkent-shahar-boshqarma,+99891780063,toshkentshaharboshqarma2026,30,2026-07-17
+﻿tartib,tashkilot,viloyat_id,kod,login_telefon,parol,rol,obuna_kun,obuna_tugash
+1,Қорақалпоғистон Республикаси Соғлиқни сақлаш вазирлиги,1,qar-vazirlik,+998917800050,qarvazirlik50Ai0cdd!,viloyat_statistikasi,60,2026-08-28
+2,Андижон вилояти Соғлиқни сақлаш бошқармаси,2,andijon-boshqarma,+998917800051,andijonboshq51Ai3c9c!,viloyat_statistikasi,60,2026-08-28
+3,Бухоро вилояти Соғлиқни сақлаш бошқармаси,3,buxoro-boshqarma,+998917800052,buxoroboshqa52Ai3971!,viloyat_statistikasi,60,2026-08-28
+4,Жиззах вилояти Соғлиқни сақлаш бошқармаси,4,jizzax-boshqarma,+998917800053,jizzaxboshqa53Aiee47!,viloyat_statistikasi,60,2026-08-28
+5,Қашқадарё вилояти Соғлиқни сақлаш бошқармаси,5,qashqadaryo-boshqarma,+998917800054,qashqadaryob54Ai2192!,viloyat_statistikasi,60,2026-08-28
+6,Навоий вилояти Соғлиқни сақлаш бошқармаси,6,navoiy-boshqarma,+998917800055,navoiyboshqa55Ai97d9!,viloyat_statistikasi,60,2026-08-28
+7,Наманган вилояти Соғлиқни сақлаш бошқармаси,7,namangan-boshqarma,+998917800056,namanganbosh56Ai9f66!,viloyat_statistikasi,60,2026-08-28
+8,Самарқанд вилояти Соғлиқни сақлаш бошқармаси,8,samarqand-boshqarma,+998917800057,samarqandbos57Aia2ff!,viloyat_statistikasi,60,2026-08-28
+9,Сурхондарё вилояти Соғлиқни сақлаш бошқармаси,9,surxandaryo-boshqarma,+998917800058,surxandaryob58Aiea54!,viloyat_statistikasi,60,2026-08-28
+10,Сирдарё вилояти Соғлиқни сақлаш бошқармаси,10,sirdaryo-boshqarma,+998917800059,sirdaryobosh59Aidec0!,viloyat_statistikasi,60,2026-08-28
+11,Тошкент вилояти Соғлиқни сақлаш бошқармаси,11,toshkent-vil-boshqarma,+998917800060,toshkentvilb60Aid89a!,viloyat_statistikasi,60,2026-08-28
+12,Фарғона вилояти Соғлиқни сақлаш бошқармаси,12,fargona-boshqarma,+998917800061,fargonaboshq61Aia32d!,viloyat_statistikasi,60,2026-08-28
+13,Хоразм вилояти Соғлиқни сақлаш бошқармаси,13,xorazm-boshqarma,+998917800062,xorazmboshqa62Ai5720!,viloyat_statistikasi,60,2026-08-28
+14,Тошкент шаҳар Соғлиқни сақлаш бошқармаси,14,toshkent-shahar-boshqarma,+998917800063,toshkentshah63Aiee17!,viloyat_statistikasi,60,2026-08-28

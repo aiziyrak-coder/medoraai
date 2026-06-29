@@ -54,7 +54,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'phone', 'name', 'role', 'specialties',
-            'clinic_group', 'clinic_group_name',
+            'clinic_group', 'clinic_group_name', 'scoped_region_id',
             'subscription_plan', 'subscription_plan_detail',
             'subscription_status', 'subscription_expiry', 'trial_ends_at',
             'has_active_subscription', 'is_staff', 'is_superuser',
@@ -62,7 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'date_joined', 'last_login', 'is_staff', 'is_superuser',
-            'clinic_group', 'clinic_group_name',
+            'clinic_group', 'clinic_group_name', 'scoped_region_id',
         ]
 
 

@@ -263,7 +263,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 )
 
             # Guruh admin / tashkilot: bir nechta qurilma; oddiy hisob: faqat bitta qurilma
-            if is_org_login or user.is_clinic_group_admin:
+            if is_org_login or user.is_clinic_group_admin or user.role == 'regional_stats':
                 ActiveSession.objects.filter(user=user, device_id=device_id).delete()
             else:
                 _revoke_all_sessions_for_user(user)

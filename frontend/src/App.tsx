@@ -40,6 +40,7 @@ import AboutInstitutePage from './components/AboutInstitutePage';
 import SubscriptionPage from './components/SubscriptionPage';
 import RectorDashboard from './components/RectorDashboard';
 import ClinicAdminDashboard from './components/ClinicAdminDashboard';
+import RegionalStatsDashboard from './components/RegionalStatsDashboard';
 import DataInputForm from './components/DataInputForm';
 const HistoryView = lazy(() => import('./components/HistoryView'));
 import MobileNavBar from './components/MobileNavBar';
@@ -452,6 +453,11 @@ const AppContent: React.FC = () => {
             setUserHistory([]);
             setDashboardStats(null);
             setAppView('registrar');
+            return;
+        }
+        if (user.role === 'regional_stats') {
+            setUserHistory([]);
+            setDashboardStats(null);
             return;
         }
         caseService.loadDashboardStatsFromApi().then(result => {
@@ -1304,6 +1310,16 @@ const AppContent: React.FC = () => {
                 onLogout={handleLogout}
                 language={language}
                 onLanguageChange={setLanguage as (lang: Language) => void}
+            />
+        );
+    }
+
+    // Viloyat sog'liqni saqlash boshqarmasi — faqat statistika
+    if (currentUser.role === 'regional_stats') {
+        return (
+            <RegionalStatsDashboard
+                user={currentUser}
+                onLogout={handleLogout}
             />
         );
     }

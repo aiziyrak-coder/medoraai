@@ -1,8 +1,8 @@
 """
-Viloyat sog'liqni saqlash boshqarmalari uchun klinika guruhi + faol obuna.
+Viloyat sog'liqni saqlash boshqarmalari uchun statistika hisoblari.
 
   python manage.py create_regional_health_org_accounts
-  python manage.py create_regional_health_org_accounts --days 60 --export-csv /tmp/regional.csv
+  python manage.py create_regional_health_org_accounts --days 60 --export-csv docs/REGIONAL_HEALTH_ORG_LOGINS.csv
   python manage.py create_regional_health_org_accounts --dry-run
 """
 from __future__ import annotations
@@ -16,11 +16,11 @@ from django.utils import timezone
 
 from accounts.models import SubscriptionPlan
 from accounts.org_catalog import REGIONAL_HEALTH_ORG_ACCOUNTS, org_password, org_phone
-from accounts.org_provisioning import provision_org_account
+from accounts.org_provisioning import provision_regional_stats_account
 
 
 class Command(BaseCommand):
-    help = "Viloyat sog'liqni saqlash boshqarmalari uchun klinika guruhi va login yaratadi"
+    help = "Viloyat sog'liqni saqlash boshqarmalari uchun statistika hisoblari yaratadi"
 
     def add_arguments(self, parser):
         parser.add_argument('--days', type=int, default=60, help='Obuna davri (kun), default 60 = 2 oy')
@@ -46,6 +46,7 @@ class Command(BaseCommand):
             idx = int(item['idx'])
             code = str(item['code'])
             name = str(item['name'])
+            region_id = str(item['region_id'])
             phone = org_phone(idx)
             password = org_password(code, idx)
             display_idx = str(idx - 49)
@@ -54,20 +55,21 @@ class Command(BaseCommand):
                 rows.append({
                     'tartib': display_idx,
                     'tashkilot': name,
-                    'klinika_guruhi': name,
+                    'viloyat_id': region_id,
                     'kod': code,
                     'login_telefon': phone,
                     'parol': password,
+                    'rol': 'viloyat_statistikasi',
                     'obuna_kun': str(days),
                     'obuna_tugash': expiry.date().isoformat(),
-                    'guruh_admin': 'ha',
                 })
                 continue
 
-            group, user, group_new, user_new, phone, password = provision_org_account(
+            group, user, group_new, user_new, phone, password = provision_regional_stats_account(
                 idx=idx,
                 code=code,
                 name=name,
+                region_id=region_id,
                 plan=plan,
                 expiry=expiry,
                 slug_fallback_prefix='regional',
@@ -82,13 +84,13 @@ class Command(BaseCommand):
             rows.append({
                 'tartib': display_idx,
                 'tashkilot': name,
-                'klinika_guruhi': group.name,
+                'viloyat_id': region_id,
                 'kod': code,
                 'login_telefon': phone,
                 'parol': password,
+                'rol': 'viloyat_statistikasi',
                 'obuna_kun': str(days),
                 'obuna_tugash': expiry.date().isoformat(),
-                'guruh_admin': 'ha',
             })
 
         self._write_csv(export_path, rows)
@@ -101,8 +103,8 @@ class Command(BaseCommand):
         path = Path(export_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         fieldnames = [
-            'tartib', 'tashkilot', 'klinika_guruhi', 'kod', 'login_telefon', 'parol',
-            'obuna_kun', 'obuna_tugash', 'guruh_admin',
+            'tartib', 'tashkilot', 'viloyat_id', 'kod', 'login_telefon', 'parol',
+            'rol', 'obuna_kun', 'obuna_tugash',
         ]
         with path.open('w', newline='', encoding='utf-8-sig') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -111,7 +113,7 @@ class Command(BaseCommand):
 
     def _print_summary(self, total, created_groups, created_users, updated_users, days, expiry, export_path) -> None:
         self.stdout.write(self.style.SUCCESS(
-            f"Jami {total} ta tashkilot. "
+            f"Jami {total} ta viloyat boshqarmasi. "
             f"Guruhlar: +{created_groups} yangi. "
             f"Foydalanuvchilar: {created_users} yangi, {updated_users} yangilandi. "
             f"Obuna: {days} kun (gacha {expiry.date()})."
@@ -120,8 +122,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'CSV: {export_path}'))
 
     def _print_logins(self, rows: list[dict[str, str]]) -> None:
-        self.stdout.write('\n--- Login ro\'yxati ---')
+        self.stdout.write('\n--- Viloyat statistika loginlari ---')
         for row in rows:
             self.stdout.write(
-                f"{row['tartib']:>2}. {row['login_telefon']} / {row['parol']} — {row['kod']}"
+                f"{row['tartib']:>2}. {row['login_telefon']} / {row['parol']} — {row['kod']} (viloyat {row['viloyat_id']})"
             )

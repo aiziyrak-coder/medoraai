@@ -180,6 +180,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
         ('clinic', 'Klinika'),
         ('staff', 'Registrator'),
+        ('regional_stats', 'Viloyat statistikasi'),
     ]
     
     SUBSCRIPTION_STATUS_CHOICES = [
@@ -240,6 +241,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text='Guruhdagi foydalanuvchilar, obuna va to\'lovlarni boshqaradi.',
     )
 
+    scoped_region_id = models.CharField(
+        max_length=10,
+        blank=True,
+        db_index=True,
+        verbose_name='Viloyat ID (statistika ko\'rinishi)',
+        help_text='Viloyat sog\'liqni saqlash boshqarmasi — faqat shu viloyat bo\'yicha statistika.',
+    )
+
     # Django auth fields
     is_active = models.BooleanField(default=True, verbose_name='Faol')
     is_staff = models.BooleanField(default=False, verbose_name='Xodim')
@@ -286,6 +295,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.role == 'staff'
 
     @property
+    def is_regional_stats_viewer(self):
+        return self.role == 'regional_stats'
+
+    @property
     def is_group_admin(self):
         return bool(self.is_clinic_group_admin and self.clinic_group_id)
     
@@ -296,6 +309,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.is_superuser or self.is_staff:
             return True
         if self.is_clinic_group_admin:
+            return True
+        if self.role == 'regional_stats':
             return True
         if self.role == 'staff':
             return True
@@ -313,8 +328,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         return False
 
     def max_concurrent_sessions(self):
-        """Klinika guruh adminlari — bir nechta qurilma (masalan, boshqarma xodimlari)."""
-        if self.is_clinic_group_admin:
+        """Klinika guruh adminlari va viloyat statistikasi — bir nechta qurilma."""
+        if self.is_clinic_group_admin or self.role == 'regional_stats':
             return 5
         return 1
 

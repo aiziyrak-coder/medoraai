@@ -60,20 +60,20 @@ REPUBLIC_ORG_ACCOUNTS: list[dict[str, str | int]] = [
 ]
 
 REGIONAL_HEALTH_ORG_ACCOUNTS: list[dict[str, str | int]] = [
-    {"idx": 50, "code": "qar-vazirlik", "name": "Қорақалпоғистон Республикаси Соғлиқни сақлаш вазирлиги"},
-    {"idx": 51, "code": "andijon-boshqarma", "name": "Андижон вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 52, "code": "buxoro-boshqarma", "name": "Бухоро вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 53, "code": "jizzax-boshqarma", "name": "Жиззах вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 54, "code": "qashqadaryo-boshqarma", "name": "Қашқадарё вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 55, "code": "navoiy-boshqarma", "name": "Навоий вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 56, "code": "namangan-boshqarma", "name": "Наманган вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 57, "code": "samarqand-boshqarma", "name": "Самарқанд вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 58, "code": "surxandaryo-boshqarma", "name": "Сурхондарё вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 59, "code": "sirdaryo-boshqarma", "name": "Сирдарё вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 60, "code": "toshkent-vil-boshqarma", "name": "Тошкент вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 61, "code": "fargona-boshqarma", "name": "Фарғона вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 62, "code": "xorazm-boshqarma", "name": "Хоразм вилояти Соғлиқни сақлаш бошқармаси"},
-    {"idx": 63, "code": "toshkent-shahar-boshqarma", "name": "Тошкент шаҳар Соғлиқни сақлаш бошқармаси"},
+    {"idx": 50, "code": "qar-vazirlik", "name": "Қорақалпоғистон Республикаси Соғлиқни сақлаш вазирлиги", "region_id": "1"},
+    {"idx": 51, "code": "andijon-boshqarma", "name": "Андижон вилояти Соғлиқни сақлаш бошқармаси", "region_id": "2"},
+    {"idx": 52, "code": "buxoro-boshqarma", "name": "Бухоро вилояти Соғлиқни сақлаш бошқармаси", "region_id": "3"},
+    {"idx": 53, "code": "jizzax-boshqarma", "name": "Жиззах вилояти Соғлиқни сақлаш бошқармаси", "region_id": "4"},
+    {"idx": 54, "code": "qashqadaryo-boshqarma", "name": "Қашқадарё вилояти Соғлиқни сақлаш бошқармаси", "region_id": "5"},
+    {"idx": 55, "code": "navoiy-boshqarma", "name": "Навоий вилояти Соғлиқни сақлаш бошқармаси", "region_id": "6"},
+    {"idx": 56, "code": "namangan-boshqarma", "name": "Наманган вилояти Соғлиқни сақлаш бошқармаси", "region_id": "7"},
+    {"idx": 57, "code": "samarqand-boshqarma", "name": "Самарқанд вилояти Соғлиқни сақлаш бошқармаси", "region_id": "8"},
+    {"idx": 58, "code": "surxandaryo-boshqarma", "name": "Сурхондарё вилояти Соғлиқни сақлаш бошқармаси", "region_id": "9"},
+    {"idx": 59, "code": "sirdaryo-boshqarma", "name": "Сирдарё вилояти Соғлиқни сақлаш бошқармаси", "region_id": "10"},
+    {"idx": 60, "code": "toshkent-vil-boshqarma", "name": "Тошкент вилояти Соғлиқни сақлаш бошқармаси", "region_id": "11"},
+    {"idx": 61, "code": "fargona-boshqarma", "name": "Фарғона вилояти Соғлиқни сақлаш бошқармаси", "region_id": "12"},
+    {"idx": 62, "code": "xorazm-boshqarma", "name": "Хоразм вилояти Соғлиқни сақлаш бошқармаси", "region_id": "13"},
+    {"idx": 63, "code": "toshkent-shahar-boshqarma", "name": "Тошкент шаҳар Соғлиқни сақлаш бошқармаси", "region_id": "14"},
 ]
 
 ORG_PHONE_DIGIT_PREFIX = '9989178'

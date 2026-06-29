@@ -48,7 +48,7 @@ export interface SeverityAssessment {
   redFlags?: string[];
 }
 
-export type UserRole = 'clinic' | 'staff';
+export type UserRole = 'clinic' | 'staff' | 'regional_stats';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'pending';
 
@@ -96,6 +96,7 @@ export interface User {
   isClinicGroupAdmin?: boolean;
   clinicGroupId?: number;
   clinicGroupName?: string;
+  scopedRegionId?: string;
 }
 
 export interface PatientQueueItem {
