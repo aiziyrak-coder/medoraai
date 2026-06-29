@@ -165,7 +165,7 @@ function unwrapList<T>(res: ApiResponse<T[] | { results?: T[]; data?: T[] }>): A
       return { success: true, data: (raw as { data: T[] }).data };
     }
   }
-  return { success: false, error: { message: 'Ro\'yxat yuklanmadi' } };
+  return { success: false, error: { code: 0, message: 'Ro\'yxat yuklanmadi' } };
 }
 
 function unwrapOne<T>(res: ApiResponse<T | { data?: T }>): ApiResponse<T> {

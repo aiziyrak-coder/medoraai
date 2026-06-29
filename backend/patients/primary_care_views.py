@@ -5,7 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsAuthenticatedWithSubscription
+from accounts.permissions import DenyRegionalStatsWrite, IsAuthenticatedWithSubscription
+from rest_framework.permissions import IsAdminUser
 
 from .models import PopulationRecord
 from .primary_care_access import (
@@ -55,7 +56,7 @@ from .primary_care_service import (
 
 
 class _PrimaryCareMixin:
-    permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription]
+    permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription, DenyRegionalStatsWrite]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
 
 
@@ -107,14 +108,19 @@ class PreventiveCheckupViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
         return checkups_for_user(self.request.user)
 
 
-class ScreeningProgramViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = ScreeningProgram.objects.all()
+class ScreeningProgramViewSet(_PrimaryCareMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = ScreeningProgram.objects.filter(is_active=True)
     serializer_class = ScreeningProgramSerializer
     search_fields = ['name', 'code']
     filterset_fields = ['is_active']
     ordering = ['name']
 
-    @action(detail=False, methods=['post'], url_path='seed-defaults')
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='seed-defaults',
+        permission_classes=[IsAuthenticated, IsAuthenticatedWithSubscription, IsAdminUser],
+    )
     def seed_defaults(self, request):
         ensure_default_screening_programs()
         return Response({'success': True, 'data': {'count': ScreeningProgram.objects.count()}})

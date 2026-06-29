@@ -72,7 +72,7 @@ function unwrapList<T>(res: ApiResponse<T[] | { data?: T[]; results?: T[] }>): A
       return { success: true, data: (raw as { data: T[] }).data };
     }
   }
-  return { success: false, error: { message: 'Ro\'yxat yuklanmadi' } };
+  return { success: false, error: { code: 0, message: 'Ro\'yxat yuklanmadi' } };
 }
 
 export const listPopulation = async (params?: {

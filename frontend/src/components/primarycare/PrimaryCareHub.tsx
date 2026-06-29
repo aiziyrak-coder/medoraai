@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PopulationPanel from '../population/PopulationPanel';
 import PopulationPrimaryCareProfile from './PopulationPrimaryCareProfile';
 import PrimaryCareGuide from './PrimaryCareGuide';
@@ -38,33 +38,41 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
   const [programs, setPrograms] = useState<pc.ScreeningProgram[]>([]);
   const [brigadeForm, setBrigadeForm] = useState({ name: '', code: '', target_population_size: 3000 });
 
+  const brigadesLoadedRef = useRef(false);
+  const plansLoadedRef = useRef(false);
+
   const loadOverview = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const res = await pc.getPrimaryCareStats();
-    if (res.success && res.data) {
-      setStats(res.data as StatsExt);
-      setStatsLoaded(true);
-    } else if (res.error?.code === 429) {
-      setError(res.error.message || t('pc_rate_limit'));
-    } else {
-      setStats(null);
-      setStatsLoaded(false);
-      setError(res.error?.message || t('pc_load_error'));
+    try {
+      const res = await pc.getPrimaryCareStats();
+      if (res.success && res.data) {
+        setStats(res.data as StatsExt);
+        setStatsLoaded(true);
+      } else if (res.error?.code === 429) {
+        setError(res.error.message || t('pc_rate_limit'));
+      } else {
+        setStats(null);
+        setStatsLoaded(false);
+        setError(res.error?.message || t('pc_load_error'));
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [t]);
 
   const loadBrigades = useCallback(async () => {
     const res = await pc.listBrigades();
     if (res.success && res.data) setBrigades(res.data);
-  }, []);
+    else if (!res.success) setError(res.error?.message || t('pc_load_error'));
+  }, [t]);
 
   const loadPlans = useCallback(async () => {
     const [pRes, prRes] = await Promise.all([pc.listNetworkPlans(), pc.listScreeningPrograms()]);
     if (pRes.success && pRes.data) setPlans(pRes.data);
     if (prRes.success && prRes.data) setPrograms(prRes.data);
-  }, []);
+    if (!pRes.success && !prRes.success) setError(t('pc_load_error'));
+  }, [t]);
 
   useEffect(() => {
     if (initialProfileId) {
@@ -79,8 +87,14 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
   }, [loadOverview]);
 
   useEffect(() => {
-    if (tab === 'brigades') loadBrigades();
-    if (tab === 'plans') loadPlans();
+    if (tab === 'brigades' && !brigadesLoadedRef.current) {
+      brigadesLoadedRef.current = true;
+      loadBrigades();
+    }
+    if (tab === 'plans' && !plansLoadedRef.current) {
+      plansLoadedRef.current = true;
+      loadPlans();
+    }
   }, [tab, loadBrigades, loadPlans]);
 
   const flash = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 4000); };
@@ -289,13 +303,17 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
         </div>
       )}
 
-      {tab === 'population' && <PopulationPanel onOpenProfile={openProfile} />}
+      <div className={tab === 'population' ? '' : 'hidden'}>
+        <PopulationPanel onOpenProfile={openProfile} />
+      </div>
 
-      {tab === 'profile' && selectedId && (
-        <PopulationPrimaryCareProfile
-          populationId={selectedId}
-          onBack={() => setTab('population')}
-        />
+      {selectedId && (
+        <div className={tab === 'profile' ? '' : 'hidden'}>
+          <PopulationPrimaryCareProfile
+            populationId={selectedId}
+            onBack={() => setTab('population')}
+          />
+        </div>
       )}
 
       {tab === 'brigades' && (

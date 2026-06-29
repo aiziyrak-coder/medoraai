@@ -155,11 +155,18 @@ def ensure_default_screening_programs() -> None:
         ScreeningProgram.objects.get_or_create(code=item['code'], defaults=item)
 
 
-def assign_brigade_for_population(pop: PopulationRecord) -> MedicalBrigade | None:
-    """Viloyat/tuman bo'yicha eng kam yuklangan brigadaga biriktirish."""
+def assign_brigade_for_population(pop: PopulationRecord, *, user=None) -> MedicalBrigade | None:
+    """Viloyat/tuman va klinika guruhi bo'yicha eng kam yuklangan brigadaga biriktirish."""
     if pop.brigade_id:
         return pop.brigade
     qs = MedicalBrigade.objects.filter(is_active=True)
+    cg_id = None
+    if pop.created_by_id and getattr(pop.created_by, 'clinic_group_id', None):
+        cg_id = pop.created_by.clinic_group_id
+    elif user and getattr(user, 'clinic_group_id', None):
+        cg_id = user.clinic_group_id
+    if cg_id:
+        qs = qs.filter(Q(clinic_group_id=cg_id) | Q(clinic_group__isnull=True))
     if pop.region_id:
         qs = qs.filter(region_id=pop.region_id)
     if pop.district_id:
@@ -214,10 +221,13 @@ def sync_risk_flags_from_population(pop: PopulationRecord) -> None:
         pop.save(update_fields=updates + ['updated_at'])
 
 
-def on_population_saved(pop: PopulationRecord, *, is_new: bool = False) -> dict:
+def on_population_saved(pop: PopulationRecord, *, is_new: bool = False, user=None) -> dict:
     """Aholi saqlanganda barcha modullarni sinxronlash."""
     sync_risk_flags_from_population(pop)
-    brigade = assign_brigade_for_population(pop)
+    brigade = assign_brigade_for_population(
+        pop,
+        user=user or getattr(pop, 'updated_by', None) or getattr(pop, 'created_by', None),
+    )
     compute_initial_checkup_schedule(pop)
     screening_created = enroll_screening_for_population(pop)
     if brigade:
@@ -396,7 +406,10 @@ def sync_network_plan_completed(brigade: MedicalBrigade, year: int | None = None
             brigade=brigade, visit_date__gte=year_start, visit_date__lte=year_end,
         ).count(),
         'screening': ScreeningEnrollment.objects.filter(
-            brigade=brigade, status='completed',
+            brigade=brigade,
+            status='completed',
+            result__result_date__gte=year_start,
+            result__result_date__lte=year_end,
         ).count(),
         'dispensary_visits': DispensaryRecord.objects.filter(
             brigade=brigade, is_active=True,

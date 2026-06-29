@@ -60,17 +60,18 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
   const loadList = useCallback(async (q?: string) => {
     setLoading(true);
     setError(null);
-    const res = await listPopulation({ search: q?.trim() || undefined, page_size: 100 });
-    if (res.success && res.data) {
-      setRecords(res.data);
-    } else {
-      setRecords([]);
-      setError(res.error?.message || t('population_load_error'));
+    try {
+      const res = await listPopulation({ search: q?.trim() || undefined, page_size: 100 });
+      if (res.success && res.data) {
+        setRecords(res.data);
+      } else {
+        setRecords([]);
+        setError(res.error?.message || t('population_load_error'));
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [t]);
-
-  useEffect(() => { loadList(); }, [loadList]);
 
   useEffect(() => {
     listBrigades().then((res) => {
@@ -80,7 +81,7 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => loadList(search), 350);
+    debounceRef.current = setTimeout(() => loadList(search), search ? 350 : 0);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [search, loadList]);
 

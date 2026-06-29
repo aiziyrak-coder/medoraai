@@ -24,7 +24,8 @@ from .primary_care_service import (
     sync_dispensary_from_checkup,
     sync_population_from_checkup,
 )
-from .form30_schema import validate_form30_data
+from .form30_schema import normalize_form30_data, validate_form30_data
+from .primary_care_access import ScopedPrimaryCareSerializerMixin
 
 
 class MedicalBrigadeSerializer(serializers.ModelSerializer):
@@ -50,7 +51,7 @@ class MedicalBrigadeSerializer(serializers.ModelSerializer):
         return obj.assigned_population.count()
 
 
-class FamilyPassportMemberSerializer(serializers.ModelSerializer):
+class FamilyPassportMemberSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     population_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -63,7 +64,7 @@ class FamilyPassportMemberSerializer(serializers.ModelSerializer):
         return f'{p.last_name} {p.first_name}'
 
 
-class FamilyPassportSerializer(serializers.ModelSerializer):
+class FamilyPassportSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     members = FamilyPassportMemberSerializer(many=True, read_only=True)
     head_name = serializers.SerializerMethodField()
 
@@ -82,7 +83,7 @@ class FamilyPassportSerializer(serializers.ModelSerializer):
         return f'{h.last_name} {h.first_name}'
 
 
-class PreventiveCheckupSerializer(serializers.ModelSerializer):
+class PreventiveCheckupSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     population_name = serializers.SerializerMethodField()
     brigade_name = serializers.SerializerMethodField()
 
@@ -157,7 +158,7 @@ class ScreeningResultSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'performed_by', 'created_at']
 
 
-class ScreeningEnrollmentSerializer(serializers.ModelSerializer):
+class ScreeningEnrollmentSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     population_name = serializers.SerializerMethodField()
     program_name = serializers.SerializerMethodField()
     result = ScreeningResultSerializer(read_only=True)
@@ -185,7 +186,7 @@ class ScreeningResultWriteSerializer(serializers.ModelSerializer):
         fields = ['result_date', 'result_status', 'lab_data', 'referral_specialist', 'notes']
 
 
-class PatronageVisitSerializer(serializers.ModelSerializer):
+class PatronageVisitSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     population_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -229,7 +230,7 @@ class NetworkPlanSerializer(serializers.ModelSerializer):
         return obj.brigade.name if obj.brigade else ''
 
 
-class DispensaryRecordSerializer(serializers.ModelSerializer):
+class DispensaryRecordSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     population_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -256,7 +257,9 @@ class DispensaryRecordSerializer(serializers.ModelSerializer):
         if pop and not validated_data.get('brigade') and pop.brigade_id:
             validated_data['brigade'] = pop.brigade
         if pop and not validated_data.get('form30_data'):
-            validated_data['form30_data'] = validate_form30_data({}, diagnosis=validated_data.get('diagnosis', ''))
+            validated_data['form30_data'] = validate_form30_data(
+                normalize_form30_data({}, diagnosis=validated_data.get('diagnosis', '')),
+            )
         obj = super().create(validated_data)
         pop = obj.population
         pop.dispensary_registered = True

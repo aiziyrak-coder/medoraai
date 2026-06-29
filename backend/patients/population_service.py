@@ -121,11 +121,14 @@ def population_to_dict(rec: PopulationRecord) -> dict[str, Any]:
     }
 
 
-def search_population(q: str, *, limit: int = 20) -> list[PopulationRecord]:
+def search_population(q: str, *, user=None, limit: int = 20) -> list[PopulationRecord]:
     q = (q or '').strip()
     if not q:
         return []
     qs = PopulationRecord.objects.all()
+    if user:
+        from .primary_care_access import population_for_user
+        qs = population_for_user(user)
     lookup = registry_number_lookup_q(q)
     if lookup is not None:
         return list(qs.filter(lookup | Q(phone__icontains=q)).order_by('-updated_at')[:limit])
@@ -148,6 +151,15 @@ def find_population_by_registry(registry_number: str | None) -> PopulationRecord
     if not rn:
         return None
     return PopulationRecord.objects.filter(registry_number__iexact=rn).first()
+
+
+def _population_owned_by_user(user, rec: PopulationRecord) -> bool:
+    if not user:
+        return True
+    from .primary_care_access import population_for_user, user_clinic_group_id
+    if not user_clinic_group_id(user):
+        return True
+    return population_for_user(user).filter(pk=rec.pk).exists()
 
 
 def apply_population_fields(rec: PopulationRecord, data: dict, *, user=None) -> PopulationRecord:
@@ -186,6 +198,8 @@ def upsert_population_from_data(
     if not rn:
         raise ValueError('Pasport seriya raqami kerak')
     existing = find_population_by_registry(rn)
+    if existing and user and not _population_owned_by_user(user, existing):
+        raise ValueError('Boshqa klinika aholi yozuvini o\'zgartirish mumkin emas')
     payload = {k: data.get(k) for k in POPULATION_FIELDS + PRIMARY_CARE_POPULATION_FIELDS if data.get(k) is not None}
     if existing:
         rec = apply_population_fields(existing, payload, user=user)
@@ -302,6 +316,9 @@ def import_population_excel(file_obj, *, user=None) -> dict[str, int]:
             continue
         try:
             existing = find_population_by_registry(parsed['registry_number'])
+            if existing and user and not _population_owned_by_user(user, existing):
+                errors += 1
+                continue
             upsert_population_from_data(parsed, user=user, source='excel')
             if existing:
                 updated += 1
@@ -313,7 +330,7 @@ def import_population_excel(file_obj, *, user=None) -> dict[str, int]:
     return {'created': created, 'updated': updated, 'skipped': skipped, 'errors': errors}
 
 
-def export_population_excel() -> bytes:
+def export_population_excel(*, user=None) -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = 'Aholi'
@@ -322,7 +339,11 @@ def export_population_excel() -> bytes:
         cell = ws.cell(row=1, column=col, value=title)
         cell.font = header_font
 
-    for i, rec in enumerate(PopulationRecord.objects.order_by('last_name', 'first_name'), start=2):
+    qs = PopulationRecord.objects.all()
+    if user:
+        from .primary_care_access import population_for_user
+        qs = population_for_user(user)
+    for i, rec in enumerate(qs.order_by('last_name', 'first_name'), start=2):
         gender_label = dict(PopulationRecord.GENDER_CHOICES).get(rec.gender, rec.gender)
         ws.cell(row=i, column=1, value=i - 1)
         ws.cell(row=i, column=2, value=rec.first_name)

@@ -56,7 +56,25 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
     setLoading(false);
   }, [populationId, t]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      const res = await getPopulationPrimaryCareProfile(populationId);
+      if (cancelled) return;
+      if (res.success && res.data) {
+        setProfile(res.data);
+        const p = res.data.population;
+        if (p.health_group) setCheckupForm((f) => ({ ...f, health_group: p.health_group || '2' }));
+      } else {
+        setError(res.error?.message || t('pc_load_error'));
+      }
+      setLoading(false);
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [populationId, t]);
 
   const flash = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3500); };
 

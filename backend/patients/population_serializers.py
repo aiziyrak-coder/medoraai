@@ -6,6 +6,7 @@ from .passport_serial import normalize_passport_serial, validate_passport_serial
 from .phone import normalize_patient_phone
 from .population_service import _map_gender, apply_population_fields
 from .primary_care_service import on_population_saved
+from .primary_care_access import ScopedPrimaryCareSerializerMixin, brigades_for_user
 
 
 class PopulationSerializer(serializers.ModelSerializer):
@@ -61,7 +62,7 @@ class PopulationSerializer(serializers.ModelSerializer):
         return getattr(obj, '_primary_care_sync', None)
 
 
-class PopulationWriteSerializer(serializers.ModelSerializer):
+class PopulationWriteSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     class Meta:
         model = PopulationRecord
         fields = [
@@ -78,6 +79,14 @@ class PopulationWriteSerializer(serializers.ModelSerializer):
         if self.instance:
             return self.instance.registry_number
         return validate_passport_serial_format(value)
+
+    def validate_brigade(self, value):
+        if value is None:
+            return value
+        user = self.context['request'].user
+        if not brigades_for_user(user).filter(pk=value.pk).exists():
+            raise serializers.ValidationError('Brigada topilmadi yoki ruxsat yo\'q.')
+        return value
 
     def validate(self, attrs):
         if not (attrs.get('first_name') or '').strip():
@@ -104,7 +113,7 @@ class PopulationWriteSerializer(serializers.ModelSerializer):
         validated_data['updated_by'] = user
         validated_data['source'] = 'manual'
         instance = super().create(validated_data)
-        sync_meta = on_population_saved(instance, is_new=True)
+        sync_meta = on_population_saved(instance, is_new=True, user=user)
         instance._primary_care_sync = sync_meta
         return instance
 
@@ -115,7 +124,7 @@ class PopulationWriteSerializer(serializers.ModelSerializer):
         for key, val in validated_data.items():
             setattr(instance, key, val)
         instance.save()
-        sync_meta = on_population_saved(instance, is_new=False)
+        sync_meta = on_population_saved(instance, is_new=False, user=user)
         instance._primary_care_sync = sync_meta
         return instance
 

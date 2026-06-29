@@ -35,10 +35,13 @@ def population_for_user(user):
     if not cg:
         return qs
     return qs.filter(
-        Q(created_by__clinic_group_id=cg)
-        | Q(brigade__clinic_group_id=cg)
-        | Q(created_by__isnull=True, brigade__isnull=True),
+        Q(created_by__clinic_group_id=cg) | Q(brigade__clinic_group_id=cg),
     ).distinct()
+
+
+def population_queryset_for_user(user):
+    """Alias — population_service va views uchun."""
+    return population_for_user(user)
 
 
 def checkups_for_user(user):
@@ -46,21 +49,17 @@ def checkups_for_user(user):
     cg = user_clinic_group_id(user)
     if cg:
         qs = qs.filter(
-            Q(brigade__clinic_group_id=cg)
-            | Q(population__created_by__clinic_group_id=cg)
-            | Q(brigade__isnull=True, population__brigade__isnull=True),
+            Q(brigade__clinic_group_id=cg) | Q(population__created_by__clinic_group_id=cg),
         ).distinct()
     return qs
 
 
 def screening_enrollments_for_user(user):
-    qs = ScreeningEnrollment.objects.select_related('population', 'program')
+    qs = ScreeningEnrollment.objects.select_related('population', 'program').prefetch_related('result')
     cg = user_clinic_group_id(user)
     if cg:
         qs = qs.filter(
-            Q(brigade__clinic_group_id=cg)
-            | Q(population__created_by__clinic_group_id=cg)
-            | Q(brigade__isnull=True),
+            Q(brigade__clinic_group_id=cg) | Q(population__created_by__clinic_group_id=cg),
         ).distinct()
     return qs
 
@@ -70,8 +69,7 @@ def patronage_for_user(user):
     cg = user_clinic_group_id(user)
     if cg:
         qs = qs.filter(
-            Q(brigade__clinic_group_id=cg)
-            | Q(population__created_by__clinic_group_id=cg),
+            Q(brigade__clinic_group_id=cg) | Q(population__created_by__clinic_group_id=cg),
         ).distinct()
     return qs
 
@@ -81,8 +79,7 @@ def dispensary_for_user(user):
     cg = user_clinic_group_id(user)
     if cg:
         qs = qs.filter(
-            Q(brigade__clinic_group_id=cg)
-            | Q(population__created_by__clinic_group_id=cg),
+            Q(brigade__clinic_group_id=cg) | Q(population__created_by__clinic_group_id=cg),
         ).distinct()
     return qs
 
@@ -98,6 +95,38 @@ def network_plans_for_user(user):
 def family_passports_for_user(user):
     qs = FamilyPassport.objects.prefetch_related('members__population')
     cg = user_clinic_group_id(user)
-    if cg:
-        qs = qs.filter(Q(region_id='') | Q(head__created_by__clinic_group_id=cg) | Q(head__brigade__clinic_group_id=cg))
-    return qs.distinct()
+    if not cg:
+        return qs
+    pop_ids = population_for_user(user).values_list('id', flat=True)
+    return qs.filter(
+        Q(head_id__in=pop_ids) | Q(members__population_id__in=pop_ids),
+    ).distinct()
+
+
+def user_can_access_population(user, pop_id: int) -> bool:
+    if not user or not user.is_authenticated:
+        return False
+    return population_for_user(user).filter(pk=pop_id).exists()
+
+
+class ScopedPrimaryCareSerializerMixin:
+    """Create/update da boshqa klinika FK larini tanlashni bloklash."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if not request or not getattr(request, 'user', None) or not request.user.is_authenticated:
+            return
+        user = request.user
+        pop_qs = population_for_user(user)
+        brig_qs = brigades_for_user(user)
+        fam_qs = family_passports_for_user(user)
+        for name, qs in (
+            ('population', pop_qs),
+            ('brigade', brig_qs),
+            ('family', fam_qs),
+            ('head', pop_qs),
+        ):
+            field = self.fields.get(name)
+            if field is not None and hasattr(field, 'queryset'):
+                field.queryset = qs

@@ -185,13 +185,16 @@ class RateLimitMiddleware(MiddlewareMixin):
             else:
                 bucket, limit, window = 'gen', 300 if getattr(settings, 'DEBUG', False) else 120, 60
             cache_key = f'rate_limit:{bucket}:{ip}'
-            requests = cache.get(cache_key, 0)
-            if requests >= limit:
+            try:
+                count = cache.incr(cache_key)
+            except ValueError:
+                cache.set(cache_key, 1, window)
+                count = 1
+            if count > limit:
                 return JsonResponse({
                     'success': False,
                     'error': {'code': 429, 'message': "Juda ko'p so'rovlar. Iltimos, birozdan so'ng qayta urinib ko'ring."}
                 }, status=429, content_type='application/json; charset=utf-8')
-            cache.set(cache_key, requests + 1, window)
         except Exception as e:
             logger.warning("RateLimitMiddleware: %s", e)
         return None

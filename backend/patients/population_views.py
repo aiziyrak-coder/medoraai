@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsAuthenticatedWithSubscription
+from accounts.permissions import DenyRegionalStatsWrite, IsAuthenticatedWithSubscription
 
 from .models import PopulationRecord
 from .population_serializers import PopulationSerializer, PopulationWriteSerializer
@@ -22,7 +22,7 @@ from .primary_care_service import build_population_primary_care_profile, on_popu
 
 class PopulationViewSet(viewsets.ModelViewSet):
     queryset = PopulationRecord.objects.select_related('brigade').all()
-    permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription]
+    permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription, DenyRegionalStatsWrite]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['gender', 'region_id', 'district_id']
     search_fields = [
@@ -49,7 +49,7 @@ class PopulationViewSet(viewsets.ModelViewSet):
         q = (request.query_params.get('q') or '').strip()
         if len(q) < 1:
             return Response({'success': True, 'data': []})
-        records = search_population(q)
+        records = search_population(q, user=request.user)
         return Response({
             'success': True,
             'data': [population_to_dict(r) for r in records],
@@ -74,7 +74,7 @@ class PopulationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='export-excel')
     def export_excel(self, request):
-        content = export_population_excel()
+        content = export_population_excel(user=request.user)
         response = HttpResponse(
             content,
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
