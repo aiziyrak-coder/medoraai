@@ -5,6 +5,7 @@ import LanguageSwitcher from '../LanguageSwitcher';
 import DeviceSessionBanner from '../DeviceSessionBanner';
 import RegistrarPanel from './RegistrarPanel';
 import PopulationPanel from '../population/PopulationPanel';
+import PrimaryCareHub from '../primarycare/PrimaryCareHub';
 import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_SHORT } from '../../constants/brand';
 import { Language } from '../../i18n/LanguageContext';
 
@@ -15,7 +16,7 @@ interface RegistrarAppProps {
     onLanguageChange: (lang: Language) => void;
 }
 
-type RegistrarTab = 'patients' | 'population';
+type RegistrarTab = 'patients' | 'population' | 'primary_care';
 
 const RegistrarApp: React.FC<RegistrarAppProps> = ({ user, onLogout, language, onLanguageChange }) => {
     const { t } = useTranslation();
@@ -79,11 +80,28 @@ const RegistrarApp: React.FC<RegistrarAppProps> = ({ user, onLogout, language, o
                     >
                         {t('population_title')}
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setTab('primary_care')}
+                        className={`text-xs font-bold px-4 py-2 rounded-xl transition-colors ${
+                            tab === 'primary_care'
+                                ? 'bg-teal-600 text-white'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {t('pc_title')}
+                    </button>
                 </div>
             </header>
 
             <main className="flex-1 min-h-0 overflow-y-auto">
-                {tab === 'patients' ? <RegistrarPanel user={user} /> : <PopulationPanel />}
+                {tab === 'patients' && <RegistrarPanel user={user} />}
+                {tab === 'population' && <PopulationPanel />}
+                {tab === 'primary_care' && (
+                    <div className="page-px py-4">
+                        <PrimaryCareHub />
+                    </div>
+                )}
             </main>
 
             <footer className="flex-none py-2 text-center text-[10px] text-slate-400 border-t border-slate-100/80 bg-white/60">

@@ -139,9 +139,17 @@ export interface PrimaryCareStats {
   screening_planned: number;
   dispensary_active: number;
   overdue_checkups: number;
+  needs_setup?: boolean;
+  workflow?: Array<{ step: number; title: string; description: string; action: string }>;
+  overdue_population?: Array<{
+    id: number; last_name: string; first_name: string; registry_number: string; next_checkup_date: string;
+  }>;
   health_groups: Array<{ health_group: string; count: number }>;
   risk_groups: Record<string, number>;
-  brigades: Array<{ id: number; name: string; assigned_population: number; target: number; plans_count: number }>;
+  brigades: Array<{
+    id: number; name: string; assigned_population: number; target: number;
+    plans_count: number; plan_completion_pct?: number; targets?: Record<string, number>; completed?: Record<string, number>;
+  }>;
   generated_at: string;
 }
 
@@ -172,7 +180,17 @@ function unwrapOne<T>(res: ApiResponse<T | { data?: T }>): ApiResponse<T> {
 const BASE = '/patients/primary-care';
 
 export const getPrimaryCareStats = async (params?: { region_id?: string; district_id?: string; brigade_id?: number }) =>
-  unwrapOne(await apiGet<{ success?: boolean; data: PrimaryCareStats } | PrimaryCareStats>(`${BASE}/stats/overview/`, params));
+  unwrapOne<PrimaryCareStats>(await apiGet(`${BASE}/stats/overview/`, params as Record<string, string> | undefined));
+
+export const setupPrimaryCare = async () =>
+  unwrapOne<{
+    brigade_created?: number | null;
+    brigade_name?: string;
+    population_synced?: number;
+    screening_programs?: number;
+    stats?: PrimaryCareStats;
+    workflow?: PrimaryCareStats['workflow'];
+  }>(await apiPost(`${BASE}/stats/setup/`, {}));
 
 export const listBrigades = async () =>
   unwrapList<MedicalBrigade>(await apiGet(`${BASE}/brigades/`));

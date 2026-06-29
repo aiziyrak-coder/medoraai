@@ -588,6 +588,87 @@ def _plan_completion_pct(plan: NetworkPlan) -> int:
     return int(sum(ratios) / len(ratios)) if ratios else 0
 
 
+def setup_primary_care_system(user=None) -> dict:
+    """Birinchi marta: brigada, skrining dasturlari, aholi sinxronlash."""
+    ensure_default_screening_programs()
+    created_brigade = None
+    if not MedicalBrigade.objects.filter(is_active=True).exists():
+        region_id = ''
+        district_id = ''
+        clinic_name = 'Poliklinika'
+        if user and getattr(user, 'clinic_group_id', None):
+            cg = user.clinic_group
+            if cg:
+                clinic_name = cg.name or clinic_name
+        created_brigade = MedicalBrigade.objects.create(
+            name=f'{clinic_name} — 1-tibbiyot brigadasi',
+            code='BR-01',
+            target_population_size=3000,
+            region_id=region_id,
+            district_id=district_id,
+            leader=user if user and getattr(user, 'role', '') == 'clinic' else None,
+            is_active=True,
+        )
+        ensure_brigade_network_plans(created_brigade)
+
+    population_synced = 0
+    for pop in PopulationRecord.objects.all():
+        if not pop.brigade_id or not pop.next_checkup_date:
+            on_population_saved(pop, is_new=False)
+            population_synced += 1
+
+    stats = build_primary_care_stats()
+    return {
+        'brigade_created': created_brigade.id if created_brigade else None,
+        'brigade_name': created_brigade.name if created_brigade else '',
+        'population_synced': population_synced,
+        'screening_programs': ScreeningProgram.objects.filter(is_active=True).count(),
+        'stats': stats,
+    }
+
+
+def primary_care_workflow_guide() -> list[dict]:
+    """SSV 210-buyruq bo'yicha ish tartibi — frontend qo'llanma."""
+    return [
+        {
+            'step': 1,
+            'title': 'Tibbiyot brigadasini yarating',
+            'description': 'Har ~3000 aholi uchun oilaviy shifokor brigadasi (210-buyruq). Tizim avtomatik yaratishi mumkin.',
+            'action': 'brigades',
+        },
+        {
+            'step': 2,
+            'title': 'Aholi bazasiga fuqaro qo\'shing',
+            'description': 'Pasport, yosh, jins, manzil. Saqlanganda brigadaga biriktiriladi va skrining rejasi tuziladi.',
+            'action': 'population',
+        },
+        {
+            'step': 3,
+            'title': 'Fuqaro profilida ko\'rik o\'tkazing',
+            'description': 'Profilaktik ko\'rik, sog\'liq guruhi (I–IV), keyingi ko\'rik sanasi avtomatik hisoblanadi.',
+            'action': 'profile',
+        },
+        {
+            'step': 4,
+            'title': 'Skrining va patronaj',
+            'description': 'Yosh bo\'yicha: gelmintoz, gemato-onkologiya, NCD, rak skriningi. Xavf guruhiga patronaj.',
+            'action': 'profile',
+        },
+        {
+            'step': 5,
+            'title': 'Dispanser nazorati',
+            'description': 'Surunkali kasallik — Forma-30, individual reja, tashrif chastotasi.',
+            'action': 'profile',
+        },
+        {
+            'step': 6,
+            'title': 'Tarmoq rejasi nazorati',
+            'description': 'Yillik/oylik reja — ko\'riklar, patronaj, skrining bajarilishi avtomatik hisoblanadi.',
+            'action': 'plans',
+        },
+    ]
+
+
 def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brigade_id: int | None = None) -> dict:
     pop_qs = PopulationRecord.objects.all()
     if region_id:

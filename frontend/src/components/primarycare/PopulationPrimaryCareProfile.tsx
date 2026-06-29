@@ -56,6 +56,15 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!profile) return;
+    const p = profile.population;
+    if (!p.brigade?.name || profile.screening.length === 0) {
+      syncPopulationPrimaryCare(populationId).then(() => load());
+      pc.autoEnrollScreening(populationId).then(() => load());
+    }
+  }, [profile?.population.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const flash = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3500); };
 
   const handleSync = async () => {
@@ -231,6 +240,7 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
 
       {activeSection === 'checkup' && (
         <div className="grid lg:grid-cols-2 gap-4">
+          <p className="lg:col-span-2 text-xs text-sky-800 bg-sky-50 border border-sky-100 rounded-lg px-3 py-2">{t('pc_section_checkup_help')}</p>
           <div className={sectionCls}>
             <h3 className="font-bold">{t('pc_add_checkup')}</h3>
             <select className={inputCls} value={checkupForm.checkup_type} onChange={(e) => setCheckupForm((f) => ({ ...f, checkup_type: e.target.value }))}>

@@ -37,7 +37,9 @@ from .primary_care_service import (
     enroll_screening_for_population,
     ensure_brigade_network_plans,
     ensure_default_screening_programs,
+    primary_care_workflow_guide,
     record_screening_result,
+    setup_primary_care_system,
     sync_network_plan_completed,
 )
 
@@ -168,7 +170,19 @@ class PrimaryCareStatsViewSet(_PrimaryCareMixin, viewsets.ViewSet):
         brigade_id = request.query_params.get('brigade_id')
         bid = int(brigade_id) if brigade_id and str(brigade_id).isdigit() else None
         data = build_primary_care_stats(region_id=region_id, district_id=district_id, brigade_id=bid)
+        data['workflow'] = primary_care_workflow_guide()
+        data['needs_setup'] = (
+            data.get('population_total', 0) == 0
+            or not data.get('brigades')
+            or data.get('with_brigade', 0) < data.get('population_total', 0)
+        )
         return Response({'success': True, 'data': data})
+
+    @action(detail=False, methods=['post'], url_path='setup')
+    def setup(self, request):
+        result = setup_primary_care_system(user=request.user)
+        result['workflow'] = primary_care_workflow_guide()
+        return Response({'success': True, 'data': result})
 
     @action(detail=False, methods=['get'], url_path='overdue-checkups')
     def overdue_checkups(self, request):
