@@ -165,7 +165,7 @@ function unwrapList<T>(res: ApiResponse<T[] | { results?: T[]; data?: T[] }>): A
       return { success: true, data: (raw as { data: T[] }).data };
     }
   }
-  return { success: true, data: [] };
+  return { success: false, error: { message: 'Ro\'yxat yuklanmadi' } };
 }
 
 function unwrapOne<T>(res: ApiResponse<T | { data?: T }>): ApiResponse<T> {
@@ -230,7 +230,12 @@ export const createScreeningEnrollment = async (payload: Partial<ScreeningEnroll
   unwrapOne(await apiPost<ScreeningEnrollment>(`${BASE}/screening-enrollments/`, payload));
 
 export const autoEnrollScreening = async (populationId: number) =>
-  apiPost<{ success: boolean; created: number }>(`${BASE}/screening-enrollments/auto-enroll/`, { population_id: populationId });
+  unwrapOne<{ created: number; population_id: number }>(
+    await apiPost<{ created: number; population_id: number } | { data?: { created: number; population_id: number } }>(
+      `${BASE}/screening-enrollments/auto-enroll/`,
+      { population_id: populationId },
+    ),
+  );
 
 export const listPatronage = async (params?: { population?: number }) =>
   unwrapList<PatronageVisit>(await apiGet(`${BASE}/patronage/`, params));

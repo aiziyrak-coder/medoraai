@@ -40,6 +40,8 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
   });
   const [familyForm, setFamilyForm] = useState({ passport_number: '', relation: 'head' });
 
+  const [syncing, setSyncing] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -56,30 +58,59 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!profile) return;
-    const p = profile.population;
-    if (!p.brigade?.name || profile.screening.length === 0) {
-      syncPopulationPrimaryCare(populationId).then(() => load());
-      pc.autoEnrollScreening(populationId).then(() => load());
-    }
-  }, [profile?.population.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const flash = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(null), 3500); };
 
   const handleSync = async () => {
+    setSyncing(true);
+    setError(null);
     const res = await syncPopulationPrimaryCare(populationId);
-    if (res.success) { flash(t('pc_sync_done')); load(); }
-    else setError(res.error?.message || t('pc_save_error'));
+    setSyncing(false);
+    if (res.success) {
+      if (res.data?.profile) setProfile(res.data.profile);
+      else await load();
+      const enrolled = (res.data?.sync as { screening_enrolled?: number } | undefined)?.screening_enrolled;
+      flash(enrolled ? t('pc_sync_done_with_screening', { n: enrolled }) : t('pc_sync_done'));
+    } else {
+      setError(res.error?.message || t('pc_save_error'));
+    }
+  };
+
+  const handleAutoEnroll = async () => {
+    setError(null);
+    const res = await pc.autoEnrollScreening(populationId);
+    if (res.success) {
+      flash(t('pc_enrolled_count', { n: res.data?.created ?? 0 }));
+      load();
+    } else {
+      setError(res.error?.message || t('pc_save_error'));
+    }
+  };
+
+  const parseOptionalDecimal = (v: string) => {
+    const trimmed = v.trim();
+    if (!trimmed) return undefined;
+    const n = Number(trimmed.replace(',', '.'));
+    return Number.isFinite(n) ? trimmed : undefined;
   };
 
   const saveCheckup = async () => {
+    if (!profile?.population.brigade?.id) {
+      setError(t('pc_no_brigade_hint'));
+      return;
+    }
+    setError(null);
     const res = await pc.createCheckup({
       population: populationId,
-      brigade: profile?.population.brigade?.id || undefined,
-      ...checkupForm,
-      height_cm: checkupForm.height_cm || undefined,
-      weight_kg: checkupForm.weight_kg || undefined,
+      brigade: profile.population.brigade.id,
+      checkup_type: checkupForm.checkup_type,
+      checkup_date: checkupForm.checkup_date,
+      health_group: checkupForm.health_group,
+      blood_pressure: checkupForm.blood_pressure.trim() || undefined,
+      height_cm: parseOptionalDecimal(checkupForm.height_cm),
+      weight_kg: parseOptionalDecimal(checkupForm.weight_kg),
+      new_diagnoses: checkupForm.new_diagnoses.trim() || undefined,
+      recommendations: checkupForm.recommendations.trim() || undefined,
+      location: 'clinic',
     });
     if (res.success) { flash(t('pc_saved')); load(); }
     else setError(res.error?.message || t('pc_save_error'));
@@ -125,22 +156,33 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
   };
 
   const saveFamily = async () => {
-    if (!familyForm.passport_number.trim()) return;
+    if (!familyForm.passport_number.trim()) {
+      setError(t('pc_family_number_required'));
+      return;
+    }
+    setError(null);
     const fpRes = await pc.createFamilyPassport({
-      passport_number: familyForm.passport_number,
+      passport_number: familyForm.passport_number.trim(),
       head: populationId,
       address: profile?.population.address,
-      region_id: profile?.population.address ? undefined : undefined,
+      region_id: profile?.population.region_id || '',
+      district_id: profile?.population.district_id || '',
     });
-    if (fpRes.success && fpRes.data) {
-      await pc.createFamilyMember({
-        family: fpRes.data.id,
-        population: populationId,
-        relation: familyForm.relation,
-      });
+    if (!fpRes.success || !fpRes.data) {
+      setError(fpRes.error?.message || t('pc_save_error'));
+      return;
+    }
+    const memRes = await pc.createFamilyMember({
+      family: fpRes.data.id,
+      population: populationId,
+      relation: familyForm.relation,
+    });
+    if (memRes.success) {
       flash(t('pc_family_linked'));
       load();
-    } else setError(fpRes.error?.message || t('pc_save_error'));
+    } else {
+      setError(memRes.error?.message || t('pc_save_error'));
+    }
   };
 
   if (loading) return <p className="text-sm text-slate-400 p-4">{t('loading_text')}</p>;
@@ -162,12 +204,12 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
             </h2>
             <p className="text-xs font-mono text-slate-500 mt-0.5">{p.registry_number}</p>
             <p className="text-sm text-slate-600 mt-1">
-              {[p.age && `${p.age} yosh`, p.phone].filter(Boolean).join(' · ')}
+              {[p.age && `${p.age} yosh`, p.phone, p.address].filter(Boolean).join(' · ')}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="text-xs px-3 py-1.5 rounded-full bg-white border border-slate-200" onClick={handleSync}>
-              {t('pc_sync')}
+            <button type="button" className="text-xs px-3 py-1.5 rounded-full bg-white border border-slate-200 disabled:opacity-50" onClick={handleSync} disabled={syncing}>
+              {syncing ? t('loading_text') : t('pc_sync')}
             </button>
             {p.overdue_checkup && (
               <span className="text-xs px-3 py-1.5 rounded-full bg-red-100 text-red-700 font-bold">{t('pc_overdue_badge')}</span>
@@ -192,15 +234,24 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
             <span className="font-bold text-slate-800">{p.checkups_done_year}/{p.checkups_required_year}</span>
           </div>
         </div>
-        {(p.risk_pregnant || p.risk_chronic || p.risk_disabled || p.risk_lone_elderly) && (
+        {(p.risk_pregnant || p.risk_chronic || p.risk_disabled || p.risk_lone_elderly || p.risk_social_vulnerable || p.risk_needs_care) && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {p.risk_pregnant && <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-100 text-pink-800">{t('pc_risk_pregnant')}</span>}
             {p.risk_chronic && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{t('pc_risk_chronic')}</span>}
             {p.risk_disabled && <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">{t('pc_risk_disabled')}</span>}
             {p.risk_lone_elderly && <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">{t('pc_risk_elderly')}</span>}
+            {p.risk_social_vulnerable && <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">{t('pc_risk_social')}</span>}
+            {p.risk_needs_care && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">{t('pc_risk_care')}</span>}
           </div>
         )}
       </div>
+
+      {!p.brigade?.name && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex flex-wrap items-center justify-between gap-2">
+          <span>{t('pc_no_brigade_banner')}</span>
+          <button type="button" className={btnPrimary} onClick={handleSync} disabled={syncing}>{t('pc_sync')}</button>
+        </div>
+      )}
 
       {error && <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>}
       {success && <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">{success}</div>}
@@ -298,7 +349,7 @@ const PopulationPrimaryCareProfile: React.FC<Props> = ({ populationId, onBack })
             <textarea className={inputCls} rows={2} value={screenResult.notes} onChange={(e) => setScreenResult((f) => ({ ...f, notes: e.target.value }))} />
             <div className="flex gap-2">
               <button type="button" className={btnPrimary} onClick={saveScreeningResult}>{t('pc_save')}</button>
-              <button type="button" className="rounded-lg border border-emerald-600 text-emerald-700 px-3 py-2 text-sm" onClick={() => pc.autoEnrollScreening(populationId).then(() => load())}>
+              <button type="button" className="rounded-lg border border-emerald-600 text-emerald-700 px-3 py-2 text-sm" onClick={handleAutoEnroll}>
                 {t('pc_auto_enroll')}
               </button>
             </div>

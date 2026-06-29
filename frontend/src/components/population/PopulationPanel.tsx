@@ -309,6 +309,8 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
                 ['riskDisabled', 'pc_risk_disabled'],
                 ['riskChronic', 'pc_risk_chronic'],
                 ['riskLoneElderly', 'pc_risk_elderly'],
+                ['riskSocialVulnerable', 'pc_risk_social'],
+                ['riskNeedsCare', 'pc_risk_care'],
               ] as const).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-1">
                   <input type="checkbox" checked={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked }))} />

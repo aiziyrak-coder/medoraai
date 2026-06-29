@@ -8,6 +8,16 @@ from rest_framework.response import Response
 from accounts.permissions import IsAuthenticatedWithSubscription
 
 from .models import PopulationRecord
+from .primary_care_access import (
+    brigades_for_user,
+    checkups_for_user,
+    dispensary_for_user,
+    family_passports_for_user,
+    network_plans_for_user,
+    patronage_for_user,
+    population_for_user,
+    screening_enrollments_for_user,
+)
 from .primary_care_models import (
     DispensaryRecord,
     FamilyPassport,
@@ -50,37 +60,51 @@ class _PrimaryCareMixin:
 
 
 class MedicalBrigadeViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = MedicalBrigade.objects.all()
     serializer_class = MedicalBrigadeSerializer
     search_fields = ['name', 'code']
     filterset_fields = ['region_id', 'district_id', 'is_active']
     ordering = ['name']
 
+    def get_queryset(self):
+        return brigades_for_user(self.request.user)
+
     def perform_create(self, serializer):
-        brigade = serializer.save()
+        extra = {}
+        cg_id = getattr(self.request.user, 'clinic_group_id', None)
+        if cg_id:
+            extra['clinic_group_id'] = cg_id
+        brigade = serializer.save(**extra)
         ensure_brigade_network_plans(brigade)
 
 
 class FamilyPassportViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = FamilyPassport.objects.prefetch_related('members__population')
     serializer_class = FamilyPassportSerializer
     search_fields = ['passport_number', 'address']
     filterset_fields = ['region_id', 'district_id']
     ordering = ['passport_number']
 
+    def get_queryset(self):
+        return family_passports_for_user(self.request.user)
+
 
 class FamilyPassportMemberViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = FamilyPassportMember.objects.select_related('population', 'family')
     serializer_class = FamilyPassportMemberSerializer
     filterset_fields = ['family', 'population', 'relation']
 
+    def get_queryset(self):
+        return FamilyPassportMember.objects.select_related('population', 'family').filter(
+            family__in=family_passports_for_user(self.request.user),
+        )
+
 
 class PreventiveCheckupViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = PreventiveCheckup.objects.select_related('population', 'brigade')
     serializer_class = PreventiveCheckupSerializer
     filterset_fields = ['population', 'brigade', 'checkup_type', 'health_group', 'checkup_date']
     search_fields = ['population__last_name', 'population__first_name', 'population__registry_number']
     ordering = ['-checkup_date']
+
+    def get_queryset(self):
+        return checkups_for_user(self.request.user)
 
 
 class ScreeningProgramViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
@@ -93,26 +117,27 @@ class ScreeningProgramViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='seed-defaults')
     def seed_defaults(self, request):
         ensure_default_screening_programs()
-        return Response({'success': True, 'count': ScreeningProgram.objects.count()})
+        return Response({'success': True, 'data': {'count': ScreeningProgram.objects.count()}})
 
 
 class ScreeningEnrollmentViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = ScreeningEnrollment.objects.select_related('population', 'program').prefetch_related('result')
     serializer_class = ScreeningEnrollmentSerializer
     filterset_fields = ['population', 'program', 'brigade', 'status']
     ordering = ['-planned_date']
+
+    def get_queryset(self):
+        return screening_enrollments_for_user(self.request.user)
 
     @action(detail=False, methods=['post'], url_path='auto-enroll')
     def auto_enroll(self, request):
         population_id = request.data.get('population_id')
         if not population_id:
-            return Response({'success': False, 'error': 'population_id kerak'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            pop = PopulationRecord.objects.get(pk=population_id)
-        except PopulationRecord.DoesNotExist:
-            return Response({'success': False, 'error': 'Aholi topilmadi'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': False, 'error': {'message': 'population_id kerak'}}, status=status.HTTP_400_BAD_REQUEST)
+        pop = population_for_user(request.user).filter(pk=population_id).first()
+        if not pop:
+            return Response({'success': False, 'error': {'message': 'Aholi topilmadi'}}, status=status.HTTP_404_NOT_FOUND)
         created = enroll_screening_for_population(pop)
-        return Response({'success': True, 'created': created})
+        return Response({'success': True, 'data': {'created': created, 'population_id': pop.id}})
 
     @action(detail=True, methods=['post'], url_path='record-result')
     def record_result(self, request, pk=None):
@@ -123,23 +148,29 @@ class ScreeningEnrollmentViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
         from .primary_care_serializers import ScreeningResultSerializer
         return Response({
             'success': True,
-            'data': ScreeningResultSerializer(result).data,
-            'enrollment': ScreeningEnrollmentSerializer(enrollment).data,
+            'data': {
+                'result': ScreeningResultSerializer(result).data,
+                'enrollment': ScreeningEnrollmentSerializer(enrollment).data,
+            },
         })
 
 
 class PatronageVisitViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = PatronageVisit.objects.select_related('population', 'brigade')
     serializer_class = PatronageVisitSerializer
     filterset_fields = ['population', 'brigade', 'visit_type', 'visit_date']
     ordering = ['-visit_date']
 
+    def get_queryset(self):
+        return patronage_for_user(self.request.user)
+
 
 class NetworkPlanViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = NetworkPlan.objects.select_related('brigade')
     serializer_class = NetworkPlanSerializer
     filterset_fields = ['brigade', 'plan_level', 'year', 'month']
     ordering = ['-year', '-month', '-week_number']
+
+    def get_queryset(self):
+        return network_plans_for_user(self.request.user)
 
     @action(detail=True, methods=['post'], url_path='refresh-completed')
     def refresh_completed(self, request, pk=None):
@@ -148,17 +179,21 @@ class NetworkPlanViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
         plan.refresh_from_db()
         return Response({
             'success': True,
-            'data': NetworkPlanSerializer(plan).data,
-            'completed': completed,
+            'data': {
+                'plan': NetworkPlanSerializer(plan).data,
+                'completed': completed,
+            },
         })
 
 
 class DispensaryRecordViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
-    queryset = DispensaryRecord.objects.select_related('population', 'brigade')
     serializer_class = DispensaryRecordSerializer
     filterset_fields = ['population', 'brigade', 'is_active']
     search_fields = ['diagnosis', 'icd10_code', 'population__last_name']
     ordering = ['-registered_date']
+
+    def get_queryset(self):
+        return dispensary_for_user(self.request.user)
 
 
 class PrimaryCareStatsViewSet(_PrimaryCareMixin, viewsets.ViewSet):
@@ -169,7 +204,12 @@ class PrimaryCareStatsViewSet(_PrimaryCareMixin, viewsets.ViewSet):
         district_id = request.query_params.get('district_id', '')
         brigade_id = request.query_params.get('brigade_id')
         bid = int(brigade_id) if brigade_id and str(brigade_id).isdigit() else None
-        data = build_primary_care_stats(region_id=region_id, district_id=district_id, brigade_id=bid)
+        data = build_primary_care_stats(
+            region_id=region_id,
+            district_id=district_id,
+            brigade_id=bid,
+            user=request.user,
+        )
         data['workflow'] = primary_care_workflow_guide()
         data['needs_setup'] = (
             data.get('population_total', 0) == 0
@@ -187,7 +227,7 @@ class PrimaryCareStatsViewSet(_PrimaryCareMixin, viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='overdue-checkups')
     def overdue_checkups(self, request):
         from django.utils import timezone
-        qs = PopulationRecord.objects.filter(
+        qs = population_for_user(request.user).filter(
             next_checkup_date__lt=timezone.now().date(),
         ).exclude(next_checkup_date__isnull=True).select_related('brigade')[:200]
         region_id = request.query_params.get('region_id', '')

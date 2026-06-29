@@ -385,12 +385,13 @@ def sync_network_plan_completed(brigade: MedicalBrigade, year: int | None = None
     year_start = date(y, 1, 1)
     year_end = date(y, 12, 31)
     pop_ids = list(brigade.assigned_population.values_list('id', flat=True))
+    checkup_ids = PreventiveCheckup.objects.filter(
+        Q(brigade=brigade) | Q(population_id__in=pop_ids),
+        checkup_date__gte=year_start,
+        checkup_date__lte=year_end,
+    ).values_list('id', flat=True).distinct()
     completed = {
-        'checkups': PreventiveCheckup.objects.filter(
-            brigade=brigade, checkup_date__gte=year_start, checkup_date__lte=year_end,
-        ).count() + PreventiveCheckup.objects.filter(
-            population_id__in=pop_ids, checkup_date__gte=year_start, checkup_date__lte=year_end,
-        ).count(),
+        'checkups': len(list(checkup_ids)),
         'patronage': PatronageVisit.objects.filter(
             brigade=brigade, visit_date__gte=year_start, visit_date__lte=year_end,
         ).count(),
@@ -591,8 +592,12 @@ def _plan_completion_pct(plan: NetworkPlan) -> int:
 def setup_primary_care_system(user=None) -> dict:
     """Birinchi marta: brigada, skrining dasturlari, aholi sinxronlash."""
     ensure_default_screening_programs()
+    brigade_qs = MedicalBrigade.objects.filter(is_active=True)
+    if user:
+        from .primary_care_access import brigades_for_user, population_for_user
+        brigade_qs = brigades_for_user(user).filter(is_active=True)
     created_brigade = None
-    if not MedicalBrigade.objects.filter(is_active=True).exists():
+    if not brigade_qs.exists():
         region_id = ''
         district_id = ''
         clinic_name = 'Poliklinika'
@@ -606,18 +611,23 @@ def setup_primary_care_system(user=None) -> dict:
             target_population_size=3000,
             region_id=region_id,
             district_id=district_id,
+            clinic_group_id=getattr(user, 'clinic_group_id', None) if user else None,
             leader=user if user and getattr(user, 'role', '') == 'clinic' else None,
             is_active=True,
         )
         ensure_brigade_network_plans(created_brigade)
 
     population_synced = 0
-    for pop in PopulationRecord.objects.all():
+    pop_qs = PopulationRecord.objects.all()
+    if user:
+        from .primary_care_access import population_for_user
+        pop_qs = population_for_user(user)
+    for pop in pop_qs:
         if not pop.brigade_id or not pop.next_checkup_date:
             on_population_saved(pop, is_new=False)
             population_synced += 1
 
-    stats = build_primary_care_stats()
+    stats = build_primary_care_stats(user=user)
     return {
         'brigade_created': created_brigade.id if created_brigade else None,
         'brigade_name': created_brigade.name if created_brigade else '',
@@ -669,8 +679,11 @@ def primary_care_workflow_guide() -> list[dict]:
     ]
 
 
-def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brigade_id: int | None = None) -> dict:
+def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brigade_id: int | None = None, user=None) -> dict:
     pop_qs = PopulationRecord.objects.all()
+    if user:
+        from .primary_care_access import population_for_user
+        pop_qs = population_for_user(user)
     if region_id:
         pop_qs = pop_qs.filter(region_id=region_id)
     if district_id:
@@ -709,7 +722,11 @@ def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brig
     overdue = pop_qs.filter(next_checkup_date__lt=today).exclude(next_checkup_date__isnull=True).count()
 
     brigade_stats = []
-    for b in MedicalBrigade.objects.filter(is_active=True):
+    brigade_qs = MedicalBrigade.objects.filter(is_active=True)
+    if user:
+        from .primary_care_access import brigades_for_user
+        brigade_qs = brigades_for_user(user).filter(is_active=True)
+    for b in brigade_qs:
         if region_id and b.region_id != region_id:
             continue
         if district_id and b.district_id != district_id:

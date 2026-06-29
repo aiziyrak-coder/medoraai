@@ -72,7 +72,7 @@ function unwrapList<T>(res: ApiResponse<T[] | { data?: T[]; results?: T[] }>): A
       return { success: true, data: (raw as { data: T[] }).data };
     }
   }
-  return { success: true, data: [] };
+  return { success: false, error: { message: 'Ro\'yxat yuklanmadi' } };
 }
 
 export const listPopulation = async (params?: {
@@ -148,6 +148,8 @@ export interface PopulationPrimaryCareProfile {
     gender: string;
     phone?: string;
     address?: string;
+    region_id?: string;
+    district_id?: string;
     health_group?: string;
     health_group_label?: string;
     next_checkup_date?: string | null;
@@ -186,8 +188,15 @@ export const getPopulationPrimaryCareProfile = async (id: number) => {
   return { success: true, data: raw as PopulationPrimaryCareProfile };
 };
 
-export const syncPopulationPrimaryCare = async (id: number) =>
-  unwrapOne(await apiPost<{ sync?: unknown; profile?: PopulationPrimaryCareProfile }>(
+export const syncPopulationPrimaryCare = async (id: number): Promise<ApiResponse<{ sync?: unknown; profile?: PopulationPrimaryCareProfile }>> => {
+  const res = await apiPost<{ sync?: unknown; profile?: PopulationPrimaryCareProfile } | { data?: { sync?: unknown; profile?: PopulationPrimaryCareProfile } }>(
     `/patients/population/${id}/sync-primary-care/`,
     {},
-  ));
+  );
+  if (!res.success) return res as ApiResponse<{ sync?: unknown; profile?: PopulationPrimaryCareProfile }>;
+  const raw = res.data;
+  if (raw && typeof raw === 'object' && 'data' in raw && (raw as { data?: { sync?: unknown; profile?: PopulationPrimaryCareProfile } }).data) {
+    return { success: true, data: (raw as { data: { sync?: unknown; profile?: PopulationPrimaryCareProfile } }).data };
+  }
+  return { success: true, data: raw as { sync?: unknown; profile?: PopulationPrimaryCareProfile } };
+};

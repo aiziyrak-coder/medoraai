@@ -132,6 +132,7 @@ const AppContent: React.FC = () => {
     const [appView, setAppView] = useState<AppView>(() =>
         authService.getCurrentUser()?.role === 'staff' ? 'registrar' : 'dashboard',
     );
+    const [pcProfileId, setPcProfileId] = useState<number | null>(null);
     const historyFromPopstateRef = useRef(false);
 
     // i18n — must be before any effect that uses language/t
@@ -1248,7 +1249,7 @@ const AppContent: React.FC = () => {
                     <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('population_title')} subtitle={t('population_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
-                            <PopulationPanel />
+                            <PopulationPanel onOpenProfile={(id) => { setPcProfileId(id); handleNavigation('primary_care'); }} />
                         </ScrollWrapper>
                     </div>
                 );
@@ -1258,7 +1259,7 @@ const AppContent: React.FC = () => {
                     <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('pc_title')} subtitle={t('pc_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
-                            <PrimaryCareHub />
+                            <PrimaryCareHub initialProfileId={pcProfileId} onProfileConsumed={() => setPcProfileId(null)} />
                         </ScrollWrapper>
                     </div>
                 );

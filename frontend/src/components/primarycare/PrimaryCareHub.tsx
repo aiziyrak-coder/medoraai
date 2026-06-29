@@ -18,12 +18,18 @@ interface StatsExt extends pc.PrimaryCareStats {
   }>;
 }
 
-const PrimaryCareHub: React.FC = () => {
+interface PrimaryCareHubProps {
+  initialProfileId?: number | null;
+  onProfileConsumed?: () => void;
+}
+
+const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onProfileConsumed }) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<HubTab>('guide');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [stats, setStats] = useState<StatsExt | null>(null);
   const [loading, setLoading] = useState(true);
+  const [statsLoaded, setStatsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
@@ -38,7 +44,10 @@ const PrimaryCareHub: React.FC = () => {
     const res = await pc.getPrimaryCareStats();
     if (res.success && res.data) {
       setStats(res.data as StatsExt);
+      setStatsLoaded(true);
     } else {
+      setStats(null);
+      setStatsLoaded(false);
       setError(res.error?.message || t('pc_load_error'));
     }
     setLoading(false);
@@ -54,6 +63,14 @@ const PrimaryCareHub: React.FC = () => {
     if (pRes.success && pRes.data) setPlans(pRes.data);
     if (prRes.success && prRes.data) setPrograms(prRes.data);
   }, []);
+
+  useEffect(() => {
+    if (initialProfileId) {
+      setSelectedId(initialProfileId);
+      setTab('profile');
+      onProfileConsumed?.();
+    }
+  }, [initialProfileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadOverview();
@@ -113,10 +130,27 @@ const PrimaryCareHub: React.FC = () => {
   };
 
   const refreshPlan = async (id: number) => {
-    await pc.refreshNetworkPlan(id);
-    loadPlans();
-    loadOverview();
-    flash(t('pc_plan_refreshed'));
+    setError(null);
+    const res = await pc.refreshNetworkPlan(id);
+    if (res.success) {
+      loadPlans();
+      loadOverview();
+      flash(t('pc_plan_refreshed'));
+    } else {
+      setError(res.error?.message || t('pc_save_error'));
+    }
+  };
+
+  const deleteBrigade = async (id: number) => {
+    setError(null);
+    const res = await pc.deleteBrigade(id);
+    if (res.success) {
+      loadBrigades();
+      loadOverview();
+      flash(t('pc_deleted'));
+    } else {
+      setError(res.error?.message || t('pc_save_error'));
+    }
   };
 
   const tabs: { id: HubTab; label: string }[] = [
@@ -155,7 +189,7 @@ const PrimaryCareHub: React.FC = () => {
       {tab === 'guide' && (
         <PrimaryCareGuide
           workflow={stats?.workflow}
-          needsSetup={stats?.needs_setup ?? true}
+          needsSetup={statsLoaded ? Boolean(stats?.needs_setup) : false}
           onSetup={runSetup}
           settingUp={settingUp}
           onGoTo={goFromWorkflow}
@@ -282,7 +316,7 @@ const PrimaryCareHub: React.FC = () => {
                     <p className="font-semibold">{b.name}</p>
                     <p className="text-xs text-slate-500">{b.assigned_count ?? 0} / {b.target_population_size} {t('pc_assigned')}</p>
                   </div>
-                  <button type="button" className="text-red-600 text-xs" onClick={() => pc.deleteBrigade(b.id).then(() => { loadBrigades(); loadOverview(); })}>
+                  <button type="button" className="text-red-600 text-xs" onClick={() => deleteBrigade(b.id)}>
                     {t('pc_delete')}
                   </button>
                 </div>

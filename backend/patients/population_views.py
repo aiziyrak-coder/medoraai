@@ -37,6 +37,13 @@ class PopulationViewSet(viewsets.ModelViewSet):
             return PopulationWriteSerializer
         return PopulationSerializer
 
+    def get_queryset(self):
+        from .primary_care_access import population_for_user
+        return population_for_user(self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
     @action(detail=False, methods=['get'], url_path='search')
     def population_search(self, request):
         q = (request.query_params.get('q') or '').strip()
@@ -87,7 +94,8 @@ class PopulationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='primary-care-profile')
     def primary_care_profile(self, request, pk=None):
-        profile = build_population_primary_care_profile(int(pk))
+        pop = self.get_object()
+        profile = build_population_primary_care_profile(pop.id)
         if not profile:
             return Response({'success': False, 'error': {'message': 'Aholi topilmadi'}}, status=status.HTTP_404_NOT_FOUND)
         return Response({'success': True, 'data': profile})
