@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { User } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import LanguageSwitcher from '../LanguageSwitcher';
 import DeviceSessionBanner from '../DeviceSessionBanner';
 import RegistrarPanel from './RegistrarPanel';
+import PopulationPanel from '../population/PopulationPanel';
 import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_SHORT } from '../../constants/brand';
 import { Language } from '../../i18n/LanguageContext';
 
@@ -14,8 +15,11 @@ interface RegistrarAppProps {
     onLanguageChange: (lang: Language) => void;
 }
 
+type RegistrarTab = 'patients' | 'population';
+
 const RegistrarApp: React.FC<RegistrarAppProps> = ({ user, onLogout, language, onLanguageChange }) => {
     const { t } = useTranslation();
+    const [tab, setTab] = useState<RegistrarTab>('patients');
 
     return (
         <div className="min-h-[100dvh] flex flex-col w-full bg-gradient-to-br from-slate-50 via-sky-50/40 to-emerald-50/30">
@@ -52,10 +56,34 @@ const RegistrarApp: React.FC<RegistrarAppProps> = ({ user, onLogout, language, o
                         </button>
                     </div>
                 </div>
+                <div className="max-w-6xl mx-auto page-px pb-2 flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setTab('patients')}
+                        className={`text-xs font-bold px-4 py-2 rounded-xl transition-colors ${
+                            tab === 'patients'
+                                ? 'bg-sky-600 text-white'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {t('registrar_tab_patients')}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setTab('population')}
+                        className={`text-xs font-bold px-4 py-2 rounded-xl transition-colors ${
+                            tab === 'population'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {t('population_title')}
+                    </button>
+                </div>
             </header>
 
             <main className="flex-1 min-h-0 overflow-y-auto">
-                <RegistrarPanel user={user} />
+                {tab === 'patients' ? <RegistrarPanel user={user} /> : <PopulationPanel />}
             </main>
 
             <footer className="flex-none py-2 text-center text-[10px] text-slate-400 border-t border-slate-100/80 bg-white/60">

@@ -945,6 +945,20 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const selectFromSmartHit = useCallback(
         (hit: SmartPatientHit) => {
             const passport = passportToPatientData(hit);
+            if (hit.source === 'population' && hit.is_patient === false) {
+                applyPatientDataToForm({
+                    ...passport,
+                    complaints: '',
+                    history: hit.anamnesis || hit.last_complaint || '',
+                });
+                setVitals(emptyVitals());
+                onLinkedPatientChange?.(null);
+                setLinkedRegistryNumber(hit.registry_number || formatPatientRegistryId(hit));
+                setPatientSearch('');
+                setSmartHits([]);
+                setNameMatches([]);
+                return;
+            }
             selectPassportOnly(
                 passport,
                 hit.id,
@@ -952,7 +966,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                 formatPatientRegistryId(hit),
             );
         },
-        [selectPassportOnly],
+        [applyPatientDataToForm, onLinkedPatientChange, selectPassportOnly],
     );
 
     const formatHitDate = (iso: string) => {
@@ -1430,12 +1444,17 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     {patientSearch.trim().length >= (/^\d+$/.test(patientSearch.trim()) ? 1 : 2) && smartHits.length > 0 && (
                                         <ul className="absolute z-30 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg text-[10px]">
                                             {smartHits.map(hit => (
-                                                <li key={hit.id}>
+                                                <li key={`${hit.source || 'patient'}-${hit.population_id || hit.id}`}>
                                                     <button
                                                         type="button"
                                                         className="w-full text-left px-2 py-2 hover:bg-sky-50 border-b border-slate-50 last:border-0"
                                                         onClick={() => selectFromSmartHit(hit)}
                                                     >
+                                                        {hit.source === 'population' && !hit.is_patient && (
+                                                            <span className="inline-block text-[8px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mb-1">
+                                                                {t('population_badge')}
+                                                            </span>
+                                                        )}
                                                         <span className="font-semibold text-slate-900">
                                                             {hit.last_name} {hit.first_name} {hit.father_name}
                                                         </span>

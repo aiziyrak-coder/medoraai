@@ -23,6 +23,7 @@ from .registry_number import registry_number_lookup_q
 from .phone import normalize_patient_phone, patient_phone_variants
 from .dedup import find_existing_patient
 from .address_data import load_address_catalog, search_districts
+from .population_service import population_to_dict, search_population
 from .serializers import (
     PatientSerializer, PatientCreateSerializer,
     PatientUpdateSerializer, PatientAttachmentSerializer,
@@ -168,6 +169,28 @@ class PatientViewSet(viewsets.ModelViewSet):
         data['can_view_clinical'] = can_clinical
         return data
 
+    def _combined_passport_search(self, request, q: str) -> list[dict]:
+        """Avval aholi bazasi, keyin bemorlar (pasport bo'yicha dublikat yo'q)."""
+        seen_rn: set[str] = set()
+        results: list[dict] = []
+        for rec in search_population(q):
+            rn = (rec.registry_number or '').upper()
+            if rn in seen_rn:
+                continue
+            seen_rn.add(rn)
+            results.append(population_to_dict(rec))
+        patient_qs = self._search_patients_global(self._global_patient_queryset(), q)
+        for p in patient_qs:
+            rn = (p.registry_number or '').upper()
+            if rn in seen_rn:
+                continue
+            seen_rn.add(rn)
+            hit = self._passport_hit(p, request.user)
+            hit['source'] = 'patient'
+            hit['is_patient'] = True
+            results.append(hit)
+        return results[:20]
+
     @action(detail=False, methods=['get'], url_path='regions')
     def regions(self, request):
         """Viloyat va tumanlar katalogi."""
@@ -229,10 +252,9 @@ class PatientViewSet(viewsets.ModelViewSet):
         q = (request.query_params.get('q') or '').strip()
         if len(q) < 1:
             return Response({'success': True, 'data': []})
-        qs = self._search_patients_global(self._global_patient_queryset(), q)
         return Response({
             'success': True,
-            'data': [self._passport_hit(p, request.user) for p in qs],
+            'data': self._combined_passport_search(request, q),
         })
 
     @action(detail=False, methods=['post'], url_path='registry')
@@ -278,10 +300,9 @@ class PatientViewSet(viewsets.ModelViewSet):
         q = (request.query_params.get('q') or '').strip()
         if len(q) < 1:
             return Response({'success': True, 'data': []})
-        qs = self._search_patients_global(self._global_patient_queryset(), q)
         return Response({
             'success': True,
-            'data': [self._passport_hit(p, request.user) for p in qs],
+            'data': self._combined_passport_search(request, q),
         })
 
     @action(detail=False, methods=['get'], url_path='match')

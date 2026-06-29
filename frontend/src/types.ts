@@ -21,7 +21,9 @@ export type AppView =
   | 'prescription'
   | 'tumor_board'
   | 'longitudinal_view'
-  | 'subscription';
+  | 'subscription'
+  | 'population'
+  | 'primary_care';
 
 /** Bemor marshrutlash: mutaxassis, tekshiruv rejasi, statsionar */
 export interface PatientRouting {

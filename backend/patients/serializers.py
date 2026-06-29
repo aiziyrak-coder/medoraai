@@ -7,6 +7,16 @@ from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIE
 from .passport_serial import normalize_passport_serial, validate_passport_serial_format
 from .dedup import find_existing_patient, apply_passport_fields
 from .phone import normalize_patient_phone
+from .population_service import upsert_population_from_patient
+from .primary_care_service import on_population_saved
+
+
+def _sync_population_from_patient(patient, user):
+    try:
+        pop = upsert_population_from_patient(patient, user)
+        on_population_saved(pop, is_new=False)
+    except Exception:
+        pass
 from accounts.serializers import UserSerializer
 
 
@@ -107,13 +117,20 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
             age=validated_data.get('age'),
         )
         if existing:
-            return apply_passport_fields(existing, validated_data)
+            patient = apply_passport_fields(existing, validated_data)
+            try:
+                _sync_population_from_patient(patient, user)
+            except Exception:
+                pass
+            return patient
         validated_data['created_by'] = user
         validated_data.setdefault('complaints', '')
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
         validated_data['registry_number'] = registry_number
-        return super().create(validated_data)
+        patient = super().create(validated_data)
+        _sync_population_from_patient(patient, user)
+        return patient
 
     def update(self, instance, validated_data):
         validated_data.pop('registry_number', None)
@@ -210,13 +227,17 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             age=validated_data.get('age'),
         )
         if existing:
-            return apply_passport_fields(existing, validated_data)
+            patient = apply_passport_fields(existing, validated_data)
+            _sync_population_from_patient(patient, user)
+            return patient
         validated_data['created_by'] = user
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
         validated_data.setdefault('complaints', validated_data.get('complaints') or '')
         validated_data['registry_number'] = registry_number
-        return super().create(validated_data)
+        patient = super().create(validated_data)
+        _sync_population_from_patient(patient, user)
+        return patient
 
     def update(self, instance, validated_data):
         validated_data.pop('registry_number', None)

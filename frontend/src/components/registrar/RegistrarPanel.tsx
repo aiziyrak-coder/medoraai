@@ -43,7 +43,8 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const loadFormFromPassport = useCallback((p: PatientPassport) => {
-        setEditId(p.id);
+        const isPopulationOnly = p.source === 'population' && p.is_patient === false;
+        setEditId(isPopulationOnly ? null : p.id);
         setRegistryNumber(formatPatientRegistryId(p));
         setForm({
             passportSerial: formatPatientRegistryId(p),
@@ -170,13 +171,18 @@ const RegistrarPanel: React.FC<RegistrarPanelProps> = ({ user }) => {
                 {hits.length > 0 && (
                     <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-slate-100 overflow-hidden">
                         {hits.map((h) => (
-                            <li key={h.id}>
+                            <li key={`${h.source || 'p'}-${h.population_id || h.id}`}>
                                 <button
                                     type="button"
                                     className="w-full text-left px-4 py-3 hover:bg-sky-50/80 flex justify-between items-center gap-2"
                                     onClick={() => loadFormFromPassport(h)}
                                 >
                                     <span className="font-semibold text-slate-800">
+                                        {h.source === 'population' && !h.is_patient && (
+                                            <span className="text-[9px] font-bold uppercase text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded mr-1.5">
+                                                {t('population_badge')}
+                                            </span>
+                                        )}
                                         {h.last_name} {h.first_name} {h.father_name}
                                     </span>
                                     <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded-lg">

@@ -12,6 +12,7 @@ interface DashboardProps {
     onOpenUziUtt?: () => void;
     onOpenPrescriptionAudit?: () => void;
     onOpenTools?: () => void;
+    onOpenPopulation?: () => void;
     recentAnalyses: AnalysisRecord[];
     allAnalyses: AnalysisRecord[];
     onSelectAnalysis: (record: AnalysisRecord) => void;
@@ -73,7 +74,7 @@ const glass: React.CSSProperties = {
 
 const Dashboard: React.FC<DashboardProps> = ({
     userName, onNewAnalysis, onViewHistory,
-    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools,
+    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools, onOpenPopulation,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t, language } = useTranslation();
@@ -313,6 +314,34 @@ const Dashboard: React.FC<DashboardProps> = ({
                                 <span className="flex-shrink-0 text-amber-400 text-sm font-bold group-hover:translate-x-0.5 transition-transform hidden sm:inline">
                                     {t('prescription_audit_open')} →
                                 </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {onOpenPopulation && (
+                        <div
+                            onClick={onOpenPopulation}
+                            className="relative overflow-hidden rounded-[20px] cursor-pointer"
+                            style={{
+                                background: 'linear-gradient(135deg, #052e16 0%, #064e3b 55%, #065f46 100%)',
+                                border: '1px solid rgba(52,211,153,0.35)',
+                                minHeight: '120px',
+                                boxShadow: '0 0 28px rgba(16,185,129,0.12), 0 12px 32px rgba(0,0,0,0.18)',
+                            }}
+                        >
+                            <div className="relative z-10 p-5 flex items-center gap-4">
+                                <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+                                     style={{ background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.45)' }}>
+                                    👥
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1 text-emerald-300">
+                                        {t('population_badge')}
+                                    </p>
+                                    <h3 className="text-base font-black text-white leading-tight">{t('pc_title')}</h3>
+                                    <p className="text-xs text-emerald-100/80 mt-0.5 line-clamp-2">{t('pc_subtitle')}</p>
+                                </div>
+                                <span className="text-emerald-300 text-sm font-bold hidden sm:inline">→</span>
                             </div>
                         </div>
                     )}

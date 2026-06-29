@@ -55,6 +55,10 @@ export interface PatientPassport {
   updated_at?: string;
   analysis_count?: number;
   can_view_clinical?: boolean;
+  source?: 'population' | 'patient';
+  population_id?: number;
+  is_patient?: boolean;
+  anamnesis?: string;
 }
 
 export interface PatientAttachment {
@@ -92,6 +96,10 @@ export interface SmartPatientHit extends PatientPassport {
   last_diagnosis: string;
   last_complaint: string;
   last_physician: string;
+  source?: 'population' | 'patient';
+  population_id?: number;
+  is_patient?: boolean;
+  anamnesis?: string;
 }
 
 export interface DistrictSearchHit {

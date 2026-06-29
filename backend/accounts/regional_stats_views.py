@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from analyses.models import AnalysisRecord, AnalysisUsefulnessFeedback
 from patients.address_data import load_address_catalog
 from patients.models import Patient
+from patients.primary_care_service import build_primary_care_stats, ensure_default_screening_programs
 
 from .permissions import IsRegionalStatsViewer
 
@@ -214,8 +215,17 @@ def _build_regional_stats(user, district_id: str | None = None) -> dict:
         'weekly_activity': weekly_activity,
         'monthly_trend': monthly_trend,
         'clinics': clinics,
+        'primary_care_210': _build_primary_care_210(region_id, district_id),
         'generated_at': now.isoformat(),
     }
+
+
+def _build_primary_care_210(region_id: str, district_id: str | None) -> dict:
+    ensure_default_screening_programs()
+    return build_primary_care_stats(
+        region_id=region_id,
+        district_id=district_id or '',
+    )
 
 
 @api_view(['GET'])

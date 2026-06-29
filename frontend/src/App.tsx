@@ -49,7 +49,8 @@ import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
 import PrescriptionProtocolAudit from './components/PrescriptionProtocolAudit';
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
-import RegistrarApp from './components/registrar/RegistrarApp';
+import PopulationPanel from './components/population/PopulationPanel';
+import PrimaryCareHub from './components/primarycare/PrimaryCareHub';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
 const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
@@ -1093,6 +1094,7 @@ const AppContent: React.FC = () => {
                             onOpenUziUtt={() => setAppView('uzi_utt')}
                             onOpenPrescriptionAudit={() => setAppView('prescription_audit')}
                             onOpenTools={() => setAppView('tools')}
+                            onOpenPopulation={() => setAppView('primary_care')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
                             onSelectAnalysis={viewHistoryItem}
@@ -1236,6 +1238,26 @@ const AppContent: React.FC = () => {
                             <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
                                 <ToolsDashboard />
                             </Suspense>
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'population':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('population_title')} subtitle={t('population_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <PopulationPanel />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'primary_care':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('pc_title')} subtitle={t('pc_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <PrimaryCareHub />
                         </ScrollWrapper>
                     </div>
                 );

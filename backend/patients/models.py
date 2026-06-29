@@ -117,3 +117,88 @@ class PatientAttachment(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.patient}"
+
+
+class PopulationRecord(models.Model):
+    """Aholi bazasi — bemor emas, umumiy fuqarolar ro'yxati."""
+
+    GENDER_CHOICES = Patient.GENDER_CHOICES
+
+    SOURCE_CHOICES = [
+        ('manual', 'Qo\'lda'),
+        ('excel', 'Excel import'),
+        ('patient_auto', 'Bemor yaratilganda'),
+    ]
+
+    registry_number = models.CharField(
+        max_length=20,
+        unique=True,
+        db_index=True,
+        verbose_name='Pasport seriya raqami',
+    )
+    first_name = models.CharField(max_length=255, verbose_name='Ism')
+    last_name = models.CharField(max_length=255, verbose_name='Familiya')
+    father_name = models.CharField(max_length=255, blank=True, verbose_name='Otasining ismi')
+    age = models.CharField(max_length=10, blank=True, verbose_name='Yosh')
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, verbose_name='Jins')
+    phone = models.CharField(max_length=20, blank=True, db_index=True, verbose_name='Telefon')
+    address = models.TextField(blank=True, verbose_name='Manzil')
+    region_id = models.CharField(max_length=10, blank=True, db_index=True, verbose_name='Viloyat ID')
+    district_id = models.CharField(max_length=10, blank=True, db_index=True, verbose_name='Tuman ID')
+    anamnesis = models.TextField(blank=True, verbose_name='Anamnez vitae / shikoyatlar')
+
+    birth_date = models.DateField(null=True, blank=True, verbose_name='Tug\'ilgan sana')
+    health_group = models.CharField(max_length=10, blank=True, verbose_name='Sog\'liq guruhi')
+    risk_pregnant = models.BooleanField(default=False, verbose_name='Homilador')
+    risk_disabled = models.BooleanField(default=False, verbose_name='Nogironligi bor')
+    risk_chronic = models.BooleanField(default=False, verbose_name='Surunkali kasallik')
+    risk_social_vulnerable = models.BooleanField(default=False, verbose_name='Ijtimoiy himoyaga muhtoj')
+    risk_lone_elderly = models.BooleanField(default=False, verbose_name='Yolg\'iz keksa')
+    risk_needs_care = models.BooleanField(default=False, verbose_name='Parvarishga muhtoj')
+    brigade = models.ForeignKey(
+        'MedicalBrigade',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_population',
+        verbose_name='Tibbiyot brigadasi',
+    )
+    next_checkup_date = models.DateField(null=True, blank=True, verbose_name='Keyingi ko\'rik sanasi')
+    last_checkup_date = models.DateField(null=True, blank=True, verbose_name='Oxirgi ko\'rik sanasi')
+    dispensary_registered = models.BooleanField(default=False, verbose_name='Dispanser nazoratida')
+
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual', verbose_name='Manba')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_population_records',
+        verbose_name='Yaratgan',
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_population_records',
+        verbose_name='Yangilagan',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Aholi yozuvi'
+        verbose_name_plural = 'Aholi bazasi'
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['last_name', 'first_name']),
+            models.Index(fields=['phone']),
+            models.Index(fields=['region_id', 'district_id']),
+        ]
+
+    def __str__(self):
+        return f"{self.last_name} {self.first_name} ({self.registry_number})"
+
+
+from . import primary_care_models  # noqa: E402, F401

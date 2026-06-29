@@ -173,6 +173,23 @@ const RegionalStatsDashboard: React.FC<RegionalStatsDashboardProps> = ({ user, o
               <MetricCard title="Tumanlar" value={stats.districts.length} note="bemorlar bilan" accent="from-slate-500/20 to-slate-600/10" />
             </div>
 
+            {stats.primary_care_210 && (
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <h3 className="text-lg font-bold text-white mb-1">210-buyruq — birlamchi tibbiy yordam</h3>
+                <p className="text-xs text-slate-500 mb-4">Profilaktika, skrining, patronaj, dispanser</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <MetricCard title="Aholi" value={stats.primary_care_210.population_total} accent="from-emerald-500/20 to-green-500/10" />
+                  <MetricCard title="Ko'riklar (yil)" value={stats.primary_care_210.checkups_ytd} accent="from-teal-500/20 to-cyan-500/10" />
+                  <MetricCard title="Patronaj (yil)" value={stats.primary_care_210.patronage_visits_ytd} accent="from-blue-500/20 to-indigo-500/10" />
+                  <MetricCard title="Muddat o'tgan" value={stats.primary_care_210.overdue_checkups} note="keyingi ko'rik" accent="from-amber-500/20 to-orange-500/10" />
+                  <MetricCard title="Skrining" value={stats.primary_care_210.screening_completed} note={`rejada: ${stats.primary_care_210.screening_planned}`} accent="from-violet-500/20 to-purple-500/10" />
+                  <MetricCard title="Dispanser" value={stats.primary_care_210.dispensary_active} accent="from-rose-500/20 to-pink-500/10" />
+                  <MetricCard title="Brigadaga biriktirilgan" value={stats.primary_care_210.with_brigade} accent="from-slate-500/20 to-slate-600/10" />
+                  <MetricCard title="Brigadalar" value={stats.primary_care_210.brigades.length} accent="from-cyan-500/20 to-sky-500/10" />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               {/* Districts */}
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5">

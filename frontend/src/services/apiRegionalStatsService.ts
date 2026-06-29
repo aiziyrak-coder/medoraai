@@ -30,6 +30,7 @@ export interface RegionalStatsResponse {
   weekly_activity: Array<{ date: string; count: number }>;
   monthly_trend: Array<{ month: string; count: number }>;
   clinics: Array<{ clinic_name: string; patient_count: number; analysis_count: number }>;
+  primary_care_210?: import('./apiPrimaryCareService').PrimaryCareStats;
   generated_at: string;
 }
 
