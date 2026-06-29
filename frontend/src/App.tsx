@@ -111,7 +111,10 @@ const AppContent: React.FC = () => {
         import('./services/apiAuthService').then(({ getProfile }) => {
             getProfile().then(apiUser => {
                 if (apiUser) {
-                    setCurrentUser(apiUser);
+                    setCurrentUser((prev) => {
+                        if (prev && prev.phone === apiUser.phone && prev.role === apiUser.role) return prev;
+                        return apiUser;
+                    });
                 } else {
                     clearTokens();
                     setCurrentUser(null);
@@ -187,7 +190,9 @@ const AppContent: React.FC = () => {
         };
     }, []);
 
-    // Sahifa yuklanganida: token bo'lsa barcha rollar uchun tahlillarni faqat API dan yuklash
+    const dashboardLoadRef = useRef(0);
+
+    // Sahifa yuklanganida va dashboardga qaytganda: tahlillar (takroriy so'rovlarni oldini olish)
     useEffect(() => {
         if (!currentUser?.phone) return;
         if (currentUser.role === 'staff') {
@@ -197,12 +202,19 @@ const AppContent: React.FC = () => {
             return;
         }
         if (!getAuthToken()) {
-            // Token bo'lmasa, serverdan yuklab bo'lmaydi; lokal saqlashdan foydalanmaymiz
             setUserHistory([]);
             setDashboardStats(null);
             return;
         }
+        if (appView !== 'dashboard') return;
+
+        const now = Date.now();
+        if (now - dashboardLoadRef.current < 3000) return;
+        dashboardLoadRef.current = now;
+
+        let cancelled = false;
         caseService.loadDashboardStatsFromApi().then(result => {
+            if (cancelled) return;
             if (result) {
                 setUserHistory(result.list);
                 setDashboardStats(result.stats);
@@ -211,23 +223,13 @@ const AppContent: React.FC = () => {
                 setDashboardStats(null);
             }
         }).catch(() => {
-            setUserHistory([]);
-            setDashboardStats(null);
-        });
-    }, [currentUser]);
-
-    // Dashboard ochilganda statistika va tarixni har safar API dan yangilab olamiz.
-    useEffect(() => {
-        if (!currentUser?.phone) return;
-        if (appView !== 'dashboard') return;
-        if (!getAuthToken()) return;
-        caseService.loadDashboardStatsFromApi().then(result => {
-            if (result) {
-                setUserHistory(result.list);
-                setDashboardStats(result.stats);
+            if (!cancelled) {
+                setUserHistory([]);
+                setDashboardStats(null);
             }
-        }).catch(() => null);
-    }, [appView, currentUser]);
+        });
+        return () => { cancelled = true; };
+    }, [currentUser?.phone, currentUser?.role, appView]);
 
     // Core Analysis State
     const [patientData, setPatientData] = useState<PatientData | null>(null);

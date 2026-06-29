@@ -74,8 +74,8 @@ export const API_CONFIG = {
   TIMEOUT: 30000,
   /** /api/ai/* — backend Claude uzoq javob berishi mumkin */
   AI_TIMEOUT_MS: 180000,
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 350,
+  RETRY_ATTEMPTS: 1,
+  RETRY_DELAY: 400,
 };
 
 /**

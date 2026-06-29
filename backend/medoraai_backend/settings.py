@@ -77,11 +77,11 @@ MIDDLEWARE = [
     'medoraai_backend.middleware.CORSFallbackMiddleware',  # CORS for /health/, /api/ when corsheaders missed
     'medoraai_backend.middleware.AttackProbeBlockMiddleware',  # Skaner / exploit path blok
     'medoraai_backend.middleware.SecurityHeadersMiddleware',  # Custom security headers
-    'medoraai_backend.middleware.RateLimitMiddleware',  # Rate limiting
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'medoraai_backend.middleware.RateLimitMiddleware',  # Auth dan keyin — kirgan foydalanuvchini ajratish
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'medoraai_backend.middleware.RequestLoggingMiddleware',  # Request logging
@@ -203,10 +203,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_RENDERER_CLASSES': _REST_RENDERERS,
     'EXCEPTION_HANDLER': 'medoraai_backend.exceptions.custom_exception_handler',
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
+    'DEFAULT_THROTTLE_CLASSES': [],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/hour' if DEBUG else '120/hour',
         'user': '1000/hour' if DEBUG else '3000/hour',

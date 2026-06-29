@@ -202,6 +202,17 @@ export const apiRequest = async <T = unknown>(
       };
     }
 
+    // 503/502 — server band; qayta urinmaslik
+    if (response.status === 503 || response.status === 502 || response.status === 504) {
+      return {
+        success: false,
+        error: {
+          code: response.status,
+          message: 'Server vaqtincha band. Bir necha soniyadan keyin sahifani yangilang.',
+        },
+      };
+    }
+
     // 429 — qayta urinmaslik (cheksiz loop oldini olish)
     if (response.status === 429) {
       const errData = await response.json().catch(() => ({}));

@@ -170,12 +170,18 @@ class RateLimitMiddleware(MiddlewareMixin):
             if any(path.startswith(p) for p in self._SKIP_PREFIXES):
                 return None
             ip = self.get_client_ip(request)
+            user = getattr(request, 'user', None)
+            is_auth = bool(user and getattr(user, 'is_authenticated', False))
+
             if path.startswith('/api/auth/login') or path.startswith('/api/auth/register'):
                 bucket, limit, window = 'auth', 12, 60
             elif path.startswith('/api/ai/') or '/consilium' in path:
-                bucket, limit, window = 'ai', 45, 60
+                bucket, limit, window = 'ai', 45 if not is_auth else 90, 60
             elif path.startswith('/api/'):
-                bucket, limit, window = 'api', 400, 60
+                if is_auth:
+                    bucket, limit, window = 'api_auth', 2000, 60
+                else:
+                    bucket, limit, window = 'api', 400, 60
             else:
                 bucket, limit, window = 'gen', 300 if getattr(settings, 'DEBUG', False) else 120, 60
             cache_key = f'rate_limit:{bucket}:{ip}'
