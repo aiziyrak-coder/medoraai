@@ -49,6 +49,7 @@ import UziUttAnalyzer from './components/tools/UziUttAnalyzer';
 import PrescriptionProtocolAudit from './components/PrescriptionProtocolAudit';
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
+import RegistrarApp from './components/registrar/RegistrarApp';
 import PopulationPanel from './components/population/PopulationPanel';
 import PrimaryCareHub from './components/primarycare/PrimaryCareHub';
 import AnalysisView from './components/AnalysisView';
