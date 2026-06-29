@@ -175,7 +175,7 @@ class RateLimitMiddleware(MiddlewareMixin):
             elif path.startswith('/api/ai/') or '/consilium' in path:
                 bucket, limit, window = 'ai', 45, 60
             elif path.startswith('/api/'):
-                bucket, limit, window = 'api', 180, 60
+                bucket, limit, window = 'api', 400, 60
             else:
                 bucket, limit, window = 'gen', 300 if getattr(settings, 'DEBUG', False) else 120, 60
             cache_key = f'rate_limit:{bucket}:{ip}'

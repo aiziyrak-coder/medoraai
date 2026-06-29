@@ -202,29 +202,16 @@ export const apiRequest = async <T = unknown>(
       };
     }
 
-    // Handle 429 Too Many Requests - retry once after delay
+    // 429 — qayta urinmaslik (cheksiz loop oldini olish)
     if (response.status === 429) {
-      const retryAfter = response.headers.get('Retry-After');
-      const delayMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 5000;
-      await new Promise(r => setTimeout(r, delayMs));
-      const retryResponse = await retryFetch(
-        `${API_BASE_URL}${endpoint}`,
-        { ...fetchOptions, headers },
-        1,
-        delayMs / 1000,
-        effectiveTimeout,
-      );
-      const retryResult = await handleResponse<T>(retryResponse);
-      if (!retryResult.success && retryResponse.status === 429) {
-        return {
-          success: false,
-          error: {
-            code: 429,
-            message: "So'rovlar soni cheklangan. Iltimos, bir daqiqa kuting va qayta urinib ko'ring.",
-          },
-        };
-      }
-      return retryResult;
+      const errData = await response.json().catch(() => ({}));
+      const msg =
+        errData.error?.message ||
+        "So'rovlar soni cheklangan. Iltimos, bir daqiqa kuting va qayta urinib ko'ring.";
+      return {
+        success: false,
+        error: { code: 429, message: msg },
+      };
     }
 
     // Handle 401 Unauthorized - try to refresh token

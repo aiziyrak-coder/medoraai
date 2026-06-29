@@ -45,6 +45,8 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
     if (res.success && res.data) {
       setStats(res.data as StatsExt);
       setStatsLoaded(true);
+    } else if (res.error?.code === 429) {
+      setError(res.error.message || t('pc_rate_limit'));
     } else {
       setStats(null);
       setStatsLoaded(false);

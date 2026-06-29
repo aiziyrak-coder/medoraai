@@ -43,7 +43,8 @@ class MedicalBrigadeSerializer(serializers.ModelSerializer):
     def get_leader_name(self, obj):
         if not obj.leader:
             return ''
-        return obj.leader.get_full_name() or obj.leader.username
+        leader = obj.leader
+        return getattr(leader, 'name', None) or getattr(leader, 'phone', '') or str(leader.pk)
 
     def get_assigned_count(self, obj):
         return obj.assigned_population.count()

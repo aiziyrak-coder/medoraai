@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useCallback } from 'react';
 import { LanguageContext } from '../i18n/LanguageContext';
 import { resolveTranslation } from '../i18n/resolveTranslation';
 import type { TranslationKey } from '../i18n/translationKeys';
@@ -12,7 +12,7 @@ export const useTranslation = () => {
   }
   const { language, setLanguage } = context;
 
-  const t = (key: TranslationKey, replacements?: { [key: string]: string | number }) => {
+  const t = useCallback((key: TranslationKey, replacements?: { [key: string]: string | number }) => {
     let translation = resolveTranslation(language, key);
 
     if (replacements) {
@@ -21,7 +21,7 @@ export const useTranslation = () => {
       });
     }
     return translation;
-  };
+  }, [language]);
 
   return { t, setLanguage, language };
 };

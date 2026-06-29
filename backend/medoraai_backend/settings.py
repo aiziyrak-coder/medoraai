@@ -209,7 +209,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '1000/hour' if DEBUG else '120/hour',
-        'user': '1000/hour' if DEBUG else '600/hour',
+        'user': '1000/hour' if DEBUG else '3000/hour',
     }
 }
 
