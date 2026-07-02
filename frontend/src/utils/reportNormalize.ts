@@ -660,7 +660,8 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
     out.simplifiedFamilyExplanation = sanitizeClinicalContent(sfe.trim());
   }
   const rr = r.relatedResearch ?? r.related_research;
-  if (Array.isArray(rr) && rr.length) out.relatedResearch = rr as FinalReport['relatedResearch'];
+  // AI generatsiya qilgan manbalarni ishlatmaymiz — faqat tekshirilgan ro'yxat (pastda)
+  void rr;
 
   const gaps = normalizeProtocolComplianceGaps(r.protocolComplianceGaps ?? r.protocol_compliance_gaps);
   if (gaps.length) out.protocolComplianceGaps = gaps;
@@ -725,7 +726,7 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
     const fallback = buildNutritionPreventionFallback(diag, lang);
     if (fallback) out.nutritionPrevention = fallback;
   }
-  if (!out.relatedResearch?.length) {
+  {
     const diag = out.consensusDiagnosis?.[0]?.name?.trim() || 'clinical diagnosis';
     out.relatedResearch = buildFastResearchSources(diag, lang);
   }

@@ -279,6 +279,25 @@ PROTOCOL_DB: list[dict] = [
         "ref": "O'zbekiston SSV  -  Anemiya protokoli (2022)",
         "monitoring": "KAK 1 oyda, ferritin, serum temir",
     },
+    {
+        "id": "uz-ssv-psychiatry-2022",
+        "name": "Ruhiy kasalliklar (Depressiya, Tashvish, Shizofreniya)",
+        "icd10": ["F20", "F25", "F31", "F32", "F33", "F41", "F42", "F43"],
+        "keywords": [
+            "psixiatr", "psixiatriya", "psychiatr", "psychiatry", "ruhiy", "mental",
+            "depressiya", "depres", "depression", "tashvish", "anksioz", "anxiety",
+            "shizofren", "schizophren", "bipolar", "panika", "obsessiv", "ptsd",
+            "suicid", "intih", "F32", "F33", "F20", "F41", "F31",
+        ],
+        "first_line": [
+            "SSRI (sertralin, essitalopram) — depresiya/tashvish",
+            "Antipsixotik (risperidon, olanzapin) — shizofreniya",
+            "Psixoterapiya va ijtimoiy reabilitatsiya",
+        ],
+        "targets": "Simptom remissiyasi, funksional tiklanish, intihor xavfini kamaytirish",
+        "ref": "O'zbekiston SSV — Ruhiy kasalliklar klinik protokoli (2022)",
+        "monitoring": "Klinik simptom shkalasi, nojo'ya ta'sirlar, intihor xavfi",
+    },
 ]
 
 # Keyword indeksi

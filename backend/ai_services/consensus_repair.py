@@ -855,17 +855,13 @@ def ensure_consensus_from_phases(
 
 
 def ensure_related_research(consensus: dict, language_hint: str = "uz-L") -> dict:
-    """Xalqaro dalil manbalari bo'sh qolmasin."""
+    """Xalqaro dalil manbalari — faqat tekshirilgan URL (SSV birinchi, keyin xalqaro jurnallar)."""
     if not isinstance(consensus, dict):
-        return consensus
-    existing = consensus.get("related_research") or consensus.get("relatedResearch") or []
-    if isinstance(existing, list) and len(existing) >= 4:
         return consensus
     cd = consensus.get("consensus_diagnosis") or {}
     diag = _s(cd.get("name") if isinstance(cd, dict) else "") or "klinik holat"
-    from .evidence_sources import build_fast_research_sources
-    from .diagnosis_enrichment import _merge_research
-    _merge_research(consensus, build_fast_research_sources(diag, language_hint, ""))
+    from .citation_enrichment import sanitize_related_research
+    sanitize_related_research(consensus, diag, "", language_hint)
     return consensus
 
 

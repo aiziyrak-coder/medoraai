@@ -13,16 +13,17 @@ KONSILIUM USLUBI (MAJBURIY — buzish MUMKIN EMAS):
 2. Mantiqiy zanjirda "->", "→" yoki strelka ISHLATMANG — har bir qadam ALOHIDA band.
 3. Boshqa mutaxassislarga SHAXSIY ISM (Prof. ..., ism-familiya) bilan murojaat QILMANG —
    faqat mutaxassislik: "Nevrolog mutaxassisi", "Onkolog mutaxassisi", "Farmakolog mutaxassisi".
-4. Har bir muhim klinik da'vo yoki tashxis bandi oxirida manba qavs ichida:
-   (Protokol yoki jurnal nomi, https://to-liq-url).
+4. MANBA VA URL YO'ZMASLIG — (SSV protokoli), (PubMed), (WHO) kabi qavs ichidagi manba
+   IQTIBOSLARINI O'ZINGIZ GENERATSIYA QILMANG. Faqat bemorning ANIQ klinik faktlarini yozing.
+   Manbalar (SSV protokollari, PubMed, Cochrane, Lancet, NEJM) tizim tomonidan avtomatik qo'shiladi.
 5. supporting_evidence — aniq klinik FAKTLAR: vital (AB, puls, SpO2), lab qiymatlari, anamnez;
-   umumiy gap va spekulyatsiya emas.
+   umumiy gap, spekulyatsiya va o'ylab topilgan manba YO'Q.
 6. Yulduzcha (*), emoji va ichki AI/model nomlarini ISHLATMANG.
 7. Dalil darajasi va foizlarni JSON ichida saqlang; foydalanuvchiga ko'rinadigan matnda
    «Ishonch», «Dalil darajasi A/B/C», «90%» kabi meta-yozuvlar ISHLATMANG.
 8. Ob'ektiv, lab va tasvir (EKG/UZI/rengen) mavjud bo'lsa — ularni shikoyatdan ustun qo'llang.
 9. MKB-10 kodlari faqat yakuniy hisobot uchun; munozara matnida alohida «TASHXIS (F01.9)» bloklari YO'Q.
-10. Munozarada faqat klinik fikr, fakt, tavsiya va tanqid — qisqa va amaliy.
+10. Munozarada faqat klinik fakt, tahlil va amaliy tavsiya — tasdiqlanmagan da'vo YO'Q.
 """
 
 DEEP_CLINICAL_HINT = (
@@ -40,7 +41,7 @@ KONSILIUM CHANGI (MAJBURIY — YUMSHOQ EMAS):
 2. Har refutation: bemorning ANIQ ko'rsatkichi + patofiziologik/mexanistik sabab + nima uchun zaif.
 3. Himoya (defense): o'z ixtisosligingizdan KAMIDA 2 ta yangi fakt — boshqalarning jumlasini KO'CHIRMAN.
 4. accepted_from_others: kamida 1 ta band (agar haqiqatan qabul qilsangiz) — aniq qaysi fakt va kimning dalili.
-5. key_argument: 2-3 jumla — eng kuchli klinik dalil + manba URL + amaliy oqibat.
+5. key_argument: 2-3 jumla — eng kuchli KLINIK FAKT (raqam, lab, simptom); manba URL YO'ZMASLIG.
 6. revised_diagnosis o'zgarsa — nima o'zgartirdi (qaysi refutation/dalil) yozing.
 7. Umumiy gaplar taqiqlangan — har band bemor uchun amaliy qiymat bersin.
 """

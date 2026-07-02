@@ -347,7 +347,7 @@ MUSTAQIL TAHLIL QOIDALARI:
 2. O'zbekiston SSV milliy klinik protokollariga rioya qiling.
 3. Faqat O'zbekistonda rasmiy ro'yxatdan o'tgan dori-darmonlarni tavsiya qiling.
 4. Har bir xulosa uchun reasoning_chain majburiy — har band ALOHIDA qadam, strelka YO'Q.
-5. supporting_evidence: aniq klinik FAKTLAR (vital, lab, anamnez) + manba URL.
+5. supporting_evidence: aniq klinik FAKTLAR (vital, lab, anamnez) — manba URL YO'ZMASLIG.
 6. EHTIMOLLIK: Kuchli dalillar = 90-97%, o'rtacha = 85-89%, zaif = 70-84%.
 7. FAQAT JSON formatida javob qaytaring.
 8. Shikoyatdan tashqari ob'ektiv, lab va tasvir tahlilini majburiy hisobga oling.
@@ -366,7 +366,7 @@ MAJBURIY: Yuqoridagi bemor ma'lumotlaridan ANIQ faktlar ishlating — namuna mat
 {{
   "primary_diagnosis": "<sizning ixtisosligingizdan asosiy tashxis>",
   "probability": <55-97>,
-  "reasoning_chain": ["<bemor faktidan 1-qadam + manba URL>", "..."],
+  "reasoning_chain": ["<bemor faktidan 1-qadam>", "..."],
   "supporting_evidence": ["<vital/lab/anamnez raqami>", "..."],
   "red_flags": ["<shoshilinch belgi + manba>"],
   "differential": [{{"name": "<alt tashxis>", "probability": <3-40>, "reason": "<fakt>"}}],
@@ -504,7 +504,7 @@ _P2_SYSTEM = """\
 
 DEBATE VA REFUTATION QOIDALARI:
 1. Boshqa mutaxassislarning tashxisini DIQQAT BILAN o'qing — ularga ISM bilan emas, mutaxassislik bilan murojaat qiling.
-2. REFUTATION: Noto'g'ri yoki zaif joyni ANIQ faktlar va manba URL bilan inkor qiling.
+2. REFUTATION: Noto'g'ri yoki zaif joyni ANIQ klinik faktlar bilan inkor qiling (manba URL YO'Q).
 3. HIMOYA: O'z tashxisingizni yangilangan dalillar bilan qo'llab-quvvatlang.
 4. Kuchli dalil bo'lsa, pozitsiyangizni yangilang — ilmiy halollik.
 5. refutation matnida shaxsiy ism, AI nomi yoki ichki agent_id KO'RSATILMASIN.
@@ -533,7 +533,7 @@ Debate javobingizni JSON SXEMASI bo'yicha yozing. Boshqalarning jumlasini ko'chi
   "revised_probability": <55-97>,
   "accepted_from_others": [{{"agent_id": "<id>", "point": "<qaysi aniq fakt qabul qilindi>"}}],
   "endorsements": ["<qo'llab-quvvatlash — faqat aniq fakt>"],
-  "key_argument": "<sizning eng kuchli dalilingiz + manba URL>"
+  "key_argument": "<sizning eng kuchli klinik dalilingiz — faqat fakt>"
 }}"""
 
 
@@ -662,9 +662,9 @@ KONSENSUS QAROR QOIDALARI:
 2. Eng kuchli faktlar bilan qo'llab-quvvatlangan tashxisni tanlang.
 3. O'zbekiston SSV protokollari ASOSIY yo'riqnoma; parallel ravishda xalqaro dalillar majburiy:
    PubMed, Cochrane, Lancet, NEJM, JAMA, BMJ, ESC/ADA/NICE/WHO guideline.
-4. related_research: kamida 5 ta manba — kamida 2 ta xalqaro jurnal/qo'llanma, 1 ta SSV, 1 ta Cochrane/PubMed RCT.
+4. related_research: bo'sh ro'yxat [] — manbalarni tizim avtomatik qo'shadi (SSV birinchi, keyin xalqaro jurnallar).
 5. Faqat O'zbekistonda ro'yxatdan o'tgan dorilar.
-6. justification va reasoning_chain: har band alohida, manba URL bilan.
+6. justification va reasoning_chain: har band alohida klinik fakt — manba URL YO'ZMASLIG.
 7. Shaxsiy ism yoki AI nomi ISHLATMANG — mutaxassislik yoki "konsilium" deb yozing.
 8. FAQAT JSON formatida javob qaytaring.
 9. nutrition_prevention MAJBURIY: dietary_guidelines 4-6 ta, prevention_measures 4-6 ta, individual_diet_by_diagnosis.
@@ -705,8 +705,8 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
     "probability": 94,
     "justification": "Barcha dalillarni hisobga olgan xulosaning asosi ...",
     "evidence_level": "A",
-    "reasoning_chain": ["Aniq fakt + (SSV protokoli, https://lex.uz/...)", "Keyingi fakt + (PubMed, https://pubmed.ncbi.nlm.nih.gov/...)"],
-    "uzbek_protocol_match": "SSV buyrug'i/protokol nomi (https://lex.uz/...)"
+    "reasoning_chain": ["Aniq klinik fakt 1", "Aniq klinik fakt 2"],
+    "uzbek_protocol_match": ""
   }},
   "differential_diagnoses": [
     {{"name": "2-tashxis (MKB-10 termin)", "icd10": "E11.9", "probability": 6, "reason": "Nega kam ehtimol"}}
@@ -776,12 +776,7 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
   "risk_factors": [],
   "severity_assessment": {{ "level": "moderate", "score": 5, "rationale": "", "red_flags": [] }},
   "adverse_event_risks": [],
-  "related_research": [
-    {{"title": "PubMed / Lancet / NEJM maqola yoki tizimli sharh", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=...", "summary": "Qaysi tashxis/davolash uchun dalil"}},
-    {{"title": "Cochrane Library", "url": "https://www.cochranelibrary.com/search?q=...", "summary": "Meta-tahlil yoki RCT xulosasi"}},
-    {{"title": "ESC/WHO/NICE xalqaro guideline", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=...", "summary": "Xalqaro protokol bandi"}},
-    {{"title": "O'zbekiston SSV protokoli", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=Uzbekistan+clinical+protocol+...", "summary": "Milliy protokol mosligi"}}
-  ],
+  "related_research": [],
   "agent_weights_used": {{}}
 }}"""
 

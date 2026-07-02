@@ -27,6 +27,9 @@ const LINE_PREFIX_AGENT_RE = new RegExp(
   'gim',
 );
 
+const FAKE_SOURCE_PARENS_RE =
+  /\([^)]{0,200}?(?:protokol|protocol|SSV|WHO|ESC|NICE|PubMed|Cochrane|Lancet|NEJM|psixiatr|psychiat|guideline|buyrug['']i)[^)]{0,120}?\)/gi;
+
 export function sanitizeClinicalContent(text: string): string {
   if (!text) return text;
 
@@ -45,6 +48,11 @@ export function sanitizeClinicalContent(text: string): string {
   s = s.replace(
     new RegExp(`\\b(?:${INTERNAL_AGENT_IDS})\\b(?=\\s*:)`, 'gi'),
     'mutaxassis',
+  );
+
+  // URL siz soxta manba qavslari (AI hallusinatsiyasi)
+  s = s.replace(FAKE_SOURCE_PARENS_RE, (chunk) =>
+    /https?:\/\//i.test(chunk) ? chunk : '',
   );
 
   return s

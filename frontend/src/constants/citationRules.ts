@@ -1,9 +1,10 @@
 /** AI konsilium va hisobot uchun manba ko'rsatish qoidalari (promptlarda ishlatiladi). */
 export const AI_CITATION_FORMAT_RULES = `
-MANBA VA DALIL (majburiy): Har bir muhim klinik da'vo, tashxis, dori yoki tavsiya oxirida qavs ichida manba yozing.
-Format: (Manba nomi yoki jurnal/protokol, https://to-liq-url)
-Misol: ...arterial gipertenziya ehtimoli yuqori (ESC Hypertension Guidelines 2023, https://pubmed.ncbi.nlm.nih.gov/?term=ESC+hypertension+2023)
-Aniq URL bilmasangiz PubMed qidiruv URLini yozing. "Quyidagi bo'limda", "batafsil pastda", "(qisqa)" kabi yo'naltiruvchi yoki bo'sh placeholder matn YO'Q.
+Klinik matn: faqat bemorning aniq faktlarini yozing — vital, lab, anamnez, tasvir.
+MANBA VA URL YO'ZMASLIG: (SSV protokoli), (PubMed), (WHO) kabi qavs ichidagi iqtiboslar taqiqlangan.
+Manbalar tizim tomonidan avtomatik qo'shiladi: avval O'zbekiston SSV protokollari (lex.uz, ssv.uz),
+keyin xalqaro jurnallar (PubMed, Cochrane, Lancet, NEJM, WHO/ESC/NICE qidiruv havolalari).
+Spekulyatsiya, o'ylab topilgan manba va tasdiqlanmagan da'vo YO'Q.
 `;
 
 export const PLACEHOLDER_SECTION_INTRO = [
