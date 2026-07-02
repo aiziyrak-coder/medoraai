@@ -865,7 +865,7 @@ def ensure_related_research(consensus: dict, language_hint: str = "uz-L") -> dic
     diag = _s(cd.get("name") if isinstance(cd, dict) else "") or "klinik holat"
     from .evidence_sources import build_fast_research_sources
     from .diagnosis_enrichment import _merge_research
-    _merge_research(consensus, build_fast_research_sources(diag, language_hint))
+    _merge_research(consensus, build_fast_research_sources(diag, language_hint, ""))
     return consensus
 
 

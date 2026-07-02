@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -59,6 +60,7 @@ from .debate_format import (
     debate_author_fields,
     format_p1_debate_content,
     format_p2_debate_content,
+    format_orchestrator_closing,
     format_specialist_roster,
     agent_specialty_label as _specialty_from_agent_obj,
 )
@@ -423,22 +425,70 @@ def run_phase1(patient_str: str) -> list[dict]:
     return results
 
 
+def _normalize_dx(name: str) -> str:
+    return re.sub(r"\s+", " ", str(name or "").strip().lower())
+
+
 def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
-    """Phase 2 o'tkazib yuborilganda — P1 dan yengil sintez."""
+    """Phase 2 o'tkazib yuborilganda — P1 dan aqlli sintez (LLM chaqiruvisiz, tez)."""
+    id_to_row = {r.get("agent_id"): r for r in p1 if isinstance(r, dict)}
+    diagnoses = {
+        aid: str(r.get("primary_diagnosis") or "").strip()
+        for aid, r in id_to_row.items()
+    }
     out: list[dict] = []
+
     for row in p1:
         if not isinstance(row, dict):
             continue
-        rc = row.get("reasoning_chain") or []
-        key_arg = rc[0] if isinstance(rc, list) and rc else ""
+        agent_id = row.get("agent_id")
+        own_dx = diagnoses.get(agent_id, "")
+        own_norm = _normalize_dx(own_dx)
+        evidence = row.get("supporting_evidence") or []
+        if not isinstance(evidence, list):
+            evidence = []
+        reasoning = row.get("reasoning_chain") or []
+        if not isinstance(reasoning, list):
+            reasoning = []
+
+        refutations: list[dict] = []
+        accepted: list[dict] = []
+        for other_id, other_dx in diagnoses.items():
+            if other_id == agent_id or not other_dx:
+                continue
+            other_norm = _normalize_dx(other_dx)
+            if own_norm and other_norm and own_norm == other_norm:
+                pt = str(evidence[0] if evidence else reasoning[0] if reasoning else own_dx)[:220]
+                if pt:
+                    accepted.append({"agent_id": other_id, "point": pt[:200]})
+                continue
+            ev_bit = str(evidence[0] if evidence else reasoning[0] if reasoning else "")[:180]
+            refutations.append({
+                "target_agent_id": other_id,
+                "target_diagnosis": other_dx[:140],
+                "refutation": (
+                    f"{other_dx} kam ehtimol — bemor dalillari {own_dx} ni qo'llab-quvvatlaydi"
+                    + (f": {ev_bit}" if ev_bit else "")
+                )[:400],
+                "strength": "MODERATE",
+            })
+
+        defense_arg = str(reasoning[1] if len(reasoning) > 1 else reasoning[0] if reasoning else "")[:350]
+        new_ev = str(evidence[1] if len(evidence) > 1 else evidence[0] if evidence else "")[:280]
+        key_arg = str(reasoning[-1] if reasoning else evidence[-1] if evidence else own_dx)[:400]
+
         out.append({
-            "agent_id": row.get("agent_id"),
+            "agent_id": agent_id,
             "agent_name": row.get("agent_name"),
-            "revised_diagnosis": row.get("primary_diagnosis"),
+            "revised_diagnosis": own_dx or row.get("primary_diagnosis"),
             "revised_probability": row.get("probability"),
-            "refutations": [],
-            "defense": {"my_diagnosis_stands": True, "argument": "", "new_evidence": ""},
-            "accepted_from_others": [],
+            "refutations": refutations[:3],
+            "defense": {
+                "my_diagnosis_stands": True,
+                "argument": defense_arg,
+                "new_evidence": new_ev,
+            },
+            "accepted_from_others": accepted[:2],
             "key_argument": key_arg,
             "skipped_debate": True,
         })
@@ -899,6 +949,22 @@ def _build_final_report(consensus: dict, p1: list[dict],
                     "content":     p2_content,
                 })
 
+    closing = format_orchestrator_closing(consensus)
+    if closing:
+        debate_log.append(_chair_debate_entry("chair-closing", "consensus", closing))
+
+    diag_name = str(cd.get("name") or "")
+    complaints = ""
+    if isinstance(patient_data, dict):
+        complaints = str(
+            patient_data.get("complaints")
+            or patient_data.get("chiefComplaint")
+            or patient_data.get("chief_complaint")
+            or ""
+        ).strip()
+    from .citation_enrichment import enrich_debate_log
+    debate_log = enrich_debate_log(debate_log, diag_name, complaints)
+
     cf = consensus.get("critical_finding") or {}
     critical = cf if (isinstance(cf, dict) and cf.get("present")) else None
 
@@ -1026,7 +1092,9 @@ def _build_final_report(consensus: dict, p1: list[dict],
                 merged["nutritionPrevention"] = normalized
     if not merged.get("relatedResearch"):
         from .evidence_sources import build_fast_research_sources
-        merged["relatedResearch"] = build_fast_research_sources(_s(cd.get("name")), language)
+        merged["relatedResearch"] = build_fast_research_sources(
+            _s(cd.get("name")), language, complaints=complaints
+        )
     return merged
 
 
@@ -1178,6 +1246,10 @@ def run_consilium(
     from .consensus_repair import ensure_nutrition_prevention, ensure_related_research
     consensus = ensure_nutrition_prevention(consensus, language_hint=language)
     consensus = ensure_related_research(consensus, language_hint=language)
+
+    from .citation_enrichment import enrich_consensus_citations
+    consensus = enrich_consensus_citations(consensus, patient_data)
+
     result.phases["diagnosis_enrichment"] = {
         "icd10": (consensus.get("consensus_diagnosis") or {}).get("icd10"),
         "has_family_explanation": bool(consensus.get("simplified_family_explanation")),

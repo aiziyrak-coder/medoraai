@@ -129,7 +129,14 @@ const RelatedResearchCard: React.FC<{research: FinalReport['relatedResearch']}> 
     const sourceUrl = (title: string, url?: string) => {
         const raw = (url || '').trim();
         if (/^https?:\/\//i.test(raw)) return raw;
-        return `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(title || raw || 'clinical guideline')}`;
+        const t = (title || '').trim();
+        if (/pubmed|nejm|lancet|cochrane|esc|nice|who/i.test(t)) {
+            return `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t || 'clinical guideline')}`;
+        }
+        if (/ssv|protokol|o['']zbekiston/i.test(t)) {
+            return `https://lex.uz/ru/search?type=1&search_text=${encodeURIComponent(t || 'klinik protokol SSV')}`;
+        }
+        return `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(t || raw || 'clinical guideline')}`;
     };
     return (
         <Section title={t('final_report_related_research_title')} icon={<GlobeIcon className="w-6 h-6"/>}>

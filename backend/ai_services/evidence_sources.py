@@ -6,12 +6,18 @@ from __future__ import annotations
 from urllib.parse import quote
 from typing import Any
 
+from .citation_enrichment import build_protocol_research_rows, pubmed_search_url
+
 
 def _pubmed(term: str) -> str:
-    return f"https://pubmed.ncbi.nlm.nih.gov/?term={quote(term)}"
+    return pubmed_search_url(term)
 
 
-def build_fast_research_sources(diagnosis: str, language: str = "uz-L") -> list[dict[str, str]]:
+def build_fast_research_sources(
+    diagnosis: str,
+    language: str = "uz-L",
+    complaints: str = "",
+) -> list[dict[str, str]]:
     """Konsilium uchun xalqaro reytingli jurnal va guideline bazalari."""
     dx = (diagnosis or "").strip() or "clinical diagnosis"
     term = dx[:120]
@@ -22,6 +28,9 @@ def build_fast_research_sources(diagnosis: str, language: str = "uz-L") -> list[
     esc = f"{term} ESC guideline"
     who = f"{term} WHO guideline"
     ssv = f"{term} Uzbekistan clinical protocol"
+
+    # Tashxisga mos aniq SSV protokol havolalari (birinchi qator)
+    protocol_rows = build_protocol_research_rows(dx, complaints, language)
 
     kaa_rows = [
         ("PubMed — sistemalıq sholıwlar", _pubmed(intl), f"«{term}» boyınsha xalıqaralıq maqala"),
@@ -62,4 +71,15 @@ def build_fast_research_sources(diagnosis: str, language: str = "uz-L") -> list[
         ],
     }
     rows = summaries.get(language) or summaries.get("uz-L", [])
-    return [{"title": t, "url": u, "summary": s} for t, u, s in rows]
+    generic = [{"title": t, "url": u, "summary": s} for t, u, s in rows]
+    # Protokolga mos aniq havolalar birinchi, keyin umumiy jurnal qidiruvlari
+    seen_urls: set[str] = set()
+    merged: list[dict[str, str]] = []
+    for item in protocol_rows + generic:
+        url = str(item.get("url") or "").strip()
+        if url and url in seen_urls:
+            continue
+        if url:
+            seen_urls.add(url)
+        merged.append(item)
+    return merged[:8]

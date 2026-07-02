@@ -26,8 +26,8 @@ def consilium_agent_limit() -> int:
 
 
 def phase_timeout_sec() -> int:
-    return {"scale": 38, "economy": 42, "balanced": 50, "quality": 55}.get(
-        ai_cost_mode(), 38
+    return {"scale": 42, "economy": 45, "balanced": 50, "quality": 55}.get(
+        ai_cost_mode(), 42
     )
 
 
@@ -46,8 +46,8 @@ def default_max_tokens() -> int:
 
 
 def phase1_max_tokens() -> int:
-    return {"scale": 1800, "economy": 2200, "balanced": 2800, "quality": 4096}.get(
-        ai_cost_mode(), 1800
+    return {"scale": 2400, "economy": 2600, "balanced": 2800, "quality": 4096}.get(
+        ai_cost_mode(), 2400
     )
 
 
@@ -58,8 +58,8 @@ def phase2_max_tokens() -> int:
 
 
 def phase3_max_tokens() -> int:
-    return {"scale": 3200, "economy": 4000, "balanced": 6144, "quality": 10000}.get(
-        ai_cost_mode(), 3200
+    return {"scale": 3600, "economy": 4200, "balanced": 6144, "quality": 10000}.get(
+        ai_cost_mode(), 3600
     )
 
 

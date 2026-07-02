@@ -98,10 +98,16 @@ def enrich_consensus_with_diagnosis_tools(
     if not diag_name:
         return consensus
 
+    complaints = _s(
+        patient_data.get("complaints")
+        or patient_data.get("chiefComplaint")
+        or patient_data.get("chief_complaint")
+    )
+
     from .evidence_sources import build_fast_research_sources
     from .consilium_cost import ai_cost_mode
 
-    _merge_research(consensus, build_fast_research_sources(diag_name, language))
+    _merge_research(consensus, build_fast_research_sources(diag_name, language, complaints))
 
     try:
         from .clinical_tools import (
@@ -142,6 +148,7 @@ def enrich_consensus_with_diagnosis_tools(
 
     results: dict[str, Any] = {}
     workers = 4 if run_heavy else 2
+    enrich_timeout = 12 if mode in ("scale", "economy") else 22
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futs = {
             pool.submit(_run_ddi): "ddi",
@@ -150,7 +157,7 @@ def enrich_consensus_with_diagnosis_tools(
             futs[pool.submit(_run_guideline)] = "guideline"
         if mode == "quality":
             futs[pool.submit(_run_explain)] = "explain"
-        for fut in as_completed(futs, timeout=22):
+        for fut in as_completed(futs, timeout=enrich_timeout):
             key = futs[fut]
             try:
                 results[key] = fut.result()

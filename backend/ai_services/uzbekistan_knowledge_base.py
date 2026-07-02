@@ -311,6 +311,38 @@ def find_protocols(complaints_text: str) -> list[dict]:
     return [_PROTOCOL_ID_MAP[pid] for pid in found if pid in _PROTOCOL_ID_MAP]
 
 
+def find_protocols_for_diagnosis(
+    diagnosis: str = "",
+    complaints: str = "",
+    limit: int = 3,
+) -> list[dict]:
+    """Tashxis va shikoyat bo'yicha tegishli SSV protokollarni topish."""
+    combined = f"{diagnosis} {complaints}".strip()
+    found_ids: set[str] = set()
+    ordered: list[dict] = []
+
+    def _add(proto: dict) -> None:
+        pid = proto.get("id")
+        if pid and pid not in found_ids:
+            found_ids.add(pid)
+            ordered.append(proto)
+
+    for p in find_protocols(combined):
+        _add(p)
+
+    dx_lower = (diagnosis or "").lower().strip()
+    if dx_lower:
+        for p in PROTOCOL_DB:
+            name = str(p.get("name") or "").lower()
+            if name and (name in dx_lower or dx_lower in name):
+                _add(p)
+            for icd in p.get("icd10") or []:
+                if icd and icd.lower() in dx_lower:
+                    _add(p)
+
+    return ordered[:limit]
+
+
 # -----------------------------------------------------------------------------
 # Prompt Engineering: Kontekst Bloki
 # -----------------------------------------------------------------------------

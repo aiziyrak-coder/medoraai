@@ -736,13 +736,23 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
 function buildFastResearchSources(diagnosis: string, language: string): FinalReport['relatedResearch'] {
   const term = diagnosis || 'clinical diagnosis';
   const enc = encodeURIComponent;
+  const lex = (q: string) => `https://lex.uz/ru/search?type=1&search_text=${enc(q)}`;
   return [
+    {
+      title: `O'zbekiston SSV — ${term} klinik protokoli`,
+      url: lex(`${term} klinik protokol SSV`),
+      summary: 'Milliy klinik protokol (lex.uz qidiruv)',
+    },
+    {
+      title: 'SSV.uz — klinik protokollar portali',
+      url: 'https://ssv.uz/uz/klinik-protokollar',
+      summary: 'Rasmiy milliy protokollar ro\'yxati',
+    },
     { title: 'PubMed — tizimli sharhlar', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} systematic review`)}`, summary: `«${term}» bo'yicha xalqaro maqolalar` },
     { title: 'Cochrane Library', url: `https://www.cochranelibrary.com/search?q=${enc(`${term} Cochrane`)}`, summary: 'Meta-tahlil va RCT dalillari' },
     { title: 'The Lancet', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} Lancet`)}`, summary: 'Yuqori impakt faktorli tadqiqotlar' },
     { title: 'NEJM / JAMA', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} NEJM JAMA`)}`, summary: 'Dalillarga asoslangan terapiya' },
     { title: 'ESC / WHO / NICE guideline', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} ESC WHO NICE guideline`)}`, summary: 'Xalqaro klinik qo\'llanmalar' },
-    { title: 'O\'zbekiston SSV protokollari', url: `https://pubmed.ncbi.nlm.nih.gov/?term=${enc(`${term} Uzbekistan clinical protocol`)}`, summary: 'Milliy protokol mosligi' },
   ];
 }
 
