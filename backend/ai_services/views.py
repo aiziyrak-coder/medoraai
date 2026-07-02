@@ -51,7 +51,7 @@ def _err(code: int, msg: str):
 
 
 def _ai_not_configured():
-    return _err(503, "AI xizmati sozlanmagan. Iltimos, OPENAI_API_KEY ni .env faylga kiriting.")
+    return _err(503, "FJSTI Ziyrak AI xizmati sozlanmagan. Administrator bilan bog'laning.")
 
 
 def _run_filter(patient_data: dict) -> Response | None:

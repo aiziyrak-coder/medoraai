@@ -384,6 +384,9 @@ CLAUDE_MODEL_PRO = config('CLAUDE_MODEL_PRO', default=OPENAI_MODEL_PRO)
 CLAUDE_USE_SONNET_DIAGNOSIS = config('CLAUDE_USE_SONNET_DIAGNOSIS', default=False, cast=bool)
 AI_MODEL_DEFAULT = config('AI_MODEL_DEFAULT', default=OPENAI_MODEL_FAST)
 
+# FJSTI Ziyrak — klinik payload shifrlash (64 hex yoki passphrase)
+FJSTI_ZIYRAK_PAYLOAD_KEY = config('FJSTI_ZIYRAK_PAYLOAD_KEY', default='')
+
 # в”Ђв”Ђ Production Security Settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 if not DEBUG:
     # HTTPS enforcement (set SECURE_SSL_REDIRECT=False in .env when using HTTP only)
@@ -474,12 +477,16 @@ LOGGING = {
         'require_debug_false': {
             '()': 'django.utils.log.RequireDebugFalse',
         },
+        'ziyrak_sanitize': {
+            '()': 'ai_services.ziyrak_log_filter.ZiyrakLogSanitizerFilter',
+        },
     },
     'handlers': {
         'console': {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+            'filters': ['ziyrak_sanitize'],
         },
     },
     'root': {
@@ -512,6 +519,7 @@ if _USE_FILE_LOGS:
         'maxBytes': 1024 * 1024 * 10,
         'backupCount': 5,
         'formatter': 'verbose',
+        'filters': ['ziyrak_sanitize'],
     }
     LOGGING['handlers']['error_file'] = {
         'level': 'ERROR',
@@ -520,6 +528,7 @@ if _USE_FILE_LOGS:
         'maxBytes': 1024 * 1024 * 10,
         'backupCount': 5,
         'formatter': 'verbose',
+        'filters': ['ziyrak_sanitize'],
     }
 
 # Business Logic Settings

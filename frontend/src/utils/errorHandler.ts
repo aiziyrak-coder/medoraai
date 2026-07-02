@@ -35,9 +35,9 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "Internet aloqasi bilan muammo. Iltimos, internetni tekshiring va qayta urinib ko'ring.";
     }
     
-    // DeepSeek / AI API key invalid
+    // AI API key invalid
     if (message.includes('api key not valid') || message.includes('api_key_invalid') || message.includes('invalid_argument') || message.includes('authentication_error') || message.includes('invalid x-api-key') || message.includes('invalid_api_key') || message.includes('incorrect api key')) {
-      return "AI xizmati kaliti noto'g'ri yoki ishlamayapti. Administrator: DeepSeek platformasidan yangi kalit yarating va serverda DEEPSEEK_API_KEY ni yangilang, keyin frontendni qayta build qiling.";
+      return "FJSTI Ziyrak AI xizmati vaqtincha ishlamayapti. Administrator bilan bog'laning.";
     }
 
     // 503 / model overloaded / UNAVAILABLE
@@ -65,21 +65,18 @@ export const getUserFriendlyError = (error: unknown, defaultMessage: string = "X
       return "So'rovlar soni cheklangan (kvota tugagan). Iltimos, biroz kuting yoki kvotani oshiring.";
     }
 
-    // Missing AI env / admin setup — must stay explicit (VITE_* and server .env)
+    // FJSTI Ziyrak AI setup
     if (
       message.includes('sozlanmagan') ||
-      message.includes('vite_deepseek') ||
-      message.includes('vite_anthropic') ||
-      message.includes('deepseek_api_key') ||
-      message.includes('anthropic_api_key') ||
-      (message.includes('.env') && (message.includes('kiriting') || message.includes('qoying')))
+      message.includes('ziyrak') ||
+      message.includes('fjsti')
     ) {
       return rawMessage.length <= 320 ? rawMessage : `${rawMessage.slice(0, 317)}...`;
     }
 
     // API errors
-    if (message.includes('api') || message.includes('claude') || message.includes('anthropic')) {
-      return "AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";
+    if (message.includes('api') || message.includes('ziyrak')) {
+      return "FJSTI Ziyrak AI xizmati bilan muammo. Iltimos, biroz kuting va qayta urinib ko'ring.";
     }
     
     // Timeout errors

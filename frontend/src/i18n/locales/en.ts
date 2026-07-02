@@ -1,4 +1,6 @@
 
+import { primaryCareEn } from './primaryCare.en';
+
 export const en = {
   // General
   appName: "Farg'ona JSTI",
@@ -80,8 +82,8 @@ export const en = {
   doctor_support_recommended_tests: 'Recommended tests',
   doctor_support_followup: 'Follow-up',
   doctor_support_json_error: 'JSON parse error',
-  doctor_support_api_key_error: 'No AI response. Check DEEPSEEK_API_KEY in backend/.env or VITE_DEEPSEEK_API_KEY for the frontend build.',
-  doctor_support_not_configured: 'DeepSeek AI is not configured. Add VITE_DEEPSEEK_API_KEY to .env or enable the API connection.',
+  doctor_support_api_key_error: 'FJSTI Ziyrak AI did not respond. Check server connection and FJSTI Ziyrak AI service.',
+  doctor_support_not_configured: 'FJSTI Ziyrak AI is not configured. Contact your administrator.',
   doctor_support_title: 'Doctor Assistant',
   doctor_support_subtitle: 'Claude · Uzbekistan national protocols · Rapid analysis',
   doctor_support_streaming: 'Streaming analysis',
@@ -1947,6 +1949,8 @@ report_dosage: 'Dosage',
   prescription_audit_dose: 'Dose',
   prescription_audit_interactions: 'Drug interactions',
   prescription_audit_recommendations: 'Overall recommendations',
+
+  ...primaryCareEn,
 };
 
 export type TranslationSet = typeof en;

@@ -11,8 +11,9 @@ import { LIMITS } from '../constants/timeouts';
 
 export type AiCostMode = 'scale' | 'economy' | 'balanced' | 'quality';
 
-const DEEPSEEK_CHAT_DEFAULT = 'deepseek-chat';
-const DEEPSEEK_REASONER_DEFAULT = 'deepseek-reasoner';
+const FJSTI_ZIYRAK_FAST = 'FJSTI-ziyrak-fast';
+const FJSTI_ZIYRAK_PRO = 'FJSTI-ziyrak-pro';
+const FJSTI_ZIYRAK_REASONER = 'FJSTI-ziyrak-reasoner';
 
 export function getAiCostMode(): AiCostMode {
   const raw = (import.meta.env.VITE_AI_COST_MODE as string | undefined)?.trim().toLowerCase();
@@ -35,16 +36,19 @@ export function getClaudeModels(): {
   diagnosis: string;
 } {
   const haiku =
+    (import.meta.env.VITE_FJSTI_ZIYRAK_MODEL_FAST as string | undefined)?.trim() ||
     (import.meta.env.VITE_DEEPSEEK_MODEL_FAST as string | undefined)?.trim() ||
     (import.meta.env.VITE_CLAUDE_MODEL_HAIKU as string | undefined)?.trim() ||
-    DEEPSEEK_CHAT_DEFAULT;
+    FJSTI_ZIYRAK_FAST;
   const sonnet =
+    (import.meta.env.VITE_FJSTI_ZIYRAK_MODEL_PRO as string | undefined)?.trim() ||
     (import.meta.env.VITE_DEEPSEEK_MODEL_PRO as string | undefined)?.trim() ||
     (import.meta.env.VITE_CLAUDE_MODEL_FAST as string | undefined)?.trim() ||
-    DEEPSEEK_REASONER_DEFAULT;
+    FJSTI_ZIYRAK_PRO;
   const opus =
+    (import.meta.env.VITE_FJSTI_ZIYRAK_MODEL_REASONER as string | undefined)?.trim() ||
     (import.meta.env.VITE_CLAUDE_MODEL_PRO as string | undefined)?.trim() ||
-    DEEPSEEK_REASONER_DEFAULT;
+    FJSTI_ZIYRAK_REASONER;
 
   const mode = getAiCostMode();
   if (mode === 'quality') {
@@ -128,8 +132,8 @@ export function getCheapFallbackModels(primaryModel: string): string[] {
     return [];
   }
   if (mode === 'balanced') {
-    return primaryModel.includes('chat') ? [DEEPSEEK_REASONER_DEFAULT] : [];
+    return primaryModel.includes('fast') ? [FJSTI_ZIYRAK_REASONER] : [];
   }
-  return [DEEPSEEK_REASONER_DEFAULT];
+  return [FJSTI_ZIYRAK_REASONER];
 }
 

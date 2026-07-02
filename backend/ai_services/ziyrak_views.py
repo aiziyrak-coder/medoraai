@@ -28,8 +28,13 @@ from django.http import StreamingHttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.response import Response
+
+from accounts.permissions import IsAuthenticatedWithSubscription
+from .ziyrak_compliance import compliance_audit_log, compliance_status, record_inference_audit
+from .ziyrak_crypto import decrypt_envelope, payload_encryption_enabled
+from .ziyrak_provider import public_model_name, ziyrak_chat_completion, ziyrak_engine_ready
 
 from .ziyrak_engine import (
     create_session, get_session, end_session,
@@ -404,3 +409,63 @@ def surgery_log_get(request, session_id: str):
     from .ziyrak_surgery import get_surgery_log
     log = get_surgery_log(session_id)
     return Response({"success": True, "data": log})
+
+
+# ---------------------------------------------------------------------------
+# FJSTI Ziyrak AI Gateway (barcha inference — faqat FJSTI server orqali)
+# ---------------------------------------------------------------------------
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsAuthenticatedWithSubscription])
+def ziyrak_inference_view(request):
+    """POST /api/ziyrak/inference/ — FJSTI Ziyrak AI yagona inference kanali."""
+    if not ziyrak_engine_ready():
+        return _err(503, "FJSTI Ziyrak AI xizmati sozlanmagan.")
+
+    try:
+        body = decrypt_envelope(request.data if isinstance(request.data, dict) else {})
+    except Exception as exc:
+        return _err(400, f"So'rov qayta ishlanmadi: {exc}")
+
+    model = public_model_name(body.get("model"))
+    messages = body.get("messages") or []
+    max_tokens = int(body.get("max_tokens") or 2048)
+    temperature = float(body.get("temperature") if body.get("temperature") is not None else 0.1)
+    want_json = bool(body.get("want_json"))
+
+    try:
+        result = ziyrak_chat_completion(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            want_json=want_json,
+        )
+    except Exception as exc:
+        logger.warning("FJSTI Ziyrak inference failed")
+        return _err(503, str(exc))
+
+    user_id = getattr(getattr(request, "user", None), "id", None)
+    record_inference_audit(
+        user_id=user_id,
+        model=result.get("model") or model,
+        bytes_in=len(str(messages).encode("utf-8", errors="ignore")),
+    )
+
+    out = {"success": True, "data": result}
+    return Response(out)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def ziyrak_compliance_status_view(request):
+    """GET /api/ziyrak/compliance/status/ — sertifikatlash tekshiruvi uchun."""
+    return Response({"success": True, "data": compliance_status()})
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminUser])
+def ziyrak_compliance_audit_view(request):
+    """GET /api/ziyrak/compliance/audit/ — admin audit jurnali."""
+    limit = int(request.query_params.get("limit") or 50)
+    return Response({"success": True, "data": compliance_audit_log(limit=limit)})

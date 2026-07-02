@@ -1,10 +1,10 @@
 /**
- * AI Services API - Azure AI Foundry
+ * AI Services API — Farg'ona JSTI Ziyrak AI
  *
- * Ikki asosiy rejim:
- *   1. Consilium Mode   ->  /api/ai/consilium/     (5 professor, 3 faza)
- *   2. Doctor Support   ->  /api/ai/doctor-support/ (GPT-4o, tezkor)
- *   3. Doctor Stream    ->  /api/ai/doctor-stream/  (SSE)
+ * Barcha AI so'rovlar faqat FJSTI server orqali:
+ *   /api/ziyrak/consilium/
+ *   /api/ziyrak/doctor-support/
+ *   /api/ziyrak/inference/
  */
 import { apiPost, API_BASE_URL, type ApiResponse } from './api';
 import { API_CONFIG } from '../config/api';
@@ -170,7 +170,7 @@ export const runConsilium = async (
   contextExtra?: ConsiliumContextExtra,
 ): Promise<ApiResponse<ConsiliumResult>> => {
   return apiPost<ConsiliumResult>(
-    '/ai/consilium/',
+    '/ziyrak/consilium/',
     {
       patient_data: patientData,
       language,
@@ -194,7 +194,7 @@ export const runDoctorSupport = async (
   } = {},
 ): Promise<ApiResponse<DoctorSupportResult>> => {
   return apiPost<DoctorSupportResult>(
-    '/ai/doctor-support/',
+    '/ziyrak/doctor-support/',
     {
       patient_data: patientData,
       query:        options.query     || '',
@@ -222,7 +222,7 @@ export const runDoctorSupportStream = (
 
   const accessToken = localStorage.getItem('access_token') || '';
 
-  fetch(`${API_BASE_URL}/ai/doctor-stream/`, {
+  fetch(`${API_BASE_URL}/ziyrak/doctor-stream/`, {
     method: 'POST',
     headers: {
       'Content-Type':  'application/json',
@@ -284,7 +284,7 @@ export const runDoctorSupportStream = (
 export const generateClarifyingQuestions = async (
   patientData: PatientData,
 ): Promise<ApiResponse<string[]>> => {
-  return apiPost<string[]>('/ai/clarifying-questions/', { patient_data: patientData }, API_CONFIG.AI_TIMEOUT_MS);
+  return apiPost<string[]>('/ziyrak/clarifying-questions/', { patient_data: patientData }, API_CONFIG.AI_TIMEOUT_MS);
 };
 
 export const recommendSpecialists = async (
@@ -292,7 +292,7 @@ export const recommendSpecialists = async (
   differentialDiagnoses?: Diagnosis[],
 ): Promise<ApiResponse<{ recommendations: Array<{ model: AIModel; reason: string }> }>> => {
   const response = await apiPost<{ recommendations: Array<{ model: string; reason: string }> }>(
-    '/ai/recommend-specialists/',
+    '/ziyrak/recommend-specialists/',
     {
       patient_data: patientData,
       differential_diagnoses: differentialDiagnoses ?? [],
@@ -318,7 +318,7 @@ export const generateInitialDiagnoses = async (
   patientData: PatientData,
 ): Promise<ApiResponse<Diagnosis[]>> => {
   const response = await apiPost<Diagnosis[]>(
-    '/ai/generate-diagnoses/',
+    '/ziyrak/generate-diagnoses/',
     { patient_data: patientData },
     API_CONFIG.AI_TIMEOUT_MS,
   );
@@ -342,5 +342,5 @@ export const runCouncilDebate = async (
   _specialists: Array<{ role: AIModel; backEndModel: string }>,
   _orchestrator: string,
 ): Promise<ApiResponse<{ status: string; message: string }>> => {
-  return apiPost('/ai/council-debate/', { patient_data: patientData }, API_CONFIG.AI_TIMEOUT_MS);
+  return apiPost('/ziyrak/consilium/', { patient_data: patientData }, API_CONFIG.AI_TIMEOUT_MS);
 };

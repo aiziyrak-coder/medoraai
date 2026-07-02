@@ -67,24 +67,11 @@ import { ENHANCED_FINAL_REPORT_AI_RULES, ENHANCED_FINAL_REPORT_SCHEMA_PROPS } fr
 import { isApiConfigured } from '../config/api';
 import { apiPost } from './api';
 import { API_CONFIG } from '../config/api';
+import { ziyrakInference } from './ziyrakInferenceService';
 
-// --- DeepSeek AI (OpenAI-compatible) ---
-const DEEPSEEK_API_KEY =
-  import.meta.env.VITE_DEEPSEEK_API_KEY ||
-  import.meta.env.VITE_ANTHROPIC_API_KEY ||
-  '';
-const DEEPSEEK_BASE_URL =
-  (import.meta.env.VITE_DEEPSEEK_BASE_URL as string | undefined)?.trim() ||
-  'https://api.deepseek.com';
-const validKey = !!(
-  DEEPSEEK_API_KEY &&
-  DEEPSEEK_API_KEY !== 'your-deepseek-api-key-here' &&
-  DEEPSEEK_API_KEY !== 'your-anthropic-api-key-here'
-);
-
-/** Client-side DeepSeek (Vite build-time key). Backend `DEEPSEEK_API_KEY` alone does not enable browser AI. */
+/** Brauzer faqat FJSTI Ziyrak API orqali AI ishlatadi — tashqi provayder yo'q. */
 export function isBrowserClaudeConfigured(): boolean {
-  return validKey;
+  return isApiConfigured();
 }
 
 /** @deprecated use isBrowserClaudeConfigured */
@@ -128,26 +115,12 @@ async function claudeMessagesCreate(params: {
     for (const msg of params.messages) {
       messages.push({ role: 'user', content: flattenUserContent(msg.content) });
     }
-    const res = await fetch(`${DEEPSEEK_BASE_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: params.model,
-          messages,
-          max_tokens: params.max_tokens,
-          temperature: params.temperature ?? 0.1,
-        }),
+    return ziyrakInference({
+      model: params.model,
+      messages,
+      max_tokens: params.max_tokens,
+      temperature: params.temperature ?? 0.1,
     });
-    if (!res.ok) {
-        const errBody = await res.text().catch(() => '');
-        throw new Error(`DeepSeek API ${res.status}: ${errBody.slice(0, 400)}`);
-    }
-    const data = await res.json();
-    const text = (data?.choices?.[0]?.message?.content || '').trim();
-    return { content: [{ type: 'text', text }] };
 }
 
 const {
@@ -1638,7 +1611,7 @@ export const runCouncilDebate = async (
     } else if (!isBrowserClaudeConfigured()) {
         onProgress({
             type: 'error',
-            message: 'AI xizmati sozlanmagan. Server API yoki brauzer DeepSeek kalitini sozlang.',
+            message: 'AI xizmati sozlanmagan. FJSTI Ziyrak AI server ulanishini tekshiring.',
         });
         return;
     }
@@ -2214,7 +2187,7 @@ FAQAT JSON massiv: ["...","..."].`;
 async function tryBackendTool<T>(toolName: string, body: Record<string, unknown>): Promise<T | null> {
     if (!isApiConfigured()) return null;
     try {
-        const res = await apiPost<T>(`/ai/tools/${toolName}/`, body, API_CONFIG.AI_TIMEOUT_MS);
+        const res = await apiPost<T>(`/ziyrak/tools/${toolName}/`, body, API_CONFIG.AI_TIMEOUT_MS);
         if (res.success && res.data != null) return res.data;
     } catch (e) {
         logger.warn(`Backend tool ${toolName} failed`, e);
@@ -2224,7 +2197,7 @@ async function tryBackendTool<T>(toolName: string, body: Record<string, unknown>
 
 function ensureAiAvailable(): void {
     if (!isApiConfigured() && !isBrowserClaudeConfigured()) {
-        throw new Error('AI xizmati mavjud emas. Server API yoki VITE_DEEPSEEK_API_KEY ni sozlang.');
+        throw new Error('FJSTI Ziyrak AI xizmati mavjud emas. Server API ulanishini tekshiring.');
     }
 }
 
@@ -2238,7 +2211,7 @@ function normalizeDrugSeverity(sev: string): 'High' | 'Moderate' | 'Low' | 'None
 
 export const analyzeEcgImage = async (image: { base64Data: string, mimeType: string }, language: Language): Promise<EcgReport> => {
     if (isApiConfigured()) {
-        const res = await apiPost<EcgReport>('/ai/tools/ecg/', {
+        const res = await apiPost<EcgReport>('/ziyrak/tools/ecg/', {
             base64Data: image.base64Data,
             mimeType: image.mimeType,
             language,
@@ -2389,7 +2362,7 @@ export const analyzeUziUttDocuments = async (
     }
     if (isApiConfigured()) {
         const res = await apiPost<UziUttReport>(
-            '/ai/tools/uzi-utt/',
+            '/ziyrak/tools/uzi-utt/',
             { files, clinicalContext: clinicalContext || '', language },
             API_CONFIG.AI_TIMEOUT_MS,
         );

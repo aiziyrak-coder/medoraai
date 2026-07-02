@@ -63,7 +63,7 @@ def _model_diagnosis():
 
 def _cache_key(prefix: str, text: str) -> str:
     digest = hashlib.sha256((text or "").encode("utf-8", errors="ignore")).hexdigest()[:32]
-    return f"openai:{prefix}:{digest}"
+    return f"ziyrak:{prefix}:{digest}"
 
 
 SPECIALIST_ALIASES = {
@@ -141,7 +141,7 @@ def _call_claude(
     client = _get_client()
     if not client:
         raise RuntimeError(
-            "OpenAI API kaliti sozlanmagan. OPENAI_API_KEY ni backend/.env ga kiriting."
+            "FJSTI Ziyrak AI xizmati sozlanmagan."
         )
 
     user_content = prompt
@@ -163,12 +163,12 @@ def _call_claude(
     try:
         response = client.chat.completions.create(**kwargs)
     except Exception as e:
-        logger.exception("OpenAI API xatosi: %s", e)
-        raise
+        logger.exception("FJSTI Ziyrak AI xizosi")
+        raise RuntimeError("FJSTI Ziyrak AI vaqtincha ishlamadi.") from None
 
     text = (response.choices[0].message.content or "").strip()
     if not text:
-        raise ValueError("OpenAI bo'sh javob qaytardi")
+        raise ValueError("FJSTI Ziyrak AI bo'sh javob qaytardi")
     return text
 
 

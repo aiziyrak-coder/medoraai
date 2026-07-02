@@ -83,16 +83,12 @@ def health_detailed(request):
         checks['checks']['cache'] = 'error'
         checks['status'] = 'unhealthy'
     
-    # AI configured (only whether key is set, no value)
+    # AI configured — FJSTI Ziyrak engine (tashqi provayder nomi ko'rsatilmaydi)
     try:
-        key = (
-            getattr(settings, 'DEEPSEEK_API_KEY', None)
-            or getattr(settings, 'ANTHROPIC_API_KEY', None)
-            or ''
-        ).strip()
-        checks['checks']['ai_configured'] = bool(key)
+        from ai_services.ziyrak_provider import ziyrak_engine_ready
+        checks['checks']['ziyrak_engine'] = 'operational' if ziyrak_engine_ready() else 'offline'
     except Exception:
-        checks['checks']['ai_configured'] = False
+        checks['checks']['ziyrak_engine'] = 'offline'
 
     # Settings check (avoid leaking config in production)
     if getattr(settings, 'DEBUG', False):
