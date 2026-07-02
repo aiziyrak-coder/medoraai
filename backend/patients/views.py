@@ -106,6 +106,23 @@ class PatientViewSet(viewsets.ModelViewSet):
     def _global_patient_queryset(self):
         return Patient.objects.select_related('created_by', 'home_clinic_group')
 
+    def get_object(self):
+        """Pasport/konsilium: barcha klinikalardan topilgan bemorni yangilash mumkin."""
+        if self.action in ('list', 'create'):
+            return super().get_object()
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        pk = self.kwargs.get(lookup_url_kwarg)
+        try:
+            obj = self._global_patient_queryset().get(pk=pk)
+        except (Patient.DoesNotExist, TypeError, ValueError):
+            raise NotFound('Bemor topilmadi')
+        if self.action == 'destroy':
+            user = self.request.user
+            if not (user.is_superuser or user.is_staff):
+                if obj.created_by_id and obj.created_by_id != user.id:
+                    raise PermissionDenied("Bemorni faqat uni yaratgan shifokor o'chirishi mumkin.")
+        return obj
+
     def retrieve(self, request, *args, **kwargs):
         """Pasport global — klinik maydonlar faqat ruxsat bo'yicha."""
         try:

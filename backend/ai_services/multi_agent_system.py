@@ -293,9 +293,9 @@ def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
 
     if ai_cost_mode() in ("scale", "economy"):
         content = (
-            "▸ KONSILIUM OCHILDI\n"
-            f"{patient_str[:1200]}\n\n"
-            f"▸ CHORLANGAN MUTAXASSISLAR\n{roster}\n\n"
+            "▸ Konsilium ochildi\n"
+            f"▸ Bemor ma'lumotlari\n{patient_str}\n\n"
+            f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
             "Har bir mutaxassis o'z ixtisosligi bo'yicha mustaqil tashxis va dalil bildirsin."
         )
         return {
@@ -324,9 +324,9 @@ def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
     except Exception as exc:
         logger.error("Orchestrator opening failed: %s", exc)
         content = (
-            "▸ KONSILIUM OCHILDI\n"
-            f"{patient_str}\n\n"
-            f"▸ CHORLANGAN MUTAXASSISLAR\n{roster}\n\n"
+            "▸ Konsilium ochildi\n"
+            f"▸ Bemor ma'lumotlari\n{patient_str}\n\n"
+            f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
             "Har bir mutaxassis o'z ixtisosligi bo'yicha mustaqil tashxis va dalil bildirsin."
         )
     return {

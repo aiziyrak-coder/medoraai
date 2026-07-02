@@ -573,6 +573,10 @@ const FinalReportCard: React.FC<{
                 </div>
             </div>
 
+            {displayReport.relatedResearch && displayReport.relatedResearch.length > 0 && (
+                <RelatedResearchCard research={displayReport.relatedResearch} />
+            )}
+
             {/* Qolgan bo'limlar — tartibli, takrorlarsiz */}
             <div className="space-y-8">
 
@@ -759,8 +763,6 @@ const FinalReportCard: React.FC<{
                 <CareQualityAuditCard audit={displayReport.careQualityAudit} />
 
                 <ClinicalTrialsCard trials={displayReport.matchedClinicalTrials} />
-
-                <RelatedResearchCard research={displayReport.relatedResearch} />
 
                 {(displayReport.rejectedHypotheses?.length ?? 0) > 0 && (
                  <Section title={t('final_report_rejected_hypotheses_title')} icon={<DocumentTextIcon className="text-slate-500 w-6 h-6" />}>

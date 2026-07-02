@@ -33,7 +33,7 @@ const EvidenceBadge: React.FC<{level: ChatMessageProps['evidenceLevel']}> = ({ l
 
 const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRationale, compact }) => {
     const { t } = useTranslation();
-    const { author, content, isThinking, isUserIntervention, evidenceLevel, isSystemMessage } = message;
+    const { author, content, isThinking, isUserIntervention, evidenceLevel, isSystemMessage, phase, id } = message;
     const config = AI_SPECIALISTS[author];
 
     if (isThinking && !content) return null;
@@ -45,16 +45,29 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
     const animationDelay = `${Math.random() * 0.3}s`;
     
     if (isSystemMessage || isUserIntervention) {
+        const isOrchestratorOpening = author === AIModel.SYSTEM && !isUserIntervention && !compact
+            && (phase === 'opening' || String(id || '').startsWith('chair-opening'));
         return (
-            <div className={`animate-fade-in-up text-center ${compact ? 'my-2' : 'my-6'}`} style={{ animationDelay }}>
-                 <div className={`inline-block max-w-2xl ${compact ? 'px-2 py-1 rounded-lg' : 'px-4 py-2 rounded-xl'}`}>
-                    <p className={`text-text-secondary font-semibold ${compact ? 'text-[10px]' : 'text-xs'}`}>{isUserIntervention ? t('chat_user_intervention') : specialistName}</p>
+            <div className={`animate-fade-in-up ${compact ? 'my-2' : isOrchestratorOpening ? 'my-4' : 'my-6'}`} style={{ animationDelay }}>
+                 <div className={`inline-block max-w-3xl w-full ${compact ? 'px-2 py-1 rounded-lg' : isOrchestratorOpening ? 'px-5 py-4 rounded-2xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 shadow-sm text-left' : 'px-4 py-2 rounded-xl'}`}>
+                    <p className={`font-semibold ${compact ? 'text-[10px]' : 'text-xs'} ${isOrchestratorOpening ? 'text-sky-900' : 'text-text-secondary'}`}>{isUserIntervention ? t('chat_user_intervention') : specialistName}</p>
                     {content && (
                         <ClinicalDebateContent
                             text={content}
-                            className={`text-text-secondary italic text-center ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}
+                            className={`${isOrchestratorOpening ? 'text-slate-800 text-left not-italic text-sm mt-2' : `text-text-secondary italic text-center ${compact ? 'text-xs mt-0.5' : 'text-sm mt-1'}`}`}
                         />
                     )}
+                </div>
+            </div>
+        );
+    }
+
+    if (!config && author === AIModel.SYSTEM) {
+        return (
+            <div className={`animate-fade-in-up ${compact ? 'my-2' : 'my-4'}`} style={{ animationDelay }}>
+                <div className="max-w-3xl mx-auto px-5 py-4 rounded-2xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 shadow-sm">
+                    <p className="text-xs font-bold text-sky-900 uppercase tracking-wide">{t('chat_consilium_professor')}</p>
+                    {content && <ClinicalDebateContent text={content} className="text-sm text-slate-800 mt-2" />}
                 </div>
             </div>
         );
@@ -78,7 +91,7 @@ const ChatMessage: React.FC<ChatMessageComponentProps> = ({ message, onExplainRa
                         </button>
                     )}
                 </div>
-                <div className={`rounded-xl rounded-tl-lg min-w-0 ${compact ? 'p-2' : 'p-3.5'}`}>
+                <div className={`rounded-xl rounded-tl-lg min-w-0 border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/90 shadow-sm ${compact ? 'p-2' : 'p-3.5'}`}>
                     {isThinking ? (
                         <div className="flex items-center gap-2 text-text-secondary text-xs">
                             <SpinnerIcon className="w-3 h-3 text-accent-color-blue flex-shrink-0" />

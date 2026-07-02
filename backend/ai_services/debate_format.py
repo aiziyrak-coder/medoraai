@@ -173,23 +173,23 @@ def format_p1_debate_content(p1r: dict) -> str:
 
     reasoning = format_reasoning_steps(p1r.get("reasoning_chain"))
     if reasoning:
-        sections.append(f"▸ KLINIK FIKR\n{reasoning}")
+        sections.append(f"▸ Klinik fikr\n{reasoning}")
 
     evidence = format_bullet_items(p1r.get("supporting_evidence"))
     if evidence:
-        sections.append(f"▸ MUHIM FAKTLAR\n{evidence}")
+        sections.append(f"▸ Muhim faktlar\n{evidence}")
 
     notes = _clean_step_text(p1r.get("initial_treatment_notes", ""))
     if notes:
-        sections.append(f"▸ TAVSIYA\n{notes}")
+        sections.append(f"▸ Tavsiya\n{notes}")
 
     tests = format_bullet_items(p1r.get("recommended_tests"))
     if tests:
-        sections.append(f"▸ TEKSHIRUV\n{tests}")
+        sections.append(f"▸ Tekshiruv\n{tests}")
 
     reds = format_bullet_items(p1r.get("red_flags"))
     if reds:
-        sections.append(f"▸ SHOSHILINCH BELGI\n{reds}")
+        sections.append(f"▸ Shoshilinch belgi\n{reds}")
 
     diff_lines: list[str] = []
     for d in p1r.get("differential") or []:
@@ -201,12 +201,12 @@ def format_p1_debate_content(p1r: dict) -> str:
         rs = _clean_step_text(d.get("reason", ""))
         diff_lines.append(f"  • {nm}" + (f" — {rs}" if rs else ""))
     if diff_lines:
-        sections.append("▸ BOSHQA EHTIMOLLAR\n" + "\n".join(diff_lines))
+        sections.append("▸ Boshqa ehtimollar\n" + "\n".join(diff_lines))
 
     if not sections:
         diag = _clean_step_text(p1r.get("primary_diagnosis", ""))
         if diag:
-            sections.append(f"▸ KLINIK FIKR\n{diag}")
+            sections.append(f"▸ Klinik fikr\n{diag}")
 
     return _filter_recap_lines("\n\n".join(sections))
 
@@ -232,20 +232,20 @@ def format_p2_debate_content(
         if body:
             ref_lines.append(f"  • {tag}{prefix}: {body}")
     if ref_lines:
-        sections.append("▸ TANQID VA JAVOB\n" + "\n".join(ref_lines))
+        sections.append("▸ Tanqid va javob\n" + "\n".join(ref_lines))
 
     defense = p2r.get("defense") or {}
     if isinstance(defense, dict):
         arg = _clean_step_text(defense.get("argument", ""))
         new_ev = _clean_step_text(defense.get("new_evidence", ""))
         if arg:
-            sections.append(f"▸ HIMOYA\n{arg}")
+            sections.append(f"▸ Himoya\n{arg}")
         if new_ev:
-            sections.append(f"▸ QO'SHIMCHA DALIL\n{new_ev}")
+            sections.append(f"▸ Qo'shimcha dalil\n{new_ev}")
 
     revised = _clean_step_text(p2r.get("revised_diagnosis", ""))
     if revised:
-        sections.append(f"▸ YANGILANGAN FIKR\n{revised}")
+        sections.append(f"▸ Yangilangan fikr\n{revised}")
 
     accepted_lines: list[str] = []
     for a in p2r.get("accepted_from_others") or []:
@@ -256,15 +256,15 @@ def format_p2_debate_content(
         if pt:
             accepted_lines.append(f"  • {spec}: {pt}")
     if accepted_lines:
-        sections.append("▸ QABUL QILINGAN FIKRLAR\n" + "\n".join(accepted_lines))
+        sections.append("▸ Qabul qilingan fikrlar\n" + "\n".join(accepted_lines))
 
     key_arg = _clean_step_text(p2r.get("key_argument", ""))
     if key_arg:
-        sections.append(f"▸ ASOSIY KLINIK DALIL\n{key_arg}")
+        sections.append(f"▸ Asosiy klinik dalil\n{key_arg}")
 
     endorse = format_bullet_items(p2r.get("endorsements"))
     if endorse:
-        sections.append(f"▸ QO'LLAB-QUVVATLASH\n{endorse}")
+        sections.append(f"▸ Qo'llab-quvvatlash\n{endorse}")
 
     return _filter_recap_lines("\n\n".join(sections))
 

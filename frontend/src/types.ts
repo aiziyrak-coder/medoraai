@@ -224,6 +224,7 @@ export interface ChatMessage {
   rationale?: string;
   isUserIntervention?: boolean;
   isSystemMessage?: boolean;
+  phase?: string;
   evidenceLevel?: 'High' | 'Moderate' | 'Low' | 'Anecdotal'; // New field for evidence grading
 }
 

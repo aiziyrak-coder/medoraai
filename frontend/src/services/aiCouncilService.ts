@@ -1498,14 +1498,14 @@ async function runBackendConsilium(
             continue;
         }
         const agentId = msgId.split('-')[0];
-        const isChair = !!(m.isChair ?? m.is_chair)
-            || phase === 'opening'
-            || msgId.startsWith('chair-');
+        const isOpening = phase === 'opening' || msgId.startsWith('chair-opening');
+        const isChair = !!(m.isChair ?? m.is_chair) || isOpening || msgId.startsWith('chair-');
         const msg: ChatMessage = {
             id: msgId || `backend-${i}-${Date.now()}`,
-            author: isChair ? AIModel.SYSTEM : (mapConsiliumAgentIdToAIModel(agentId) || mapApiSpecialistToAIModel(authorName)),
+            author: isOpening ? AIModel.SYSTEM : (mapConsiliumAgentIdToAIModel(agentId) || mapApiSpecialistToAIModel(authorName)),
             content: sanitizeClinicalContent(String(m.content ?? '')),
-            isSystemMessage: isChair || /professor|orchestrator|konsilium/i.test(authorName),
+            isSystemMessage: false,
+            phase,
         };
         chatMessages.push(msg);
         onProgress({ type: 'message', message: msg });

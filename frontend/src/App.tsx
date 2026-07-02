@@ -1018,10 +1018,17 @@ const AppContent: React.FC = () => {
         if (pid && /^\d+$/.test(pid)) {
             handleLinkedPatientChange(pid);
             setCreatedPatientId(Number(pid));
-            import('./services/apiPatientService').then(({ getPatient, convertPatientToPatientData }) => {
-                getPatient(Number(pid)).then((res) => {
+            import('./services/apiPatientService').then(({ getPatient, getPatientPassport, convertPatientToPatientData }) => {
+                getPatient(Number(pid)).then(async (res) => {
                     if (res.success && res.data) {
                         const baseline = convertPatientToPatientData(res.data);
+                        setPatientBaseline(baseline);
+                        setReturnVisitMode(hasBaselineAnamnesis(baseline));
+                        return;
+                    }
+                    const pass = await getPatientPassport(Number(pid));
+                    if (pass.success && pass.data) {
+                        const baseline = convertPatientToPatientData(pass.data as import('./services/apiPatientService').Patient);
                         setPatientBaseline(baseline);
                         setReturnVisitMode(hasBaselineAnamnesis(baseline));
                     }

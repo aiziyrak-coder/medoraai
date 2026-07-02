@@ -271,19 +271,23 @@ export const ensurePatientRecord = async (data: PatientData): Promise<ApiRespons
 
   const syncPassport = async (patientId: number) => {
     if (!isValidPassportSerial(rn)) return;
-    await registerPatientPassport({
-      id: patientId,
-      registry_number: rn,
-      first_name: data.firstName,
-      last_name: data.lastName,
-      father_name: data.fatherName,
-      age: data.age,
-      gender: data.gender as 'male' | 'female' | 'other' | '',
-      phone: data.phone,
-      address: data.address,
-      region_id: data.regionId,
-      district_id: data.districtId,
-    });
+    try {
+      await registerPatientPassport({
+        id: patientId,
+        registry_number: rn,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        father_name: data.fatherName,
+        age: data.age,
+        gender: data.gender as 'male' | 'female' | 'other' | '',
+        phone: data.phone,
+        address: data.address,
+        region_id: data.regionId,
+        district_id: data.districtId,
+      });
+    } catch {
+      /* passport sync optional */
+    }
   };
 
   if (rn) {
@@ -319,8 +323,14 @@ export const ensurePatientRecord = async (data: PatientData): Promise<ApiRespons
   return created;
 };
 
-export const updatePatient = async (id: number, data: Partial<PatientData>): Promise<ApiResponse<Patient>> =>
-  apiPatch<Patient>(`/patients/${id}/`, patientDataToApi(data as PatientData));
+export const updatePatient = async (id: number, data: Partial<PatientData>): Promise<ApiResponse<Patient>> => {
+  const res = await apiPatch<Patient>(`/patients/${id}/`, patientDataToApi(data as PatientData));
+  if (res.success) return res;
+  if (res.error?.code === 404) {
+    return ensurePatientRecord(data as PatientData);
+  }
+  return res;
+};
 
 export const deletePatient = async (id: number): Promise<ApiResponse<void>> =>
   apiDelete<void>(`/patients/${id}/`);
