@@ -17,3 +17,8 @@ export function formatPassportSerialInput(value: string): string {
   const digits = raw.replace(/[^0-9]/g, '').slice(0, 7);
   return letters + digits;
 }
+
+/** Eski avtomatik raqamli ID (00000005) — pasport seriyasiga yangilash mumkin. */
+export function isLegacyNumericRegistry(value: string | null | undefined): boolean {
+  return LEGACY_NUMERIC_RE.test(normalizePassportSerial(value));
+}

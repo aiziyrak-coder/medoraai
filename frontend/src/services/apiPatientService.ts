@@ -266,8 +266,25 @@ export const createPatient = async (data: PatientData): Promise<ApiResponse<Pati
 
 /** Mavjud bemorni topib yangilash yoki yangi yaratish (dublikat xatosiz). */
 export const ensurePatientRecord = async (data: PatientData): Promise<ApiResponse<Patient>> => {
-  const { normalizePassportSerial } = await import('../utils/passportSerial');
+  const { normalizePassportSerial, isValidPassportSerial } = await import('../utils/passportSerial');
   const rn = normalizePassportSerial(data.registryNumber || '');
+
+  const syncPassport = async (patientId: number) => {
+    if (!isValidPassportSerial(rn)) return;
+    await registerPatientPassport({
+      id: patientId,
+      registry_number: rn,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      father_name: data.fatherName,
+      age: data.age,
+      gender: data.gender as 'male' | 'female' | 'other' | '',
+      phone: data.phone,
+      address: data.address,
+      region_id: data.regionId,
+      district_id: data.districtId,
+    });
+  };
 
   if (rn) {
     const hits = await registrySearchPatients(rn);
@@ -277,6 +294,7 @@ export const ensurePatientRecord = async (data: PatientData): Promise<ApiRespons
       );
       const hit = exact ?? hits.data[0];
       if (hit?.id && (hit.is_patient || hit.source === 'patient')) {
+        await syncPassport(hit.id);
         return updatePatient(hit.id, data);
       }
     }
@@ -293,6 +311,7 @@ export const ensurePatientRecord = async (data: PatientData): Promise<ApiRespons
       );
       const hit = exact ?? hits.data[0];
       if (hit?.id) {
+        await syncPassport(hit.id);
         return updatePatient(hit.id, data);
       }
     }

@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from rest_framework import serializers
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIELDS
-from .passport_serial import normalize_passport_serial, validate_passport_serial_format
+from .passport_serial import normalize_passport_serial, validate_passport_serial_format, LEGACY_NUMERIC_RE, PASSPORT_SERIAL_RE
 from .dedup import find_existing_patient, apply_passport_fields
 from .phone import normalize_patient_phone
 from .population_service import upsert_population_from_patient, find_population_by_registry
@@ -87,7 +87,17 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
 
     def validate_registry_number(self, value):
         if self.instance:
-            return self.instance.registry_number
+            new_rn = validate_passport_serial_format(value)
+            old = normalize_passport_serial(self.instance.registry_number)
+            if new_rn == old:
+                return old
+            if LEGACY_NUMERIC_RE.match(old) and PASSPORT_SERIAL_RE.match(new_rn):
+                return new_rn
+            if normalize_passport_serial(self.instance.registry_number) == new_rn:
+                return new_rn
+            raise serializers.ValidationError(
+                'Pasport seriya raqamini o\'zgartirish mumkin emas yoki band.'
+            )
         return validate_passport_serial_format(value)
 
     def validate(self, attrs):
@@ -151,11 +161,18 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
         return patient
 
     def update(self, instance, validated_data):
+        user = self.context['request'].user
+        new_rn = validated_data.pop('registry_number', None)
+        if new_rn and new_rn != instance.registry_number:
+            instance.registry_number = new_rn
+            instance.save(update_fields=['registry_number', 'updated_at'])
         validated_data.pop('registry_number', None)
         clinical_keys = set(CLINICAL_FIELDS) - {'attachments'}
         for key in clinical_keys:
             validated_data.pop(key, None)
-        return super().update(instance, validated_data)
+        patient = super().update(instance, validated_data)
+        _sync_population_from_patient(patient, user)
+        return patient
 
 
 class PatientSerializer(serializers.ModelSerializer):

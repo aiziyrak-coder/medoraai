@@ -27,7 +27,7 @@ import { mergeImagingStudiesIntoPatientData } from '../utils/imagingContext';
 import type { ImagingStudyRecord } from '../types';
 import { getAuthToken } from '../services/api';
 import { formatPatientRegistryId } from '../utils/patientRegistryId';
-import { formatPassportSerialInput, isValidPassportSerial, normalizePassportSerial } from '../utils/passportSerial';
+import { formatPassportSerialInput, isValidPassportSerial, normalizePassportSerial, isLegacyNumericRegistry } from '../utils/passportSerial';
 import SearchIcon from './icons/SearchIcon';
 import UserCircleIcon from './icons/UserCircleIcon';
 import StethoscopeIcon from './icons/StethoscopeIcon';
@@ -937,7 +937,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const selectFromApiPatient = useCallback(
         (p: Patient) => {
             const baseline = convertPatientToPatientData(p);
-            selectPassportOnly(baseline, p.id, true, formatPatientRegistryId(p));
+            selectPassportOnly(baseline, p.id, true, p.registry_number || formatPatientRegistryId(p));
         },
         [selectPassportOnly],
     );
@@ -1200,7 +1200,8 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         
         if (!formData.gender?.trim()) errors.gender = t('validation_required', { field: t('data_input_gender') });
         if (!formData.complaints?.trim()) errors.complaints = t('validation_required', { field: t('data_input_complaints_label') });
-        if (!linkedPatientKey && !isValidPassportSerial(formData.registryNumber)) {
+        const regCheck = normalizePassportSerial(formData.registryNumber || linkedRegistryNumber || '');
+        if (!isValidPassportSerial(regCheck)) {
             errors.registryNumber = t('passport_serial_invalid');
         }
 
@@ -1280,10 +1281,15 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
             }
         }
 
+        const resolvedRegistry = (() => {
+            const typed = normalizePassportSerial(formData.registryNumber || '');
+            if (isValidPassportSerial(typed)) return typed;
+            if (linkedPatientKey) return linkedRegistryNumber || typed;
+            return typed;
+        })();
+
         const fullPatientData: PatientData = {
-            registryNumber: linkedPatientKey
-                ? (linkedRegistryNumber || formData.registryNumber)
-                : normalizePassportSerial(formData.registryNumber),
+            registryNumber: resolvedRegistry,
             firstName: formData.firstName || '',
             lastName: formData.lastName || '',
             fatherName: formData.fatherName || '',
@@ -1510,11 +1516,20 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                                     id="registryNumber"
                                     label={t('passport_serial_label')}
                                     type="text"
-                                    value={linkedPatientKey ? (linkedRegistryNumber || formData.registryNumber || '') : (formData.registryNumber || '')}
-                                    onChange={e => handleChange('registryNumber', formatPassportSerialInput(e.target.value))}
+                                    value={formData.registryNumber || linkedRegistryNumber || ''}
+                                    onChange={e => {
+                                        const v = formatPassportSerialInput(e.target.value);
+                                        handleChange('registryNumber', v);
+                                        if (isValidPassportSerial(v)) {
+                                            setLinkedRegistryNumber(v);
+                                        }
+                                    }}
                                     placeholder={t('passport_serial_placeholder')}
                                     maxLength={9}
-                                    disabled={Boolean(linkedPatientKey)}
+                                    disabled={
+                                        Boolean(linkedPatientKey)
+                                        && !isLegacyNumericRegistry(linkedRegistryNumber || formData.registryNumber)
+                                    }
                                     required={!linkedPatientKey}
                                     className="font-mono uppercase tracking-wide"
                                 />

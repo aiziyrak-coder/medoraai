@@ -155,6 +155,9 @@ def search_population(q: str, *, user=None, limit: int = 20) -> list[PopulationR
     )
     if len(tokens) >= 2:
         clause |= Q(first_name__icontains=tokens[0], last_name__icontains=tokens[-1])
+    elif len(tokens) == 1:
+        token = tokens[0]
+        clause |= Q(first_name__istartswith=token) | Q(last_name__istartswith=token)
     return list(qs.filter(clause).order_by('-updated_at')[:limit])
 
 
