@@ -46,20 +46,20 @@ def default_max_tokens() -> int:
 
 
 def phase1_max_tokens() -> int:
-    return {"scale": 2400, "economy": 2600, "balanced": 2800, "quality": 4096}.get(
-        ai_cost_mode(), 2400
+    return {"scale": 3200, "economy": 3000, "balanced": 3600, "quality": 4096}.get(
+        ai_cost_mode(), 3200
     )
 
 
 def phase2_max_tokens() -> int:
-    return {"scale": 2000, "economy": 2400, "balanced": 3200, "quality": 4500}.get(
-        ai_cost_mode(), 2000
+    return {"scale": 2600, "economy": 2800, "balanced": 3600, "quality": 4500}.get(
+        ai_cost_mode(), 2600
     )
 
 
 def phase3_max_tokens() -> int:
-    return {"scale": 3600, "economy": 4200, "balanced": 6144, "quality": 10000}.get(
-        ai_cost_mode(), 3600
+    return {"scale": 5500, "economy": 4800, "balanced": 7000, "quality": 10000}.get(
+        ai_cost_mode(), 5500
     )
 
 
@@ -81,10 +81,10 @@ def compact_phase1(rows: list[dict]) -> list[dict[str, Any]]:
             continue
         rc = r.get("reasoning_chain") or r.get("reasoningChain") or []
         if isinstance(rc, list):
-            rc = [_str_clip(x, 320) for x in rc[:6]]
+            rc = [_str_clip(x, 420) for x in rc[:8]]
         evidence = r.get("supporting_evidence") or []
         if isinstance(evidence, list):
-            evidence = [_str_clip(x, 220) for x in evidence[:6]]
+            evidence = [_str_clip(x, 300) for x in evidence[:8]]
         diff = []
         for d in (r.get("differential") or [])[:4]:
             if not isinstance(d, dict):
@@ -98,6 +98,7 @@ def compact_phase1(rows: list[dict]) -> list[dict[str, Any]]:
         out.append({
             "agent_id": r.get("agent_id"),
             "primary_diagnosis": _str_clip(r.get("primary_diagnosis"), 280),
+            "clinical_opinion": _str_clip(r.get("clinical_opinion"), 900),
             "probability": r.get("probability"),
             "reasoning_chain": rc,
             "supporting_evidence": evidence,
@@ -124,7 +125,7 @@ def compact_phase2(rows: list[dict]) -> list[dict[str, Any]]:
                 "target": ref.get("target_agent_id"),
                 "target_dx": _str_clip(ref.get("target_diagnosis"), 180),
                 "strength": ref.get("strength"),
-                "refutation": _str_clip(ref.get("refutation"), 400),
+                "refutation": _str_clip(ref.get("refutation"), 520),
             })
         defense = r.get("defense") or {}
         def_arg = ""
@@ -148,7 +149,8 @@ def compact_phase2(rows: list[dict]) -> list[dict[str, Any]]:
             "defense": def_arg,
             "new_evidence": def_ev,
             "accepted": accepted,
-            "key_argument": _str_clip(r.get("key_argument"), 400),
+            "key_argument": _str_clip(r.get("key_argument"), 520),
+            "debate_commentary": _str_clip(r.get("debate_commentary"), 600),
         })
     return out
 

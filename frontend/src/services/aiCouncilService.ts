@@ -1411,9 +1411,9 @@ async function runConsiliumDebateBatch(
 
     const prompt = `Siz tibbiy konsilium koordinatorisiz. Faqat JSON qaytaring.
 
-professorOpening: Konsilium raisi — kengashni oching. Bemor haqida TO'LIQ klinik ma'lumot (yosh, jins, shikoyat, anamnez, vital, lab, tasvir). Har bir mutaxassisni ism/ixtisoslik bilan konsiliumga chorlang. Oxirida mustaqil fikr so'rang. Bu yagona to'liq taqdimot — keyin takrorlanmasin.
+professorOpening: Konsilium raisi — qisqa oching (12-18 jumla). Bemor: yosh, jins, asosiy shikoyat, muhim vital/lab — QISQA xulosa. To'liq anamnez takrorlanmasin. Har mutaxassisni ixtisoslik bilan chorlang (har biri 1 qator). Oxirida chuqur mustaqil fikr so'rang.
 
-specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). professorOpening matnini SO'ZMA-SO'Z TAKRORLAMANG — faqat O'Z ixtisosligidan: aniq fakt, o'z tashxisi, differensial, tekshiruv. Har content 4–6 jumla, har bandda yangi klinik dalil. Manba: (Manba nomi, https://...). "Quyida", "pastda", "batafsil bo'limda" deb yozmang.
+specialists: Har bir mutaxassis uchun bitta element (jami ${rolesSpec.length} ta). professorOpening matnini TAKRORLAMANG — faqat O'Z ixtisosligidan professor uslubida: clinical baho (7-10 jumla), aniq tashxis, differensial, tekshiruv, tavsiya. Har content kamida 8-12 jumla, har bandda yangi klinik dalil. "Quyida", "pastda" deb yozmang.
 
 role maydoni quyidagi ro'l bilan AYNAN mos kelishi shart.
 
@@ -1654,17 +1654,15 @@ export const runCouncilDebate = async (
     }
 
     if (!currentTopic) {
-        const professorOpeningPrompt = `Siz Konsilium raisi. Kengashni oching va bemor holatini TO'LIQ taqdim eting.
+        const professorOpeningPrompt = `Siz Konsilium raisi. Kengashni QISQA oching (12-18 jumla).
 
 QAT'IY:
-- Bemor: yosh, jins, shikoyatlar, anamnez, vitallar, laboratoriya, yuklangan hujjatlar — mavjud barcha faktlar.
-- Har bir mutaxassisni ixtisosligi bilan konsiliumga chorlang va nima baholashini so'rang.
+- Bemor: yosh, jins, asosiy shikoyat, muhim vital/lab/tasvir — QISQA xulosa. To'liq anamnez takrorlanmasin.
+- Har bir mutaxassisni ixtisosligi bilan chorlang — har biri uchun 1 qator vazifa.
 - Rasmiy mulozamat ("Hurmatli hamkasblar") yozmang.
-- Bu yagona to'liq taqdimot — mutaxassislar keyin shikoyatni takrorlamasin.
-- Oxirida: har mutaxassis o'z ixtisosligidan mustaqil tashxis bildirsin.
-- Muhim da'volar uchun 1-2 ta manba nomi va URL yozing (masalan WHO/NICE/ESC/ADA/SSV protokoli yoki PubMed/DOI maqola). Aniq URL bilmasangiz PubMed qidiruv URLini bering: https://pubmed.ncbi.nlm.nih.gov/?term=...
+- Oxirida: har mutaxassis o'z ixtisosligidan chuqur professor fikri bildirsin.
 - TIL: ${langMap[language]}.
-- Javobni TO'LIQ yakunlang: oxirgi jumla nuqta bilan tugasin; jumla yarmida, so'z yarmida TO'XTAMANG. Agar joy yetmasa, qisqaroq yozing, lekin har bir jumla to'liq bo'lsin.
+- Javobni TO'LIQ yakunlang; jumla yarmida TO'XTAMANG.
 
 ${patientSummaryForRais}`;
         currentTopic = (
@@ -1802,18 +1800,18 @@ Professorning hozirgi mavzusi: "${currentTopic}"
 
 QOIDALAR:
 1. Aloqasi BOR bo'lsa: Boshqa mutaxassislar gaplariga javob (qo'shilish, rad, savol), o'z sohangizdagi aniq taklif. Hammasi faqat yuqoridagi suhbatdan kelib chiqsin. Rasmiy salomlashuvsiz, mazmunan.
-2. Aloqasi YO'Q bo'lsa: Bitta juda qisqa jumla o'zingiz yozing, keyin to'xtang.
+2. Aloqasi YO'Q bo'lsa: Bemor holatiga o'z ixtisosligingizdan qisqa, lekin aniq fikr bildiring (3-4 jumla).
 3. Shifokordan savol: faqat hayotiy xavf yoki tashxisni aniqlash uchun boshqa iloji bo'lmaganda "FOYDALANUVCHI UCHUN SAVOL: [savol]" yozing; aks holda yozmang.
 4. Ob'ektiv ko'rik (qon bosimi, puls, harorat, SpO2, nafas) yuqorida berilgan — shifokordan HECH QACHON so'ramang, xulosangizda hisobga oling.
 5. Laboratoriya va diagnostika hujjatlari (agar yuklangan bo'lsa) quyida/ilovada — ularni tahlil qiling, xulosangizda ishlating. Bu ma'lumotlarni shifokordan SO'RAMANG — allaqachon berilgan.
-6. Javob tuzilishi (faqat matn, bullet/yulduzcha yo'q): (1) Asosiy tashxis va 2 ta asosiy dalil — har biri 1 qisqa jumla, har birida manba qavs ichida: (jurnal/protokol, https://...). (2) 2 ta differensial — har biri 1 jumla. (3) Tavsiya — 1–2 jumla (tekshiruv + davolash yo'nalishi), manba bilan. "Pastda", "quyidagi bo'limda" deb yozmang.
-7. Aniq URL bo'lmasa PubMed qidiruv URLini yozing: https://pubmed.ncbi.nlm.nih.gov/?term=...
+6. Javob tuzilishi (professor uslubi): (1) Klinik baho — 3-4 jumla chuqur tahlil. (2) Asosiy tashxis va dalillar — har biri aniq fakt bilan. (3) 2 ta differensial — har biri 1-2 jumla sabab bilan. (4) Tekshiruv va tavsiya — 2-3 jumla amaliy yo'nalish.
+7. Rais ochilish nutqidagi shikoyatni takrorlamang — o'z ixtisoslik burchagingizdan yozing.
 
-JAMI 4–6 QISQA, ANIQ jumla. Ortiqcha tafsilot va tantana YO'Q. TIL: ${langMap[language]}.
+JAMI 8–12 ANIQ, CHUQUR jumla — haqiqiy professor kabi. TIL: ${langMap[language]}.
 OXIRGI QOIDA: oxirgi jumla nuqta bilan tugasin; yarim qoldirmang.`;
 
                 try {
-                    const responseText = await callClaude(textPrompt, DEPLOY_FAST, undefined, false, systemInstrDebate, true, getMaxTokens('short')) as string;
+                    const responseText = await callClaude(textPrompt, DEPLOY_FAST, undefined, false, systemInstrDebate, true, getMaxTokens('medium')) as string;
                     const trimmed = (responseText || '').trim();
                     const specialistMessage: ChatMessage = {
                         id: `${spec.role}-${Date.now()}-${idx}`,
@@ -1951,7 +1949,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         ${strictLanguageRule(language)}
         LANGUAGE: ${langMap[language]}.
         REQUIREMENTS:
-        1. consensusDiagnosis: har biri uchun reasoningChain, justification (har bir asosiy da'vo oxirida manba qavs ichida: (jurnal/protokol, https://...)), evidenceLevel. uzbekProtocolMatch: SSV protokol nomi yoki protokoldan chetga chiqish sababi.
+        1. consensusDiagnosis: har biri uchun reasoningChain (kamida 4-6 qadam), justification (kamida 6-8 jumla — har biri aniq klinik fakt + talqin), evidenceLevel. uzbekProtocolMatch: SSV protokol nomi yoki protokoldan chetga chiqish sababi. Yakuniy xulosa universitet klinikasi darajasida professional, faktlarga asoslangan bo'lsin.
         2. treatmentPlan: MAJBURIY, bo'sh massiv QAYTARMANG. 3-7 ketma-ket qadam, har biri 1 qisqa, aniq jumla (amaliy). SSV protokollarini asos qiling; protokoldan chetga chiqsangiz 1 qisqa sabab. Shoshilinch bo'lsa birinchi qadamlar birinchi bo'lsin.
         3. medicationRecommendations: MAJBURIY — HECH QACHON bo'sh massiv qoldirmang. Tashxis va kasallik asosida o'zingiz (dalillarga tayanib) O'zbekistonda mavjud, bemor uchun eng foydali va kerakli dorilarni tavsiya qiling; ortiqcha dori yozmang — faqat zarur va samarali. Har bir dori uchun: (a) name — ANIQ SAVDO NOMI (Nimesil, Sumamed, Metformin, Paratsetamol, Amlodipin, Omeprazol, Enalapril, Augmentin, Ibuprofen va h.k.). (b) dosage — aniq doza (masalan "500 mg kuniga 2 marta, 7 kun"). (c) notes — HAR BIR DORI UCHUN qo'llanma: qanday ichish (ovqatdan oldin/keyin, suv bilan va h.k.), kuniga necha marta, davomiylik; qisqa yo'riqnoma. (d) localAvailability — "O'zbekistonda mavjud" yoki muqobil savdo nomlari. Allergiya va dori o'zaro ta'sirini hisobga oling. Kamida 1 ta, odatda 2–5 ta zarur dori bo'lsin.
         4. criticalFinding: MAJBURIY. Agar suhbatda yoki bemor ma'lumotlarida hayotga xavf, shoshilinch holat, kritik topilma (masalan anafilaksiya, miokard infarkt, insult, jiddiy qon ketish, septik shok, nafas yetishmovchiligi, xavfli aritmiya va h.k.) tilga olingan yoki ehtimoli bor bo'lsa — to'ldiring: finding (qisqa, aniq), implication (oqibat), urgency ("High" yoki "Medium"). Barchasi o'zbekcha. Yo'q bo'lsa null/bo'sh.
@@ -1963,7 +1961,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         10. relatedResearch (DALIL VA MANBALAR, MAJBURIY): 5-8 ta ishonchli manba. Kamida 2 ta xalqaro jurnal/qo'llanma (PubMed, Cochrane, Lancet, NEJM, JAMA, BMJ, ESC/ADA/NICE/WHO), 1 ta O'zbekiston SSV protokoli. Har birida title, url (https://...), summary (1 jumla — qaysi tashxis/davolash uchun dalil).
         ${ENHANCED_FINAL_REPORT_AI_RULES}
         11. JSON kalitlari inglizcha qoladi, lekin HAR BIR string qiymat tanlangan til qoidasiga qat'iy mos bo'lsin.
-        ANIQLIK: consensusDiagnosis da har bir element uchun probability — 0-100 oralig'ida, faqat klinik dalil va justification ga mos RAQAM (taxminiy 60/25/20 yoki 75/15 kabi takrorlanuvchi shablonlar YO'Q). Bir nechta tashxis bo'lsa, probability lar yig'indisi 100% bo'lishi kerak (bir-birini istisno qiluvchi differensial ro'yxat). reasoningChain har qadamda "nima uchun" javob bersin (HAR BIR ELEMENT 1-2 JUMLADAN OSHMASIN, qisqa holda yozing - to'liq JSON kesilmasin); uzbekProtocolMatch — aniq protokol nomi/yo'nalishi yoki protokoldan chetga chiqish sababi. Taxminiy tashxisni yakuniy deb yozmang.
+        ANIQLIK: consensusDiagnosis da har bir element uchun probability — 0-100 oralig'ida, faqat klinik dalil va justification ga mos RAQAM. Bir nechta tashxis bo'lsa, probability lar yig'indisi 100% bo'lishi kerak. reasoningChain har qadamda "nima uchun" javob bersin (har qadam 1-2 jumla, kamida 4 qadam); justification — 6-8 jumla, spekulyatsiyasiz. uzbekProtocolMatch — aniq protokol nomi yoki protokoldan chetga chiqish sababi.
         KRITIK TOPILMA: Suhbat (debate history) yoki bemor ma'lumotlarida shoshilinch, hayotga xavf, kritik holat tilga olingan bo'lsa — criticalFinding ni albatta to'ldiring (finding, implication, urgency). Bo'sh qoldirmang.
         Munozara (qisqacha):\n${formatDebateForPrompt(debateHistory)}
         ${DIAGNOSIS_ACCURACY_RULES}

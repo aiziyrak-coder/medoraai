@@ -36,24 +36,47 @@ DEEP_CLINICAL_HINT = (
 DENSE_JSON_HINT = DEEP_CLINICAL_HINT
 
 DEBATE_INTENSITY_RULES = """
-KONSILIUM CHANGI (MAJBURIY — YUMSHOQ EMAS):
-1. Boshqa mutaxassis tashxisi boshqacha bo'lsa — KAMIDA 2 ta refutation (1 ta STRONG + 1 ta MODERATE/WEAK).
-2. Har refutation: bemorning ANIQ ko'rsatkichi + patofiziologik/mexanistik sabab + nima uchun zaif.
-3. Himoya (defense): o'z ixtisosligingizdan KAMIDA 2 ta yangi fakt — boshqalarning jumlasini KO'CHIRMAN.
-4. accepted_from_others: kamida 1 ta band (agar haqiqatan qabul qilsangiz) — aniq qaysi fakt va kimning dalili.
-5. key_argument: 2-3 jumla — eng kuchli KLINIK FAKT (raqam, lab, simptom); manba URL YO'ZMASLIG.
-6. revised_diagnosis o'zgarsa — nima o'zgartirdi (qaysi refutation/dalil) yozing.
-7. Umumiy gaplar taqiqlangan — har band bemor uchun amaliy qiymat bersin.
+KONSILIUM CHANGI (MAJBURIY — CHUQUR MUNOZARA):
+1. Boshqa mutaxassis tashxisi boshqacha bo'lsa — KAMIDA 2 ta refutation (1 ta STRONG + 1 ta MODERATE).
+2. Har refutation: bemorning ANIQ ko'rsatkichi + patofiziologik sabab + nima uchun zaif (2-3 jumla).
+3. Himoya (defense): o'z ixtisosligingizdan KAMIDA 3 ta yangi fakt — boshqalarning jumlasini KO'CHIRMAN.
+4. accepted_from_others: kamida 1 ta band (agar qabul qilsangiz) — aniq qaysi fakt va qaysi mutaxassis dalili.
+5. key_argument: 3-4 jumla — eng kuchli KLINIK FAKT zanjiri (raqam, lab, simptom).
+6. debate_commentary: 4-6 jumla — professor uslubida munozaraga o'z pozitsiyangizni izohlang.
+7. revised_diagnosis o'zgarsa — nima o'zgartirdi (qaysi refutation/dalil) yozing.
+8. Umumiy gaplar taqiqlangan — har band bemor uchun amaliy qiymat bersin.
 """
 
 P1_DENSITY_RULES = """
-PHASE 1 CHUQURLIK (MAJBURIY):
-- reasoning_chain: kamida 5-6 qadam — har biri: bemor fakti → klinik talqin → xulosa.
-- supporting_evidence: kamida 5 ta — vital, lab, anamnez, tasvir yoki dori tarixidan ANIQ qiymatlar.
-- differential: kamida 2 ta alternativ — faqat klinik sabab (foiz va A/B/C matnda YO'Q).
-- recommended_tests: kamida 3 ta + klinik indikatsiya.
+PHASE 1 CHUQURLIK (MAJBURIY — PROFESSOR USLUBI):
+- clinical_opinion: 7-10 jumla — haqiqiy professor kabi: patofiziologik mantiq, differensial tahlil, amaliy xulosa.
+- reasoning_chain: kamida 6-8 qadam — har biri: bemor fakti → klinik talqin → xulosa.
+- supporting_evidence: kamida 6 ta — vital, lab, anamnez, tasvir yoki dori tarixidan ANIQ qiymatlar.
+- differential: kamida 2 ta alternativ — har biri uchun aniq klinik sabab (2 jumla).
+- recommended_tests: kamida 3 ta + klinik indikatsiya va kutilgan natija.
 - red_flags: kamida 1 ta (agar mavjud bo'lsa) — shoshilinch harakat bilan.
-- initial_treatment_notes: kamida 2 jumla — o'z ixtisosligingizdan aniq tavsiya.
+- initial_treatment_notes: kamida 3 jumla — o'z ixtisosligingizdan aniq, amaliy tavsiya.
+"""
+
+PROFESSOR_OPINION_RULES = """
+PROFESSOR FIKRI (MAJBURIY USLUB):
+1. clinical_opinion maydonida haqiqiy klinik professor kabi yozing: aniq, ishonchli, dalillangan.
+2. Umumiy gaplar ("ehtimol", "ko'rib chiqish kerak") o'rniga aniq klinik pozitsiya bildiring.
+3. Har jumla bemor ma'lumotidagi faktdan boshlansin yoki unga bog'lansin.
+4. Tashxis nomi + nega aynan shu + nima qilish kerak — ketma-ket, o'qilishi oson.
+5. Boshqa mutaxassis yoki rais nutqini takrorlamang — o'z noyob burchak.
+"""
+
+P3_CONSENSUS_STRENGTH = """
+YAKUNIY XULOSA SIFATI (PROFESSIONAL DARAJA — MAJBURIY):
+1. consensus_diagnosis.justification: kamida 6-8 jumla — har biri aniq klinik fakt + talqin + dalil.
+2. consensus_diagnosis.reasoning_chain: kamida 6-8 bosqich — munozaradagi ENG KUCHLI dalillarni sintez.
+3. agreement_summary: 5-7 jumla — qaysi mutaxassis qaysi gipotezni qo'llab-quvvatlash/rad etdi (fakt bilan).
+4. unexpected_findings: rad etilgan gipotezalar + sabab + qaysi dalil hal qildi (kamida 4 jumla).
+5. treatment_plan: har qadam aniq (nima, doza/muddat, monitoring) — umumiy ibora YO'Q.
+6. debate_synthesis.winning_arguments: har band aniq klinik fakt + qaysi mutaxassisning dalili g'olib bo'ldi.
+7. agreement_level faqat dalillar asosida — spekulyatsiya va noaniq iboralar YO'Q.
+8. Yakuniy xulosa universitet klinikasi konsilium protokoliga mos, faktlarga asoslangan bo'lsin.
 """
 
 SPECIALIST_THINKING_MANDATE = """
@@ -168,10 +191,19 @@ def format_bullet_items(items: Any, prefix: str = "  • ") -> str:
 
 
 def format_p1_debate_content(p1r: dict) -> str:
-    """Mustaqil faza — faqat klinik fikr va amaliy tavsiyalar (foiz/MKB meta yo'q)."""
+    """Mustaqil faza — professor klinik fikri va amaliy tavsiyalar."""
     sections: list[str] = []
 
-    reasoning = format_reasoning_steps(p1r.get("reasoning_chain"))
+    opinion = _clean_step_text(p1r.get("clinical_opinion", ""))
+    if opinion:
+        sections.append(f"▸ Klinik baho\n{opinion}")
+
+    diag = _clean_step_text(p1r.get("primary_diagnosis", ""))
+    if diag:
+        sections.append(f"▸ Asosiy tashxis (mening fikrim)\n  {diag}")
+
+    reasoning = p1r.get("reasoning_chain")
+    reasoning = format_reasoning_steps(reasoning)
     if reasoning:
         sections.append(f"▸ Klinik fikr\n{reasoning}")
 
@@ -261,6 +293,10 @@ def format_p2_debate_content(
     key_arg = _clean_step_text(p2r.get("key_argument", ""))
     if key_arg:
         sections.append(f"▸ Asosiy klinik dalil\n{key_arg}")
+
+    commentary = _clean_step_text(p2r.get("debate_commentary", ""))
+    if commentary:
+        sections.append(f"▸ Professor pozitsiyasi\n{commentary}")
 
     endorse = format_bullet_items(p2r.get("endorsements"))
     if endorse:

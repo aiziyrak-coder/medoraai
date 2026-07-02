@@ -54,6 +54,8 @@ from .debate_format import (
     DENSE_JSON_HINT,
     DEBATE_INTENSITY_RULES,
     P1_DENSITY_RULES,
+    PROFESSOR_OPINION_RULES,
+    P3_CONSENSUS_STRENGTH,
     ANTI_REPETITION_RULES,
     SPECIALIST_THINKING_MANDATE,
     AGENT_SPECIALTY_FOCUS,
@@ -76,7 +78,7 @@ from .consilium_cost import (
     skip_phase2_debate,
     consilium_agent_limit,
 )
-from .clinical_context import build_clinical_context
+from .clinical_context import build_clinical_context, build_opening_context
 from .report_fields import (
     extended_consensus_json_instructions,
     merge_enriched_report_fields,
@@ -240,18 +242,19 @@ _LANG_HINT: dict[str, str] = {
 _OPENING_SYSTEM = """\
 {persona}
 
-Siz tibbiy kengash raisi siz. Konsiliumni RASMIY OCHING.
+Siz tibbiy kengash raisi siz. Konsiliumni QISQA oching.
 
 VAZIFA:
-1. Kengashni qisqa rasmiy oching (1 jumla).
-2. Bemor haqida TO'LIQ klinik ma'lumot bering: yosh, jins, shikoyatlar, anamnez, vitallar, laboratoriya, tasvir — mavjud barcha faktlar.
-3. Har bir mutaxassisni ixtisosligi bilan konsiliumga CHORLANG va nima baholashini aniq so'rang.
-4. Oxirida: har bir mutaxassis mustaqil tashxis va o'z ixtisoslik burchagidan fakt bildirishi kerakligini ayting.
+1. Konsiliumni qisqa rasmiy oching (1-2 jumla).
+2. Bemor holatini QISQA XULOSA qiling (6-10 jumla): yosh, jins, asosiy shikoyat, muhim vital/lab/tasvir.
+   To'liq anamnezni qayta yozmang — mutaxassislarga to'liq ma'lumot alohida berilgan.
+3. Har bir mutaxassisni ixtisosligi bilan chorlang — har biri uchun 1 qator vazifa.
+4. Oxirida: chuqur mustaqil klinik fikr so'rang (1 jumla).
 
 QOIDALAR:
+- Jami 12-18 jumladan oshmasin.
 - Oddiy matn, markdown yo'q.
-- Ma'lumotni qisqartirmang — to'liq taqdim eting.
-- Bu yagona joy — bemor holati shu yerda to'liq; mutaxassislar keyin takrorlamasin.
+- Bu ochilish — mutaxassislar keyin shikoyatni takrorlamasin.
 
 """ + CLINICAL_OUTPUT_RULES
 
@@ -283,20 +286,27 @@ class ConsiliumResult:
         }
 
 
-def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
-    """Rais konsiliumni ochadi — scale rejimida shablon (tez), aks holda AI."""
+def run_orchestrator_opening(
+    patient_str: str,
+    language: str = "uz-L",
+    patient_data: Optional[dict] = None,
+    extra: Optional[dict] = None,
+) -> dict:
+    """Rais konsiliumni ochadi — qisqa xulosa (to'liq karta mutaxassislarga alohida)."""
     from .consilium_cost import ai_cost_mode
 
     lang = _LANG_HINT.get(language, _LANG_HINT["uz-L"])
     roster = format_specialist_roster(_active_agents())
+    brief = build_opening_context(patient_data, extra, language=language) or patient_str[:800]
     t0 = time.monotonic()
 
     if ai_cost_mode() in ("scale", "economy"):
         content = (
             "▸ Konsilium ochildi\n"
-            f"▸ Bemor ma'lumotlari\n{patient_str}\n\n"
+            "Klinik holat qisqacha taqdim etildi — to'liq ma'lumot mutaxassislarga berilgan.\n\n"
+            f"▸ Bemor (qisqa xulosa)\n{brief}\n\n"
             f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
-            "Har bir mutaxassis o'z ixtisosligi bo'yicha mustaqil tashxis va dalil bildirsin."
+            "Har bir mutaxassis o'z ixtisosligi bo'yicha chuqur, mustaqil professor fikri bildirsin."
         )
         return {
             "content": content,
@@ -305,11 +315,11 @@ def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
 
     system = _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
     user = (
-        f"BEMOR MA'LUMOTLARI:\n{patient_str}\n\n"
+        f"BEMOR (QISQA XULOSA):\n{brief}\n\n"
         f"KONSILIUMGA CHORLANGAN MUTAXASSISLAR:\n{roster}\n\n"
         f"Til: {lang}.\n"
-        "Konsiliumni oching, bemor holatini to'liq taqdim eting va yuqoridagi mutaxassislarni "
-        "mustaqil fikr bildirishga chorlang."
+        "Konsiliumni qisqa oching (12-18 jumla). To'liq anamnez takrorlanmasin — "
+        "mutaxassislarga to'liq klinik ma'lumot alohida berilgan."
     )
     t0 = time.monotonic()
     try:
@@ -318,16 +328,16 @@ def run_orchestrator_opening(patient_str: str, language: str = "uz-L") -> dict:
             build_messages(system, user, want_json=False),
             response_json=False,
             temperature=0.2,
-            max_tokens=900,
+            max_tokens=480,
         )
         content = str(content or "").strip()
     except Exception as exc:
         logger.error("Orchestrator opening failed: %s", exc)
         content = (
             "▸ Konsilium ochildi\n"
-            f"▸ Bemor ma'lumotlari\n{patient_str}\n\n"
+            f"▸ Bemor (qisqa xulosa)\n{brief}\n\n"
             f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
-            "Har bir mutaxassis o'z ixtisosligi bo'yicha mustaqil tashxis va dalil bildirsin."
+            "Har bir mutaxassis o'z ixtisosligi bo'yicha chuqur, mustaqil professor fikri bildirsin."
         )
     return {
         "content": content,
@@ -355,7 +365,7 @@ MUSTAQIL TAHLIL QOIDALARI:
 
 {specialty_focus}
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + P1_DENSITY_RULES + "\n" + PROFESSOR_OPINION_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P1_USER = """\
 BEMOR MA'LUMOTLARI:
@@ -364,14 +374,15 @@ BEMOR MA'LUMOTLARI:
 Quyidagi JSON SXEMASI bo'yicha MUSTAQIL tashxisingizni bildiring.
 MAJBURIY: Yuqoridagi bemor ma'lumotlaridan ANIQ faktlar ishlating — namuna matnni ko'chirmang.
 {{
+  "clinical_opinion": "<7-10 jumla — professor uslubida chuqur klinik tahlil>",
   "primary_diagnosis": "<sizning ixtisosligingizdan asosiy tashxis>",
   "probability": <55-97>,
   "reasoning_chain": ["<bemor faktidan 1-qadam>", "..."],
   "supporting_evidence": ["<vital/lab/anamnez raqami>", "..."],
-  "red_flags": ["<shoshilinch belgi + manba>"],
-  "differential": [{{"name": "<alt tashxis>", "probability": <3-40>, "reason": "<fakt>"}}],
+  "red_flags": ["<shoshilinch belgi>"],
+  "differential": [{{"name": "<alt tashxis>", "probability": <3-40>, "reason": "<2 jumla fakt>"}}],
   "recommended_tests": ["<sizning ixtisosligingizdan tekshiruv + sabab>"],
-  "initial_treatment_notes": "<qisqa tavsiya + manba>",
+  "initial_treatment_notes": "<kamida 3 jumla aniq tavsiya>",
   "confidence": "HIGH|MEDIUM|LOW",
   "evidence_level": "A|B|C"
 }}"""
@@ -462,20 +473,28 @@ def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
                 if pt:
                     accepted.append({"agent_id": other_id, "point": pt[:200]})
                 continue
-            ev_bit = str(evidence[0] if evidence else reasoning[0] if reasoning else "")[:180]
+            ev_bits = [str(x)[:180] for x in evidence[:2]] + [str(x)[:180] for x in reasoning[:2]]
+            ev_bit = ev_bits[0] if ev_bits else ""
+            ev2 = ev_bits[1] if len(ev_bits) > 1 else ""
             refutations.append({
                 "target_agent_id": other_id,
                 "target_diagnosis": other_dx[:140],
                 "refutation": (
                     f"{other_dx} kam ehtimol — bemor dalillari {own_dx} ni qo'llab-quvvatlaydi"
                     + (f": {ev_bit}" if ev_bit else "")
-                )[:400],
+                    + (f". Qo'shimcha: {ev2}" if ev2 else "")
+                )[:520],
                 "strength": "MODERATE",
             })
 
-        defense_arg = str(reasoning[1] if len(reasoning) > 1 else reasoning[0] if reasoning else "")[:350]
-        new_ev = str(evidence[1] if len(evidence) > 1 else evidence[0] if evidence else "")[:280]
-        key_arg = str(reasoning[-1] if reasoning else evidence[-1] if evidence else own_dx)[:400]
+        defense_arg = str(reasoning[1] if len(reasoning) > 1 else reasoning[0] if reasoning else "")[:450]
+        new_ev = str(evidence[1] if len(evidence) > 1 else evidence[0] if evidence else "")[:350]
+        key_arg = str(reasoning[-1] if reasoning else evidence[-1] if evidence else own_dx)[:520]
+        clinical_op = str(row.get("clinical_opinion") or "")[:600]
+        debate_commentary = clinical_op or (
+            f"{own_dx} — o'z ixtisoslik burchagidan: "
+            + (defense_arg or key_arg)
+        )[:600]
 
         out.append({
             "agent_id": agent_id,
@@ -490,6 +509,7 @@ def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
             },
             "accepted_from_others": accepted[:2],
             "key_argument": key_arg,
+            "debate_commentary": debate_commentary,
             "skipped_debate": True,
         })
     return out
@@ -533,7 +553,8 @@ Debate javobingizni JSON SXEMASI bo'yicha yozing. Boshqalarning jumlasini ko'chi
   "revised_probability": <55-97>,
   "accepted_from_others": [{{"agent_id": "<id>", "point": "<qaysi aniq fakt qabul qilindi>"}}],
   "endorsements": ["<qo'llab-quvvatlash — faqat aniq fakt>"],
-  "key_argument": "<sizning eng kuchli klinik dalilingiz — faqat fakt>"
+  "debate_commentary": "<4-6 jumla — professor uslubida munozara pozitsiyasi>",
+  "key_argument": "<sizning eng kuchli klinik dalilingiz — 3-4 jumla>"
 }}"""
 
 
@@ -676,12 +697,12 @@ KONSENSUS QAROR QOIDALARI:
 15. unexpected_findings: agreement_summary bilan bir xil mazmun, lekin aniqroq — rad etilgan gipotezalar va bahs natijalari.
 16. Bemor shikoyatini/anamnezni QAYTA AYTMAG — faqat munozara natijasi va yakuniy qaror.
 17. Har bir mutaxassisning ENG KUCHLI dalilini alohida qayd eting — umumiy sintez yetarli emas.
-18. consensus_diagnosis.justification: kamida 4 jumla, har biri aniq klinik fakt + manba.
-19. debate_synthesis: key_agreements, key_disputes_resolved, winning_arguments — har biri kamida 3 ta band.
+18. consensus_diagnosis.justification: kamida 6-8 jumla, har biri aniq klinik fakt + talqin.
+19. debate_synthesis: key_agreements, key_disputes_resolved, winning_arguments — har biri kamida 4 ta band.
 20. MKB-10 (ICD-10-CM, 10-reviziya): asosiy va har bir differensial tashxis uchun aniq kod (masalan I10, E11.9).
 21. Tashxislar raqamlanadi: 1-asosiy, 2-5-differensial. Namuna kodlar (X00.0) ISHLATMANG.
 
-""" + CLINICAL_OUTPUT_RULES + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
+""" + CLINICAL_OUTPUT_RULES + "\n" + P3_CONSENSUS_STRENGTH + "\n" + SPECIALIST_THINKING_MANDATE + "\n" + ANTI_REPETITION_RULES + "\n" + DENSE_JSON_HINT
 
 _P3_USER = """\
 BEMOR:
@@ -798,7 +819,7 @@ def run_phase3(patient_str: str, p1: list[dict],
     try:
         raw    = call_model(ORCHESTRATOR.deployment,
                             build_messages(system, user, want_json=True),
-                            response_json=True, temperature=0.12, max_tokens=phase3_max_tokens())
+                            response_json=True, temperature=0.08, max_tokens=phase3_max_tokens())
         result = parse_json(raw, "p3_consensus")
         result = result if isinstance(result, dict) else {}
         result["agent_weights_used"] = weights
@@ -932,7 +953,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
         has_defense = isinstance(defense_block, dict) and (
             defense_block.get("argument") or defense_block.get("new_evidence")
         )
-        if reftns or has_defense or p2r.get("key_argument") or p2r.get("accepted_from_others"):
+        if reftns or has_defense or p2r.get("key_argument") or p2r.get("accepted_from_others") or p2r.get("debate_commentary"):
             p2_content = format_p2_debate_content(p2r, _agent_specialty_label)
             if p2_content:
                 debate_log.append({
@@ -1195,7 +1216,7 @@ def run_consilium(
 
     # Orchestrator opening
     logger.info("[%s] Orchestrator: konsilium ochilmoqda", result.session_id)
-    opening = run_orchestrator_opening(ptext, language)
+    opening = run_orchestrator_opening(ptext, language, patient_data=patient_data, extra=ctx_extra)
     result.phases["orchestrator_opening"] = opening
 
     # Phase 1 — to'liq klinik kontekst

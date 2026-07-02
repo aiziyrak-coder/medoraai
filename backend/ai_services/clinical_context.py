@@ -305,6 +305,61 @@ def build_clinical_context(
     return "\n\n".join(parts)
 
 
+def build_opening_context(
+    patient_data: dict | None,
+    extra: Optional[dict] = None,
+    language: str = "uz-L",
+) -> str:
+    """Konsilium ochilish nutqi uchun qisqa klinik xulosa (to'liq karta emas)."""
+    d = patient_data or {}
+    parts: list[str] = []
+
+    first = _s(d.get("firstName") or d.get("first_name"))
+    last = _s(d.get("lastName") or d.get("last_name"))
+    age = _s(d.get("age"))
+    gender = _s(d.get("gender"))
+    name_line = f"{first} {last}".strip() or "Bemor"
+    parts.append(f"{name_line}, {age or '-'} yosh, jins: {gender or '-'}.")
+
+    complaints = _truncate_field(_s(d.get("complaints")), 380)
+    if complaints:
+        parts.append(f"Asosiy shikoyat: {complaints}")
+
+    vitals = _format_vitals(d)
+    if vitals:
+        parts.append(f"Vital: {vitals}")
+
+    obj = _truncate_field(_s(d.get("objectiveData") or d.get("objective_data")), 220)
+    if obj and obj not in vitals:
+        parts.append(f"Ob'ektiv: {obj}")
+
+    lab = _truncate_field(_s(d.get("labResults") or d.get("lab_results")), 280)
+    struct = _format_structured_labs(d)
+    if struct:
+        parts.append(f"Lab: {_truncate_field(struct, 260)}")
+    elif lab:
+        parts.append(f"Lab: {lab}")
+
+    imaging = _truncate_field(
+        _s(d.get("imagingAnalysisSummary") or d.get("imaging_analysis_summary")), 240
+    )
+    if imaging:
+        parts.append(f"Tasvir: {imaging}")
+
+    doctor_dx = _truncate_field(_format_doctor_diagnoses(d), 200)
+    if doctor_dx:
+        parts.append(f"Shifokor tashxisi: {doctor_dx}")
+
+    ex = extra or {}
+    ddx = _truncate_field(
+        _s(d.get("differentialDiagnosesNotes") or d.get("differential_diagnoses_notes")), 180
+    )
+    if ddx:
+        parts.append(f"Differensial: {ddx}")
+
+    return "\n".join(parts)
+
+
 def patient_text(patient_data: dict | None, extra: Optional[dict] = None, **kwargs) -> str:
     """azure_utils / claude_utils uchun mos alias."""
     return build_clinical_context(patient_data, extra, **kwargs)
