@@ -1,22 +1,29 @@
 """
 Patient Serializers
 """
+import logging
+
+from django.db import IntegrityError
 from rest_framework import serializers
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIELDS
 from .passport_serial import normalize_passport_serial, validate_passport_serial_format
 from .dedup import find_existing_patient, apply_passport_fields
 from .phone import normalize_patient_phone
-from .population_service import upsert_population_from_patient
+from .population_service import upsert_population_from_patient, find_population_by_registry
 from .primary_care_service import on_population_saved
+
+logger = logging.getLogger(__name__)
 
 
 def _sync_population_from_patient(patient, user):
     try:
+        existing = find_population_by_registry(patient.registry_number)
+        is_new = existing is None
         pop = upsert_population_from_patient(patient, user)
-        on_population_saved(pop, is_new=False)
-    except Exception:
-        pass
+        on_population_saved(pop, is_new=is_new)
+    except Exception as exc:
+        logger.warning("Population sync failed for patient %s: %s", patient.pk, exc)
 from accounts.serializers import UserSerializer
 
 
@@ -118,17 +125,28 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
         )
         if existing:
             patient = apply_passport_fields(existing, validated_data)
-            try:
-                _sync_population_from_patient(patient, user)
-            except Exception:
-                pass
+            if user.clinic_group_id and not patient.home_clinic_group_id:
+                patient.home_clinic_group_id = user.clinic_group_id
+                patient.save(update_fields=['home_clinic_group_id', 'updated_at'])
+            _sync_population_from_patient(patient, user)
             return patient
         validated_data['created_by'] = user
         validated_data.setdefault('complaints', '')
         if user.clinic_group_id:
             validated_data['home_clinic_group_id'] = user.clinic_group_id
         validated_data['registry_number'] = registry_number
-        patient = super().create(validated_data)
+        try:
+            patient = super().create(validated_data)
+        except IntegrityError:
+            dup = find_existing_patient(registry_number=registry_number, phone=validated_data.get('phone'))
+            if not dup:
+                raise serializers.ValidationError({
+                    'registry_number': 'Bu pasport seriya raqami bilan bemor allaqachon mavjud.',
+                })
+            patient = apply_passport_fields(dup, validated_data)
+            if user.clinic_group_id and not patient.home_clinic_group_id:
+                patient.home_clinic_group_id = user.clinic_group_id
+                patient.save(update_fields=['home_clinic_group_id', 'updated_at'])
         _sync_population_from_patient(patient, user)
         return patient
 
@@ -228,6 +246,9 @@ class PatientCreateSerializer(serializers.ModelSerializer):
         )
         if existing:
             patient = apply_passport_fields(existing, validated_data)
+            if user.clinic_group_id and not patient.home_clinic_group_id:
+                patient.home_clinic_group_id = user.clinic_group_id
+                patient.save(update_fields=['home_clinic_group_id', 'updated_at'])
             _sync_population_from_patient(patient, user)
             return patient
         validated_data['created_by'] = user
@@ -235,7 +256,28 @@ class PatientCreateSerializer(serializers.ModelSerializer):
             validated_data['home_clinic_group_id'] = user.clinic_group_id
         validated_data.setdefault('complaints', validated_data.get('complaints') or '')
         validated_data['registry_number'] = registry_number
-        patient = super().create(validated_data)
+        try:
+            patient = super().create(validated_data)
+        except IntegrityError:
+            dup = find_existing_patient(
+                registry_number=registry_number,
+                phone=validated_data.get('phone'),
+                first_name=validated_data.get('first_name'),
+                last_name=validated_data.get('last_name'),
+                father_name=validated_data.get('father_name'),
+                age=validated_data.get('age'),
+            )
+            if not dup:
+                raise serializers.ValidationError({
+                    'registry_number': (
+                        'Bu pasport seriya raqami bilan bemor allaqachon mavjud. '
+                        'Qidiruv orqali mavjud bemorni tanlang.'
+                    ),
+                })
+            patient = apply_passport_fields(dup, validated_data)
+            if user.clinic_group_id and not patient.home_clinic_group_id:
+                patient.home_clinic_group_id = user.clinic_group_id
+                patient.save(update_fields=['home_clinic_group_id', 'updated_at'])
         _sync_population_from_patient(patient, user)
         return patient
 

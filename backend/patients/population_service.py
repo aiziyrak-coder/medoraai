@@ -29,6 +29,9 @@ PRIMARY_CARE_POPULATION_FIELDS = (
 EXCEL_HEADERS = [
     '№', 'Исм', 'Фамилия', 'Отасини исми', 'Yosh', 'Jins',
     'Telefon', 'Pasport seriya raqami', 'Manzil', 'Anamnez vitae',
+    'Tug\'ilgan sana', 'Sog\'liq guruhi', 'Brigada kodi',
+    'Xavf: homilador', 'Xavf: nogiron', 'Xavf: surunkali',
+    'Xavf: ijtimoiy', 'Xavf: yolg\'iz keksa', 'Xavf: parvarish',
 ]
 
 _HEADER_ALIASES: dict[str, str] = {
@@ -45,6 +48,15 @@ _HEADER_ALIASES: dict[str, str] = {
     'manzil': 'address', 'манзил': 'address', 'address': 'address',
     'anamnez vitae': 'anamnesis', 'anamnez': 'anamnesis', 'анамнез': 'anamnesis', 'anamnesis': 'anamnesis',
     'shikoyatlar': 'anamnesis', 'complaints': 'anamnesis',
+    'tugilgan sana': 'birth_date', 'birth_date': 'birth_date', 'дата рождения': 'birth_date',
+    'sog\'liq guruhi': 'health_group', 'health_group': 'health_group', 'группа здоровья': 'health_group',
+    'brigada kodi': 'brigade_code', 'brigade_code': 'brigade_code', 'brigada': 'brigade_code',
+    'xavf: homilador': 'risk_pregnant', 'risk_pregnant': 'risk_pregnant',
+    'xavf: nogiron': 'risk_disabled', 'risk_disabled': 'risk_disabled',
+    'xavf: surunkali': 'risk_chronic', 'risk_chronic': 'risk_chronic',
+    'xavf: ijtimoiy': 'risk_social_vulnerable', 'risk_social_vulnerable': 'risk_social_vulnerable',
+    'xavf: yolg\'iz keksa': 'risk_lone_elderly', 'risk_lone_elderly': 'risk_lone_elderly',
+    'xavf: parvarish': 'risk_needs_care', 'risk_needs_care': 'risk_needs_care',
 }
 
 
@@ -150,6 +162,11 @@ def find_population_by_registry(registry_number: str | None) -> PopulationRecord
     rn = normalize_passport_serial(registry_number)
     if not rn:
         return None
+    lookup = registry_number_lookup_q(rn)
+    if lookup is not None:
+        hit = PopulationRecord.objects.filter(lookup).order_by('-updated_at').first()
+        if hit:
+            return hit
     return PopulationRecord.objects.filter(registry_number__iexact=rn).first()
 
 
@@ -199,6 +216,17 @@ def upsert_population_from_data(
         raise ValueError('Pasport seriya raqami kerak')
     existing = find_population_by_registry(rn)
     if existing and user and not _population_owned_by_user(user, existing):
+        if source == 'patient_auto':
+            # Shifokor bemor yaratganda — demografik ma'lumotni yangilash, ko'rinishni ta'minlash
+            if not existing.created_by_id:
+                existing.created_by = user
+                existing.save(update_fields=['created_by', 'updated_at'])
+            payload = {k: data.get(k) for k in POPULATION_FIELDS + PRIMARY_CARE_POPULATION_FIELDS if data.get(k) is not None}
+            rec = apply_population_fields(existing, payload, user=user)
+            from .primary_care_service import on_population_saved
+            sync_meta = on_population_saved(rec, is_new=False)
+            rec._primary_care_sync = sync_meta  # noqa: SLF001
+            return rec
         raise ValueError('Boshqa klinika aholi yozuvini o\'zgartirish mumkin emas')
     payload = {k: data.get(k) for k in POPULATION_FIELDS + PRIMARY_CARE_POPULATION_FIELDS if data.get(k) is not None}
     if existing:
@@ -260,6 +288,11 @@ def upsert_population_from_patient(patient: Patient, user=None) -> PopulationRec
     )
 
 
+def _parse_bool_cell(raw: Any) -> bool:
+    s = str(raw or '').strip().lower()
+    return s in ('ha', 'yes', '1', 'true', 'да', '+', 'x')
+
+
 def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
     rn_raw = row_map.get('registry_number')
     if not rn_raw:
@@ -274,7 +307,29 @@ def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
     ln = (row_map.get('last_name') or '').strip()
     if not fn and not ln:
         return None
-    return {
+    brigade_id = None
+    brigade_code = (row_map.get('brigade_code') or '').strip()
+    if brigade_code:
+        from .primary_care_models import MedicalBrigade
+        b = MedicalBrigade.objects.filter(code__iexact=brigade_code, is_active=True).first()
+        if b:
+            brigade_id = b.id
+    birth_raw = row_map.get('birth_date')
+    birth_date = None
+    if birth_raw:
+        if hasattr(birth_raw, 'isoformat'):
+            birth_date = birth_raw
+        else:
+            s = str(birth_raw).strip()
+            if s:
+                from datetime import datetime
+                for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y'):
+                    try:
+                        birth_date = datetime.strptime(s, fmt).date()
+                        break
+                    except ValueError:
+                        continue
+    out = {
         'registry_number': rn,
         'first_name': fn or '—',
         'last_name': ln or '—',
@@ -284,7 +339,18 @@ def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
         'phone': normalize_patient_phone(str(row_map.get('phone') or '')) or str(row_map.get('phone') or '').strip(),
         'address': (row_map.get('address') or '').strip(),
         'anamnesis': (row_map.get('anamnesis') or '').strip(),
+        'birth_date': birth_date,
+        'health_group': (row_map.get('health_group') or '').strip(),
+        'risk_pregnant': _parse_bool_cell(row_map.get('risk_pregnant')),
+        'risk_disabled': _parse_bool_cell(row_map.get('risk_disabled')),
+        'risk_chronic': _parse_bool_cell(row_map.get('risk_chronic')),
+        'risk_social_vulnerable': _parse_bool_cell(row_map.get('risk_social_vulnerable')),
+        'risk_lone_elderly': _parse_bool_cell(row_map.get('risk_lone_elderly')),
+        'risk_needs_care': _parse_bool_cell(row_map.get('risk_needs_care')),
     }
+    if brigade_id:
+        out['brigade'] = brigade_id
+    return out
 
 
 def import_population_excel(file_obj, *, user=None) -> dict[str, int]:
@@ -339,7 +405,7 @@ def export_population_excel(*, user=None) -> bytes:
         cell = ws.cell(row=1, column=col, value=title)
         cell.font = header_font
 
-    qs = PopulationRecord.objects.all()
+    qs = PopulationRecord.objects.select_related('brigade').all()
     if user:
         from .primary_care_access import population_for_user
         qs = population_for_user(user)
@@ -355,6 +421,15 @@ def export_population_excel(*, user=None) -> bytes:
         ws.cell(row=i, column=8, value=rec.registry_number)
         ws.cell(row=i, column=9, value=rec.address)
         ws.cell(row=i, column=10, value=rec.anamnesis)
+        ws.cell(row=i, column=11, value=rec.birth_date.isoformat() if rec.birth_date else '')
+        ws.cell(row=i, column=12, value=rec.health_group or '')
+        ws.cell(row=i, column=13, value=rec.brigade.code if rec.brigade else '')
+        ws.cell(row=i, column=14, value='ha' if rec.risk_pregnant else '')
+        ws.cell(row=i, column=15, value='ha' if rec.risk_disabled else '')
+        ws.cell(row=i, column=16, value='ha' if rec.risk_chronic else '')
+        ws.cell(row=i, column=17, value='ha' if rec.risk_social_vulnerable else '')
+        ws.cell(row=i, column=18, value='ha' if rec.risk_lone_elderly else '')
+        ws.cell(row=i, column=19, value='ha' if rec.risk_needs_care else '')
 
     buf = io.BytesIO()
     wb.save(buf)

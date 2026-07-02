@@ -264,6 +264,42 @@ export const getPatientPassport = async (id: number): Promise<ApiResponse<Patien
 export const createPatient = async (data: PatientData): Promise<ApiResponse<Patient>> =>
   apiPost<Patient>('/patients/', patientDataToApi(data));
 
+/** Mavjud bemorni topib yangilash yoki yangi yaratish (dublikat xatosiz). */
+export const ensurePatientRecord = async (data: PatientData): Promise<ApiResponse<Patient>> => {
+  const { normalizePassportSerial } = await import('../utils/passportSerial');
+  const rn = normalizePassportSerial(data.registryNumber || '');
+
+  if (rn) {
+    const hits = await registrySearchPatients(rn);
+    if (hits.success && hits.data?.length) {
+      const exact = hits.data.find(
+        (h) => normalizePassportSerial(h.registry_number) === rn,
+      );
+      const hit = exact ?? hits.data[0];
+      if (hit?.id && (hit.is_patient || hit.source === 'patient')) {
+        return updatePatient(hit.id, data);
+      }
+    }
+  }
+
+  const created = await createPatient(data);
+  if (created.success) return created;
+
+  if (created.error?.code === 400 && rn) {
+    const hits = await registrySearchPatients(rn);
+    if (hits.success && hits.data?.length) {
+      const exact = hits.data.find(
+        (h) => normalizePassportSerial(h.registry_number) === rn,
+      );
+      const hit = exact ?? hits.data[0];
+      if (hit?.id) {
+        return updatePatient(hit.id, data);
+      }
+    }
+  }
+  return created;
+};
+
 export const updatePatient = async (id: number, data: Partial<PatientData>): Promise<ApiResponse<Patient>> =>
   apiPatch<Patient>(`/patients/${id}/`, patientDataToApi(data as PatientData));
 

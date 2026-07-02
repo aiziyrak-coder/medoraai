@@ -50,7 +50,6 @@ import PrescriptionProtocolAudit from './components/PrescriptionProtocolAudit';
 import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
 import RegistrarApp from './components/registrar/RegistrarApp';
-import PopulationPanel from './components/population/PopulationPanel';
 import PrimaryCareHub from './components/primarycare/PrimaryCareHub';
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
@@ -411,8 +410,8 @@ const AppContent: React.FC = () => {
                             return;
                         }
 
-                        import('./services/apiPatientService').then(({ createPatient }) => {
-                            createPatient(patientData).then(patientResponse => {
+                        import('./services/apiPatientService').then(({ ensurePatientRecord }) => {
+                            ensurePatientRecord(patientData).then(patientResponse => {
                                 if (!patientResponse.success) {
                                     applyHistoryAndRecord([], newRecord);
                                     const errMsg = patientResponse.error?.message;
@@ -465,20 +464,7 @@ const AppContent: React.FC = () => {
             setDashboardStats(null);
             return;
         }
-        caseService.loadDashboardStatsFromApi().then(result => {
-            if (result) {
-                setUserHistory(result.list);
-                setDashboardStats(result.stats);
-            } else {
-                setUserHistory([]);
-                setDashboardStats(null);
-            }
-            setAppView('dashboard');
-        }).catch(() => {
-            setUserHistory([]);
-            setDashboardStats(null);
-            setAppView('dashboard');
-        });
+        setAppView('dashboard');
     };
 
     const handleLogout = () => {
@@ -747,7 +733,7 @@ const AppContent: React.FC = () => {
 
         if (currentUser) {
             try {
-                const { createPatient, updatePatient } = await import('./services/apiPatientService');
+                const { ensurePatientRecord, updatePatient } = await import('./services/apiPatientService');
                 const { findPatientMatches } = await import('./services/apiPatientService');
                 let n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
                 if (n == null && enrichedPatientData.firstName?.trim() && enrichedPatientData.lastName?.trim()) {
@@ -777,7 +763,7 @@ const AppContent: React.FC = () => {
                         return;
                     }
                 } else {
-                    const res = await createPatient(enrichedPatientData);
+                    const res = await ensurePatientRecord(enrichedPatientData);
                     const id = res?.data && (res.data as { id?: number }).id;
                     if (res?.success && id != null && Number(id) > 0) {
                         setCreatedPatientId(Number(id));
@@ -810,7 +796,7 @@ const AppContent: React.FC = () => {
         setPatientData(enrichedPatientData);
         if (currentUser) {
             try {
-                const { createPatient, updatePatient } = await import('./services/apiPatientService');
+                const { ensurePatientRecord, updatePatient } = await import('./services/apiPatientService');
                 let n = linkedPatientKey && /^\d+$/.test(linkedPatientKey.trim()) ? Number(linkedPatientKey) : null;
                 if (n == null && enrichedPatientData.firstName?.trim() && enrichedPatientData.lastName?.trim()) {
                     const { findPatientMatches } = await import('./services/apiPatientService');
@@ -836,7 +822,7 @@ const AppContent: React.FC = () => {
                         handleLinkedPatientChange(String(n));
                     }
                 } else {
-                    const res = await createPatient(enrichedPatientData);
+                    const res = await ensurePatientRecord(enrichedPatientData);
                     const id = res?.data && (res.data as { id?: number }).id;
                     if (id != null && Number(id) > 0) {
                         setCreatedPatientId(Number(id));
@@ -1251,7 +1237,11 @@ const AppContent: React.FC = () => {
                     <div className="min-h-full flex flex-col min-w-0">
                         <BackBar title={t('population_title')} subtitle={t('population_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
-                            <PopulationPanel onOpenProfile={(id) => { setPcProfileId(id); handleNavigation('primary_care'); }} />
+                            <PrimaryCareHub
+                                initialTab="population"
+                                initialProfileId={pcProfileId}
+                                onProfileConsumed={() => setPcProfileId(null)}
+                            />
                         </ScrollWrapper>
                     </div>
                 );

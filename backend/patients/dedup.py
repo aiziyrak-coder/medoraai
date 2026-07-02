@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from .models import Patient
 from .phone import normalize_patient_phone, patient_phone_variants
+from .registry_number import registry_number_lookup_q
 
 
 PASSPORT_FIELDS = (
@@ -33,7 +34,12 @@ def find_existing_patient(
 
     rn = normalize_passport_serial(registry_number)
     if rn:
-        by_rn = qs.filter(registry_number__iexact=rn)
+        lookup = registry_number_lookup_q(rn)
+        if lookup is not None:
+            by_rn = qs.filter(lookup).order_by('-updated_at')
+            if by_rn.exists():
+                return by_rn.first()
+        by_rn = qs.filter(registry_number__iexact=rn).order_by('-updated_at')
         if by_rn.exists():
             return by_rn.first()
 

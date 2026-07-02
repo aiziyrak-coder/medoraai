@@ -25,7 +25,13 @@ def brigades_for_user(user):
     qs = MedicalBrigade.objects.all()
     cg = user_clinic_group_id(user)
     if cg:
-        qs = qs.filter(Q(clinic_group_id=cg) | Q(clinic_group__isnull=True))
+        assigned_ids = (
+            population_for_user(user)
+            .exclude(brigade__isnull=True)
+            .values_list('brigade_id', flat=True)
+            .distinct()
+        )
+        qs = qs.filter(Q(clinic_group_id=cg) | Q(pk__in=assigned_ids))
     return qs
 
 
@@ -34,9 +40,17 @@ def population_for_user(user):
     cg = user_clinic_group_id(user)
     if not cg:
         return qs
-    return qs.filter(
-        Q(created_by__clinic_group_id=cg) | Q(brigade__clinic_group_id=cg),
-    ).distinct()
+    from .models import Patient
+    clinic_rns = list(
+        Patient.objects.filter(home_clinic_group_id=cg)
+        .exclude(registry_number='')
+        .values_list('registry_number', flat=True)
+        .distinct()[:5000]
+    )
+    clause = Q(created_by__clinic_group_id=cg) | Q(brigade__clinic_group_id=cg)
+    if clinic_rns:
+        clause |= Q(registry_number__in=clinic_rns)
+    return qs.filter(clause).distinct()
 
 
 def population_queryset_for_user(user):
@@ -88,7 +102,7 @@ def network_plans_for_user(user):
     qs = NetworkPlan.objects.select_related('brigade')
     cg = user_clinic_group_id(user)
     if cg:
-        qs = qs.filter(Q(brigade__clinic_group_id=cg) | Q(brigade__clinic_group__isnull=True))
+        qs = qs.filter(brigade__clinic_group_id=cg)
     return qs
 
 

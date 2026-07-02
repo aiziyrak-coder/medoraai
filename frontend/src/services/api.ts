@@ -301,10 +301,17 @@ export const apiRequest = async <T = unknown>(
 function formatDrfErrors(errors: Record<string, string[] | unknown>): string {
   const parts: string[] = [];
   for (const [field, value] of Object.entries(errors)) {
-    if (Array.isArray(value)) parts.push(...value.map((m) => `${field}: ${m}`));
-    else if (typeof value === 'string') parts.push(`${field}: ${value}`);
+    const msgs = Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+    for (const m of msgs) {
+      const text = String(m);
+      if (field === 'registry_number' && /allaqachon|unique|mavjud/i.test(text)) {
+        parts.push('Bu pasport seriya raqami bilan bemor allaqachon ro\'yxatdan o\'tgan. Qidiruv orqali bog\'lang.');
+      } else {
+        parts.push(text);
+      }
+    }
   }
-  return parts.length ? parts.join('. ') : '';
+  return parts.length ? parts.join(' ') : '';
 }
 
 /**
