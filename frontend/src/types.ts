@@ -23,7 +23,8 @@ export type AppView =
   | 'longitudinal_view'
   | 'subscription'
   | 'population'
-  | 'primary_care';
+  | 'primary_care'
+  | 'patient_dossier';
 
 /** Bemor marshrutlash: mutaxassis, tekshiruv rejasi, statsionar */
 export interface PatientRouting {

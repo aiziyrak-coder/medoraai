@@ -487,6 +487,59 @@ export const hasRecentImagingStudies = async (
   return { ...res, data: { has_recent: false, count: 0, days } };
 };
 
+// ── Bemor dosyesi (Patient Dossier) — pasport ID bo'yicha barcha ma'lumot ──────
+
+/** Bir konsilium yozuvi (klinika guruhidan qat'i nazar) — apiToAnalysisRecord kutgan shakl */
+export interface DossierAnalysis {
+  id: number;
+  patient_id: string;
+  patient_data: Record<string, unknown>;
+  debate_history: unknown[];
+  final_report: Record<string, unknown>;
+  follow_up_history: Array<{ question: string; answer: string }>;
+  selected_specialists: string[];
+  detected_medications: Array<{ name: string; dosage: string }>;
+  physician: string;
+  clinic_group: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PatientDossierMeta {
+  analysis_count: number;
+  imaging_count: number;
+  attachment_count: number;
+  home_clinic_group: string;
+  registered_by: string;
+}
+
+export interface PatientDossier {
+  patient: Patient;
+  analyses: DossierAnalysis[];
+  imaging_studies: ImagingStudyRecord[];
+  attachments: PatientAttachment[];
+  meta: PatientDossierMeta;
+}
+
+/**
+ * Pasport seriya raqami (yoki bemor ID) bo'yicha to'liq bemor dosyesini yuklaydi.
+ * Klinika guruhi chegarasidan qat'i nazar — barcha konsilium, tasvir va fayllar.
+ */
+export const getPatientDossier = async (registry: string): Promise<ApiResponse<PatientDossier>> => {
+  const q = (registry || '').trim();
+  if (!q) return { success: false, error: { code: 400, message: 'Pasport ID kiriting' } };
+  const res = await apiGet<PatientDossier | { data?: PatientDossier }>('/patients/dossier/', { registry: q });
+  if (!res.success || !res.data) return res as ApiResponse<PatientDossier>;
+  const d = res.data;
+  if (d && typeof d === 'object' && 'patient' in d) {
+    return { ...res, data: d as PatientDossier };
+  }
+  if (d && typeof d === 'object' && (d as { data?: PatientDossier }).data) {
+    return { ...res, data: (d as { data: PatientDossier }).data };
+  }
+  return res as ApiResponse<PatientDossier>;
+};
+
 export const saveImagingStudy = async (
   patientId: number,
   report: UziUttReport,

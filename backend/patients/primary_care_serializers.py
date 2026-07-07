@@ -41,6 +41,24 @@ class MedicalBrigadeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if not request or not getattr(request, 'user', None):
+            return
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        from .primary_care_access import user_clinic_group_id
+        cg = user_clinic_group_id(request.user)
+        leader_qs = User.objects.filter(is_active=True)
+        if cg:
+            leader_qs = leader_qs.filter(clinic_group_id=cg)
+        elif not request.user.is_superuser:
+            leader_qs = leader_qs.filter(pk=request.user.pk)
+        field = self.fields.get('leader')
+        if field is not None and hasattr(field, 'queryset'):
+            field.queryset = leader_qs
+
     def get_leader_name(self, obj):
         if not obj.leader:
             return ''
@@ -63,6 +81,16 @@ class FamilyPassportMemberSerializer(ScopedPrimaryCareSerializerMixin, serialize
         p = obj.population
         return f'{p.last_name} {p.first_name}'
 
+    def validate(self, attrs):
+        pop = attrs.get('population') or (self.instance.population if self.instance else None)
+        if pop:
+            qs = FamilyPassportMember.objects.filter(population=pop)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError({'population': 'Bu fuqaro allaqachon boshqa oila pasportida'})
+        return attrs
+
 
 class FamilyPassportSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     members = FamilyPassportMemberSerializer(many=True, read_only=True)
@@ -81,6 +109,18 @@ class FamilyPassportSerializer(ScopedPrimaryCareSerializerMixin, serializers.Mod
             return ''
         h = obj.head
         return f'{h.last_name} {h.first_name}'
+
+    def create(self, validated_data):
+        from django.db import transaction
+        with transaction.atomic():
+            fam = super().create(validated_data)
+            if fam.head_id:
+                FamilyPassportMember.objects.get_or_create(
+                    family=fam,
+                    population_id=fam.head_id,
+                    defaults={'relation': 'head'},
+                )
+            return fam
 
 
 class PreventiveCheckupSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
@@ -179,6 +219,21 @@ class ScreeningEnrollmentSerializer(ScopedPrimaryCareSerializerMixin, serializer
     def get_program_name(self, obj):
         return obj.program.name
 
+    def validate(self, attrs):
+        status = attrs.get('status') or (self.instance.status if self.instance else '')
+        if status == 'excluded':
+            reason = attrs.get('exclude_reason')
+            if reason is None and self.instance:
+                reason = self.instance.exclude_reason
+            if not str(reason or '').strip():
+                raise serializers.ValidationError({'exclude_reason': 'Chiqarish sababi kiritilishi shart'})
+        return attrs
+
+    def update(self, instance, validated_data):
+        obj = super().update(instance, validated_data)
+        after_primary_care_activity(obj.population, obj.brigade)
+        return obj
+
 
 class ScreeningResultWriteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -214,7 +269,7 @@ class PatronageVisitSerializer(ScopedPrimaryCareSerializerMixin, serializers.Mod
         return obj
 
 
-class NetworkPlanSerializer(serializers.ModelSerializer):
+class NetworkPlanSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
     brigade_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -228,6 +283,24 @@ class NetworkPlanSerializer(serializers.ModelSerializer):
 
     def get_brigade_name(self, obj):
         return obj.brigade.name if obj.brigade else ''
+
+    def validate(self, attrs):
+        brigade = attrs.get('brigade') or (self.instance.brigade if self.instance else None)
+        plan_level = attrs.get('plan_level') or (self.instance.plan_level if self.instance else 'annual')
+        year = attrs.get('year') or (self.instance.year if self.instance else None)
+        month = attrs.get('month') if 'month' in attrs else (self.instance.month if self.instance else None)
+        week_number = attrs.get('week_number') if 'week_number' in attrs else (self.instance.week_number if self.instance else None)
+        if brigade and year and not self.instance:
+            dup = NetworkPlan.objects.filter(
+                brigade=brigade,
+                plan_level=plan_level,
+                year=year,
+                month=month,
+                week_number=week_number,
+            ).exists()
+            if dup:
+                raise serializers.ValidationError('Bunday tarmoq rejasi allaqachon mavjud')
+        return attrs
 
 
 class DispensaryRecordSerializer(ScopedPrimaryCareSerializerMixin, serializers.ModelSerializer):
@@ -266,12 +339,15 @@ class DispensaryRecordSerializer(ScopedPrimaryCareSerializerMixin, serializers.M
         pop.risk_chronic = True
         pop.save(update_fields=['dispensary_registered', 'risk_chronic', 'updated_at'])
         enroll_screening_for_population(pop)
+        after_primary_care_activity(pop, obj.brigade)
         return obj
 
     def update(self, instance, validated_data):
         if 'form30_data' in validated_data:
             validated_data['form30_data'] = validate_form30_data(validated_data['form30_data'])
-        return super().update(instance, validated_data)
+        obj = super().update(instance, validated_data)
+        after_primary_care_activity(obj.population, obj.brigade)
+        return obj
 
 
 class PopulationPrimaryCareSerializer(serializers.ModelSerializer):

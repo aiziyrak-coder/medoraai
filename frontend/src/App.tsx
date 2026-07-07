@@ -51,6 +51,7 @@ import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
 import RegistrarApp from './components/registrar/RegistrarApp';
 import PrimaryCareHub from './components/primarycare/PrimaryCareHub';
+const PatientDossierPage = lazy(() => import('./components/PatientDossierPage'));
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
 const CaseLibraryView = lazy(() => import('./components/CaseLibraryView'));
@@ -1092,6 +1093,7 @@ const AppContent: React.FC = () => {
                             onOpenPrescriptionAudit={() => setAppView('prescription_audit')}
                             onOpenTools={() => setAppView('tools')}
                             onOpenPopulation={() => setAppView('primary_care')}
+                            onOpenPatientDossier={() => setAppView('patient_dossier')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
                             onSelectAnalysis={viewHistoryItem}
@@ -1259,6 +1261,18 @@ const AppContent: React.FC = () => {
                         <BackBar title={t('pc_title')} subtitle={t('pc_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <PrimaryCareHub initialProfileId={pcProfileId} onProfileConsumed={() => setPcProfileId(null)} />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'patient_dossier':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('dossier_title')} subtitle={t('dossier_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <Suspense fallback={<div className="flex items-center justify-center p-8 text-text-secondary">{t('loading_text')}</div>}>
+                                <PatientDossierPage />
+                            </Suspense>
                         </ScrollWrapper>
                     </div>
                 );

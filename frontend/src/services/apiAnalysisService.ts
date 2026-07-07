@@ -43,7 +43,7 @@ const planItemToStr = (item: unknown): string => {
   return String(item ?? '');
 };
 
-const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
+export const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
   const fr = (api.final_report || {}) as Record<string, unknown>;
   const a = api as ApiAnalysisRecord & { patient_id?: string; patient?: number | { id?: number } };
   const patientId = a.patient_id ?? (typeof a.patient === 'object' && a.patient?.id != null ? String(a.patient.id) : String(a.patient ?? ''));

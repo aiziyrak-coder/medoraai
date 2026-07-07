@@ -1,12 +1,15 @@
 """SSV 210-buyruq biznes logikasi — chuqur integratsiya."""
 from __future__ import annotations
 
+import io
 import re
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Count, Q
 from django.utils import timezone
+from openpyxl import Workbook
+from openpyxl.styles import Font
 
 from .form30_schema import form30_from_checkup, normalize_form30_data, validate_form30_data
 from .models import PopulationRecord
@@ -166,7 +169,7 @@ def assign_brigade_for_population(pop: PopulationRecord, *, user=None) -> Medica
     elif user and getattr(user, 'clinic_group_id', None):
         cg_id = user.clinic_group_id
     if cg_id:
-        qs = qs.filter(Q(clinic_group_id=cg_id) | Q(clinic_group__isnull=True))
+        qs = qs.filter(clinic_group_id=cg_id)
     if pop.region_id:
         qs = qs.filter(region_id=pop.region_id)
     if pop.district_id:
@@ -196,11 +199,14 @@ def enroll_screening_for_population(pop: PopulationRecord) -> int:
     ensure_default_screening_programs()
     created = 0
     for prog in eligible_programs_for_population(pop):
-        _, was_created = ScreeningEnrollment.objects.get_or_create(
+        enrollment, was_created = ScreeningEnrollment.objects.get_or_create(
             population=pop,
             program=prog,
             defaults={'status': 'planned', 'brigade': pop.brigade, 'planned_date': timezone.now().date()},
         )
+        if not was_created and pop.brigade_id and enrollment.brigade_id != pop.brigade_id:
+            enrollment.brigade = pop.brigade
+            enrollment.save(update_fields=['brigade', 'updated_at'])
         if was_created:
             created += 1
     return created
@@ -230,6 +236,11 @@ def on_population_saved(pop: PopulationRecord, *, is_new: bool = False, user=Non
     )
     compute_initial_checkup_schedule(pop)
     screening_created = enroll_screening_for_population(pop)
+    if pop.brigade_id:
+        ScreeningEnrollment.objects.filter(population=pop).exclude(brigade_id=pop.brigade_id).update(
+            brigade_id=pop.brigade_id,
+            updated_at=timezone.now(),
+        )
     if brigade:
         sync_network_plan_completed(brigade)
     return {
@@ -363,6 +374,7 @@ def ensure_brigade_network_plans(brigade: MedicalBrigade, year: int | None = Non
         'checkups': max(checkup_target, assigned),
         'patronage': max(assigned // 10, pop_patronage_target(brigade)),
         'screening': ScreeningEnrollment.objects.filter(brigade=brigade, status__in=['planned', 'invited']).count(),
+        'dispensary_visits': DispensaryRecord.objects.filter(brigade=brigade, is_active=True).count(),
         **age_buckets,
     }
     plan, created = NetworkPlan.objects.get_or_create(
@@ -376,6 +388,47 @@ def ensure_brigade_network_plans(brigade: MedicalBrigade, year: int | None = Non
     if not created:
         plan.targets = {**plan.targets, **targets}
         plan.save(update_fields=['targets', 'updated_at'])
+    m = timezone.now().month
+    monthly_targets = {
+        'population': max(assigned // 12, 1),
+        'checkups': max(targets['checkups'] // 12, 1),
+        'patronage': max(targets['patronage'] // 12, 1),
+        'screening': max(targets['screening'] // 12, 1),
+        'dispensary_visits': max(targets.get('dispensary_visits', assigned // 20) // 12, 1),
+        **{k: max(v // 12, 0) for k, v in age_buckets.items()},
+    }
+    monthly_plan, monthly_created = NetworkPlan.objects.get_or_create(
+        brigade=brigade,
+        plan_level='monthly',
+        year=y,
+        month=m,
+        week_number=None,
+        defaults={
+            'title': f'{y} yil {m}-oy tarmoq rejasi',
+            'targets': monthly_targets,
+            'completed': {},
+        },
+    )
+    if not monthly_created:
+        monthly_plan.targets = {**monthly_plan.targets, **monthly_targets}
+        monthly_plan.save(update_fields=['targets', 'updated_at'])
+    week = timezone.now().isocalendar()[1]
+    weekly_targets = {k: max(v // 4, 1) if isinstance(v, int) else 1 for k, v in monthly_targets.items()}
+    weekly_plan, weekly_created = NetworkPlan.objects.get_or_create(
+        brigade=brigade,
+        plan_level='weekly',
+        year=y,
+        month=None,
+        week_number=week,
+        defaults={
+            'title': f'{y} yil {week}-hafta tarmoq rejasi',
+            'targets': weekly_targets,
+            'completed': {},
+        },
+    )
+    if not weekly_created:
+        weekly_plan.targets = {**weekly_plan.targets, **weekly_targets}
+        weekly_plan.save(update_fields=['targets', 'updated_at'])
     sync_network_plan_completed(brigade, year=y)
     return plan
 
@@ -483,8 +536,10 @@ def build_population_primary_care_profile(pop_id: int) -> dict | None:
     dispensary = DispensaryRecord.objects.filter(population=pop).select_related('brigade').order_by('-registered_date')
     family_memberships = FamilyPassportMember.objects.filter(population=pop).select_related('family')
     families = []
+    seen_family_ids: set[int] = set()
     for fm in family_memberships:
         fam = fm.family
+        seen_family_ids.add(fam.id)
         members = [
             {
                 'population_id': m.population_id,
@@ -497,6 +552,27 @@ def build_population_primary_care_profile(pop_id: int) -> dict | None:
             'id': fam.id,
             'passport_number': fam.passport_number,
             'relation': fm.relation,
+            'members': members,
+        })
+    for fam in FamilyPassport.objects.filter(head=pop).exclude(pk__in=seen_family_ids).prefetch_related('members__population'):
+        members = [
+            {
+                'population_id': m.population_id,
+                'name': f'{m.population.last_name} {m.population.first_name}',
+                'relation': m.relation,
+            }
+            for m in fam.members.all()
+        ]
+        if not any(m['population_id'] == pop.id for m in members):
+            members.insert(0, {
+                'population_id': pop.id,
+                'name': f'{pop.last_name} {pop.first_name}',
+                'relation': 'head',
+            })
+        families.append({
+            'id': fam.id,
+            'passport_number': fam.passport_number,
+            'relation': 'head',
             'members': members,
         })
 
@@ -630,6 +706,19 @@ def setup_primary_care_system(user=None) -> dict:
         )
         ensure_brigade_network_plans(created_brigade)
 
+    cg_id = getattr(user, 'clinic_group_id', None) if user else None
+    if cg_id and user:
+        from .primary_care_access import population_for_user
+        orphan_ids = (
+            population_for_user(user)
+            .filter(brigade__clinic_group__isnull=True)
+            .exclude(brigade__isnull=True)
+            .values_list('brigade_id', flat=True)
+            .distinct()
+        )
+        if orphan_ids:
+            MedicalBrigade.objects.filter(pk__in=orphan_ids, clinic_group__isnull=True).update(clinic_group_id=cg_id)
+
     population_synced = 0
     pop_qs = PopulationRecord.objects.all()
     if user:
@@ -689,6 +778,12 @@ def primary_care_workflow_guide() -> list[dict]:
             'description': 'Yillik/oylik reja — ko\'riklar, patronaj, skrining bajarilishi avtomatik hisoblanadi.',
             'action': 'plans',
         },
+        {
+            'step': 7,
+            'title': 'Oila pasporti',
+            'description': 'Oila a\'zolarini biriktirish, oilaviy tibbiy xizmat va ijtimoiy xavf nazorati.',
+            'action': 'family',
+        },
     ]
 
 
@@ -726,12 +821,17 @@ def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brig
     )
     dispensary_active = DispensaryRecord.objects.filter(population_id__in=pop_ids, is_active=True)
 
-    health_groups = (
-        pop_qs.exclude(health_group='')
+    health_groups = [
+        {
+            'health_group': row['health_group'],
+            'health_group_label': HEALTH_GROUP_LABELS.get(row['health_group'], row['health_group'] or '—'),
+            'count': row['count'],
+        }
+        for row in pop_qs.exclude(health_group='')
         .values('health_group')
         .annotate(count=Count('id'))
         .order_by('health_group')
-    )
+    ]
     overdue = pop_qs.filter(next_checkup_date__lt=today).exclude(next_checkup_date__isnull=True).count()
 
     brigade_stats = []
@@ -775,7 +875,7 @@ def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brig
         'dispensary_active': dispensary_active.count(),
         'overdue_checkups': overdue,
         'overdue_population': overdue_list,
-        'health_groups': list(health_groups),
+        'health_groups': health_groups,
         'risk_groups': {
             'pregnant': pop_qs.filter(risk_pregnant=True).count(),
             'disabled': pop_qs.filter(risk_disabled=True).count(),
@@ -787,3 +887,53 @@ def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brig
         'brigades': brigade_stats,
         'generated_at': timezone.now().isoformat(),
     }
+
+
+def export_primary_care_report_excel(*, user=None, region_id: str = '', district_id: str = '', brigade_id: int | None = None) -> bytes:
+    """210-buyruq bo'yicha umumiy hisobot (Excel)."""
+    stats = build_primary_care_stats(
+        region_id=region_id,
+        district_id=district_id,
+        brigade_id=brigade_id,
+        user=user,
+    )
+    wb = Workbook()
+    ws = wb.active
+    ws.title = '210 hisobot'
+    header_font = Font(bold=True)
+    rows = [
+        ('Ko\'rsatkich', 'Qiymat'),
+        ('Aholi bazasi', stats['population_total']),
+        ('Brigadaga biriktirilgan', stats['with_brigade']),
+        ('Ko\'riklar (yil)', stats['checkups_ytd']),
+        ('Patronaj (yil)', stats['patronage_visits_ytd']),
+        ('Skrining bajarilgan', stats['screening_completed']),
+        ('Skrining rejada', stats['screening_planned']),
+        ('Dispanser faol', stats['dispensary_active']),
+        ('Muddat o\'tgan ko\'rik', stats['overdue_checkups']),
+    ]
+    for i, (label, val) in enumerate(rows, start=1):
+        c1 = ws.cell(row=i, column=1, value=label)
+        c2 = ws.cell(row=i, column=2, value=val)
+        if i == 1:
+            c1.font = header_font
+            c2.font = header_font
+    start = len(rows) + 2
+    ws.cell(row=start, column=1, value='Sog\'liq guruhi').font = header_font
+    ws.cell(row=start, column=2, value='Soni').font = header_font
+    for j, hg in enumerate(stats.get('health_groups', []), start=start + 1):
+        ws.cell(row=j, column=1, value=hg.get('health_group_label') or hg.get('health_group', ''))
+        ws.cell(row=j, column=2, value=hg.get('count', 0))
+    bstart = start + len(stats.get('health_groups', [])) + 2
+    ws.cell(row=bstart, column=1, value='Brigada').font = header_font
+    ws.cell(row=bstart, column=2, value='Biriktirilgan').font = header_font
+    ws.cell(row=bstart, column=3, value='Maqsad').font = header_font
+    ws.cell(row=bstart, column=4, value='Reja %').font = header_font
+    for j, b in enumerate(stats.get('brigades', []), start=bstart + 1):
+        ws.cell(row=j, column=1, value=b.get('name', ''))
+        ws.cell(row=j, column=2, value=b.get('assigned_population', 0))
+        ws.cell(row=j, column=3, value=b.get('target', 0))
+        ws.cell(row=j, column=4, value=b.get('plan_completion_pct', 0))
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

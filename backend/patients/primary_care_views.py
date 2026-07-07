@@ -1,4 +1,6 @@
 """SSV 210-buyruq API views."""
+from django.db.models import Q
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -48,6 +50,7 @@ from .primary_care_service import (
     enroll_screening_for_population,
     ensure_brigade_network_plans,
     ensure_default_screening_programs,
+    export_primary_care_report_excel,
     primary_care_workflow_guide,
     record_screening_result,
     setup_primary_care_system,
@@ -77,6 +80,40 @@ class MedicalBrigadeViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
         brigade = serializer.save(**extra)
         ensure_brigade_network_plans(brigade)
 
+    def perform_update(self, serializer):
+        extra = {}
+        if not serializer.instance.clinic_group_id:
+            cg_id = getattr(self.request.user, 'clinic_group_id', None)
+            if cg_id:
+                extra['clinic_group_id'] = cg_id
+        brigade = serializer.save(**extra)
+        ensure_brigade_network_plans(brigade)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='staff-options',
+        permission_classes=[IsAuthenticated, DenyRegionalStatsWrite],
+    )
+    def staff_options(self, request):
+        from django.contrib.auth import get_user_model
+        from .primary_care_access import user_clinic_group_id
+        User = get_user_model()
+        cg = user_clinic_group_id(request.user)
+        qs = User.objects.filter(is_active=True)
+        if cg:
+            qs = qs.filter(clinic_group_id=cg)
+        elif not request.user.is_superuser:
+            qs = qs.filter(pk=request.user.pk)
+        data = [
+            {
+                'id': u.id,
+                'name': (getattr(u, 'name', None) or getattr(u, 'phone', '') or str(u.pk)).strip(),
+            }
+            for u in qs.order_by('name', 'phone')[:100]
+        ]
+        return Response({'success': True, 'data': data})
+
 
 class FamilyPassportViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
     serializer_class = FamilyPassportSerializer
@@ -86,6 +123,42 @@ class FamilyPassportViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         return family_passports_for_user(self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='join')
+    def join(self, request):
+        passport_number = (request.data.get('passport_number') or '').strip()
+        population_id = request.data.get('population_id')
+        relation = (request.data.get('relation') or 'other').strip()
+        if not passport_number or not population_id:
+            return Response(
+                {'success': False, 'error': {'message': 'passport_number va population_id kerak'}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        pop = population_for_user(request.user).filter(pk=population_id).first()
+        if not pop:
+            return Response({'success': False, 'error': {'message': 'Aholi topilmadi'}}, status=status.HTTP_404_NOT_FOUND)
+        fam = family_passports_for_user(request.user).filter(passport_number__iexact=passport_number).first()
+        if not fam:
+            return Response({'success': False, 'error': {'message': 'Oila pasporti topilmadi'}}, status=status.HTTP_404_NOT_FOUND)
+        if FamilyPassportMember.objects.filter(population=pop).exists():
+            return Response(
+                {'success': False, 'error': {'message': 'Bu fuqaro allaqachon boshqa oila pasportida'}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        member = FamilyPassportMember.objects.create(family=fam, population=pop, relation=relation)
+        if relation == 'head':
+            fam.head = pop
+            fam.save(update_fields=['head', 'updated_at'])
+            FamilyPassportMember.objects.filter(family=fam, relation='head').exclude(pk=member.pk).update(
+                relation='other',
+            )
+        return Response({
+            'success': True,
+            'data': {
+                'family': FamilyPassportSerializer(fam).data,
+                'member': FamilyPassportMemberSerializer(member).data,
+            },
+        })
 
 
 class FamilyPassportMemberViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
@@ -128,11 +201,16 @@ class ScreeningProgramViewSet(_PrimaryCareMixin, viewsets.ReadOnlyModelViewSet):
 
 class ScreeningEnrollmentViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
     serializer_class = ScreeningEnrollmentSerializer
-    filterset_fields = ['population', 'program', 'brigade', 'status']
+    filterset_fields = ['population', 'program', 'status']
     ordering = ['-planned_date']
 
     def get_queryset(self):
-        return screening_enrollments_for_user(self.request.user)
+        qs = screening_enrollments_for_user(self.request.user)
+        brigade = self.request.query_params.get('brigade')
+        if brigade and str(brigade).isdigit():
+            bid = int(brigade)
+            qs = qs.filter(Q(brigade_id=bid) | Q(population__brigade_id=bid))
+        return qs
 
     @action(detail=False, methods=['post'], url_path='auto-enroll')
     def auto_enroll(self, request):
@@ -178,9 +256,14 @@ class NetworkPlanViewSet(_PrimaryCareMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         return network_plans_for_user(self.request.user)
 
+    def perform_create(self, serializer):
+        plan = serializer.save()
+        sync_network_plan_completed(plan.brigade, year=plan.year)
+
     @action(detail=True, methods=['post'], url_path='refresh-completed')
     def refresh_completed(self, request, pk=None):
         plan = self.get_object()
+        ensure_brigade_network_plans(plan.brigade, year=plan.year)
         completed = sync_network_plan_completed(plan.brigade, year=plan.year)
         plan.refresh_from_db()
         return Response({
@@ -244,3 +327,22 @@ class PrimaryCareStatsViewSet(_PrimaryCareMixin, viewsets.ViewSet):
             qs = qs.filter(district_id=district_id)
         ser = PopulationPrimaryCareSerializer(qs, many=True)
         return Response({'success': True, 'data': ser.data})
+
+    @action(detail=False, methods=['get'], url_path='export-report')
+    def export_report(self, request):
+        region_id = request.query_params.get('region_id', '')
+        district_id = request.query_params.get('district_id', '')
+        brigade_id = request.query_params.get('brigade_id')
+        bid = int(brigade_id) if brigade_id and str(brigade_id).isdigit() else None
+        content = export_primary_care_report_excel(
+            user=request.user,
+            region_id=region_id,
+            district_id=district_id,
+            brigade_id=bid,
+        )
+        response = HttpResponse(
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="210_hisobot.xlsx"'
+        return response

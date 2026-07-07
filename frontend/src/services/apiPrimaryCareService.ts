@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch, apiDelete, type ApiResponse } from './api';
+import { apiGet, apiPost, apiPatch, apiDelete, getAuthToken, getOrCreateDeviceId, API_BASE_URL, type ApiResponse } from './api';
 
 export interface MedicalBrigade {
   id: number;
@@ -144,7 +144,7 @@ export interface PrimaryCareStats {
   overdue_population?: Array<{
     id: number; last_name: string; first_name: string; registry_number: string; next_checkup_date: string;
   }>;
-  health_groups: Array<{ health_group: string; count: number }>;
+  health_groups: Array<{ health_group: string; health_group_label?: string; count: number }>;
   risk_groups: Record<string, number>;
   brigades: Array<{
     id: number; name: string; assigned_population: number; target: number;
@@ -179,8 +179,13 @@ function unwrapOne<T>(res: ApiResponse<T | { data?: T }>): ApiResponse<T> {
 
 const BASE = '/patients/primary-care';
 
-export const getPrimaryCareStats = async (params?: { region_id?: string; district_id?: string; brigade_id?: number }) =>
-  unwrapOne<PrimaryCareStats>(await apiGet(`${BASE}/stats/overview/`, params as Record<string, string> | undefined));
+export const getPrimaryCareStats = async (params?: { region_id?: string; district_id?: string; brigade_id?: number }) => {
+  const q: Record<string, string> = {};
+  if (params?.region_id) q.region_id = params.region_id;
+  if (params?.district_id) q.district_id = params.district_id;
+  if (params?.brigade_id) q.brigade_id = String(params.brigade_id);
+  return unwrapOne<PrimaryCareStats>(await apiGet(`${BASE}/stats/overview/`, Object.keys(q).length ? q : undefined));
+};
 
 export const setupPrimaryCare = async () =>
   unwrapOne<{
@@ -195,6 +200,9 @@ export const setupPrimaryCare = async () =>
 export const listBrigades = async () =>
   unwrapList<MedicalBrigade>(await apiGet(`${BASE}/brigades/`));
 
+export const listBrigadeStaffOptions = async () =>
+  unwrapList<{ id: number; name: string }>(await apiGet(`${BASE}/brigades/staff-options/`));
+
 export const createBrigade = async (payload: Partial<MedicalBrigade>) =>
   unwrapOne(await apiPost<MedicalBrigade>(`${BASE}/brigades/`, payload));
 
@@ -203,8 +211,12 @@ export const updateBrigade = async (id: number, payload: Partial<MedicalBrigade>
 
 export const deleteBrigade = async (id: number) => apiDelete(`${BASE}/brigades/${id}/`);
 
-export const listCheckups = async (params?: { population?: number }) =>
-  unwrapList<PreventiveCheckup>(await apiGet(`${BASE}/checkups/`, params));
+export const listCheckups = async (params?: { population?: number; brigade?: number }) => {
+  const q: Record<string, string> = {};
+  if (params?.population) q.population = String(params.population);
+  if (params?.brigade) q.brigade = String(params.brigade);
+  return unwrapList<PreventiveCheckup>(await apiGet(`${BASE}/checkups/`, Object.keys(q).length ? q : undefined));
+};
 
 export const createCheckup = async (payload: Partial<PreventiveCheckup>) =>
   unwrapOne(await apiPost<PreventiveCheckup>(`${BASE}/checkups/`, payload));
@@ -217,8 +229,16 @@ export const listScreeningPrograms = async () =>
 export const seedScreeningPrograms = async () =>
   apiPost(`${BASE}/screening-programs/seed-defaults/`, {});
 
-export const listScreeningEnrollments = async (params?: { population?: number }) =>
-  unwrapList<ScreeningEnrollment>(await apiGet(`${BASE}/screening-enrollments/`, params));
+export const listScreeningEnrollments = async (params?: { population?: number; brigade?: number; status?: string }) => {
+  const q: Record<string, string> = {};
+  if (params?.population) q.population = String(params.population);
+  if (params?.brigade) q.brigade = String(params.brigade);
+  if (params?.status) q.status = params.status;
+  return unwrapList<ScreeningEnrollment>(await apiGet(`${BASE}/screening-enrollments/`, Object.keys(q).length ? q : undefined));
+};
+
+export const updateScreeningEnrollment = async (id: number, payload: Partial<ScreeningEnrollment>) =>
+  unwrapOne(await apiPatch<ScreeningEnrollment>(`${BASE}/screening-enrollments/${id}/`, payload));
 
 export const recordScreeningResult = async (enrollmentId: number, payload: Partial<ScreeningResult>) =>
   unwrapOne(await apiPost<{ data?: ScreeningResult; enrollment?: ScreeningEnrollment }>(
@@ -237,8 +257,12 @@ export const autoEnrollScreening = async (populationId: number) =>
     ),
   );
 
-export const listPatronage = async (params?: { population?: number }) =>
-  unwrapList<PatronageVisit>(await apiGet(`${BASE}/patronage/`, params));
+export const listPatronage = async (params?: { population?: number; brigade?: number }) => {
+  const q: Record<string, string> = {};
+  if (params?.population) q.population = String(params.population);
+  if (params?.brigade) q.brigade = String(params.brigade);
+  return unwrapList<PatronageVisit>(await apiGet(`${BASE}/patronage/`, Object.keys(q).length ? q : undefined));
+};
 
 export const listPatronageVisits = listPatronage;
 
@@ -258,8 +282,13 @@ export const deleteNetworkPlan = async (id: number) => apiDelete(`${BASE}/networ
 export const refreshNetworkPlan = async (id: number) =>
   unwrapOne(await apiPost<NetworkPlan>(`${BASE}/network-plans/${id}/refresh-completed/`, {}));
 
-export const listDispensary = async (params?: { population?: number }) =>
-  unwrapList<DispensaryRecord>(await apiGet(`${BASE}/dispensary/`, params));
+export const listDispensary = async (params?: { population?: number; brigade?: number; is_active?: boolean | string }) => {
+  const q: Record<string, string> = {};
+  if (params?.population) q.population = String(params.population);
+  if (params?.brigade) q.brigade = String(params.brigade);
+  if (params?.is_active !== undefined) q.is_active = String(params.is_active);
+  return unwrapList<DispensaryRecord>(await apiGet(`${BASE}/dispensary/`, Object.keys(q).length ? q : undefined));
+};
 
 export const createDispensary = async (payload: Partial<DispensaryRecord>) =>
   unwrapOne(await apiPost<DispensaryRecord>(`${BASE}/dispensary/`, payload));
@@ -281,6 +310,59 @@ export const updateDispensary = async (id: number, payload: Partial<DispensaryRe
   unwrapOne(await apiPatch<DispensaryRecord>(`${BASE}/dispensary/${id}/`, payload));
 
 export const deleteFamilyPassport = async (id: number) => apiDelete(`${BASE}/family-passports/${id}/`);
+
+export const exportPrimaryCareReport = async (params?: { brigade_id?: number }): Promise<void> => {
+  const token = getAuthToken();
+  const deviceId = getOrCreateDeviceId();
+  const qs = new URLSearchParams();
+  if (params?.brigade_id) qs.set('brigade_id', String(params.brigade_id));
+  const endpoint = `${API_BASE_URL}${BASE}/stats/export-report/`;
+  const url = qs.toString() ? `${endpoint}?${qs.toString()}` : endpoint;
+  const res = await fetch(url, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
+    },
+  });
+  if (!res.ok) throw new Error('Hisobot yuklab olish muvaffaqiyatsiz');
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = '210_hisobot.xlsx';
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+};
+
+export const LOCATION_TYPES = [
+  { value: 'clinic', label: 'Poliklinika' },
+  { value: 'home', label: 'Uyda' },
+  { value: 'school', label: 'Maktab/MTT' },
+];
+
+export const joinFamilyPassport = async (payload: { passport_number: string; population_id: number; relation: string }) =>
+  unwrapOne(await apiPost<{ family: FamilyPassport; member: FamilyPassportMember }>(`${BASE}/family-passports/join/`, payload));
+
+export const healthGroupLabel = (code: string) =>
+  HEALTH_GROUPS.find((g) => g.value === code)?.label || code || '—';
+
+export const planMetricLabel = (key: string) => {
+  const map: Record<string, string> = {
+    checkups: 'Ko\'riklar',
+    patronage: 'Patronaj',
+    screening: 'Skrining',
+    dispensary_visits: 'Dispanser',
+  };
+  return map[key] || key;
+};
+
+export const FAMILY_RELATIONS = [
+  { value: 'head', label: 'Boshliq' },
+  { value: 'spouse', label: 'Turmush o\'rtog\'i' },
+  { value: 'child', label: 'Farzand' },
+  { value: 'parent', label: 'Ota-ona' },
+  { value: 'other', label: 'Boshqa' },
+];
 
 export const HEALTH_GROUPS = [
   { value: '1', label: 'I — Tayanch' },

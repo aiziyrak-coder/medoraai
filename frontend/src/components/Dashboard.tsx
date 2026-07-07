@@ -13,6 +13,7 @@ interface DashboardProps {
     onOpenPrescriptionAudit?: () => void;
     onOpenTools?: () => void;
     onOpenPopulation?: () => void;
+    onOpenPatientDossier?: () => void;
     recentAnalyses: AnalysisRecord[];
     allAnalyses: AnalysisRecord[];
     onSelectAnalysis: (record: AnalysisRecord) => void;
@@ -74,7 +75,7 @@ const glass: React.CSSProperties = {
 
 const Dashboard: React.FC<DashboardProps> = ({
     userName, onNewAnalysis, onViewHistory,
-    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools, onOpenPopulation,
+    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools, onOpenPopulation, onOpenPatientDossier,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t, language } = useTranslation();
@@ -342,6 +343,35 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     <p className="text-xs text-emerald-100/80 mt-0.5 line-clamp-2">{t('pc_subtitle')}</p>
                                 </div>
                                 <span className="text-emerald-300 text-sm font-bold hidden sm:inline">→</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {onOpenPatientDossier && (
+                        <div
+                            onClick={onOpenPatientDossier}
+                            className="relative overflow-hidden rounded-[20px] cursor-pointer"
+                            style={{
+                                background: 'linear-gradient(135deg, #0b1026 0%, #1e1b4b 55%, #312e81 100%)',
+                                border: '1px solid rgba(129,140,248,0.35)',
+                                minHeight: '120px',
+                                boxShadow: '0 0 28px rgba(99,102,241,0.12), 0 12px 32px rgba(0,0,0,0.18)',
+                            }}
+                        >
+                            <div className="absolute inset-0 hex-grid-bg opacity-40" aria-hidden="true" />
+                            <div className="relative z-10 p-5 flex items-center gap-4">
+                                <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+                                     style={{ background: 'rgba(129,140,248,0.15)', border: '1px solid rgba(129,140,248,0.45)' }}>
+                                    🗂️
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1 text-indigo-300">
+                                        {t('dossier_badge')}
+                                    </p>
+                                    <h3 className="text-base font-black text-white leading-tight">{t('dossier_dashboard_title')}</h3>
+                                    <p className="text-xs text-indigo-100/80 mt-0.5 line-clamp-2">{t('dossier_dashboard_desc')}</p>
+                                </div>
+                                <span className="text-indigo-300 text-sm font-bold hidden sm:inline">→</span>
                             </div>
                         </div>
                     )}

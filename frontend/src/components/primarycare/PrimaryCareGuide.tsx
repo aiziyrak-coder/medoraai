@@ -9,6 +9,7 @@ const MODULES = [
   { icon: '🏠', titleKey: 'pc_guide_mod_patronage', descKey: 'pc_guide_mod_patronage_desc' },
   { icon: '📋', titleKey: 'pc_guide_mod_dispensary', descKey: 'pc_guide_mod_dispensary_desc' },
   { icon: '📊', titleKey: 'pc_guide_mod_plan', descKey: 'pc_guide_mod_plan_desc' },
+  { icon: '👨‍👩‍👧', titleKey: 'pc_guide_mod_family', descKey: 'pc_guide_mod_family_desc' },
 ];
 
 interface WorkflowStep {

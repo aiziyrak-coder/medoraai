@@ -40,9 +40,13 @@ const emptyForm = () => ({
 
 interface PopulationPanelProps {
   onOpenProfile?: (id: number) => void;
+  brigadeFilter?: number;
+  brigades?: Array<{ id: number; name: string; code?: string; target_population_size?: number }>;
+  /** Hub ichida — brigada filtri yuqoridagi paneldan boshqariladi */
+  hubEmbedded?: boolean;
 }
 
-const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
+const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile, brigadeFilter, brigades: brigadesProp, hubEmbedded }) => {
   const { t } = useTranslation();
   const [form, setForm] = useState(emptyForm());
   const [search, setSearch] = useState('');
@@ -53,15 +57,30 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
+  const [filterBrigade, setFilterBrigade] = useState<string>(brigadeFilter ? String(brigadeFilter) : '');
+  const [filterHealthGroup, setFilterHealthGroup] = useState('');
+  const [filterChronic, setFilterChronic] = useState(false);
+  const [filterOverdue, setFilterOverdue] = useState(false);
   const [brigades, setBrigades] = useState<Array<{ id: number; name: string }>>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const effectiveBrigade = hubEmbedded
+    ? (brigadeFilter ? String(brigadeFilter) : '')
+    : filterBrigade;
 
   const loadList = useCallback(async (q?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await listPopulation({ search: q?.trim() || undefined, page_size: 100 });
+      const res = await listPopulation({
+        search: q?.trim() || undefined,
+        page_size: 100,
+        brigade: effectiveBrigade ? Number(effectiveBrigade) : undefined,
+        health_group: filterHealthGroup || undefined,
+        risk_chronic: filterChronic || undefined,
+        overdue: filterOverdue || undefined,
+      });
       if (res.success && res.data) {
         setRecords(res.data);
       } else {
@@ -71,19 +90,29 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, effectiveBrigade, filterHealthGroup, filterChronic, filterOverdue]);
 
   useEffect(() => {
+    if (hubEmbedded) {
+      setFilterBrigade(brigadeFilter ? String(brigadeFilter) : '');
+    }
+  }, [brigadeFilter, hubEmbedded]);
+
+  useEffect(() => {
+    if (brigadesProp?.length) {
+      setBrigades(brigadesProp.map((b) => ({ id: b.id, name: b.name })));
+      return;
+    }
     listBrigades().then((res) => {
       if (res.success && res.data) setBrigades(res.data.map((b) => ({ id: b.id, name: b.name })));
     });
-  }, []);
+  }, [brigadesProp]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => loadList(search), search ? 350 : 0);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, loadList]);
+  }, [search, loadList, effectiveBrigade, filterHealthGroup, filterChronic, filterOverdue]);
 
   const resetForm = () => {
     setForm(emptyForm());
@@ -260,8 +289,28 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile }) => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('population_search_placeholder')}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm mb-4"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm mb-2"
         />
+        <div className={`grid grid-cols-1 gap-2 mb-4 ${hubEmbedded ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
+          {!hubEmbedded && (
+            <select className="rounded-xl border border-slate-200 px-3 py-2 text-xs" value={filterBrigade} onChange={(e) => setFilterBrigade(e.target.value)}>
+              <option value="">{t('pc_all_brigades')}</option>
+              {brigades.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          )}
+          <select className="rounded-xl border border-slate-200 px-3 py-2 text-xs" value={filterHealthGroup} onChange={(e) => setFilterHealthGroup(e.target.value)}>
+            <option value="">{t('pc_health_group')}</option>
+            {HEALTH_GROUPS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+          </select>
+          <label className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl border border-slate-200">
+            <input type="checkbox" checked={filterChronic} onChange={(e) => setFilterChronic(e.target.checked)} />
+            {t('pc_risk_chronic')}
+          </label>
+          <label className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl border border-slate-200">
+            <input type="checkbox" checked={filterOverdue} onChange={(e) => setFilterOverdue(e.target.checked)} />
+            {t('population_filter_overdue')}
+          </label>
+        </div>
 
         {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
         {success && <p className="text-sm text-emerald-700 mb-3">{success}</p>}

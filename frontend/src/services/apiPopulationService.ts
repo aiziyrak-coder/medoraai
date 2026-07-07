@@ -79,11 +79,19 @@ export const listPopulation = async (params?: {
   search?: string;
   page?: number;
   page_size?: number;
+  brigade?: number;
+  health_group?: string;
+  risk_chronic?: boolean;
+  overdue?: boolean;
 }): Promise<ApiResponse<PopulationRecord[]>> => {
   const q: Record<string, string> = {};
   if (params?.search) q.search = params.search;
   if (params?.page) q.page = String(params.page);
   if (params?.page_size) q.page_size = String(params.page_size);
+  if (params?.brigade) q.brigade = String(params.brigade);
+  if (params?.health_group) q.health_group = params.health_group;
+  if (params?.risk_chronic) q.risk_chronic = 'true';
+  if (params?.overdue) q.overdue = 'true';
   return unwrapList(await apiGet<PopulationRecord[] | { results?: PopulationRecord[] }>('/patients/population/', q));
 };
 
@@ -167,7 +175,13 @@ export interface PopulationPrimaryCareProfile {
     risk_needs_care?: boolean;
   };
   checkups: Array<Record<string, unknown>>;
-  screening: Array<Record<string, unknown>>;
+  screening: Array<{
+    id: number;
+    program_name?: string;
+    status: string;
+    exclude_reason?: string;
+    result?: { result_status?: string };
+  }>;
   patronage: Array<Record<string, unknown>>;
   dispensary: Array<Record<string, unknown>>;
   families: Array<Record<string, unknown>>;

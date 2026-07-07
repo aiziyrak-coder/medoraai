@@ -1,4 +1,5 @@
 """Aholi bazasi API."""
+from django.db.models import Q
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
@@ -24,7 +25,10 @@ class PopulationViewSet(viewsets.ModelViewSet):
     queryset = PopulationRecord.objects.select_related('brigade').all()
     permission_classes = [IsAuthenticated, IsAuthenticatedWithSubscription, DenyRegionalStatsWrite]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['gender', 'region_id', 'district_id']
+    filterset_fields = [
+        'gender', 'region_id', 'district_id', 'health_group', 'brigade',
+        'risk_pregnant', 'risk_chronic', 'risk_disabled', 'dispensary_registered',
+    ]
     search_fields = [
         'first_name', 'last_name', 'father_name', 'phone',
         'registry_number', 'address', 'anamnesis',
@@ -39,7 +43,13 @@ class PopulationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         from .primary_care_access import population_for_user
-        return population_for_user(self.request.user)
+        qs = population_for_user(self.request.user)
+        overdue = (self.request.query_params.get('overdue') or '').lower()
+        if overdue in ('1', 'true', 'yes'):
+            from django.utils import timezone
+            today = timezone.now().date()
+            qs = qs.filter(next_checkup_date__isnull=False, next_checkup_date__lt=today)
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)

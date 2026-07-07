@@ -206,6 +206,9 @@ class PatientSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        # Bemor dosyesi (dossier): pasport ID kiritilganda barcha klinik ma'lumot ochiladi.
+        if self.context.get('force_clinical'):
+            return data
         request = self.context.get('request')
         if request and not user_can_view_clinical(request.user, instance):
             return strip_clinical_payload(data)

@@ -314,6 +314,117 @@ class PatientViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_404_NOT_FOUND)
         return Response({'success': True, 'data': self._passport_hit(patient, request.user)})
 
+    def _dossier_analysis(self, rec) -> dict:
+        """Konsilium yozuvi — frontend apiToAnalysisRecord kutgan shaklda (klinika guruhidan qat'i nazar)."""
+        cg = getattr(rec.created_by, 'clinic_group', None)
+        return {
+            'id': rec.id,
+            'patient_id': str(rec.patient_id or ''),
+            'patient_data': rec.patient_data if isinstance(rec.patient_data, dict) else {},
+            'debate_history': rec.debate_history if isinstance(rec.debate_history, list) else [],
+            'final_report': rec.final_report if isinstance(rec.final_report, dict) else {},
+            'follow_up_history': rec.follow_up_history if isinstance(rec.follow_up_history, list) else [],
+            'selected_specialists': rec.selected_specialists if isinstance(rec.selected_specialists, list) else [],
+            'detected_medications': rec.detected_medications if isinstance(rec.detected_medications, list) else [],
+            'physician': str(getattr(rec.created_by, 'name', '') or rec.created_by or ''),
+            'clinic_group': str(getattr(cg, 'name', '') or ''),
+            'created_at': rec.created_at.isoformat() if rec.created_at else '',
+            'updated_at': rec.updated_at.isoformat() if rec.updated_at else '',
+        }
+
+    @action(detail=False, methods=['get'], url_path='dossier')
+    def dossier(self, request):
+        """Bemor dosyesi — pasport ID (registry) bo'yicha BARCHA ma'lumot.
+
+        Har qanday klinika guruhiga tegishli shifokor pasport seriya raqamini kiritsa,
+        bemorning barcha konsiliumlari, tasvir tahlillari, yuklangan fayllari va
+        klinik ma'lumotlarini ko'ra oladi (klinika guruhi chegarasidan tashqari).
+        """
+        import logging
+        registry = (
+            request.query_params.get('registry')
+            or request.query_params.get('patient_id')
+            or request.query_params.get('q')
+            or ''
+        ).strip()
+        pk = (request.query_params.get('id') or '').strip()
+
+        patient = None
+        qs = self._global_patient_queryset()
+        if pk:
+            try:
+                patient = qs.get(pk=int(pk))
+            except (Patient.DoesNotExist, TypeError, ValueError):
+                patient = None
+        if patient is None and registry:
+            lookup = registry_number_lookup_q(registry)
+            if lookup is not None:
+                patient = qs.filter(lookup).order_by('-updated_at').first()
+            if patient is None:
+                patient = qs.filter(
+                    Q(registry_number__iexact=registry) | Q(phone=registry),
+                ).order_by('-updated_at').first()
+
+        if patient is None:
+            return Response({
+                'success': False,
+                'error': {'message': 'Bunday pasport ID bilan bemor topilmadi'},
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        ctx = self.get_serializer_context()
+        ctx['force_clinical'] = True
+
+        patient_data = PatientSerializer(patient, context=ctx).data
+
+        analyses_qs = (
+            AnalysisRecord.objects.filter(patient=patient)
+            .select_related('created_by', 'created_by__clinic_group')
+            .order_by('-created_at')
+        )
+        analyses = [self._dossier_analysis(rec) for rec in analyses_qs]
+
+        imaging_qs = (
+            ImagingStudyRecord.objects.filter(patient=patient)
+            .select_related('created_by')
+            .order_by('-created_at')
+        )
+        imaging = ImagingStudyRecordSerializer(imaging_qs, many=True, context=ctx).data
+
+        attachments = PatientAttachmentSerializer(
+            patient.attachments.all().order_by('-uploaded_at'), many=True, context=ctx,
+        ).data
+
+        home_cg = getattr(patient, 'home_clinic_group', None)
+
+        # Klinika guruhlararo kirishni audit uchun jurnalga yozamiz (maxfiylik).
+        try:
+            logging.getLogger(__name__).info(
+                'DOSSIER access: user=%s (clinic=%s) -> patient=%s (registry=%s, home_clinic=%s)',
+                getattr(request.user, 'id', '?'),
+                getattr(request.user, 'clinic_group_id', None),
+                patient.id, patient.registry_number,
+                getattr(home_cg, 'id', None),
+            )
+        except Exception:
+            pass
+
+        return Response({
+            'success': True,
+            'data': {
+                'patient': patient_data,
+                'analyses': analyses,
+                'imaging_studies': imaging,
+                'attachments': attachments,
+                'meta': {
+                    'analysis_count': len(analyses),
+                    'imaging_count': len(imaging),
+                    'attachment_count': len(attachments),
+                    'home_clinic_group': str(getattr(home_cg, 'name', '') or ''),
+                    'registered_by': str(getattr(patient.created_by, 'name', '') or patient.created_by or ''),
+                },
+            },
+        })
+
     @action(detail=False, methods=['get'], url_path='smart-search')
     def smart_search(self, request):
         """Aqlli qidiruv — barcha klinikalardan (registrator bemorlari ham), guruhsiz."""
