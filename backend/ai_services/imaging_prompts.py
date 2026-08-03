@@ -4,11 +4,11 @@ Tasvir tahlili uchun umumiy til qoidalari va prompt bloklari (UZI/UTT/rentgen/KT
 from __future__ import annotations
 
 LANG_LABELS = {
-    "uz-L": "O'zbek (lotin)",
-    "uz-C": "O'zbek (kirill)",
-    "ru": "Rus",
-    "en": "Ingliz",
-    "kaa": "Qoraqalpoq",
+    "uz-L": "Uzbek Latin (O'zbek lotin)",
+    "uz-C": "Uzbek Cyrillic (O'zbek kirill)",
+    "ru": "Russian (Русский)",
+    "en": "English",
+    "kaa": "Karakalpak Latin (Qaraqalpaqsha)",
 }
 
 
@@ -24,6 +24,11 @@ def vision_system_prompt(language: str) -> str:
             "You are a subspecialty radiologist. All narrative JSON fields MUST be in English. "
             "Be systematic, evidence-based, and never use generic templates without verifying each structure."
         )
+    if language == "ru":
+        return (
+            "Вы — профильный врач-рентгенолог. ВСЕ текстовые поля JSON ДОЛЖНЫ быть на русском языке. "
+            "Будьте систематичны и доказательны; не используйте шаблоны без проверки каждой структуры."
+        )
     return (
         f"Siz yuqori malakali radiologsiz. BARCHA JSON matn maydonlari FAQAT {lang} tilida yoziladi. "
         f"urgencyLevel dan boshqa hech qanday maydon inglizcha YO'Q. "
@@ -38,6 +43,11 @@ def language_rule_block(language: str) -> str:
         return (
             "LANGUAGE: Every string field in JSON MUST be in English (clinical register). "
             "urgencyLevel enum only: routine|soon|urgent|emergent."
+        )
+    if language == "ru":
+        return (
+            "ЯЗЫК: Каждое строковое поле JSON ДОЛЖНО быть на русском (клинический стиль). "
+            "urgencyLevel только: routine|soon|urgent|emergent."
         )
     return (
         f"TIL (MAJBURIY): studyType, regionOrOrgan, techniqueNotes, keyFindings[], measurements, "

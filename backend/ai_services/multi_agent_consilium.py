@@ -155,12 +155,12 @@ def _chat(deployment: str, system_msg: str, user_msg: str,
 def _moderator_intro(patient_text: str, language_hint: str) -> str:
     system = (
         "Siz tibbiy kengash raisisiz. Kengashni rasmiy oching va klinik holatni barcha "
-        "a'zolarga qisqacha taqdim eting. O'zbek tilida (Lotin) yozing."
+        f"a'zolarga qisqacha taqdim eting. OUTPUT LANGUAGE: {language_hint} only."
     )
     user = (
         f"Klinik holat:\n{patient_text}\n\n"
         f"Iltimos kengashni oching va barcha professorlarga bu holatni taqdim eting. "
-        f"Til: {language_hint}."
+        f"Til: {language_hint}. All visible text MUST be in {language_hint}."
     )
     return _chat(DEPLOY_GPT4O(), system, user, max_tokens=600)
 
@@ -181,6 +181,7 @@ def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: s
     )
     user = (
         f"Bemor:\n{patient_text}\n\n"
+        f"OUTPUT LANGUAGE: {language_hint}. All JSON string fields in {language_hint}.\n"
         '{"primary_diagnosis": "...", "probability": 92, '
         '"reasoning_chain": ["Fakt + (SSV protokoli, https://lex.uz/...)", "Keyingi fakt + (PubMed, https://pubmed.ncbi.nlm.nih.gov/...)"], '
         '"supporting_evidence": ["Vital: AB 120/80", "(Manba, https://...)"], '
@@ -434,13 +435,22 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
     global patient_data_context
 
     lang_map = {
-        "uz-L": "O'zbek (Lotin)",
-        "uz-C": "O'zbek (Kirill)",
-        "kaa": "Qoraqolpoq",
-        "ru": "Ruscha",
-        "en": "Inglizcha",
+        "uz-L": "Uzbek Latin (O'zbek lotin)",
+        "uz-C": "Uzbek Cyrillic (O'zbek kirill)",
+        "kaa": "Karakalpak Latin (Qaraqalpaqsha)",
+        "ru": "Russian (Русский)",
+        "en": "English",
     }
-    language_hint = lang_map.get(language, "O'zbek (Lotin)")
+    try:
+        from .debate_format import normalize_language, output_language_rule, language_user_suffix
+        language = normalize_language(language)
+        language_hint = lang_map.get(language, lang_map["uz-L"])
+        _lang_rule = output_language_rule(language)
+        _lang_suffix = language_user_suffix(language)
+    except Exception:
+        language_hint = lang_map.get(language, "O'zbek (Lotin)")
+        _lang_rule = f"OUTPUT LANGUAGE: {language_hint}"
+        _lang_suffix = f"Javob tili: {language_hint}"
     patient_text = build_clinical_context(patient_data, language=language)
     patient_data_context = patient_text.split("\n")
 

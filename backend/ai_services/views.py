@@ -91,7 +91,17 @@ def run_consilium_view(request):
     Phase 3: Consensus (GPT-4o Orchestrator)
     """
     patient_data = _pd(request)
-    language     = request.data.get("language", "uz-L")
+    language = (
+        request.data.get("language")
+        or (patient_data or {}).get("language")
+        or (patient_data or {}).get("preferredLanguage")
+        or "uz-L"
+    )
+    try:
+        from .debate_format import normalize_language
+        language = normalize_language(language)
+    except Exception:
+        pass
 
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor shikoyatlari kiritilmagan")

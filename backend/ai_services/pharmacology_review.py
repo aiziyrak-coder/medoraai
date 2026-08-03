@@ -48,12 +48,12 @@ def run_pharmacology_review(
     from .consilium_cost import ai_cost_mode
 
     lang = {
-        "uz-L": "O'zbek (lotin)",
-        "uz-C": "O'zbek (kirill)",
-        "ru": "Rus",
-        "en": "Ingliz",
-        "kaa": "Qoraqalpoq",
-    }.get(language, "O'zbek")
+        "uz-L": "Uzbek Latin (O'zbek lotin)",
+        "uz-C": "Uzbek Cyrillic (O'zbek kirill)",
+        "ru": "Russian (Русский)",
+        "en": "English",
+        "kaa": "Karakalpaqsha",
+    }.get(language, "Uzbek Latin (O'zbek lotin)")
 
     patient_summary = build_clinical_context(
         patient_data, compact=True, include_uz_protocols=False, language=language
@@ -90,13 +90,15 @@ def run_pharmacology_review(
     allergy_line = allergies if allergies else "ko'rsatilmagan"
     system = (
         "Klinik farmakolog. Dorilarni tekshiring: doza, DDI, allergiya, kontrendikatsiya, "
-        f"O'zbekiston formularyasi. Til: {lang}. FAQAT JSON."
+        f"O'zbekiston formularyasi. Til: {lang}. FAQAT JSON. "
+        f"All user-visible string fields MUST be in {lang}."
     )
     user = (
         f"Bemor (qisqa):\n{patient_summary}\n\n"
         f"Allergiya: {allergy_line}\n\n"
         f"Taklif dorilar:\n{json.dumps(meds, ensure_ascii=False)[:4000]}\n\n"
         f"DDI tekshiruv:\n{'; '.join(ddi_notes) or 'yoq'}\n\n"
+        f"OUTPUT LANGUAGE: {lang}.\n"
         'JSON: {"validated_medications":[],"interactions_found":[],"warnings":[],'
         '"substitutions":[],"pharmacology_note":"","blocked_medications":[]}'
     )

@@ -67,11 +67,11 @@ TIL: {language_hint}
 """
 
 _LANG_HINTS = {
-    "uz-L": "Barcha javoblar O'zbek tilida (Lotin grafikasida) bo'lsin.",
-    "uz-C": "Barcha javoblar O'zbek tilida (Kirill grafikasida) bo'lsin.",
-    "ru":   "Vse otvety na Russkom yazyke.",
-    "en":   "All responses in English.",
-    "kaa":  "Barcha javoblar Qoraqolpoq tilida bo'lsin.",
+    "uz-L": "STRICT: All responses MUST be in Uzbek Latin only.",
+    "uz-C": "STRICT: All responses MUST be in Uzbek Cyrillic only.",
+    "ru":   "STRICT: All responses MUST be in Russian only. Do not use Uzbek.",
+    "en":   "STRICT: All responses MUST be in English only. Do not use Uzbek or Russian.",
+    "kaa":  "STRICT: All responses MUST be in Karakalpak Latin only.",
 }
 
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ

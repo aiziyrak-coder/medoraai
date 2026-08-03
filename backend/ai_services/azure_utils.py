@@ -315,10 +315,17 @@ SPECIALIST_NAMES: list[str] = [
 ]
 
 
-def generate_clarifying_questions(patient_data: dict) -> list[str]:
+def generate_clarifying_questions(patient_data: dict, language: str = "uz-L") -> list[str]:
     if USE_CLAUDE:
         from . import claude_utils
-        return claude_utils.generate_clarifying_questions(patient_data)
+        try:
+            return claude_utils.generate_clarifying_questions(patient_data, language)
+        except TypeError:
+            return claude_utils.generate_clarifying_questions(patient_data)
+    from .debate_format import lang_label, normalize_language, output_language_rule
+    language = normalize_language(
+        language or patient_data.get("language") or patient_data.get("preferredLanguage") or "uz-L"
+    )
     text = patient_text(patient_data)
     prompt = (
         f"Bemor:\n{text}\n\n"
@@ -327,10 +334,11 @@ def generate_clarifying_questions(patient_data: dict) -> list[str]:
         "PRIORITY 2: Vital belgilar, lab qiymatlari.\n"
         "PRIORITY 3: Simptomlar davomiyligi, oila anamnezi.\n"
         "Mavjud ma'lumotlar uchun savol bermang.\n"
+        f"OUTPUT LANGUAGE: {lang_label(language)}.\n"
         'JSON: {"questions": ["Savol 1?", "Savol 2?"]}'
     )
     msgs = build_messages(
-        "Tibbiy yordamchi AI. O'zbek tilida (Lotin) javob ber.",
+        f"Tibbiy yordamchi AI.\n{output_language_rule(language)}",
         prompt, want_json=True,
     )
     raw = call_model(Deployments.mini(), msgs, response_json=True)
@@ -358,18 +366,26 @@ def recommend_specialists(
     return recommend_specialists_fast(patient_data, differential_diagnoses)
 
 
-def generate_diagnoses(patient_data: dict) -> list[dict]:
+def generate_diagnoses(patient_data: dict, language: str = "uz-L") -> list[dict]:
     if USE_CLAUDE:
         from . import claude_utils
-        return claude_utils.generate_diagnoses(patient_data)
+        try:
+            return claude_utils.generate_diagnoses(patient_data, language)
+        except TypeError:
+            return claude_utils.generate_diagnoses(patient_data)
+    from .debate_format import lang_label, normalize_language, output_language_rule
+    language = normalize_language(
+        language or patient_data.get("language") or patient_data.get("preferredLanguage") or "uz-L"
+    )
     text = patient_text(patient_data)
     prompt = (
         f"Bemor:\n{text}\n\n"
         "3 - 5 ta eng ehtimol differensial tashxis. O'ZBEKISTON SSV protokollari.\n"
+        f"OUTPUT LANGUAGE: {lang_label(language)}.\n"
         '{"diagnoses": [{"name":"...","probability":70,"justification":"...","evidenceLevel":"High","reasoningChain":["..."],"uzbekProtocolMatch":"..."}]}'
     )
     msgs = build_messages(
-        "Yuqori malakali tibbiy AI. O'zbek tilida (Lotin).",
+        f"Yuqori malakali tibbiy AI.\n{output_language_rule(language)}",
         prompt, want_json=True,
     )
     raw = call_model(Deployments.gpt4o(), msgs, response_json=True, max_tokens=3000)

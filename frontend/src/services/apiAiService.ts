@@ -172,7 +172,7 @@ export const runConsilium = async (
   return apiPost<ConsiliumResult>(
     '/ziyrak/consilium/',
     {
-      patient_data: patientData,
+      patient_data: { ...patientData, language, preferredLanguage: language },
       language,
       allow_incomplete: contextExtra?.allowIncomplete ?? patientData.allowIncompleteClinical ?? false,
       differential_diagnoses: contextExtra?.differentialDiagnoses,

@@ -6,6 +6,101 @@ from __future__ import annotations
 import re
 from typing import Any
 
+# Platforma UI tillari — AI chiqishi shu tilga majburan bog'lanadi
+LANG_LABELS: dict[str, str] = {
+    "uz-L": "Uzbek Latin (O'zbek lotin)",
+    "uz-C": "Uzbek Cyrillic (O'zbek kirill)",
+    "ru": "Russian (Русский)",
+    "en": "English",
+    "kaa": "Karakalpak Latin (Qaraqalpaqsha)",
+}
+
+
+def lang_label(language: str | None) -> str:
+    code = (language or "uz-L").strip() or "uz-L"
+    return LANG_LABELS.get(code, LANG_LABELS["uz-L"])
+
+
+def normalize_language(language: str | None) -> str:
+    code = (language or "uz-L").strip() or "uz-L"
+    if code in LANG_LABELS:
+        return code
+    low = code.lower()
+    if low in ("ru", "rus", "russian"):
+        return "ru"
+    if low in ("en", "eng", "english"):
+        return "en"
+    if low in ("uz-c", "uzc", "cyrillic"):
+        return "uz-C"
+    if low in ("kaa", "karakalpak"):
+        return "kaa"
+    if low in ("uz", "uz-l", "uzl", "latin"):
+        return "uz-L"
+    return "uz-L"
+
+
+def output_language_rule(language: str | None) -> str:
+    """Har bir AI chaqiruviga qo'shiladigan eng yuqori prioritet til qoidasi."""
+    code = normalize_language(language)
+    label = lang_label(code)
+    if code == "en":
+        return (
+            "STRICT OUTPUT LANGUAGE (HIGHEST PRIORITY — overrides all other instructions):\n"
+            "- Every user-visible string MUST be in English (clinical register).\n"
+            "- Do NOT write Uzbek, Russian, or Karakalpak sentences.\n"
+            "- Allowed exceptions only: drug trade/generic names, ICD-10 codes, URLs, "
+            "and fixed enums (HIGH/MEDIUM/LOW, A/B/C, routine|soon|urgent|emergent).\n"
+            "- Even if this prompt text is in another language, ALL JSON string values and "
+            "debate text must be English."
+        )
+    if code == "ru":
+        return (
+            "СТРОГИЙ ЯЗЫК ВЫВОДА (ВЫСШИЙ ПРИОРИТЕТ — важнее всех остальных инструкций):\n"
+            "- Все видимые пользователю строки ДОЛЖНЫ быть на русском языке (клинический стиль).\n"
+            "- НЕ пишите на узбекском, английском или каракалпакском.\n"
+            "- Исключения только: торговые/МНН названия препаратов, коды МКБ-10, URL "
+            "и фиксированные enum (HIGH/MEDIUM/LOW, A/B/C, routine|soon|urgent|emergent).\n"
+            "- Даже если текст инструкций на другом языке, ВСЕ строковые значения JSON "
+            "и текст дискуссии — только на русском."
+        )
+    if code == "uz-C":
+        return (
+            f"QAT'IY CHIQISH TILI (ENG YUQORI PRIORITET — boshqa barcha qoidalardan ustun):\n"
+            f"- Foydalanuvchiga ko'rinadigan HAR BIR matn FAQAT {label} tilida bo'lsin.\n"
+            f"- Lotin o'zbekcha, ruscha, inglizcha yoki qoraqalpoqcha jumlalar YOZILMASIN.\n"
+            f"- Istisno faqat: dori savdo/generik nomlari, MKB-10 kodlari, URL va enum qiymatlari.\n"
+            f"- Prompt boshqa tilda yozilgan bo'lsa ham, JSON satrlari va munozara matni FAQAT kirill o'zbekcha."
+        )
+    if code == "kaa":
+        return (
+            f"STRICT OUTPUT LANGUAGE (HIGHEST PRIORITY):\n"
+            f"- All user-visible strings MUST be in {label}.\n"
+            f"- Do NOT use Uzbek, Russian, English, or Cyrillic sentences except drug names, "
+            f"ICD-10, URLs and fixed enums.\n"
+            f"- Translate diagnoses, justifications, treatment, nutrition, debate commentary "
+            f"into Karakalpak Latin."
+        )
+    # uz-L default
+    return (
+        f"QAT'IY CHIQISH TILI (ENG YUQORI PRIORITET — boshqa barcha qoidalardan ustun):\n"
+        f"- Foydalanuvchiga ko'rinadigan HAR BIR matn FAQAT {label} tilida bo'lsin.\n"
+        f"- Ruscha, inglizcha, kirill o'zbekcha yoki qoraqalpoqcha jumlalar YOZILMASIN.\n"
+        f"- Istisno faqat: dori savdo/generik nomlari, MKB-10 kodlari, URL va enum qiymatlari.\n"
+        f"- Prompt boshqa tilda yozilgan bo'lsa ham, JSON satrlari va munozara matni FAQAT lotin o'zbekcha."
+    )
+
+
+def language_user_suffix(language: str | None) -> str:
+    """User prompt oxiriga qo'shiladigan qisqa til eslatmasi."""
+    code = normalize_language(language)
+    label = lang_label(code)
+    if code == "en":
+        return f"OUTPUT LANGUAGE: English only. All JSON string fields in {label}."
+    if code == "ru":
+        return f"ЯЗЫК ОТВЕТА: только русский. Все строковые поля JSON — на {label}."
+    return f"JAVOB TILI: FAQAT {label}. Barcha JSON matn maydonlari shu tilda."
+
+
 # Promptlarga qo'shiladigan qat'iy qoidalar
 CLINICAL_OUTPUT_RULES = """
 KONSILIUM USLUBI (MAJBURIY — buzish MUMKIN EMAS):

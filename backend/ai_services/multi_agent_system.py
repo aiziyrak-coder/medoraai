@@ -65,6 +65,10 @@ from .debate_format import (
     format_orchestrator_closing,
     format_specialist_roster,
     agent_specialty_label as _specialty_from_agent_obj,
+    lang_label,
+    language_user_suffix,
+    normalize_language,
+    output_language_rule,
 )
 from .consilium_cost import (
     compact_phase1,
@@ -231,12 +235,43 @@ def _configure_consilium_agents(extra: Optional[dict] = None) -> list[Agent]:
 
 
 _LANG_HINT: dict[str, str] = {
-    "uz-L": "O'zbek (Lotin)",
-    "uz-C": "O'zbek (Kirill)",
-    "ru": "Rus",
-    "en": "Ingliz",
-    "kaa": "Qoraqalpoq",
+    "uz-L": "Uzbek Latin (O'zbek lotin)",
+    "uz-C": "Uzbek Cyrillic (O'zbek kirill)",
+    "ru": "Russian (Русский)",
+    "en": "English",
+    "kaa": "Karakalpak Latin (Qaraqalpaqsha)",
 }
+
+
+def _lang_block(language: str | None) -> str:
+    return output_language_rule(language)
+
+
+def _opening_fallback(brief: str, roster: str, language: str) -> str:
+    code = normalize_language(language)
+    if code == "en":
+        return (
+            "▸ Consilium opened\n"
+            "Clinical case briefly presented — full data provided to specialists.\n\n"
+            f"▸ Patient (brief)\n{brief}\n\n"
+            f"▸ Invited specialists\n{roster}\n\n"
+            "Each specialist must give an independent, in-depth professorial opinion in their specialty."
+        )
+    if code == "ru":
+        return (
+            "▸ Консилиум открыт\n"
+            "Клинический случай кратко представлен — полные данные переданы специалистам.\n\n"
+            f"▸ Пациент (кратко)\n{brief}\n\n"
+            f"▸ Приглашённые специалисты\n{roster}\n\n"
+            "Каждый специалист должен дать независимое, глубокое профессорское заключение по своей специальности."
+        )
+    return (
+        "▸ Konsilium ochildi\n"
+        "Klinik holat qisqacha taqdim etildi — to'liq ma'lumot mutaxassislarga berilgan.\n\n"
+        f"▸ Bemor (qisqa xulosa)\n{brief}\n\n"
+        f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
+        "Har bir mutaxassis o'z ixtisosligi bo'yicha chuqur, mustaqil professor fikri bildirsin."
+    )
 
 
 _OPENING_SYSTEM = """\
@@ -295,29 +330,29 @@ def run_orchestrator_opening(
     """Rais konsiliumni ochadi — qisqa xulosa (to'liq karta mutaxassislarga alohida)."""
     from .consilium_cost import ai_cost_mode
 
+    language = normalize_language(language)
     lang = _LANG_HINT.get(language, _LANG_HINT["uz-L"])
     roster = format_specialist_roster(_active_agents())
     brief = build_opening_context(patient_data, extra, language=language) or patient_str[:800]
     t0 = time.monotonic()
 
     if ai_cost_mode() in ("scale", "economy"):
-        content = (
-            "▸ Konsilium ochildi\n"
-            "Klinik holat qisqacha taqdim etildi — to'liq ma'lumot mutaxassislarga berilgan.\n\n"
-            f"▸ Bemor (qisqa xulosa)\n{brief}\n\n"
-            f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
-            "Har bir mutaxassis o'z ixtisosligi bo'yicha chuqur, mustaqil professor fikri bildirsin."
-        )
+        content = _opening_fallback(brief, roster, language)
         return {
             "content": content,
             "elapsed_ms": round((time.monotonic() - t0) * 1000),
         }
 
-    system = _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
+    system = (
+        _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
+        + "\n\n"
+        + _lang_block(language)
+    )
     user = (
         f"BEMOR (QISQA XULOSA):\n{brief}\n\n"
         f"KONSILIUMGA CHORLANGAN MUTAXASSISLAR:\n{roster}\n\n"
         f"Til: {lang}.\n"
+        f"{language_user_suffix(language)}\n"
         "Konsiliumni qisqa oching (12-18 jumla). To'liq anamnez takrorlanmasin — "
         "mutaxassislarga to'liq klinik ma'lumot alohida berilgan."
     )
@@ -333,12 +368,7 @@ def run_orchestrator_opening(
         content = str(content or "").strip()
     except Exception as exc:
         logger.error("Orchestrator opening failed: %s", exc)
-        content = (
-            "▸ Konsilium ochildi\n"
-            f"▸ Bemor (qisqa xulosa)\n{brief}\n\n"
-            f"▸ Chorlangan mutaxassislar\n{roster}\n\n"
-            "Har bir mutaxassis o'z ixtisosligi bo'yicha chuqur, mustaqil professor fikri bildirsin."
-        )
+        content = _opening_fallback(brief, roster, language)
     return {
         "content": content,
         "elapsed_ms": round((time.monotonic() - t0) * 1000),
@@ -392,9 +422,18 @@ def _specialty_focus(agent_id: str) -> str:
     return AGENT_SPECIALTY_FOCUS.get(agent_id, AGENT_SPECIALTY_FOCUS.get("deepseek", ""))
 
 
-def _phase1_single(agent: Agent, patient_str: str) -> dict:
-    system = _P1_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
-    user   = _P1_USER.format(patient=patient_str)
+def _phase1_single(agent: Agent, patient_str: str, language: str = "uz-L") -> dict:
+    language = normalize_language(language)
+    system = (
+        _P1_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
+        + "\n\n"
+        + _lang_block(language)
+    )
+    user = (
+        _P1_USER.format(patient=patient_str)
+        + "\n\n"
+        + language_user_suffix(language)
+    )
     t0 = time.monotonic()
     try:
         raw    = call_model(agent.deployment,
@@ -404,7 +443,11 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
         logger.error("Phase1[%s] failed: %s", agent.id, exc)
-        result = {"error": str(exc), "primary_diagnosis": "Tahlil muvaffaqiyatsiz"}
+        fail_dx = {
+            "en": "Analysis failed",
+            "ru": "Анализ не выполнен",
+        }.get(language, "Tahlil muvaffaqiyatsiz")
+        result = {"error": str(exc), "primary_diagnosis": fail_dx}
     result.update({
         "agent_id":    agent.id,
         "agent_name":  agent.name,
@@ -414,13 +457,14 @@ def _phase1_single(agent: Agent, patient_str: str) -> dict:
     return result
 
 
-def run_phase1(patient_str: str) -> list[dict]:
+def run_phase1(patient_str: str, language: str = "uz-L") -> list[dict]:
     """Mustaqil tahlil — faol agentlar parallel."""
+    language = normalize_language(language)
     agents = _active_agents()
     order = {a.id: i for i, a in enumerate(agents)}
     timeout = phase_timeout_sec()
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
-        futures = {pool.submit(_phase1_single, a, patient_str): a for a in agents}
+        futures = {pool.submit(_phase1_single, a, patient_str, language): a for a in agents}
         results = []
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
@@ -559,7 +603,8 @@ Debate javobingizni JSON SXEMASI bo'yicha yozing. Boshqalarning jumlasini ko'chi
 
 
 def _phase2_single(agent: Agent, patient_str: str,
-                   own: dict, others: list[dict]) -> dict:
+                   own: dict, others: list[dict], language: str = "uz-L") -> dict:
+    language = normalize_language(language)
     others_text = dumps_compact([
         {
             "agent_id": o.get("agent_id"),
@@ -587,9 +632,16 @@ def _phase2_single(agent: Agent, patient_str: str,
         "confidence": own.get("confidence"),
     })
 
-    system = _P2_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
-    user   = _P2_USER.format(patient=patient_str,
-                              others_json=others_text, own_json=own_text)
+    system = (
+        _P2_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
+        + "\n\n"
+        + _lang_block(language)
+    )
+    user = (
+        _P2_USER.format(patient=patient_str, others_json=others_text, own_json=own_text)
+        + "\n\n"
+        + language_user_suffix(language)
+    )
     t0 = time.monotonic()
     try:
         raw    = call_model(agent.deployment,
@@ -608,8 +660,9 @@ def _phase2_single(agent: Agent, patient_str: str,
     return result
 
 
-def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
+def run_phase2(patient_str: str, p1: list[dict], language: str = "uz-L") -> list[dict]:
     """Bahslashuv — faol agentlar parallel (scale rejimida sintez)."""
+    language = normalize_language(language)
     if skip_phase2_debate():
         logger.info("Phase 2 skipped (scale/economy) — synthesizing from Phase 1")
         return _synthesize_phase2_from_phase1(p1)
@@ -623,7 +676,7 @@ def run_phase2(patient_str: str, p1: list[dict]) -> list[dict]:
         for agent in agents:
             own    = id_to_p1.get(agent.id, {})
             others = [r for r in p1 if r.get("agent_id") != agent.id]
-            futures[pool.submit(_phase2_single, agent, patient_str, own, others)] = agent
+            futures[pool.submit(_phase2_single, agent, patient_str, own, others, language)] = agent
         results = []
         for fut in concurrent.futures.as_completed(futures):
             agent = futures[fut]
@@ -803,18 +856,27 @@ Quyidagi JSON formatida YAKUNIY Farg'ona JSTI KONSILIUM XULOSASINI bering:
 
 
 def run_phase3(patient_str: str, p1: list[dict],
-               p2: list[dict], weights: dict[str, float]) -> dict:
+               p2: list[dict], weights: dict[str, float],
+               language: str = "uz-L") -> dict:
     """Orchestrator  -  weighted consensus (Sonnet, qisqa kontekst)."""
+    language = normalize_language(language)
     p1_text = dumps_compact(compact_phase1(p1))
     p2_text = dumps_compact(compact_phase2(p2))
     w_text  = dumps_compact(weights)
 
-    system = _P3_SYSTEM.format(persona=ORCHESTRATOR.persona)
-    user   = _P3_USER.format(patient=patient_str,
-                              weights_json=w_text,
-                              phase1_json=p1_text,
-                              phase2_json=p2_text)
-    user += extended_consensus_json_instructions()
+    system = (
+        _P3_SYSTEM.format(persona=ORCHESTRATOR.persona)
+        + "\n\n"
+        + _lang_block(language)
+    )
+    user = _P3_USER.format(
+        patient=patient_str,
+        weights_json=w_text,
+        phase1_json=p1_text,
+        phase2_json=p2_text,
+    )
+    user += extended_consensus_json_instructions(lang_label(language))
+    user += "\n\n" + language_user_suffix(language)
     t0 = time.monotonic()
     try:
         raw    = call_model(ORCHESTRATOR.deployment,
@@ -1182,6 +1244,7 @@ def run_consilium(
     from .pharmacology_review import run_pharmacology_review
 
     patient_data = merge_imaging_into_context(dict(patient_data or {}), language)
+    language = normalize_language(language)
     red_flags = evaluate_red_flags(patient_data)
     completeness = score_clinical_completeness(patient_data)
 
@@ -1221,12 +1284,12 @@ def run_consilium(
 
     # Phase 1 — to'liq klinik kontekst
     logger.info("[%s] Phase 1: Independent analysis started (%d agents)", result.session_id, len(active))
-    p1 = run_phase1(ptext)
+    p1 = run_phase1(ptext, language)
     result.phases["phase1_independent"] = p1
 
     # Phase 2 — scale rejimida sintez, aks holda bahslashuv
     logger.info("[%s] Phase 2: Cross-examination started", result.session_id)
-    p2 = run_phase2(ptext, p1)
+    p2 = run_phase2(ptext, p1, language)
     result.phases["phase2_debate"] = p2
 
     # Refutation scoring
@@ -1235,7 +1298,7 @@ def run_consilium(
 
     # Phase 3 — to'liq kontekst + boyitilgan P1/P2
     logger.info("[%s] Phase 3: Weighted consensus started", result.session_id)
-    consensus = run_phase3(ptext, p1, p2, weights)
+    consensus = run_phase3(ptext, p1, p2, weights, language)
     from .consensus_repair import ensure_consensus_from_phases
     consensus = ensure_consensus_from_phases(consensus, p1, p2, weights, language)
     consensus = _merge_imaging_into_consensus(consensus, patient_data)
