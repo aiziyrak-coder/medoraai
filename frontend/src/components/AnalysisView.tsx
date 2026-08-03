@@ -142,10 +142,15 @@ const AnalysisView: React.FC<AnalysisViewProps> = (props) => {
                     {pd.objectiveData && (
                         <ObjectiveVitalsCards objectiveData={pd.objectiveData} />
                     )}
-                    {pd.labResults && (
+                    {pd.labResults ? (
                         <div>
                             <strong className="block text-[9px] font-semibold text-text-secondary uppercase tracking-wider mb-0.5">{t('analysis_labs_title')}</strong>
                             <p className="text-[10px] text-text-primary bg-slate-50/50 p-1.5 rounded-md border border-white/20 leading-tight">{pd.labResults}</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <strong className="block text-[9px] font-semibold text-text-secondary uppercase tracking-wider mb-0.5">{t('analysis_labs_title')}</strong>
+                            <p className="text-[10px] text-text-secondary bg-slate-50/50 p-1.5 rounded-md border border-white/20 leading-tight italic">{t('analysis_labs_empty')}</p>
                         </div>
                     )}
                     {pd.pharmacogenomicsReport && <p className="p-3 bg-purple-50/80 border border-purple-200 rounded-xl text-purple-700 font-medium">{t('analysis_pharmacogenomics_present')}</p>}

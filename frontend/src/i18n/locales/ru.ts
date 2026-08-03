@@ -254,6 +254,12 @@ export const ru: TranslationSet = {
   footer_creator: 'Создатель',
   footer_support: 'Техническая поддержка',
   footer_rights: 'Все права защищены.',
+  footer_ownership: 'Исключительное право:',
+  institute_name_full: 'Ферганский медицинский институт общественного здоровья',
+  institute_name_short: 'Фергана ЖСТИ',
+  status_loading: 'Загрузка…',
+  status_archive_loaded: 'Загружено из архива. Вы можете продолжить обсуждение.',
+  error_reply_failed: 'Произошла ошибка при отправке ответа.',
 
   // Auth Page & Marketing
   auth_marketing_title: 'Революция клинического мышления.',
@@ -645,6 +651,9 @@ export const ru: TranslationSet = {
   analysis_not_provided: 'Не указано',
   analysis_complaints_title: 'Жалобы',
   analysis_labs_title: 'Лаборатория',
+  analysis_objective_title: 'Объективные данные',
+  analysis_objective_vitals_title: 'Объективные показатели',
+  analysis_labs_empty: 'Лабораторные и диагностические результаты ещё не введены.',
   analysis_pharmacogenomics_present: 'Отчёт по фармакогеномике доступен',
   analysis_debate_placeholder: 'Здесь появятся зал обсуждения и сообщения после начала консилиума.',
   analysis_results_in_progress: 'Консилиум продолжается. Процесс и предварительные выводы ниже.',

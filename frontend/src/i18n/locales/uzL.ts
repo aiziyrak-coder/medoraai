@@ -183,6 +183,12 @@ export const uzL: TranslationSet = {
   footer_creator: 'Yaratuvchi',
   footer_support: 'Texnik qo\'llab-quvvatlash',
   footer_rights: 'Barcha huquqlar himoyalangan.',
+  footer_ownership: 'Mutlaq egalik:',
+  institute_name_full: "Farg'ona jamoat salomatligi tibbiyot instituti",
+  institute_name_short: "Farg'ona JSTI",
+  status_loading: 'Yuklanmoqda…',
+  status_archive_loaded: 'Arxivdan yuklandi. Munozarani davom ettirishingiz mumkin.',
+  error_reply_failed: 'Javob berishda xatolik yuz berdi.',
 
   // Auth Page & Marketing
   auth_marketing_title: 'Klinik tafakkur inqilobi.',
@@ -651,6 +657,9 @@ export const uzL: TranslationSet = {
   analysis_not_provided: 'Kiritilmagan',
   analysis_complaints_title: 'Shikoyatlar',
   analysis_labs_title: 'Laboratoriya',
+  analysis_objective_title: "Ob'ektiv ma'lumotlar",
+  analysis_objective_vitals_title: "Ob'ektiv ko'rsatkichlar",
+  analysis_labs_empty: "Laboratoriya va diagnostika natijalari hali kiritilmagan.",
   analysis_pharmacogenomics_present: 'Farmakogenomika hisoboti mavjud',
   analysis_debate_placeholder: "Konsilium boshlanganda bu yerda majlis zali va bahslar ko'rinadi.",
   analysis_results_in_progress: 'Konsilium davom etmoqda. Jarayon va dastlabki xulosalar quyida.',

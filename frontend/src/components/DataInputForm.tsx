@@ -163,22 +163,22 @@ const emptyVitals = (): VitalsState => ({
 function parseVitalsFromObjective(text: string | undefined): Partial<VitalsState> {
     const raw = (text || '').replace(/\s+/g, ' ');
     const out: Partial<VitalsState> = {};
-    const bp = raw.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
+    const bp = raw.match(/(?:BP|АД|AD)[:\s]*(\d{2,3})\s*\/\s*(\d{2,3})/i) || raw.match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
     if (bp) {
         out.bpSystolic = bp[1];
         out.bpDiastolic = bp[2];
     }
     const hr = raw.match(/(?:puls|pulse|HR)[:\s]*(\d{2,3})\b/i) || raw.match(/\b(\d{2,3})\s*bpm\b/i);
     if (hr) out.heartRate = hr[1];
-    const temp = raw.match(/(?:В°C|temp)[:\s]*(\d{1,2}[.,]\d)/i) || raw.match(/\b(\d{1,2}[.,]\d)\s*В°?\s*C/i);
+    const temp = raw.match(/(?:TEMP|°C|temp)[:\s]*(\d{1,2}[.,]\d)/i) || raw.match(/\b(\d{1,2}[.,]\d)\s*°?\s*C/i);
     if (temp) out.temperature = temp[1].replace(',', '.');
-    const spo2 = raw.match(/SpO[2в‚‚]?[:\s]*(\d{2,3})/i);
+    const spo2 = raw.match(/SpO[2₂]?[:\s]*(\d{2,3})/i);
     if (spo2) out.spO2 = spo2[1];
-    const rr = raw.match(/(?:resp|nafas)[:\s]*(\d{1,2})\s*\/?\s*min/i);
+    const rr = raw.match(/(?:RR|resp|nafas)[:\s]*(\d{1,2})\s*\/?\s*min/i);
     if (rr) out.respirationRate = rr[1];
-    const weight = raw.match(/(?:vazn|weight|tana\s*vazni)[:\s]*(\d{1,3}(?:[.,]\d)?)\s*kg/i);
+    const weight = raw.match(/(?:WT|vazn|weight|tana\s*vazni|масса)[:\s]*(\d{1,3}(?:[.,]\d)?)\s*kg/i);
     if (weight) out.weight = weight[1].replace(',', '.');
-    const height = raw.match(/(?:bo[''`]y|height|СЂРѕСЃС‚)[:\s]*(\d{2,3}(?:[.,]\d)?)\s*(?:cm|sm|СЃРј)?/i);
+    const height = raw.match(/(?:HT|bo[''`]y|height|рост)[:\s]*(\d{2,3}(?:[.,]\d)?)\s*(?:cm|sm|см)?/i);
     if (height) out.height = height[1].replace(',', '.');
     return out;
 }
@@ -515,20 +515,19 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
 
   const buildObjectivePreview = useCallback((): string | undefined => {
     const lines: string[] = [];
-    if (vitals.weight) lines.push(`${t('data_form_vitals_summary_weight')}: ${vitals.weight} kg`);
-    if (vitals.height) lines.push(`${t('data_form_vitals_summary_height')}: ${vitals.height} cm`);
+    // Tilga bog'liq bo'lmagan kalitlar — UI har doim joriy til yorliqlarini ko'rsatadi
+    if (vitals.weight) lines.push(`WT: ${vitals.weight} kg`);
+    if (vitals.height) lines.push(`HT: ${vitals.height} cm`);
     if (bmiResult) {
-      lines.push(
-        `${t('data_form_vitals_summary_bmi')}: ${bmiResult.value} вЂ” ${t(bmiResult.gradeKey)}`,
-      );
+      lines.push(`BMI: ${bmiResult.value} — ${t(bmiResult.gradeKey)}`);
     }
-    if (vitals.bpSystolic || vitals.heartRate || vitals.temperature || vitals.spO2) {
+    if (vitals.bpSystolic || vitals.heartRate || vitals.temperature || vitals.spO2 || vitals.respirationRate) {
       lines.push(
-        `${t('data_form_vitals_summary_bp')}: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
-        `${t('data_form_vitals_summary_pulse')}: ${vitals.heartRate || '-'} bpm`,
-        `${t('data_form_vitals_summary_temp')}: ${vitals.temperature || '-'} В°C`,
-        `${t('data_form_vitals_summary_spo2')}: ${vitals.spO2 || '-'} %`,
-        `${t('data_form_vitals_summary_resp')}: ${vitals.respirationRate || '-'} /min`,
+        `BP: ${vitals.bpSystolic || '-'}/${vitals.bpDiastolic || '-'} mm.Hg`,
+        `HR: ${vitals.heartRate || '-'} bpm`,
+        `TEMP: ${vitals.temperature || '-'} °C`,
+        `SpO2: ${vitals.spO2 || '-'} %`,
+        `RR: ${vitals.respirationRate || '-'} /min`,
       );
     }
     return lines.length ? lines.join('\n') : undefined;

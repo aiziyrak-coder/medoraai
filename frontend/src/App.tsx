@@ -68,8 +68,6 @@ import LightBulbIcon from './components/icons/LightBulbIcon';
 import CopyrightIcon from './components/icons/CopyrightIcon';
 import { AIModel } from './constants/specialists';
 import {
-    INSTITUTE_NAME_FULL,
-    INSTITUTE_NAME_SHORT,
     PLATFORM_NAME,
     INSTITUTE_LOGO_SRC,
     PLATFORM_WEBSITE,
@@ -876,7 +874,7 @@ const AppContent: React.FC = () => {
                  setDebateHistory(prev => [...prev, responseMsg]);
              } catch (e) { 
                  const { getUserFriendlyError } = await import('./utils/errorHandler');
-                 setError(getUserFriendlyError(e, "Javob berishda xatolik yuz berdi.")); 
+                 setError(getUserFriendlyError(e, t('error_reply_failed'))); 
              } finally { 
                  setIsProcessing(false); 
              }
@@ -1007,7 +1005,7 @@ const AppContent: React.FC = () => {
         const idNum = parseInt(record.id, 10);
         let full = record;
         if (!Number.isNaN(idNum) && idNum > 0) {
-            setStatusMessage('Yuklanmoqda…');
+            setStatusMessage(t('status_loading'));
             const res = await getAnalysis(idNum);
             if (res.success && res.data) {
                 full = res.data;
@@ -1043,7 +1041,7 @@ const AppContent: React.FC = () => {
         setDifferentialDiagnoses(normalizeConsensusDiagnosis(full.finalReport?.consensusDiagnosis));
         setAppView('live_analysis');
         setIsProcessing(false);
-        setStatusMessage('Arxivdan yuklandi. Munozarani davom ettirishingiz mumkin.');
+        setStatusMessage(t('status_archive_loaded'));
     };
 
     /** Sahifa ichidagi qaytish paneli - faqat dashboard da ko'rinmaydi */
@@ -1389,7 +1387,7 @@ const AppContent: React.FC = () => {
                         onClick={() => handleNavigation(currentUser?.role === 'staff' ? 'registrar' : 'dashboard')}
                         className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-80 transition-opacity"
                     >
-                        <img src={INSTITUTE_LOGO_SRC} alt={INSTITUTE_NAME_SHORT} className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shrink-0 bg-slate-100" />
+                        <img src={INSTITUTE_LOGO_SRC} alt={t('institute_name_short')} className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shrink-0 bg-slate-100" />
                         <div className="min-w-0 hidden sm:block">
                             <h1 className="text-base font-black tracking-tight text-slate-800 leading-none">{t('appName')}</h1>
                             <p className="text-[9px] text-slate-400 font-medium tracking-wide leading-none mt-0.5">{PLATFORM_NAME} - AI Konsilium</p>
@@ -1442,7 +1440,7 @@ const AppContent: React.FC = () => {
 
                         {/* Institute branding */}
                         <div className="flex items-center gap-3 min-w-0">
-                            <img src={INSTITUTE_LOGO_SRC} alt={INSTITUTE_NAME_SHORT} className="w-8 h-8 rounded-xl object-contain flex-shrink-0 shadow-md" />
+                            <img src={INSTITUTE_LOGO_SRC} alt={t('institute_name_short')} className="w-8 h-8 rounded-xl object-contain flex-shrink-0 shadow-md" />
                             <div className="min-w-0">
                                 <p
                                     className="font-black text-sm tracking-tight"
@@ -1452,10 +1450,10 @@ const AppContent: React.FC = () => {
                                         WebkitTextFillColor: 'transparent',
                                     }}
                                 >
-                                    {INSTITUTE_NAME_SHORT}
+                                    {t('institute_name_short')}
                                 </p>
                                 <p className="text-[9px] text-slate-400 font-medium tracking-wide hidden sm:block truncate">
-                                    {INSTITUTE_NAME_FULL}
+                                    {t('institute_name_full')}
                                 </p>
                             </div>
                         </div>
@@ -1479,7 +1477,7 @@ const AppContent: React.FC = () => {
 
                         {/* Right - ownership */}
                         <div className="flex items-center gap-2 text-[10px] flex-wrap justify-center">
-                            <span className="text-slate-400 font-medium">Mutlaq egalik:</span>
+                            <span className="text-slate-400 font-medium">{t('footer_ownership')}</span>
                             <span
                                 className="font-black"
                                 style={{
@@ -1488,7 +1486,7 @@ const AppContent: React.FC = () => {
                                     WebkitTextFillColor: 'transparent',
                                 }}
                             >
-                                {INSTITUTE_NAME_FULL}
+                                {t('institute_name_full')}
                             </span>
                         </div>
                     </div>

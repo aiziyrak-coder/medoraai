@@ -254,6 +254,12 @@ export const en = {
   footer_creator: 'Creator',
   footer_support: 'Technical support',
   footer_rights: 'All rights reserved.',
+  footer_ownership: 'Exclusive ownership:',
+  institute_name_full: 'Fergana Public Health Medical Institute',
+  institute_name_short: "Farg'ona JSTI",
+  status_loading: 'Loading…',
+  status_archive_loaded: 'Loaded from archive. You can continue the discussion.',
+  error_reply_failed: 'An error occurred while sending the reply.',
 
   // Auth Page & Marketing
   auth_marketing_title: 'Clinical Reasoning Revolution.',
@@ -645,6 +651,9 @@ export const en = {
   analysis_not_provided: 'Not provided',
   analysis_complaints_title: 'Complaints',
   analysis_labs_title: 'Laboratory',
+  analysis_objective_title: 'Objective findings',
+  analysis_objective_vitals_title: 'Vital signs',
+  analysis_labs_empty: 'No laboratory or diagnostic results entered yet.',
   analysis_pharmacogenomics_present: 'Pharmacogenomics report available',
   analysis_debate_placeholder: 'Debate hall and messages will appear here once the konsilium starts.',
   analysis_results_in_progress: 'Konsilium is in progress. Process and preliminary conclusions are below.',

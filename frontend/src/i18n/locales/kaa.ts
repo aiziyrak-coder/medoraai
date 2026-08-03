@@ -35,6 +35,12 @@ export const kaa: Partial<TranslationSet> = {
   footer_creator: 'Jaratıwshı',
   footer_support: 'Texnikalıq qollap-quwatlaw',
   footer_rights: 'Barlıq huqıqlar qorǵalǵan.',
+  footer_ownership: 'Tolıq iyelik:',
+  institute_name_full: "Farg'ona jámiyetlik densawlıq saqlaw medicína instituti",
+  institute_name_short: "Farg'ona JSTI",
+  status_loading: 'Júklenip atır…',
+  status_archive_loaded: 'Arxivden júklendi. Talqıstawdı dawam ettiriwińiz múmkin.',
+  error_reply_failed: 'Juwap beriwde qátelik júz berdi.',
 
   // Auth Page & Marketing
   auth_marketing_title: 'Klinikalıq pikirlew revolyuciyası.',
@@ -858,6 +864,9 @@ export const kaa: Partial<TranslationSet> = {
   analysis_debate_placeholder: 'Konsilium baslanǵanda bul yerda majlis zali hám bahslar kórinedi.',
   analysis_final_report_after_finish: 'Juwmaqlawshı esabat konsilium tamamlanǵannan keyin usı jerde shıǵadı.',
   analysis_labs_title: 'Laboratoriya',
+  analysis_objective_title: 'Obyektiv maǵlıwmatlar',
+  analysis_objective_vitals_title: 'Obyektiv kórsetkishler',
+  analysis_labs_empty: 'Laboratoriya hám diagnostika nátiyjeleri ele kiritilmegen.',
   analysis_not_provided: 'Kiritilmagan',
   analysis_patient_data_title: 'Nawqas Maǵlıwmatlari',
   analysis_patient_fallback: 'Nawqas',
