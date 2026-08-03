@@ -773,6 +773,10 @@ export const ru: TranslationSet = {
   routing_exam_plan: 'План обследования',
   routing_followup: 'Дальнейшее наблюдение',
   routing_urgent: 'Срочно',
+  routing_routine: 'Планово',
+
+  followup_responsible_patient: 'Пациент',
+  followup_responsible_clinician: 'Врач',
 
   severity_label: 'Тяжесть состояния',
   severity_critical: 'Критическое',
@@ -1793,6 +1797,9 @@ export const ru: TranslationSet = {
   pdf_nutrition_note: 'Общая рекомендация; для индивидуальной диеты проконсультируйтесь со специалистом.',
   pdf_dietary_guidelines: 'Рекомендации по питанию:',
   pdf_prevention_measures: 'Меры профилактики:',
+  pdf_age_unit: 'лет',
+  pdf_evidence_na: 'Не указано',
+  pdf_diagnosis: 'Основной диагноз',
   docx_complaints_history: 'Жалобы и анамнез',
   docx_medical_history: 'История болезни',
   docx_objective_exam: 'Объективный осмотр',

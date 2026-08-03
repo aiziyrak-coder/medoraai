@@ -4,7 +4,7 @@ import { generatePdfReport } from '../services/pdfGenerator';
 import { generateDocxReport } from '../services/docxGenerator';
 import DownloadIcon from './icons/DownloadIcon';
 import { useTranslation, type TranslationKey } from '../hooks/useTranslation';
-import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../constants/brand';
+import { INSTITUTE_LOGO_SRC } from '../constants/brand';
 import { isApiConfigured } from '../config/api';
 import { API_BASE_URL } from '../services/api';
 import { getAuthToken } from '../services/api';
@@ -55,7 +55,7 @@ const DownloadPanel: React.FC<DownloadPanelProps> = ({ record, hasError, compact
 
     const report: FinalReport = record.finalReport ?? getMinimalReportForExport(t);
     const branding = {
-        instituteName: INSTITUTE_NAME_FULL,
+        instituteName: t('institute_name_full'),
         instituteLogoDataUrl: undefined as string | undefined,
     };
 

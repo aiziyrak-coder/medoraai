@@ -2,6 +2,7 @@ import type { Language } from '../i18n/LanguageContext';
 import { resolveTranslation } from '../i18n/resolveTranslation';
 import type { TranslationKey } from '../i18n/translationKeys';
 import type { ExportTr } from './exportReportSections';
+import { parseObjectiveData } from '../components/analysis/ObjectiveVitalsCards';
 
 /** jsPDF 4.x requires string arguments for doc.text */
 export function pdfText(value: unknown): string {
@@ -36,10 +37,41 @@ export function createExportTr(
     }
     const resolved = resolveTranslation(language, key as TranslationKey);
     if (resolved && resolved !== key) return resolved;
+    // RU/EN/KAA: o'zbekcha hardcoded fallback o'rniga inglizcha
+    if (language !== 'uz-L' && language !== 'uz-C') {
+      const en = resolveTranslation('en', key as TranslationKey);
+      if (en && en !== key) return en;
+    }
     if (fallback) return fallback;
     const en = resolveTranslation('en', key as TranslationKey);
     return en !== key ? en : key;
   };
+}
+
+/** PDF/DOCX uchun vital matnni joriy til yorliqlari bilan formatlash */
+export function formatObjectiveForExport(
+  objectiveData: string | undefined,
+  tr: (key: string, fallback?: string) => string,
+): string {
+  if (!objectiveData?.trim()) return '';
+  const v = parseObjectiveData(objectiveData);
+  if (v.raw) return String(v.raw);
+  const lines: string[] = [];
+  const push = (key: keyof typeof v, labelKey: string, fb: string, unit?: string) => {
+    const val = v[key];
+    if (!val || key === 'raw') return;
+    const clean = String(val).replace(/\s+(mm\.Hg|bpm|°C|%|\/min|kg|cm)\s*$/i, '').trim();
+    lines.push(`${tr(labelKey, fb)}: ${clean}${unit ? ` ${unit}` : ''}`);
+  };
+  push('bp', 'data_form_vitals_summary_bp', 'Blood pressure', 'mm.Hg');
+  push('pulse', 'data_form_vitals_summary_pulse', 'Pulse', 'bpm');
+  push('temp', 'data_form_vitals_summary_temp', 'Temperature', '°C');
+  push('spo2', 'data_form_vitals_summary_spo2', 'SpO2', '%');
+  push('respiration', 'data_form_vitals_summary_resp', 'Respiration', '/min');
+  push('weight', 'data_form_vitals_summary_weight', 'Weight', 'kg');
+  push('height', 'data_form_vitals_summary_height', 'Height', 'cm');
+  push('bmi', 'data_form_vitals_summary_bmi', 'BMI');
+  return lines.length ? lines.join('\n') : objectiveData.trim();
 }
 
 export function exportFileSlug(language: Language): string {

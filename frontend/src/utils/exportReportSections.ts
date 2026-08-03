@@ -101,31 +101,58 @@ export function buildRoutingExportLines(report: FinalReport, tr: ExportTr): stri
   const r = report.patientRouting;
   if (!r) return [];
   const lines: string[] = [];
+  const dispositionLabel = (d: string) => {
+    const map: Record<string, [string, string]> = {
+      outpatient: ['routing_outpatient', 'Outpatient'],
+      observation: ['routing_observation', 'Observation'],
+      inpatient: ['routing_inpatient', 'Inpatient'],
+      emergency: ['routing_emergency', 'Emergency'],
+    };
+    const hit = map[d.toLowerCase()];
+    return hit ? tr(hit[0], hit[1]) : d;
+  };
   if (r.disposition) {
-    lines.push(`${tr('routing_disposition', 'Yo\'nalish')}: ${r.disposition}${r.dispositionReason ? ` — ${r.dispositionReason}` : ''}`);
+    lines.push(
+      `${tr('routing_disposition', 'Disposition')}: ${dispositionLabel(r.disposition)}${
+        r.dispositionReason ? ` — ${r.dispositionReason}` : ''
+      }`,
+    );
   }
   if (r.hospitalizationIndicated) {
-    lines.push(`${tr('routing_hospitalization', 'Statsionar')}: ${r.hospitalizationReason || tr('routing_hospitalization_default', 'Tavsiya etiladi')}`);
+    lines.push(`${tr('routing_hospitalization', 'Hospitalization')}: ${r.hospitalizationReason || tr('routing_hospitalization_default', 'Recommended')}`);
   }
   (r.recommendedSpecialists || []).forEach((s) => {
-    lines.push(`• ${s.specialty}: ${s.reason}${s.urgency === 'urgent' ? ` (${tr('routing_urgent', 'Shoshilinch')})` : ''}`);
+    lines.push(`• ${s.specialty}: ${s.reason}${s.urgency === 'urgent' ? ` (${tr('routing_urgent', 'Urgent')})` : ''}`);
   });
   (r.examPlan || []).forEach((step, i) => lines.push(`${i + 1}. ${step}`));
-  if (r.followUpTimeline) lines.push(`${tr('routing_followup', 'Kuzatuv')}: ${r.followUpTimeline}`);
+  if (r.followUpTimeline) lines.push(`${tr('routing_followup', 'Follow-up')}: ${r.followUpTimeline}`);
   return lines;
 }
 
 export function buildRiskExportLines(report: FinalReport, tr: ExportTr): string[] {
   const lines: string[] = [];
   const sev = report.severityAssessment;
+  const severityLabel = (level: string) => {
+    const map: Record<string, [string, string]> = {
+      critical: ['severity_critical', 'Critical'],
+      urgent: ['severity_urgent', 'Urgent'],
+      high: ['severity_urgent', 'Urgent'],
+      moderate: ['severity_moderate', 'Moderate'],
+      medium: ['severity_moderate', 'Moderate'],
+      low: ['severity_low', 'Low'],
+    };
+    const hit = map[level.toLowerCase()];
+    return hit ? tr(hit[0], hit[1]) : level;
+  };
   if (sev?.level) {
     const score = sev.score != null ? ` (${sev.score}/10)` : '';
-    lines.push(`${tr('severity_label', 'Og\'irlik')}: ${sev.level}${score}`);
+    lines.push(`${tr('severity_label', 'Severity')}: ${severityLabel(String(sev.level))}${score}`);
     if (sev.rationale) lines.push(sev.rationale);
     (sev.redFlags || []).forEach((f) => lines.push(`⚠ ${f}`));
   }
   (report.riskFactors || []).forEach((rf) => {
-    lines.push(`• ${rf.factor}${rf.severity ? ` [${rf.severity}]` : ''}${rf.mitigation ? ` — ${rf.mitigation}` : ''}`);
+    const sevPart = rf.severity ? ` [${severityLabel(String(rf.severity))}]` : '';
+    lines.push(`• ${rf.factor}${sevPart}${rf.mitigation ? ` — ${rf.mitigation}` : ''}`);
   });
   return lines;
 }

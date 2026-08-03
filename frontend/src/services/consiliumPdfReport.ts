@@ -27,6 +27,7 @@ import {
     createExportTr,
     exportFileSlug,
     formatExportDate,
+    formatObjectiveForExport,
     pdfText,
     sanitizeExportFilename,
 } from '../utils/exportI18n';
@@ -282,7 +283,10 @@ export async function renderConsiliumPdfReport(
         [tr('pdf_gender', 'Jinsi'), gender],
     ];
     if (patientData.objectiveData) {
-        patientRows.push([tr('pdf_objective', "Ob'ektiv ko'rik"), pdfText(patientData.objectiveData)]);
+        patientRows.push([
+            tr('pdf_objective', 'Objective'),
+            formatObjectiveForExport(patientData.objectiveData, tr) || pdfText(patientData.objectiveData),
+        ]);
     }
     if (patientData.complaints) {
         patientRows.push([tr('pdf_complaints', 'Shikoyatlar'), pdfText(patientData.complaints)]);
@@ -328,8 +332,17 @@ export async function renderConsiliumPdfReport(
         doc.setTextColor(180, 40, 40);
         doc.text(tr('pdf_critical_finding', 'Muhim topilma (shoshilinch)'), MARGIN + 3, boxY + 5);
         if (report.criticalFinding.urgency) {
+            const urgRaw = String(report.criticalFinding.urgency).toLowerCase();
+            const urgLocalized =
+                urgRaw === 'high' || urgRaw === 'urgent' || urgRaw === 'shoshilinch'
+                    ? tr('severity_urgent', 'Urgent')
+                    : urgRaw === 'medium' || urgRaw === 'moderate'
+                        ? tr('severity_moderate', 'Moderate')
+                        : urgRaw === 'low'
+                            ? tr('severity_low', 'Low')
+                            : report.criticalFinding.urgency;
             doc.text(
-                `${tr('pdf_urgency', 'Shoshilinchlik')}: ${report.criticalFinding.urgency}`,
+                `${tr('pdf_urgency', 'Urgency')}: ${urgLocalized}`,
                 pageWidth - MARGIN - 3,
                 boxY + 5,
                 { align: 'right' },
@@ -355,7 +368,18 @@ export async function renderConsiliumPdfReport(
         diagnoses.forEach((diag, idx) => {
             ensureSpace(12);
             const pct = Number.isFinite(diag.probability) ? `${diag.probability}%` : '';
-            const ev = diag.evidenceLevel || tr('pdf_evidence_na', 'Belgilanmagan');
+            const evRaw = String(diag.evidenceLevel || '').trim();
+            const evLow = evRaw.toLowerCase();
+            const ev =
+                !evRaw
+                    ? tr('pdf_evidence_na', 'Not specified')
+                    : evLow === 'moderate' || evLow === 'medium'
+                        ? tr('severity_moderate', 'Moderate')
+                        : evLow === 'high' || evLow === 'strong'
+                            ? tr('severity_urgent', 'High')
+                            : evLow === 'low' || evLow === 'weak'
+                                ? tr('severity_low', 'Low')
+                                : evRaw;
             doc.setFontSize(9);
             doc.setFont(fontName, 'bold');
             doc.setTextColor(30, 70, 110);

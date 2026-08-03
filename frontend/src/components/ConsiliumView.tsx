@@ -10,7 +10,7 @@ import { enrichFinalReport } from '../utils/reportNormalize';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
 import { generatePdfReport } from '../services/pdfGenerator';
 import { generateDocxReport } from '../services/docxGenerator';
-import { INSTITUTE_LOGO_SRC, INSTITUTE_NAME_FULL } from '../constants/brand';
+import { INSTITUTE_LOGO_SRC } from '../constants/brand';
 import { useTranslation } from '../hooks/useTranslation';
 import LinkifiedText from './common/LinkifiedText';
 import ClinicalDebateContent from './common/ClinicalDebateContent';
@@ -379,7 +379,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                       await generatePdfReport(
                         exportReport,
                         patientData,
-                        { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
+                        { instituteName: t('institute_name_full'), instituteLogoDataUrl: logoDataUrl },
                         t,
                         uiLanguage,
                       );
@@ -406,7 +406,7 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
                       await generateDocxReport(
                         exportReport,
                         patientData,
-                        { instituteName: INSTITUTE_NAME_FULL, instituteLogoDataUrl: logoDataUrl },
+                        { instituteName: t('institute_name_full'), instituteLogoDataUrl: logoDataUrl },
                         t,
                         uiLanguage,
                       );
