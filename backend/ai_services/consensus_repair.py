@@ -956,12 +956,30 @@ def ensure_nutrition_prevention(consensus: dict, language_hint: str = "uz-L") ->
     individual = [{
         "diagnosis": diag,
         "allowed_foods": dietary[:3],
-        "restricted_foods": [
-            "Ortiqcha tuz va shakarli ichimliklar",
-            "Juda yog'li va qovurilgan taomlar",
-            "Spirtli ichimliklar (shifokor ruxsatisiz)",
-        ],
-        "meal_plan_notes": f"«{diag}» uchun kunlik ovqatlanish individual holatga qarab moslashtiriladi.",
+        "restricted_foods": (
+            [
+                "Избыток соли и сладких напитков",
+                "Очень жирная и жареная пища",
+                "Алкоголь без разрешения врача",
+            ] if lang == "ru" else
+            [
+                "Excess salt and sugary drinks",
+                "Very fatty and fried foods",
+                "Alcohol without physician approval",
+            ] if lang == "en" else
+            [
+                "Ortiqcha tuz va shakarli ichimliklar",
+                "Juda yog'li va qovurilgan taomlar",
+                "Spirtli ichimliklar (shifokor ruxsatisiz)",
+            ]
+        ),
+        "meal_plan_notes": (
+            f"Ежедневное питание при «{diag}» адаптируется индивидуально."
+            if lang == "ru" else
+            f"Daily meals for «{diag}» should be individualized."
+            if lang == "en" else
+            f"«{diag}» uchun kunlik ovqatlanish individual holatga qarab moslashtiriladi."
+        ),
     }]
 
     consensus["nutrition_prevention"] = {

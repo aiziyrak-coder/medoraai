@@ -25,6 +25,7 @@ from .debate_format import (
     debate_author_fields,
     format_consilium_debate,
     format_consilium_initial,
+    undiagnosed_label,
 )
 from .report_fields import (
     extended_consensus_json_instructions,
@@ -192,7 +193,12 @@ def _professor_initial_diagnosis(prof: dict, patient_text: str, language_hint: s
     raw = _chat(deployment, system, user, response_json=True, max_tokens=1000)  # Reduced from 1200
     parsed = _parse_json_response(raw, f"prof_{prof['id']}_initial")
     if not isinstance(parsed, dict):
-        parsed = {"primary_diagnosis": "Tashxis aniqlanmadi", "error": raw[:200]}
+        parsed = {"primary_diagnosis": "Diagnosis not established", "error": raw[:200]}
+        # language_hint may be long; keep generic English then overwritten by caller context
+        if "рус" in language_hint.lower() or "russian" in language_hint.lower():
+            parsed["primary_diagnosis"] = "Диагноз не установлен"
+        elif "o'zbek" in language_hint.lower() or "uzbek" in language_hint.lower():
+            parsed["primary_diagnosis"] = "Tashxis aniqlanmadi"
     parsed["professor_id"] = prof["id"]
     parsed["professor_name"] = prof["name"]
     parsed["professor_title"] = prof["title"]
@@ -366,7 +372,7 @@ def _final_consensus(
         return {
             "error": "Konsensus yaratishda xatolik",
             "raw": raw[:300],
-            "consensus_diagnosis": {"name": "Tashxis aniqlanmadi", "probability": 0},
+            "consensus_diagnosis": {"name": undiagnosed_label("uz-L"), "probability": 0},
         }
     return parsed
 
@@ -445,12 +451,9 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
         from .debate_format import normalize_language, output_language_rule, language_user_suffix
         language = normalize_language(language)
         language_hint = lang_map.get(language, lang_map["uz-L"])
-        _lang_rule = output_language_rule(language)
-        _lang_suffix = language_user_suffix(language)
+        language_hint = f"{language_hint}. {output_language_rule(language)} {language_user_suffix(language)}"
     except Exception:
         language_hint = lang_map.get(language, "O'zbek (Lotin)")
-        _lang_rule = f"OUTPUT LANGUAGE: {language_hint}"
-        _lang_suffix = f"Javob tili: {language_hint}"
     patient_text = build_clinical_context(patient_data, language=language)
     patient_data_context = patient_text.split("\n")
 
@@ -612,7 +615,7 @@ def run_multi_agent_consilium(patient_data: dict, language: str = "uz-L") -> dic
     except Exception as e:
         logger.warning("ICD-10 enrichment failed: %s", e)
 
-    final_report = _build_final_report(consensus, initial_opinions, debate_responses)
+    final_report = _build_final_report(consensus, initial_opinions, debate_responses, language)
     result["final_report"] = final_report
     result["completed_at"] = timezone.now().isoformat()
 
@@ -695,6 +698,7 @@ def _build_final_report(
     consensus: dict,
     initial_opinions: list[dict],
     debate_responses: list[dict],
+    language: str = "uz-L",
 ) -> dict:
     """Build standardised final report from consilium data."""
     cd = consensus.get("consensus_diagnosis") or {}
@@ -737,7 +741,7 @@ def _build_final_report(
     report = {
         "consensusDiagnosis": [
             {
-                "name": str(cd.get("name") or "Tashxis aniqlanmadi"),
+                "name": str(cd.get("name") or undiagnosed_label(language)),
                 "icd10": str(cd.get("icd10") or ""),
                 "icd10Description": str(cd.get("icd10_description") or cd.get("icd10Description") or ""),
                 "diagnosisRank": 1,

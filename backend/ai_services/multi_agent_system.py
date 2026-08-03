@@ -69,6 +69,7 @@ from .debate_format import (
     language_user_suffix,
     normalize_language,
     output_language_rule,
+    undiagnosed_label,
 )
 from .consilium_cost import (
     compact_phase1,
@@ -344,17 +345,19 @@ def run_orchestrator_opening(
         }
 
     system = (
-        _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
+        _lang_block(language)
         + "\n\n"
-        + _lang_block(language)
+        + _OPENING_SYSTEM.format(persona=ORCHESTRATOR.persona)
     )
     user = (
+        f"{language_user_suffix(language)}\n\n"
         f"BEMOR (QISQA XULOSA):\n{brief}\n\n"
         f"KONSILIUMGA CHORLANGAN MUTAXASSISLAR:\n{roster}\n\n"
         f"Til: {lang}.\n"
         f"{language_user_suffix(language)}\n"
         "Konsiliumni qisqa oching (12-18 jumla). To'liq anamnez takrorlanmasin — "
-        "mutaxassislarga to'liq klinik ma'lumot alohida berilgan."
+        "mutaxassislarga to'liq klinik ma'lumot alohida berilgan. "
+        "Javob matni FAQAT tanlangan platforma tilida."
     )
     t0 = time.monotonic()
     try:
@@ -425,12 +428,14 @@ def _specialty_focus(agent_id: str) -> str:
 def _phase1_single(agent: Agent, patient_str: str, language: str = "uz-L") -> dict:
     language = normalize_language(language)
     system = (
-        _P1_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
+        _lang_block(language)
         + "\n\n"
-        + _lang_block(language)
+        + _P1_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
     )
     user = (
-        _P1_USER.format(patient=patient_str)
+        language_user_suffix(language)
+        + "\n\n"
+        + _P1_USER.format(patient=patient_str)
         + "\n\n"
         + language_user_suffix(language)
     )
@@ -484,14 +489,45 @@ def _normalize_dx(name: str) -> str:
     return re.sub(r"\s+", " ", str(name or "").strip().lower())
 
 
-def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
+def _synthesize_phase2_from_phase1(p1: list[dict], language: str = "uz-L") -> list[dict]:
     """Phase 2 o'tkazib yuborilganda — P1 dan aqlli sintez (LLM chaqiruvisiz, tez)."""
+    language = normalize_language(language)
     id_to_row = {r.get("agent_id"): r for r in p1 if isinstance(r, dict)}
     diagnoses = {
         aid: str(r.get("primary_diagnosis") or "").strip()
         for aid, r in id_to_row.items()
     }
     out: list[dict] = []
+
+    def _refute(other_dx: str, own_dx: str, ev_bit: str, ev2: str) -> str:
+        if language == "ru":
+            text = (
+                f"«{other_dx}» менее вероятен — данные пациента поддерживают «{own_dx}»"
+                + (f": {ev_bit}" if ev_bit else "")
+                + (f". Дополнительно: {ev2}" if ev2 else "")
+            )
+        elif language == "en":
+            text = (
+                f"«{other_dx}» is less likely — patient evidence supports «{own_dx}»"
+                + (f": {ev_bit}" if ev_bit else "")
+                + (f". Additionally: {ev2}" if ev2 else "")
+            )
+        else:
+            text = (
+                f"{other_dx} kam ehtimol — bemor dalillari {own_dx} ni qo'llab-quvvatlaydi"
+                + (f": {ev_bit}" if ev_bit else "")
+                + (f". Qo'shimcha: {ev2}" if ev2 else "")
+            )
+        return text[:520]
+
+    def _commentary(own_dx: str, defense_arg: str, key_arg: str) -> str:
+        if language == "ru":
+            prefix = f"«{own_dx}» — с позиции моей специальности: "
+        elif language == "en":
+            prefix = f"«{own_dx}» — from my specialty angle: "
+        else:
+            prefix = f"{own_dx} — o'z ixtisoslik burchagidan: "
+        return (prefix + (defense_arg or key_arg))[:600]
 
     for row in p1:
         if not isinstance(row, dict):
@@ -523,11 +559,7 @@ def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
             refutations.append({
                 "target_agent_id": other_id,
                 "target_diagnosis": other_dx[:140],
-                "refutation": (
-                    f"{other_dx} kam ehtimol — bemor dalillari {own_dx} ni qo'llab-quvvatlaydi"
-                    + (f": {ev_bit}" if ev_bit else "")
-                    + (f". Qo'shimcha: {ev2}" if ev2 else "")
-                )[:520],
+                "refutation": _refute(other_dx, own_dx, ev_bit, ev2),
                 "strength": "MODERATE",
             })
 
@@ -535,10 +567,7 @@ def _synthesize_phase2_from_phase1(p1: list[dict]) -> list[dict]:
         new_ev = str(evidence[1] if len(evidence) > 1 else evidence[0] if evidence else "")[:350]
         key_arg = str(reasoning[-1] if reasoning else evidence[-1] if evidence else own_dx)[:520]
         clinical_op = str(row.get("clinical_opinion") or "")[:600]
-        debate_commentary = clinical_op or (
-            f"{own_dx} — o'z ixtisoslik burchagidan: "
-            + (defense_arg or key_arg)
-        )[:600]
+        debate_commentary = clinical_op or _commentary(own_dx, defense_arg, key_arg)
 
         out.append({
             "agent_id": agent_id,
@@ -633,12 +662,14 @@ def _phase2_single(agent: Agent, patient_str: str,
     })
 
     system = (
-        _P2_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
+        _lang_block(language)
         + "\n\n"
-        + _lang_block(language)
+        + _P2_SYSTEM.format(persona=agent.persona, specialty_focus=_specialty_focus(agent.id))
     )
     user = (
-        _P2_USER.format(patient=patient_str, others_json=others_text, own_json=own_text)
+        language_user_suffix(language)
+        + "\n\n"
+        + _P2_USER.format(patient=patient_str, others_json=others_text, own_json=own_text)
         + "\n\n"
         + language_user_suffix(language)
     )
@@ -665,7 +696,7 @@ def run_phase2(patient_str: str, p1: list[dict], language: str = "uz-L") -> list
     language = normalize_language(language)
     if skip_phase2_debate():
         logger.info("Phase 2 skipped (scale/economy) — synthesizing from Phase 1")
-        return _synthesize_phase2_from_phase1(p1)
+        return _synthesize_phase2_from_phase1(p1, language)
 
     agents = _active_agents()
     order      = {a.id: i for i, a in enumerate(agents)}
@@ -865,11 +896,11 @@ def run_phase3(patient_str: str, p1: list[dict],
     w_text  = dumps_compact(weights)
 
     system = (
-        _P3_SYSTEM.format(persona=ORCHESTRATOR.persona)
+        _lang_block(language)
         + "\n\n"
-        + _lang_block(language)
+        + _P3_SYSTEM.format(persona=ORCHESTRATOR.persona)
     )
-    user = _P3_USER.format(
+    user = language_user_suffix(language) + "\n\n" + _P3_USER.format(
         patient=patient_str,
         weights_json=w_text,
         phase1_json=p1_text,
@@ -1007,7 +1038,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
                 "authorTitle": author_fields["authorTitle"],
                 "phase":       "independent",
                 "weight":      w,
-                "content":     format_p1_debate_content(p1r),
+                "content":     format_p1_debate_content(p1r, language),
             })
 
         reftns = p2r.get("refutations") or []
@@ -1016,7 +1047,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
             defense_block.get("argument") or defense_block.get("new_evidence")
         )
         if reftns or has_defense or p2r.get("key_argument") or p2r.get("accepted_from_others") or p2r.get("debate_commentary"):
-            p2_content = format_p2_debate_content(p2r, _agent_specialty_label)
+            p2_content = format_p2_debate_content(p2r, _agent_specialty_label, language)
             if p2_content:
                 debate_log.append({
                     "id":          f"{agent.id}-p2",
@@ -1027,7 +1058,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
                     "content":     p2_content,
                 })
 
-    closing = format_orchestrator_closing(consensus)
+    closing = format_orchestrator_closing(consensus, language)
     if closing:
         debate_log.append(_chair_debate_entry("chair-closing", "consensus", closing))
 
@@ -1057,7 +1088,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
     report = {
         "consensusDiagnosis": [
             {
-                "name":               str(cd.get("name", "Tashxis aniqlanmadi")),
+                "name":               str(cd.get("name") or undiagnosed_label(language)),
                 "icd10":              str(cd.get("icd10", "")),
                 "icd10Description":   str(cd.get("icd10_description") or cd.get("icd10Description") or ""),
                 "diagnosisRank":      1,

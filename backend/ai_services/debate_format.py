@@ -48,6 +48,8 @@ def output_language_rule(language: str | None) -> str:
             "STRICT OUTPUT LANGUAGE (HIGHEST PRIORITY — overrides all other instructions):\n"
             "- Every user-visible string MUST be in English (clinical register).\n"
             "- Do NOT write Uzbek, Russian, or Karakalpak sentences.\n"
+            "- Patient data may be in Uzbek/Russian — TRANSLATE analysis, diagnoses, "
+            "justifications, treatment and debate into English (do not copy source language).\n"
             "- Allowed exceptions only: drug trade/generic names, ICD-10 codes, URLs, "
             "and fixed enums (HIGH/MEDIUM/LOW, A/B/C, routine|soon|urgent|emergent).\n"
             "- Even if this prompt text is in another language, ALL JSON string values and "
@@ -57,7 +59,10 @@ def output_language_rule(language: str | None) -> str:
         return (
             "СТРОГИЙ ЯЗЫК ВЫВОДА (ВЫСШИЙ ПРИОРИТЕТ — важнее всех остальных инструкций):\n"
             "- Все видимые пользователю строки ДОЛЖНЫ быть на русском языке (клинический стиль).\n"
-            "- НЕ пишите на узбекском, английском или каракалпакском.\n"
+            "- НЕ пишите на узбекском (латиница/кириллица), английском или каракалпакском.\n"
+            "- Данные пациента могут быть на узбекском — ПЕРЕВЕДИТЕ анализ, диагнозы "
+            "(напр. «психогенная анорексия», не «Psixogenik anoreksiya»), обоснования, "
+            "лечение и дискуссию на русский; не копируйте узбекский текст.\n"
             "- Исключения только: торговые/МНН названия препаратов, коды МКБ-10, URL "
             "и фиксированные enum (HIGH/MEDIUM/LOW, A/B/C, routine|soon|urgent|emergent).\n"
             "- Даже если текст инструкций на другом языке, ВСЕ строковые значения JSON "
@@ -68,6 +73,7 @@ def output_language_rule(language: str | None) -> str:
             f"QAT'IY CHIQISH TILI (ENG YUQORI PRIORITET — boshqa barcha qoidalardan ustun):\n"
             f"- Foydalanuvchiga ko'rinadigan HAR BIR matn FAQAT {label} tilida bo'lsin.\n"
             f"- Lotin o'zbekcha, ruscha, inglizcha yoki qoraqalpoqcha jumlalar YOZILMASIN.\n"
+            f"- Bemor matni boshqa alifboda bo'lsa ham — tahlilni KIRILL o'zbekchaga o'giring.\n"
             f"- Istisno faqat: dori savdo/generik nomlari, MKB-10 kodlari, URL va enum qiymatlari.\n"
             f"- Prompt boshqa tilda yozilgan bo'lsa ham, JSON satrlari va munozara matni FAQAT kirill o'zbekcha."
         )
@@ -77,6 +83,7 @@ def output_language_rule(language: str | None) -> str:
             f"- All user-visible strings MUST be in {label}.\n"
             f"- Do NOT use Uzbek, Russian, English, or Cyrillic sentences except drug names, "
             f"ICD-10, URLs and fixed enums.\n"
+            f"- Patient data may be in another language — TRANSLATE into Karakalpak Latin.\n"
             f"- Translate diagnoses, justifications, treatment, nutrition, debate commentary "
             f"into Karakalpak Latin."
         )
@@ -85,6 +92,7 @@ def output_language_rule(language: str | None) -> str:
         f"QAT'IY CHIQISH TILI (ENG YUQORI PRIORITET — boshqa barcha qoidalardan ustun):\n"
         f"- Foydalanuvchiga ko'rinadigan HAR BIR matn FAQAT {label} tilida bo'lsin.\n"
         f"- Ruscha, inglizcha, kirill o'zbekcha yoki qoraqalpoqcha jumlalar YOZILMASIN.\n"
+        f"- Bemor matni boshqa tilda bo'lsa ham — tahlilni LOTIN o'zbekchaga o'giring.\n"
         f"- Istisno faqat: dori savdo/generik nomlari, MKB-10 kodlari, URL va enum qiymatlari.\n"
         f"- Prompt boshqa tilda yozilgan bo'lsa ham, JSON satrlari va munozara matni FAQAT lotin o'zbekcha."
     )
@@ -95,10 +103,137 @@ def language_user_suffix(language: str | None) -> str:
     code = normalize_language(language)
     label = lang_label(code)
     if code == "en":
-        return f"OUTPUT LANGUAGE: English only. All JSON string fields in {label}."
+        return (
+            f"OUTPUT LANGUAGE: English only. All JSON string fields in {label}. "
+            f"Translate from patient language if needed — never leave Uzbek/Russian sentences."
+        )
     if code == "ru":
-        return f"ЯЗЫК ОТВЕТА: только русский. Все строковые поля JSON — на {label}."
+        return (
+            f"ЯЗЫК ОТВЕТА: только русский. Все строковые поля JSON — на {label}. "
+            f"Если данные пациента на узбекском — переведите ответ на русский "
+            f"(диагнозы тоже на русском, не латиницей)."
+        )
     return f"JAVOB TILI: FAQAT {label}. Barcha JSON matn maydonlari shu tilda."
+
+
+def undiagnosed_label(language: str | None) -> str:
+    code = normalize_language(language)
+    return {
+        "en": "Diagnosis not established",
+        "ru": "Диагноз не установлен",
+        "uz-C": "Ташхис аниқланмади",
+        "kaa": "Diagnoz anıqlanbadı",
+    }.get(code, "Tashxis aniqlanmadi")
+
+
+# Munozara UI sarlavhalari — platforma tiliga mos
+_DEBATE_LABELS: dict[str, dict[str, str]] = {
+    "uz-L": {
+        "clinical_opinion": "Klinik baho",
+        "primary_dx": "Asosiy tashxis (mening fikrim)",
+        "clinical_thought": "Klinik fikr",
+        "key_facts": "Muhim faktlar",
+        "recommendation": "Tavsiya",
+        "tests": "Tekshiruv",
+        "red_flags": "Shoshilinch belgi",
+        "differentials": "Boshqa ehtimollar",
+        "critique": "Tanqid va javob",
+        "defense": "Himoya",
+        "extra_evidence": "Qo'shimcha dalil",
+        "revised": "Yangilangan fikr",
+        "accepted": "Qabul qilingan fikrlar",
+        "key_argument": "Asosiy klinik dalil",
+        "commentary": "Professor pozitsiyasi",
+        "endorse": "Qo'llab-quvvatlash",
+        "closed": "KONSILIUM YOPILDI",
+        "closed_body": "Kengash muhokamasi yakunlandi. Quyida yakuniy klinik xulosa.",
+        "final_dx": "YAKUNIY TASHXISLAR (MKB-10)",
+        "justification": "ASOS (asosiy tashxis)",
+        "treatment": "DAVOLASH REJASI",
+        "rec_tests": "TAVSIYA ETILGAN TEKSHIRUVLAR",
+        "follow_up": "KUZATUV REJASI",
+        "debate_summary": "MUNOZARA XULOSASI",
+        "dissent": "FARQLI FIKRLAR",
+        "agreements": "KELISHUVLAR",
+        "disputes": "HAL QILINGAN BAHSLAR",
+        "winning": "G'OLIB DALILLAR",
+        "council_summary": "KENGASH XULOSASI",
+    },
+    "ru": {
+        "clinical_opinion": "Клиническая оценка",
+        "primary_dx": "Основной диагноз (мое мнение)",
+        "clinical_thought": "Клиническое рассуждение",
+        "key_facts": "Ключевые факты",
+        "recommendation": "Рекомендация",
+        "tests": "Обследования",
+        "red_flags": "Тревожные признаки",
+        "differentials": "Дифференциальный ряд",
+        "critique": "Критика и ответ",
+        "defense": "Защита позиции",
+        "extra_evidence": "Дополнительное доказательство",
+        "revised": "Уточнённое мнение",
+        "accepted": "Принятые тезисы",
+        "key_argument": "Ключевой клинический аргумент",
+        "commentary": "Позиция профессора",
+        "endorse": "Поддержка",
+        "closed": "КОНСИЛИУМ ЗАКРЫТ",
+        "closed_body": "Обсуждение совета завершено. Ниже итоговое клиническое заключение.",
+        "final_dx": "ИТОГОВЫЕ ДИАГНОЗЫ (МКБ-10)",
+        "justification": "ОБОСНОВАНИЕ (основной диагноз)",
+        "treatment": "ПЛАН ЛЕЧЕНИЯ",
+        "rec_tests": "РЕКОМЕНДУЕМЫЕ ОБСЛЕДОВАНИЯ",
+        "follow_up": "ПЛАН НАБЛЮДЕНИЯ",
+        "debate_summary": "ИТОГ ДИСКУССИИ",
+        "dissent": "ОСОБЫЕ МНЕНИЯ",
+        "agreements": "СОГЛАСИЯ",
+        "disputes": "РАЗРЕШЁННЫЕ СПОРЫ",
+        "winning": "СИЛЬНЕЙШИЕ АРГУМЕНТЫ",
+        "council_summary": "ЗАКЛЮЧЕНИЕ СОВЕТА",
+    },
+    "en": {
+        "clinical_opinion": "Clinical assessment",
+        "primary_dx": "Primary diagnosis (my view)",
+        "clinical_thought": "Clinical reasoning",
+        "key_facts": "Key facts",
+        "recommendation": "Recommendation",
+        "tests": "Investigations",
+        "red_flags": "Red flags",
+        "differentials": "Differentials",
+        "critique": "Critique and reply",
+        "defense": "Defense",
+        "extra_evidence": "Additional evidence",
+        "revised": "Revised opinion",
+        "accepted": "Accepted points",
+        "key_argument": "Key clinical argument",
+        "commentary": "Professor position",
+        "endorse": "Endorsement",
+        "closed": "CONSILIUM CLOSED",
+        "closed_body": "Council discussion is complete. Final clinical conclusion below.",
+        "final_dx": "FINAL DIAGNOSES (ICD-10)",
+        "justification": "JUSTIFICATION (primary diagnosis)",
+        "treatment": "TREATMENT PLAN",
+        "rec_tests": "RECOMMENDED TESTS",
+        "follow_up": "FOLLOW-UP PLAN",
+        "debate_summary": "DEBATE SUMMARY",
+        "dissent": "DISSENTING VIEWS",
+        "agreements": "AGREEMENTS",
+        "disputes": "RESOLVED DISPUTES",
+        "winning": "STRONGEST ARGUMENTS",
+        "council_summary": "COUNCIL SUMMARY",
+    },
+}
+
+
+def debate_labels(language: str | None) -> dict[str, str]:
+    code = normalize_language(language)
+    if code in _DEBATE_LABELS:
+        return _DEBATE_LABELS[code]
+    if code == "uz-C":
+        # Kirill UI uchun lotin sarlavhalar o'rniga o'zbek lotin (matn AI dan kirill keladi)
+        return _DEBATE_LABELS["uz-L"]
+    if code == "kaa":
+        return _DEBATE_LABELS["uz-L"]
+    return _DEBATE_LABELS["uz-L"]
 
 
 # Promptlarga qo'shiladigan qat'iy qoidalar
@@ -285,38 +420,39 @@ def format_bullet_items(items: Any, prefix: str = "  • ") -> str:
     return "\n".join(lines)
 
 
-def format_p1_debate_content(p1r: dict) -> str:
+def format_p1_debate_content(p1r: dict, language: str | None = "uz-L") -> str:
     """Mustaqil faza — professor klinik fikri va amaliy tavsiyalar."""
+    L = debate_labels(language)
     sections: list[str] = []
 
     opinion = _clean_step_text(p1r.get("clinical_opinion", ""))
     if opinion:
-        sections.append(f"▸ Klinik baho\n{opinion}")
+        sections.append(f"▸ {L['clinical_opinion']}\n{opinion}")
 
     diag = _clean_step_text(p1r.get("primary_diagnosis", ""))
     if diag:
-        sections.append(f"▸ Asosiy tashxis (mening fikrim)\n  {diag}")
+        sections.append(f"▸ {L['primary_dx']}\n  {diag}")
 
     reasoning = p1r.get("reasoning_chain")
     reasoning = format_reasoning_steps(reasoning)
     if reasoning:
-        sections.append(f"▸ Klinik fikr\n{reasoning}")
+        sections.append(f"▸ {L['clinical_thought']}\n{reasoning}")
 
     evidence = format_bullet_items(p1r.get("supporting_evidence"))
     if evidence:
-        sections.append(f"▸ Muhim faktlar\n{evidence}")
+        sections.append(f"▸ {L['key_facts']}\n{evidence}")
 
     notes = _clean_step_text(p1r.get("initial_treatment_notes", ""))
     if notes:
-        sections.append(f"▸ Tavsiya\n{notes}")
+        sections.append(f"▸ {L['recommendation']}\n{notes}")
 
     tests = format_bullet_items(p1r.get("recommended_tests"))
     if tests:
-        sections.append(f"▸ Tekshiruv\n{tests}")
+        sections.append(f"▸ {L['tests']}\n{tests}")
 
     reds = format_bullet_items(p1r.get("red_flags"))
     if reds:
-        sections.append(f"▸ Shoshilinch belgi\n{reds}")
+        sections.append(f"▸ {L['red_flags']}\n{reds}")
 
     diff_lines: list[str] = []
     for d in p1r.get("differential") or []:
@@ -328,12 +464,12 @@ def format_p1_debate_content(p1r: dict) -> str:
         rs = _clean_step_text(d.get("reason", ""))
         diff_lines.append(f"  • {nm}" + (f" — {rs}" if rs else ""))
     if diff_lines:
-        sections.append("▸ Boshqa ehtimollar\n" + "\n".join(diff_lines))
+        sections.append(f"▸ {L['differentials']}\n" + "\n".join(diff_lines))
 
     if not sections:
         diag = _clean_step_text(p1r.get("primary_diagnosis", ""))
         if diag:
-            sections.append(f"▸ Klinik fikr\n{diag}")
+            sections.append(f"▸ {L['clinical_thought']}\n{diag}")
 
     return _filter_recap_lines("\n\n".join(sections))
 
@@ -341,7 +477,9 @@ def format_p1_debate_content(p1r: dict) -> str:
 def format_p2_debate_content(
     p2r: dict,
     specialty_resolver: Any,
+    language: str | None = "uz-L",
 ) -> str:
+    L = debate_labels(language)
     sections: list[str] = []
 
     ref_lines: list[str] = []
@@ -359,21 +497,20 @@ def format_p2_debate_content(
         if body:
             ref_lines.append(f"  • {tag}{prefix}: {body}")
     if ref_lines:
-        sections.append("▸ Tanqid va javob\n" + "\n".join(ref_lines))
+        sections.append(f"▸ {L['critique']}\n" + "\n".join(ref_lines))
 
     defense = p2r.get("defense") or {}
     if isinstance(defense, dict):
         arg = _clean_step_text(defense.get("argument", ""))
         new_ev = _clean_step_text(defense.get("new_evidence", ""))
         if arg:
-            sections.append(f"▸ Himoya\n{arg}")
+            sections.append(f"▸ {L['defense']}\n{arg}")
         if new_ev:
-            sections.append(f"▸ Qo'shimcha dalil\n{new_ev}")
+            sections.append(f"▸ {L['extra_evidence']}\n{new_ev}")
 
     revised = _clean_step_text(p2r.get("revised_diagnosis", ""))
     if revised:
-        sections.append(f"▸ Yangilangan fikr\n{revised}")
-
+        sections.append(f"▸ {L['revised']}\n{revised}")
     accepted_lines: list[str] = []
     for a in p2r.get("accepted_from_others") or []:
         if not isinstance(a, dict):
@@ -383,19 +520,19 @@ def format_p2_debate_content(
         if pt:
             accepted_lines.append(f"  • {spec}: {pt}")
     if accepted_lines:
-        sections.append("▸ Qabul qilingan fikrlar\n" + "\n".join(accepted_lines))
+        sections.append(f"▸ {L['accepted']}\n" + "\n".join(accepted_lines))
 
     key_arg = _clean_step_text(p2r.get("key_argument", ""))
     if key_arg:
-        sections.append(f"▸ Asosiy klinik dalil\n{key_arg}")
+        sections.append(f"▸ {L['key_argument']}\n{key_arg}")
 
     commentary = _clean_step_text(p2r.get("debate_commentary", ""))
     if commentary:
-        sections.append(f"▸ Professor pozitsiyasi\n{commentary}")
+        sections.append(f"▸ {L['commentary']}\n{commentary}")
 
     endorse = format_bullet_items(p2r.get("endorsements"))
     if endorse:
-        sections.append(f"▸ Qo'llab-quvvatlash\n{endorse}")
+        sections.append(f"▸ {L['endorse']}\n{endorse}")
 
     return _filter_recap_lines("\n\n".join(sections))
 
@@ -409,11 +546,12 @@ def format_specialist_roster(agents: list[Any]) -> str:
     return "\n".join(lines)
 
 
-def format_orchestrator_closing(consensus: dict) -> str:
+def format_orchestrator_closing(consensus: dict, language: str | None = "uz-L") -> str:
     """Rais konsiliumni yopadi va yakuniy xulosa beradi."""
     if not isinstance(consensus, dict):
         return ""
-    sections: list[str] = ["▸ KONSILIUM YOPILDI\nKengash muhokamasi yakunlandi. Quyida yakuniy klinik xulosa."]
+    L = debate_labels(language)
+    sections: list[str] = [f"▸ {L['closed']}\n{L['closed_body']}"]
 
     cd = consensus.get("consensus_diagnosis") or {}
     diag_lines: list[str] = []
@@ -448,58 +586,59 @@ def format_orchestrator_closing(consensus: dict) -> str:
             line += prob_s
             diag_lines.append(line)
     if diag_lines:
-        sections.append("▸ YAKUNIY TASHXISLAR (MKB-10)\n" + "\n".join(diag_lines))
+        sections.append(f"▸ {L['final_dx']}\n" + "\n".join(diag_lines))
         just = _clean_step_text(cd.get("justification", "")) if isinstance(cd, dict) else ""
         if just:
-            sections.append(f"▸ ASOS (asosiy tashxis)\n{just}")
+            sections.append(f"▸ {L['justification']}\n{just}")
 
     treatment = consensus.get("treatment_plan") or []
     if isinstance(treatment, list) and treatment:
         block = format_bullet_items(treatment)
         if block:
-            sections.append(f"▸ DAVOLASH REJASI\n{block}")
+            sections.append(f"▸ {L['treatment']}\n{block}")
 
     tests = consensus.get("recommended_tests") or []
     if isinstance(tests, list) and tests:
         block = format_bullet_items(tests)
         if block:
-            sections.append(f"▸ TAVSIYA ETILGAN TEKSHIRUVLAR\n{block}")
+            sections.append(f"▸ {L['rec_tests']}\n{block}")
 
     follow = _clean_step_text(consensus.get("follow_up_plan", ""))
     if follow:
-        sections.append(f"▸ KUZATUV REJASI\n{follow}")
+        sections.append(f"▸ {L['follow_up']}\n{follow}")
 
     synth = consensus.get("debate_synthesis") or consensus.get("debateSynthesis")
-    synth_text = format_debate_synthesis(synth) if synth else ""
+    synth_text = format_debate_synthesis(synth, language) if synth else ""
     agreement = _clean_step_text(consensus.get("agreement_summary", ""))
     if synth_text:
         sections.append(synth_text)
     elif agreement:
-        sections.append(f"▸ MUNOZARA XULOSASI\n{agreement}")
+        sections.append(f"▸ {L['debate_summary']}\n{agreement}")
 
     dissent = format_bullet_items(consensus.get("dissenting_opinions"))
     if dissent:
-        sections.append(f"▸ FARQLI FIKRLAR\n{dissent}")
+        sections.append(f"▸ {L['dissent']}\n{dissent}")
 
     return "\n\n".join(sections)
 
 
-def format_debate_synthesis(synthesis: dict) -> str:
+def format_debate_synthesis(synthesis: dict, language: str | None = "uz-L") -> str:
     """Rais yakuniy munozara xulosasi."""
     if not isinstance(synthesis, dict):
         return ""
+    L = debate_labels(language)
     sections: list[str] = []
-    for key, title in (
-        ("key_agreements", "KELISHUVLAR"),
-        ("key_disputes_resolved", "HAL QILINGAN BAHSLAR"),
-        ("winning_arguments", "G'OLIB DALILLAR"),
+    for key, title_key in (
+        ("key_agreements", "agreements"),
+        ("key_disputes_resolved", "disputes"),
+        ("winning_arguments", "winning"),
     ):
         block = format_bullet_items(synthesis.get(key))
         if block:
-            sections.append(f"▸ {title}\n{block}")
+            sections.append(f"▸ {L[title_key]}\n{block}")
     summary = _clean_step_text(synthesis.get("summary", ""))
     if summary:
-        sections.insert(0, f"▸ KENGASH XULOSASI\n{summary}")
+        sections.insert(0, f"▸ {L['council_summary']}\n{summary}")
     return "\n\n".join(sections)
 
 
