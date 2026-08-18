@@ -183,13 +183,16 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
     const week = sc ? sc.last7d : inLast(7);
     const month = sc ? sc.last30d : inLast(30);
     const total = stats.totalAnalyses;
+    const newPatients = stats.newPatients30d ?? insights.newPatients;
+    const returnPatients = stats.returnPatients30d ?? insights.returnPatients;
     const acc =
         stats.feedbackEvalCount === 0
             ? FEEDBACK_ACCURACY_SAMPLE_PERCENT
             : feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy);
 
-    const avgWeek = week > 0 ? (week / 7).toFixed(1) : '—';
-    const avgMonth = month > 0 ? (month / 30).toFixed(1) : '—';
+    const avgWeek = week > 0 ? (week / 7).toFixed(1) : null;
+    const avgMonth = month > 0 ? (month / 30).toFixed(1) : null;
+    const weekEmpty = weekly.every((d) => d.count === 0);
 
     const MetricCard: React.FC<{
         label: string;
@@ -197,17 +200,75 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
         sub: string;
         className: string;
         dark?: boolean;
-    }> = ({ label, value, sub, className, dark }) => (
-        <div className={`rounded-xl px-3 py-3 md:py-3.5 border ${className}`}>
-            <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${dark ? 'text-slate-300' : ''}`}>
-                {label}
-            </p>
-            <p className="mt-1 text-2xl md:text-3xl xl:text-4xl font-black tabular-nums leading-none text-inherit">
-                {value}
-            </p>
-            <p className={`text-[9px] mt-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{sub}</p>
-        </div>
-    );
+        emptyHint?: string;
+    }> = ({ label, value, sub, className, dark, emptyHint }) => {
+        const isEmpty = value === 0 || value === '0';
+        return (
+            <div className={`rounded-xl px-3 py-3 md:py-3.5 border ${className}`}>
+                <p className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${dark ? 'text-slate-300' : 'text-slate-500'}`}>
+                    {label}
+                </p>
+                {isEmpty ? (
+                    <>
+                        <p className={`mt-1.5 text-lg md:text-xl font-semibold tracking-wide ${dark ? 'text-slate-400' : 'text-slate-300'}`}>
+                            —
+                        </p>
+                        <p className={`text-[9px] mt-1 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            {emptyHint || t('dashboard_analytics_empty')}
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <p className="mt-1 text-2xl md:text-3xl xl:text-4xl font-black tabular-nums leading-none text-inherit">
+                            {value}
+                        </p>
+                        <p className={`text-[9px] mt-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{sub}</p>
+                    </>
+                )}
+            </div>
+        );
+    };
+
+    const PatientStatCard: React.FC<{
+        label: string;
+        hint: string;
+        value: number;
+        accent: 'violet' | 'teal';
+        icon: React.ReactNode;
+    }> = ({ label, hint, value, accent, icon }) => {
+        const empty = value === 0;
+        const wrap =
+            accent === 'violet'
+                ? 'border-violet-100 bg-gradient-to-br from-violet-50/90 to-white'
+                : 'border-teal-100 bg-gradient-to-br from-teal-50/90 to-white';
+        const labelClr = accent === 'violet' ? 'text-violet-600/80' : 'text-teal-700/80';
+        const numClr = accent === 'violet' ? 'text-violet-800' : 'text-teal-800';
+        const hintClr = accent === 'violet' ? 'text-violet-600/70' : 'text-teal-700/70';
+        const iconBg = accent === 'violet' ? 'bg-violet-100 text-violet-600' : 'bg-teal-100 text-teal-700';
+        return (
+            <div className={`rounded-xl px-3 py-3 border ${wrap} min-h-[5.5rem] flex flex-col`}>
+                <div className="flex items-start justify-between gap-2">
+                    <p className={`text-[9px] font-bold uppercase tracking-widest ${labelClr} leading-tight`}>
+                        {label}
+                    </p>
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+                        {icon}
+                    </span>
+                </div>
+                {empty ? (
+                    <div className="mt-auto pt-2">
+                        <p className="text-sm font-semibold text-slate-400">{t('dashboard_analytics_empty')}</p>
+                        <p className={`text-[8px] mt-0.5 ${hintClr}`}>{hint}</p>
+                    </div>
+                ) : (
+                    <div className="mt-auto pt-1">
+                        <p className={`text-2xl font-black tabular-nums ${numClr}`}>{value}</p>
+                        <p className={`text-[8px] mt-0.5 ${hintClr}`}>{hint}</p>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     const shortRegion = (name: string) => name.replace(/ viloyati| shahri| Respublikasi/gi, '').trim();
 
@@ -237,23 +298,26 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
                         label={t('stats_range_day')}
                         value={today}
                         sub={t('stats_total_analyses')}
+                        emptyHint={t('dashboard_analytics_empty_today')}
                         className="bg-sky-50 border-sky-100/80"
                     />
                     <MetricCard
                         label={t('stats_range_week')}
                         value={week}
                         sub={t('stats_total_analyses')}
+                        emptyHint={t('dashboard_analytics_empty_period')}
                         className="bg-emerald-50 border-emerald-100/80"
                     />
                     <MetricCard
                         label={t('stats_range_month')}
                         value={month}
                         sub={t('stats_total_analyses')}
+                        emptyHint={t('dashboard_analytics_empty_period')}
                         className="bg-indigo-50 border-indigo-100/80"
                     />
                     <MetricCard
                         label={t('stats_range_all')}
-                        value={total}
+                        value={total.toLocaleString(language === 'en' ? 'en-GB' : 'ru-RU')}
                         sub={t('stats_total_analyses')}
                         className="bg-slate-900 text-white border-slate-800"
                         dark
@@ -263,28 +327,41 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
                 <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-600">
                     <div className="rounded-lg px-2.5 py-2.5 bg-white/70 border border-slate-100">
                         <span className="font-semibold text-slate-500">{t('dashboard_analytics_avg_week')}</span>
-                        <span className="float-right font-mono font-bold text-sky-700 text-sm">{avgWeek}</span>
+                        <span className={`float-right font-mono font-bold text-sm ${avgWeek ? 'text-sky-700' : 'text-slate-300'}`}>
+                            {avgWeek ?? '—'}
+                        </span>
                     </div>
                     <div className="rounded-lg px-2.5 py-2.5 bg-white/70 border border-slate-100">
                         <span className="font-semibold text-slate-500">{t('dashboard_analytics_avg_month')}</span>
-                        <span className="float-right font-mono font-bold text-emerald-700 text-sm">{avgMonth}</span>
+                        <span className={`float-right font-mono font-bold text-sm ${avgMonth ? 'text-emerald-700' : 'text-slate-300'}`}>
+                            {avgMonth ?? '—'}
+                        </span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-xl px-3 py-3 border border-violet-100 bg-gradient-to-br from-violet-50/90 to-white/80">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-violet-600/80">
-                            {t('dashboard_analytics_new_patients')}
-                        </p>
-                        <p className="text-2xl font-black text-violet-800 tabular-nums mt-1">{insights.newPatients}</p>
-                        <p className="text-[8px] text-violet-600/70 mt-0.5">{t('dashboard_analytics_new_patients_hint')}</p>
-                    </div>
-                    <div className="rounded-xl px-3 py-3 border border-teal-100 bg-gradient-to-br from-teal-50/90 to-white/80">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-teal-700/80">
-                            {t('dashboard_analytics_return_patients')}
-                        </p>
-                        <p className="text-2xl font-black text-teal-800 tabular-nums mt-1">{insights.returnPatients}</p>
-                    </div>
+                    <PatientStatCard
+                        label={t('dashboard_analytics_new_patients')}
+                        hint={t('dashboard_analytics_new_patients_hint')}
+                        value={newPatients}
+                        accent="violet"
+                        icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                        }
+                    />
+                    <PatientStatCard
+                        label={t('dashboard_analytics_return_patients')}
+                        hint={t('dashboard_analytics_return_patients_hint')}
+                        value={returnPatients}
+                        accent="teal"
+                        icon={
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        }
+                    />
                 </div>
 
                 <div className="rounded-xl px-4 py-3.5 flex items-center justify-between gap-2 border border-slate-100 bg-gradient-to-r from-sky-50/80 to-emerald-50/50 mt-auto">
@@ -345,22 +422,30 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
                     <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
                         {t('dashboard_analytics_activity_heading')}
                     </p>
-                    <div className="rounded-xl border border-slate-100 bg-white/50 p-4 flex-1 flex flex-col justify-end min-h-[120px]">
-                        <div className="flex items-end justify-between gap-1.5 sm:gap-2 h-24">
+                    <div className="rounded-xl border border-slate-100 bg-white/50 p-4 flex-1 flex flex-col justify-end min-h-[120px] relative">
+                        {weekEmpty && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-4 text-center pointer-events-none">
+                                <p className="text-xs font-semibold text-slate-400">{t('dashboard_analytics_activity_empty')}</p>
+                                <p className="text-[10px] text-slate-300">{t('dashboard_analytics_empty_hint')}</p>
+                            </div>
+                        )}
+                        <div className={`flex items-end justify-between gap-1.5 sm:gap-2 h-24 ${weekEmpty ? 'opacity-25' : ''}`}>
                             {weekly.map((day) => (
                                 <div key={day.label} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
-                                    <span className="text-[10px] font-mono font-bold text-slate-600 tabular-nums">
+                                    <span className="text-[10px] font-mono font-bold text-slate-600 tabular-nums h-4">
                                         {day.count > 0 ? day.count : ''}
                                     </span>
                                     <div className="w-full flex items-end justify-center h-16">
                                         <div
                                             className="w-full max-w-[2.25rem] rounded-t-lg transition-all duration-500"
                                             style={{
-                                                height: `${Math.max(12, (day.count / maxWeek) * 100)}%`,
-                                                background: day.isToday
+                                                height: day.count === 0 ? '4px' : `${Math.max(14, (day.count / maxWeek) * 100)}%`,
+                                                background: day.count === 0
+                                                    ? 'rgba(148,163,184,0.25)'
+                                                    : day.isToday
                                                     ? 'linear-gradient(180deg, #06b6d4 0%, #059669 100%)'
                                                     : 'linear-gradient(180deg, rgba(8,145,178,0.55) 0%, rgba(5,150,105,0.35) 100%)',
-                                                boxShadow: day.isToday ? '0 0 12px rgba(6,182,212,0.35)' : undefined,
+                                                boxShadow: day.isToday && day.count > 0 ? '0 0 12px rgba(6,182,212,0.35)' : undefined,
                                             }}
                                         />
                                     </div>

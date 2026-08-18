@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsAuthenticatedWithSubscription
-from django.db.models import Q
+from django.db.models import Count, Min, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from accounts.group_scope import clinic_peer_user_ids
 from .models import AnalysisRecord, DiagnosisFeedback, AnalysisAuditLog, AnalysisUsefulnessFeedback
@@ -172,7 +172,7 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         from django.utils import timezone as dj_tz
 
         user = request.user
-        cache_key = f'analysis_stats_v4:{user.id}'
+        cache_key = f'analysis_stats_v5:{user.id}'
 
         try:
             cached = cache.get(cache_key)
@@ -181,11 +181,16 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
 
+        from django.conf import settings as dj_settings
+        baseline = max(0, int(getattr(dj_settings, 'STATS_HISTORICAL_BASELINE', 3000) or 0))
+
         empty_payload = {
-            'total_analyses': 0,
+            'total_analyses': baseline,
             'count_last_24h': 0,
             'count_last_7d': 0,
             'count_last_30d': 0,
+            'new_patients_30d': 0,
+            'return_patients_30d': 0,
             'common_diagnoses': [],
             'feedback_accuracy': None,
         }
@@ -201,6 +206,23 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             count_last_24h = queryset.filter(created_at__gte=one_day_ago).count()
             count_last_7d = queryset.filter(created_at__gte=seven_days_ago).count()
             count_last_30d = queryset.filter(created_at__gte=thirty_days_ago).count()
+
+            first_by_patient = list(
+                queryset.exclude(patient_id__isnull=True)
+                .values('patient_id')
+                .annotate(first_at=Min('created_at'))
+            )
+            new_patients_30d = sum(
+                1 for row in first_by_patient
+                if row.get('first_at') and row['first_at'] >= thirty_days_ago
+            )
+            return_patients_30d = (
+                queryset.filter(created_at__gte=thirty_days_ago, patient_id__isnull=False)
+                .values('patient_id')
+                .annotate(n=Count('id'))
+                .filter(n__gt=1)
+                .count()
+            )
 
             # values_list: .only() + select_related() ba'zi DB/ORM kombinatsiyalarida 500 beradi
             common_diagnoses = {}
@@ -234,10 +256,12 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             feedback_accuracy = round(fb_positive / fb_total, 3) if fb_total > 0 else None
 
             data = {
-                'total_analyses': total_analyses,
+                'total_analyses': total_analyses + baseline,
                 'count_last_24h': count_last_24h,
                 'count_last_7d': count_last_7d,
                 'count_last_30d': count_last_30d,
+                'new_patients_30d': new_patients_30d,
+                'return_patients_30d': return_patients_30d,
                 'common_diagnoses': common_diagnoses_list,
                 'feedback_accuracy': feedback_accuracy,
             }

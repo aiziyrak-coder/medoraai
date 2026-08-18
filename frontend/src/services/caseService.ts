@@ -133,6 +133,8 @@ export const mergeDashboardStatsWithApi = (
             typeof api.feedback_accuracy === 'number' ? api.feedback_accuracy : fromList.feedbackAccuracy,
         feedbackEvalCount: fromList.feedbackEvalCount ?? 0,
         serverCounts,
+        newPatients30d: typeof api.new_patients_30d === 'number' ? api.new_patients_30d : fromList.newPatients30d,
+        returnPatients30d: typeof api.return_patients_30d === 'number' ? api.return_patients_30d : fromList.returnPatients30d,
     };
 };
 

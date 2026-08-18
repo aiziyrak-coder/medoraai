@@ -658,6 +658,8 @@ export interface AnalysisStatsPayload {
   count_last_24h?: number;
   count_last_7d?: number;
   count_last_30d?: number;
+  new_patients_30d?: number;
+  return_patients_30d?: number;
 }
 
 export interface UserStats {
@@ -667,6 +669,9 @@ export interface UserStats {
   feedbackAccuracy: number;
   /** DDx bo‘yicha fikr kiritilgan holatlar soni (0 bo‘lsa ko‘rsatkich namuna) */
   feedbackEvalCount: number;
+  serverCounts?: { last24h: number; last7d: number; last30d: number };
+  newPatients30d?: number;
+  returnPatients30d?: number;
 }
 
 export interface AnonymizedCase {
