@@ -24,6 +24,7 @@ export type AppView =
   | 'subscription'
   | 'population'
   | 'primary_care'
+  | 'patient_statistics'
   | 'patient_dossier';
 
 /** Bemor marshrutlash: mutaxassis, tekshiruv rejasi, statsionar */

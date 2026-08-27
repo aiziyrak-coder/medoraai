@@ -26,6 +26,15 @@ PWD = (
 ROOT = "/root/aishifokor"
 
 SYNC_PATHS = [
+    "frontend/src/App.tsx",
+    "frontend/src/types.ts",
+    "frontend/src/components/Dashboard.tsx",
+    "frontend/src/components/dashboard/AnalyticsHubPanel.tsx",
+    "frontend/src/components/population/PatientStatisticsPanel.tsx",
+    "frontend/src/services/apiPatientStatisticsService.ts",
+    "frontend/src/components/primarycare/PrimaryCareHub.tsx",
+    "frontend/src/i18n/locales/uzL.ts",
+    "frontend/src/i18n/locales/primaryCare.en.ts",
     "backend/patients/icd10_catalog.py",
     "backend/patients/population_statistics.py",
     "backend/patients/population_views.py",
@@ -35,11 +44,6 @@ SYNC_PATHS = [
     "backend/patients/migrations/0007_populationrecord_disability_group_and_more.py",
     "backend/patients/management/commands/backfill_population_stats_fields.py",
     "backend/patients/management/commands/import_sox_excel_patients.py",
-    "frontend/src/components/population/PatientStatisticsPanel.tsx",
-    "frontend/src/services/apiPatientStatisticsService.ts",
-    "frontend/src/components/primarycare/PrimaryCareHub.tsx",
-    "frontend/src/i18n/locales/uzL.ts",
-    "frontend/src/i18n/locales/primaryCare.en.ts",
 ]
 
 def _remote_script() -> str:
@@ -60,6 +64,7 @@ else
   echo 'STATS_HISTORICAL_BASELINE=0' >> .env
 fi
 python manage.py migrate --noinput
+python manage.py backfill_population_stats_fields
 python manage.py collectstatic --noinput
 
 echo "==> Frontend build..."

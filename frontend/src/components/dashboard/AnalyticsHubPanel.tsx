@@ -28,6 +28,7 @@ const WEEKDAY_LOCALE: Record<Language, string> = {
 interface AnalyticsHubPanelProps {
     stats: UserStats | null;
     allAnalyses: AnalysisRecord[];
+    onOpenPatientStatistics?: () => void;
 }
 
 function patientKey(record: AnalysisRecord): string {
@@ -127,7 +128,7 @@ const LocationBar: React.FC<{
     </div>
 );
 
-const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyses }) => {
+const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyses, onOpenPatientStatistics }) => {
     const { t, language } = useTranslation();
 
     const weekly = useMemo(() => buildWeeklyActivity(allAnalyses, language), [allAnalyses, language]);
@@ -279,14 +280,25 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
         >
             <div className="flex flex-col gap-4 min-w-0 xl:w-[44%] xl:max-w-md shrink-0">
                 <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                        <div
-                            className="w-1 h-6 rounded-full shrink-0"
-                            style={{ background: 'linear-gradient(180deg,#6366f1,#0891b2)' }}
-                        />
-                        <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">
-                            {t('dashboard_analytics_title')}
-                        </h2>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="w-1 h-6 rounded-full shrink-0"
+                                style={{ background: 'linear-gradient(180deg,#6366f1,#0891b2)' }}
+                            />
+                            <h2 className="text-lg md:text-xl font-black text-slate-800 tracking-tight">
+                                {t('dashboard_analytics_title')}
+                            </h2>
+                        </div>
+                        {onOpenPatientStatistics && (
+                            <button
+                                type="button"
+                                onClick={onOpenPatientStatistics}
+                                className="text-[11px] font-bold text-teal-700 hover:text-teal-900 px-3 py-1.5 rounded-full border border-teal-200 bg-teal-50/80 hover:bg-teal-100 transition-colors"
+                            >
+                                {t('patient_stats_open')} →
+                            </button>
+                        )}
                     </div>
                     <p className="text-[11px] md:text-sm text-slate-500 leading-relaxed pl-3 border-l-2 border-sky-100">
                         {t('dashboard_analytics_subtitle')}

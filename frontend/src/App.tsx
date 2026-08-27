@@ -51,6 +51,7 @@ import ClarificationView from './components/ClarificationView';
 import Dashboard from './components/Dashboard';
 import RegistrarApp from './components/registrar/RegistrarApp';
 import PrimaryCareHub from './components/primarycare/PrimaryCareHub';
+import PatientStatisticsPanel from './components/population/PatientStatisticsPanel';
 const PatientDossierPage = lazy(() => import('./components/PatientDossierPage'));
 import AnalysisView from './components/AnalysisView';
 import TeamRecommendationView from './components/TeamRecommendationView';
@@ -1091,6 +1092,7 @@ const AppContent: React.FC = () => {
                             onOpenPrescriptionAudit={() => setAppView('prescription_audit')}
                             onOpenTools={() => setAppView('tools')}
                             onOpenPopulation={() => setAppView('primary_care')}
+                            onOpenPatientStatistics={() => setAppView('patient_statistics')}
                             onOpenPatientDossier={() => setAppView('patient_dossier')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
@@ -1259,6 +1261,16 @@ const AppContent: React.FC = () => {
                         <BackBar title={t('pc_title')} subtitle={t('pc_subtitle')} onBack={() => handleNavigation('dashboard')} />
                         <ScrollWrapper>
                             <PrimaryCareHub initialProfileId={pcProfileId} onProfileConsumed={() => setPcProfileId(null)} />
+                        </ScrollWrapper>
+                    </div>
+                );
+
+            case 'patient_statistics':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <BackBar title={t('pc_stats_title')} subtitle={t('pc_stats_subtitle')} onBack={() => handleNavigation('dashboard')} />
+                        <ScrollWrapper>
+                            <PatientStatisticsPanel />
                         </ScrollWrapper>
                     </div>
                 );

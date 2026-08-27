@@ -13,6 +13,7 @@ interface DashboardProps {
     onOpenPrescriptionAudit?: () => void;
     onOpenTools?: () => void;
     onOpenPopulation?: () => void;
+    onOpenPatientStatistics?: () => void;
     onOpenPatientDossier?: () => void;
     recentAnalyses: AnalysisRecord[];
     allAnalyses: AnalysisRecord[];
@@ -75,7 +76,7 @@ const glass: React.CSSProperties = {
 
 const Dashboard: React.FC<DashboardProps> = ({
     userName, onNewAnalysis, onViewHistory,
-    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools, onOpenPopulation, onOpenPatientDossier,
+    onOpenUziUtt, onOpenPrescriptionAudit, onOpenTools, onOpenPopulation, onOpenPatientStatistics, onOpenPatientDossier,
     recentAnalyses, allAnalyses, onSelectAnalysis, stats,
 }) => {
     const { t, language } = useTranslation();
@@ -319,6 +320,35 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                     )}
 
+                    {onOpenPatientStatistics && (
+                        <div
+                            onClick={onOpenPatientStatistics}
+                            className="relative overflow-hidden rounded-[20px] cursor-pointer group"
+                            style={{
+                                background: 'linear-gradient(135deg, #134e4a 0%, #115e59 45%, #0f766e 100%)',
+                                border: '1px solid rgba(45,212,191,0.45)',
+                                minHeight: '120px',
+                                boxShadow: '0 0 32px rgba(20,184,166,0.18), 0 12px 32px rgba(0,0,0,0.2)',
+                            }}
+                        >
+                            <div className="absolute inset-0 hex-grid-bg opacity-40" aria-hidden="true" />
+                            <div className="relative z-10 p-5 flex items-center gap-4">
+                                <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+                                     style={{ background: 'rgba(45,212,191,0.18)', border: '1px solid rgba(45,212,191,0.5)' }}>
+                                    📊
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-mono font-bold tracking-widest uppercase mb-1 text-teal-200">
+                                        {t('patient_stats_badge')}
+                                    </p>
+                                    <h3 className="text-base font-black text-white leading-tight">{t('patient_stats_dashboard_title')}</h3>
+                                    <p className="text-xs text-teal-100/85 mt-0.5 line-clamp-2">{t('patient_stats_dashboard_desc')}</p>
+                                </div>
+                                <span className="text-teal-200 text-sm font-bold hidden sm:inline group-hover:translate-x-0.5 transition-transform">→</span>
+                            </div>
+                        </div>
+                    )}
+
                     {onOpenPopulation && (
                         <div
                             onClick={onOpenPopulation}
@@ -380,7 +410,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {/* Analitika Hub */}
                 <div className="lg:col-span-8 flex min-h-0">
                     <div className="w-full flex flex-col min-h-0 lg:min-h-[420px]">
-                        <AnalyticsHubPanel stats={stats} allAnalyses={allAnalyses} />
+                        <AnalyticsHubPanel stats={stats} allAnalyses={allAnalyses} onOpenPatientStatistics={onOpenPatientStatistics} />
                     </div>
                 </div>
 
