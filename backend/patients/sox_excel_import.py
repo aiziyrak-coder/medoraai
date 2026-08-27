@@ -79,8 +79,27 @@ def parse_disability(raw: Any) -> tuple[bool, str]:
         return False, ''
     low = text.lower()
     if low in ('нет', 'нет.', 'yoq', "yo'q", 'yoʻq', 'no', '-', '0', 'йўқ'):
-        return False, text
+        return False, ''
     return True, text
+
+
+def parse_disability_group(raw: Any) -> tuple[bool, str]:
+    """Nogironlik matnini guruhga (I/II/III/childhood) o'girish."""
+    text = str(raw or '').strip()
+    if not text:
+        return False, ''
+    low = text.lower()
+    if low in ('нет', 'нет.', 'yoq', "yo'q", 'yoʻq', 'no', '-', '0', 'йўқ'):
+        return False, ''
+    if re.search(r'дет', low) or 'bolalik' in low:
+        return True, 'childhood'
+    if re.search(r'\biii\b', low) or '3 группа' in low:
+        return True, 'III'
+    if re.search(r'\bii\b', low) or '2 группа' in low:
+        return True, 'II'
+    if re.search(r'\bi\b', low) or '1 группа' in low:
+        return True, 'I'
+    return True, text[:20]
 
 
 def parse_icd(raw: Any) -> str:
@@ -123,9 +142,11 @@ def iter_sox_rows(path: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         health_group = parse_health_group(row[4] if len(row) > 4 else None)
         icd = parse_icd(row[5] if len(row) > 5 else None)
         disabled, disability_text = parse_disability(row[6] if len(row) > 6 else None)
+        _, disability_group = parse_disability_group(disability_text if disabled else '')
         gender = infer_gender(first_name, father_name, last_name)
         by_card[card] = {
             'registry_number': card,
+            'medical_card_number': card,
             'last_name': last_name,
             'first_name': first_name,
             'father_name': father_name,
@@ -133,6 +154,8 @@ def iter_sox_rows(path: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
             'gender': gender,
             'health_group': health_group,
             'icd10_code': icd,
+            'dispensary_icd_code': icd,
+            'disability_group': disability_group,
             'risk_disabled': disabled,
             'disability_text': disability_text,
             'risk_chronic': bool(icd),

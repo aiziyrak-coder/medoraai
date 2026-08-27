@@ -167,6 +167,20 @@ class PopulationRecord(models.Model):
     last_checkup_date = models.DateField(null=True, blank=True, verbose_name='Oxirgi ko\'rik sanasi')
     dispensary_registered = models.BooleanField(default=False, verbose_name='Dispanser nazoratida')
 
+    medical_card_number = models.CharField(
+        max_length=30, blank=True, db_index=True, verbose_name='Medkarta raqami',
+    )
+    disability_group = models.CharField(
+        max_length=20, blank=True, db_index=True,
+        verbose_name='Nogironlik guruhi (I/II/III/bolalikdan)',
+    )
+    dispensary_icd_code = models.CharField(
+        max_length=20, blank=True, db_index=True, verbose_name='D-hisob / NKB kodi',
+    )
+    dispensary_diagnosis = models.CharField(
+        max_length=255, blank=True, verbose_name='D-hisob tashxisi',
+    )
+
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual', verbose_name='Manba')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

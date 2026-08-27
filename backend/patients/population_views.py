@@ -65,6 +65,34 @@ class PopulationViewSet(viewsets.ModelViewSet):
             'data': [population_to_dict(r) for r in records],
         })
 
+    @action(detail=False, methods=['get'], url_path='statistics')
+    def statistics(self, request):
+        from .primary_care_access import population_for_user
+        from .population_statistics import compute_population_statistics, filter_population_records
+
+        qs = population_for_user(request.user)
+        params = request.query_params.dict()
+        lang = (params.get('lang') or 'uz').split('-')[0]
+        records = filter_population_records(qs, params)
+        data = compute_population_statistics(records, lang=lang)
+        return Response({'success': True, 'data': data})
+
+    @action(detail=False, methods=['get'], url_path='statistics/export')
+    def statistics_export(self, request):
+        from django.http import HttpResponse
+        from .primary_care_access import population_for_user
+        from .population_statistics import export_statistics_excel, filter_population_records
+
+        qs = population_for_user(request.user)
+        records = filter_population_records(qs, request.query_params.dict())
+        content = export_statistics_excel(records)
+        response = HttpResponse(
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="bemorlar_statistika.xlsx"'
+        return response
+
     @action(detail=False, methods=['post'], url_path='import-excel')
     def import_excel(self, request):
         file_obj = request.FILES.get('file')
@@ -79,7 +107,12 @@ class PopulationViewSet(viewsets.ModelViewSet):
                 'success': False,
                 'error': {'message': 'Faqat .xlsx yoki .xls fayl qabul qilinadi'},
             }, status=status.HTTP_400_BAD_REQUEST)
-        stats = import_population_excel(file_obj, user=request.user)
+        stats = import_population_excel(
+            file_obj,
+            user=request.user,
+            region_id=(request.data.get('region_id') or request.POST.get('region_id') or '').strip(),
+            district_id=(request.data.get('district_id') or request.POST.get('district_id') or '').strip(),
+        )
         return Response({'success': True, 'data': stats})
 
     @action(detail=False, methods=['get'], url_path='export-excel')

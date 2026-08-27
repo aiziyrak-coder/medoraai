@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import PopulationPanel from '../population/PopulationPanel';
+import PatientStatisticsPanel from '../population/PatientStatisticsPanel';
 import PopulationPrimaryCareProfile from './PopulationPrimaryCareProfile';
 import PrimaryCareGuide from './PrimaryCareGuide';
 import PrimaryCareOperationsTab from './PrimaryCareOperationsTab';
 import { useTranslation } from '../../hooks/useTranslation';
 import * as pc from '../../services/apiPrimaryCareService';
 
-type HubTab = 'guide' | 'overview' | 'operations' | 'population' | 'brigades' | 'plans' | 'profile';
+type HubTab = 'guide' | 'overview' | 'operations' | 'population' | 'statistics' | 'brigades' | 'plans' | 'profile';
 type ProfileSection = 'checkup' | 'screening' | 'patronage' | 'dispensary' | 'family';
 
 const inputCls = 'rounded-lg border border-slate-200 px-2.5 py-2 text-sm w-full';
@@ -235,6 +236,7 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
     { id: 'overview', label: t('pc_tab_overview') },
     { id: 'operations', label: t('pc_tab_operations') },
     { id: 'population', label: t('population_title') },
+    { id: 'statistics', label: t('pc_stats_tab') },
     { id: 'brigades', label: t('pc_tab_brigades') },
     { id: 'plans', label: t('pc_tab_network') },
     ...(selectedId ? [{ id: 'profile' as HubTab, label: t('pc_tab_profile') }] : []),
@@ -265,7 +267,7 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
             </button>
           ))}
         </div>
-        {(tab === 'overview' || tab === 'operations' || tab === 'population') && brigadeFilter}
+        {(tab === 'overview' || tab === 'operations' || tab === 'population' || tab === 'statistics') && brigadeFilter}
       </div>
 
       {tab === 'guide' && (
@@ -392,6 +394,10 @@ const PrimaryCareHub: React.FC<PrimaryCareHubProps> = ({ initialProfileId, onPro
 
       <div className={tab === 'population' ? '' : 'hidden'}>
         <PopulationPanel onOpenProfile={(id) => openProfile(id)} brigadeFilter={filterBrigadeId ? Number(filterBrigadeId) : undefined} brigades={brigades} hubEmbedded />
+      </div>
+
+      <div className={tab === 'statistics' ? '' : 'hidden'}>
+        <PatientStatisticsPanel hubEmbedded brigadeFilter={filterBrigadeId ? Number(filterBrigadeId) : undefined} />
       </div>
 
       {selectedId && (
