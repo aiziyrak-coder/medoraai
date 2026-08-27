@@ -172,7 +172,7 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         from django.utils import timezone as dj_tz
 
         user = request.user
-        cache_key = f'analysis_stats_v5:{user.id}'
+        cache_key = f'analysis_stats_v6:{user.id}'
 
         try:
             cached = cache.get(cache_key)
@@ -182,7 +182,7 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             pass
 
         from django.conf import settings as dj_settings
-        baseline = max(0, int(getattr(dj_settings, 'STATS_HISTORICAL_BASELINE', 3000) or 0))
+        baseline = max(0, int(getattr(dj_settings, 'STATS_HISTORICAL_BASELINE', 0) or 0))
 
         empty_payload = {
             'total_analyses': baseline,
@@ -207,6 +207,17 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
             count_last_7d = queryset.filter(created_at__gte=seven_days_ago).count()
             count_last_30d = queryset.filter(created_at__gte=thirty_days_ago).count()
 
+            from patients.primary_care_access import checkups_for_user, dispensary_for_user
+
+            checkup_qs = checkups_for_user(user)
+            thirty_days_ago_date = thirty_days_ago.date()
+            seven_days_ago_date = seven_days_ago.date()
+            one_day_ago_date = one_day_ago.date()
+            total_analyses += checkup_qs.count()
+            count_last_24h += checkup_qs.filter(checkup_date__gte=one_day_ago_date).count()
+            count_last_7d += checkup_qs.filter(checkup_date__gte=seven_days_ago_date).count()
+            count_last_30d += checkup_qs.filter(checkup_date__gte=thirty_days_ago_date).count()
+
             first_by_patient = list(
                 queryset.exclude(patient_id__isnull=True)
                 .values('patient_id')
@@ -216,6 +227,13 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 1 for row in first_by_patient
                 if row.get('first_at') and row['first_at'] >= thirty_days_ago
             )
+            first_by_pop = list(
+                checkup_qs.values('population_id').annotate(first_at=Min('checkup_date'))
+            )
+            new_patients_30d += sum(
+                1 for row in first_by_pop
+                if row.get('first_at') and row['first_at'] >= thirty_days_ago_date
+            )
             return_patients_30d = (
                 queryset.filter(created_at__gte=thirty_days_ago, patient_id__isnull=False)
                 .values('patient_id')
@@ -223,9 +241,27 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 .filter(n__gt=1)
                 .count()
             )
+            return_patients_30d += (
+                checkup_qs.filter(checkup_date__gte=thirty_days_ago_date)
+                .values('population_id')
+                .annotate(n=Count('id'))
+                .filter(n__gt=1)
+                .count()
+            )
 
             # values_list: .only() + select_related() ba'zi DB/ORM kombinatsiyalarida 500 beradi
             common_diagnoses = {}
+            for row in (
+                dispensary_for_user(user)
+                .filter(is_active=True)
+                .exclude(icd10_code='')
+                .values('icd10_code')
+                .annotate(c=Count('id'))
+            ):
+                name = str(row.get('icd10_code') or '').strip()
+                if name:
+                    common_diagnoses[name] = common_diagnoses.get(name, 0) + int(row['c'])
+
             reports = queryset.order_by('-created_at').values_list('final_report', flat=True)[:300]
             for final_report in reports:
                 if not isinstance(final_report, dict):

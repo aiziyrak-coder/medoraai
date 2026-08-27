@@ -378,7 +378,7 @@ ANTHROPIC_API_KEY = DEEPSEEK_API_KEY
 # AI xarajat: scale (default, tez) | economy | balanced | quality
 AI_COST_MODE = config('AI_COST_MODE', default='scale')
 # Dashboard UMUMIY: migratsiyadan oldingi arxiv hajmi (ko'rsatiladigan jami = baseline + joriy)
-STATS_HISTORICAL_BASELINE = config('STATS_HISTORICAL_BASELINE', default=3000, cast=int)
+STATS_HISTORICAL_BASELINE = config('STATS_HISTORICAL_BASELINE', default=0, cast=int)
 CONSILIUM_AGENT_LIMIT = config('CONSILIUM_AGENT_LIMIT', default=4, cast=int)
 CLAUDE_MODEL_HAIKU = OPENAI_MODEL_FAST
 CLAUDE_MODEL_FAST = config('CLAUDE_MODEL_FAST', default=OPENAI_MODEL_FAST)

@@ -41,15 +41,16 @@ def population_for_user(user):
     if not cg:
         return qs
     from .models import Patient
-    clinic_rns = list(
+    clinic_rns = (
         Patient.objects.filter(home_clinic_group_id=cg)
         .exclude(registry_number='')
-        .values_list('registry_number', flat=True)
-        .distinct()[:5000]
+        .values('registry_number')
     )
-    clause = Q(created_by__clinic_group_id=cg) | Q(brigade__clinic_group_id=cg)
-    if clinic_rns:
-        clause |= Q(registry_number__in=clinic_rns)
+    clause = (
+        Q(created_by__clinic_group_id=cg)
+        | Q(brigade__clinic_group_id=cg)
+        | Q(registry_number__in=clinic_rns)
+    )
     return qs.filter(clause).distinct()
 
 
