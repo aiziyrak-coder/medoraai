@@ -18,7 +18,44 @@ from .population_service import (
     population_to_dict,
     search_population,
 )
+from .population_statistics import build_patient_statistics, export_patient_statistics_excel
 from .primary_care_service import build_population_primary_care_profile, on_population_saved
+
+
+def _int_param(request, name: str) -> int | None:
+    raw = (request.query_params.get(name) or '').strip()
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _statistics_params(request) -> dict:
+    """Bemorlar statistikasi uchun so'rov parametrlari."""
+    q = request.query_params
+    lang = (q.get('lang') or 'uz').strip().lower()
+    if lang.startswith('uz'):
+        lang = 'uz'
+    elif not lang.startswith(('ru', 'en')):
+        lang = 'uz'
+    else:
+        lang = lang[:2]
+    return {
+        'region_id': (q.get('region_id') or '').strip(),
+        'district_id': (q.get('district_id') or '').strip(),
+        'icd_chapter': (q.get('icd_chapter') or '').strip(),
+        'icd_code': (q.get('icd_code') or '').strip(),
+        'age_min': _int_param(request, 'age_min'),
+        'age_max': _int_param(request, 'age_max'),
+        'age_group': (q.get('age_group') or '').strip(),
+        'disability': (q.get('disability') or '').strip().lower(),
+        'disability_group': (q.get('disability_group') or '').strip(),
+        'dispensary': (q.get('dispensary') or '').strip().lower(),
+        'health_group': (q.get('health_group') or '').strip(),
+        'gender': (q.get('gender') or '').strip(),
+        'search': (q.get('search') or '').strip(),
+        'language': lang,
+    }
 
 
 class PopulationViewSet(viewsets.ModelViewSet):
@@ -28,10 +65,11 @@ class PopulationViewSet(viewsets.ModelViewSet):
     filterset_fields = [
         'gender', 'region_id', 'district_id', 'health_group', 'brigade',
         'risk_pregnant', 'risk_chronic', 'risk_disabled', 'dispensary_registered',
+        'disability_group', 'dispensary_icd_code',
     ]
     search_fields = [
         'first_name', 'last_name', 'father_name', 'phone',
-        'registry_number', 'address', 'anamnesis',
+        'registry_number', 'address', 'anamnesis', 'medical_card_number',
     ]
     ordering_fields = ['last_name', 'first_name', 'created_at', 'updated_at']
     ordering = ['-updated_at']
@@ -79,8 +117,30 @@ class PopulationViewSet(viewsets.ModelViewSet):
                 'success': False,
                 'error': {'message': 'Faqat .xlsx yoki .xls fayl qabul qilinadi'},
             }, status=status.HTTP_400_BAD_REQUEST)
-        stats = import_population_excel(file_obj, user=request.user)
+        stats = import_population_excel(
+            file_obj,
+            user=request.user,
+            region_id=request.data.get('region_id') or request.query_params.get('region_id') or '',
+            district_id=request.data.get('district_id') or request.query_params.get('district_id') or '',
+        )
         return Response({'success': True, 'data': stats})
+
+    @action(detail=False, methods=['get'], url_path='statistics')
+    def statistics(self, request):
+        data = build_patient_statistics(user=request.user, **_statistics_params(request))
+        return Response({'success': True, 'data': data})
+
+    @action(detail=False, methods=['get'], url_path='statistics/export')
+    def statistics_export(self, request):
+        params = _statistics_params(request)
+        data = build_patient_statistics(user=request.user, **params)
+        content = export_patient_statistics_excel(data, language=params['language'])
+        response = HttpResponse(
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="bemorlar_statistikasi.xlsx"'
+        return response
 
     @action(detail=False, methods=['get'], url_path='export-excel')
     def export_excel(self, request):

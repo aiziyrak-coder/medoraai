@@ -117,13 +117,22 @@ export const searchPopulation = async (q: string): Promise<ApiResponse<Populatio
   );
 };
 
-export const importPopulationExcel = async (file: File): Promise<ApiResponse<PopulationImportStats>> =>
-  unwrapOne(
+/** `defaultArea` — faylda hudud ustuni bo'lmasa qo'llaniladigan viloyat/tuman. */
+export const importPopulationExcel = async (
+  file: File,
+  defaultArea?: { regionId?: string; districtId?: string },
+): Promise<ApiResponse<PopulationImportStats>> => {
+  const extra: Record<string, string> = {};
+  if (defaultArea?.regionId) extra.region_id = defaultArea.regionId;
+  if (defaultArea?.districtId) extra.district_id = defaultArea.districtId;
+  return unwrapOne(
     await apiUpload<PopulationImportStats | { data?: PopulationImportStats }>(
       '/patients/population/import-excel/',
       file,
+      Object.keys(extra).length ? extra : undefined,
     ),
   );
+};
 
 async function downloadFile(endpoint: string, filename: string): Promise<void> {
   const token = getAuthToken();

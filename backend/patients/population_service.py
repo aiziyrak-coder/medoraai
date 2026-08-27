@@ -10,6 +10,7 @@ from django.db.models import Q
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 
+from .icd10_catalog import normalize_icd_code
 from .models import Patient, PopulationRecord
 from .passport_serial import normalize_passport_serial, validate_passport_serial_format
 from .phone import normalize_patient_phone, patient_phone_variants
@@ -22,6 +23,8 @@ POPULATION_FIELDS = (
 
 PRIMARY_CARE_POPULATION_FIELDS = (
     'birth_date', 'health_group', 'brigade',
+    'medical_card_number', 'disability_group',
+    'dispensary_icd_code', 'dispensary_diagnosis', 'dispensary_registered',
     'risk_pregnant', 'risk_disabled', 'risk_chronic',
     'risk_social_vulnerable', 'risk_lone_elderly', 'risk_needs_care',
 )
@@ -32,6 +35,7 @@ EXCEL_HEADERS = [
     'Tug\'ilgan sana', 'Sog\'liq guruhi', 'Brigada kodi',
     'Xavf: homilador', 'Xavf: nogiron', 'Xavf: surunkali',
     'Xavf: ijtimoiy', 'Xavf: yolg\'iz keksa', 'Xavf: parvarish',
+    'Tibbiy karta raqami', 'Nogironlik guruhi', 'D hisob (NKB) kodi', 'D hisob tashxisi',
 ]
 
 _HEADER_ALIASES: dict[str, str] = {
@@ -57,6 +61,23 @@ _HEADER_ALIASES: dict[str, str] = {
     'xavf: ijtimoiy': 'risk_social_vulnerable', 'risk_social_vulnerable': 'risk_social_vulnerable',
     'xavf: yolg\'iz keksa': 'risk_lone_elderly', 'risk_lone_elderly': 'risk_lone_elderly',
     'xavf: parvarish': 'risk_needs_care', 'risk_needs_care': 'risk_needs_care',
+    'tibbiy karta raqami': 'medical_card_number', 'номер медкарты': 'medical_card_number',
+    'медкарта': 'medical_card_number', 'medical_card_number': 'medical_card_number',
+    'karta raqami': 'medical_card_number', 'med karta': 'medical_card_number',
+    'nogironlik guruhi': 'disability_group', 'инвалидность': 'disability_group',
+    'группа инвалидности': 'disability_group', 'disability_group': 'disability_group',
+    'nogironlik': 'disability_group',
+    'd hisob (nkb) kodi': 'dispensary_icd_code', 'd hisob': 'dispensary_icd_code',
+    'd uchot': 'dispensary_icd_code', 'д учет': 'dispensary_icd_code',
+    'д учёт': 'dispensary_icd_code', 'nkb': 'dispensary_icd_code',
+    'мкб': 'dispensary_icd_code', 'icd': 'dispensary_icd_code',
+    'dispensary_icd_code': 'dispensary_icd_code',
+    'd hisob tashxisi': 'dispensary_diagnosis', 'диагноз': 'dispensary_diagnosis',
+    'dispensary_diagnosis': 'dispensary_diagnosis',
+    'пациент': 'full_name', 'bemor': 'full_name', 'f.i.o': 'full_name', 'fio': 'full_name',
+    'viloyat': 'region_name', 'область': 'region_name', 'region': 'region_name',
+    'tuman': 'district_name', 'район': 'district_name', 'tuman/shahar': 'district_name',
+    'district': 'district_name',
 }
 
 
@@ -117,6 +138,10 @@ def population_to_dict(rec: PopulationRecord) -> dict[str, Any]:
         'next_checkup_date': rec.next_checkup_date.isoformat() if rec.next_checkup_date else '',
         'last_checkup_date': rec.last_checkup_date.isoformat() if rec.last_checkup_date else '',
         'dispensary_registered': rec.dispensary_registered,
+        'medical_card_number': rec.medical_card_number or '',
+        'disability_group': rec.disability_group or '',
+        'dispensary_icd_code': rec.dispensary_icd_code or '',
+        'dispensary_diagnosis': rec.dispensary_diagnosis or '',
         'risk_pregnant': rec.risk_pregnant,
         'risk_disabled': rec.risk_disabled,
         'risk_chronic': rec.risk_chronic,
@@ -259,6 +284,11 @@ def upsert_population_from_data(
         risk_social_vulnerable=bool(data.get('risk_social_vulnerable')),
         risk_lone_elderly=bool(data.get('risk_lone_elderly')),
         risk_needs_care=bool(data.get('risk_needs_care')),
+        medical_card_number=(data.get('medical_card_number') or '').strip(),
+        disability_group=(data.get('disability_group') or '').strip(),
+        dispensary_icd_code=normalize_icd_code(data.get('dispensary_icd_code')),
+        dispensary_diagnosis=(data.get('dispensary_diagnosis') or '').strip(),
+        dispensary_registered=bool(data.get('dispensary_registered')),
         source=source,
         created_by=user,
         updated_by=user,
@@ -296,8 +326,27 @@ def _parse_bool_cell(raw: Any) -> bool:
     return s in ('ha', 'yes', '1', 'true', 'да', '+', 'x')
 
 
+def _split_full_name(raw: Any) -> tuple[str, str, str]:
+    """'ALIYEV ALIYEV AZIZ SHUHRAT OGLI' -> ('ALIYEV', 'AZIZ', 'SHUHRAT OGLI').
+
+    Ba'zi eksportlarda familiya ikki marta takrorlanadi — takrorlar olib tashlanadi.
+    """
+    parts = [t for t in re.split(r'\s+', str(raw or '').strip()) if t]
+    deduped: list[str] = []
+    for token in parts:
+        if not deduped or deduped[-1].casefold() != token.casefold():
+            deduped.append(token)
+    if not deduped:
+        return '', '', ''
+    last = deduped[0]
+    first = deduped[1] if len(deduped) > 1 else ''
+    father = ' '.join(deduped[2:])
+    return last, first, father
+
+
 def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
-    rn_raw = row_map.get('registry_number')
+    card_no = str(row_map.get('medical_card_number') or '').strip()
+    rn_raw = row_map.get('registry_number') or card_no
     if not rn_raw:
         return None
     try:
@@ -308,6 +357,9 @@ def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
         return None
     fn = (row_map.get('first_name') or '').strip()
     ln = (row_map.get('last_name') or '').strip()
+    father_from_full = ''
+    if not fn and not ln and row_map.get('full_name'):
+        ln, fn, father_from_full = _split_full_name(row_map.get('full_name'))
     if not fn and not ln:
         return None
     brigade_id = None
@@ -332,31 +384,67 @@ def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
                         break
                     except ValueError:
                         continue
+    from .population_statistics import normalize_disability_group, normalize_health_group
+    disability_group = normalize_disability_group(row_map.get('disability_group'))
+    health_group = normalize_health_group(row_map.get('health_group')) or (row_map.get('health_group') or '').strip()
+    icd_code = normalize_icd_code(row_map.get('dispensary_icd_code'))
     out = {
         'registry_number': rn,
         'first_name': fn or '—',
         'last_name': ln or '—',
-        'father_name': (row_map.get('father_name') or '').strip(),
+        'father_name': (row_map.get('father_name') or '').strip() or father_from_full,
         'age': str(row_map.get('age') or '').strip(),
         'gender': _map_gender(str(row_map.get('gender') or '')),
         'phone': normalize_patient_phone(str(row_map.get('phone') or '')) or str(row_map.get('phone') or '').strip(),
         'address': (row_map.get('address') or '').strip(),
         'anamnesis': (row_map.get('anamnesis') or '').strip(),
         'birth_date': birth_date,
-        'health_group': (row_map.get('health_group') or '').strip(),
+        'health_group': health_group,
         'risk_pregnant': _parse_bool_cell(row_map.get('risk_pregnant')),
         'risk_disabled': _parse_bool_cell(row_map.get('risk_disabled')),
         'risk_chronic': _parse_bool_cell(row_map.get('risk_chronic')),
         'risk_social_vulnerable': _parse_bool_cell(row_map.get('risk_social_vulnerable')),
         'risk_lone_elderly': _parse_bool_cell(row_map.get('risk_lone_elderly')),
         'risk_needs_care': _parse_bool_cell(row_map.get('risk_needs_care')),
+        'medical_card_number': card_no,
+        'disability_group': disability_group,
+        'dispensary_icd_code': icd_code,
+        'dispensary_diagnosis': (row_map.get('dispensary_diagnosis') or '').strip(),
+        'dispensary_registered': bool(icd_code),
     }
+    if disability_group:
+        out['risk_disabled'] = True
     if brigade_id:
         out['brigade'] = brigade_id
     return out
 
 
-def import_population_excel(file_obj, *, user=None) -> dict[str, int]:
+def _resolve_district(region_name: Any, district_name: Any) -> tuple[str, str]:
+    """Excel'dagi viloyat/tuman nomlarini ID'ga aylantiradi."""
+    from .address_data import search_districts
+    query = str(district_name or '').strip()
+    if not query:
+        return '', ''
+    hits = search_districts(query, limit=10)
+    if not hits:
+        return '', ''
+    region_q = str(region_name or '').strip().lower()
+    if region_q:
+        for hit in hits:
+            names = f"{hit['region_name_uz']} {hit['region_name_ru']}".lower()
+            if region_q[:5] in names:
+                return hit['region_id'], hit['district_id']
+    return hits[0]['region_id'], hits[0]['district_id']
+
+
+def import_population_excel(
+    file_obj,
+    *,
+    user=None,
+    region_id: str = '',
+    district_id: str = '',
+) -> dict[str, int]:
+    """`region_id`/`district_id` — faylda hudud ustuni bo'lmasa, standart hudud."""
     wb = load_workbook(file_obj, read_only=True, data_only=True)
     ws = wb.active
     rows = ws.iter_rows(values_only=True)
@@ -383,6 +471,15 @@ def import_population_excel(file_obj, *, user=None) -> dict[str, int]:
         if not parsed:
             skipped += 1
             continue
+        row_region, row_district = _resolve_district(
+            row_map.get('region_name'), row_map.get('district_name'),
+        )
+        resolved_region = row_region or (region_id or '').strip()
+        resolved_district = row_district or (district_id or '').strip()
+        if resolved_region:
+            parsed['region_id'] = resolved_region
+        if resolved_district:
+            parsed['district_id'] = resolved_district
         try:
             existing = find_population_by_registry(parsed['registry_number'])
             if existing and user and not _population_owned_by_user(user, existing):
@@ -433,6 +530,10 @@ def export_population_excel(*, user=None) -> bytes:
         ws.cell(row=i, column=17, value='ha' if rec.risk_social_vulnerable else '')
         ws.cell(row=i, column=18, value='ha' if rec.risk_lone_elderly else '')
         ws.cell(row=i, column=19, value='ha' if rec.risk_needs_care else '')
+        ws.cell(row=i, column=20, value=rec.medical_card_number or '')
+        ws.cell(row=i, column=21, value=rec.disability_group or '')
+        ws.cell(row=i, column=22, value=rec.dispensary_icd_code or '')
+        ws.cell(row=i, column=23, value=rec.dispensary_diagnosis or '')
 
     buf = io.BytesIO()
     wb.save(buf)

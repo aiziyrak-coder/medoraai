@@ -215,7 +215,11 @@ const PopulationPanel: React.FC<PopulationPanelProps> = ({ onOpenProfile, brigad
     setImporting(true);
     setError(null);
     setSuccess(null);
-    const res = await importPopulationExcel(file);
+    // Faylda viloyat/tuman ustuni bo'lmasa, formada tanlangan hudud qo'llaniladi
+    const res = await importPopulationExcel(file, {
+      regionId: form.regionId,
+      districtId: form.districtId,
+    });
     setImporting(false);
     if (res.success && res.data) {
       setSuccess(

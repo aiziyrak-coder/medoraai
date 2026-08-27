@@ -27,6 +27,7 @@ class PopulationSerializer(serializers.ModelSerializer):
             'risk_pregnant', 'risk_disabled', 'risk_chronic',
             'risk_social_vulnerable', 'risk_lone_elderly', 'risk_needs_care',
             'brigade_name', 'primary_care_sync',
+            'medical_card_number', 'disability_group', 'dispensary_icd_code', 'dispensary_diagnosis',
             'source', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'source', 'created_at', 'updated_at']
@@ -72,6 +73,7 @@ class PopulationWriteSerializer(ScopedPrimaryCareSerializerMixin, serializers.Mo
             'next_checkup_date', 'last_checkup_date', 'dispensary_registered',
             'risk_pregnant', 'risk_disabled', 'risk_chronic',
             'risk_social_vulnerable', 'risk_lone_elderly', 'risk_needs_care',
+            'medical_card_number', 'disability_group', 'dispensary_icd_code', 'dispensary_diagnosis',
         ]
         read_only_fields = ['id']
 
