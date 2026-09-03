@@ -229,7 +229,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           return;
         }
         const claudeResult = await runDoctorSupportViaClaude(patientData, { query, taskType, language });
-        setResult(claudeResult as DoctorSupportResult);
+        setResult(claudeResult);
         return;
       }
       if (!isBrowserClaudeConfigured()) {
@@ -237,7 +237,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
         return;
       }
       const claudeResult = await runDoctorSupportViaClaude(patientData, { query, taskType, language });
-      setResult(claudeResult as DoctorSupportResult);
+      setResult(claudeResult);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -274,7 +274,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
           }
           runDoctorSupportViaClaude(patientData, { query, taskType, language })
             .then((claudeResult) => {
-              setResult(claudeResult as DoctorSupportResult);
+              setResult(claudeResult);
             })
             .catch(() => onError(err));
         },
@@ -292,7 +292,7 @@ export const DoctorSupportView: React.FC<Props> = ({ patientData, language, onEr
     runDoctorSupportViaClaude(patientData, { query, taskType, language })
       .then((claudeResult) => {
         setStreaming(false);
-        setResult(claudeResult as DoctorSupportResult);
+        setResult(claudeResult);
       })
       .catch((err) => {
         setStreaming(false);

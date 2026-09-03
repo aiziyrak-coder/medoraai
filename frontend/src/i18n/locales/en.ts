@@ -18,6 +18,8 @@ export const en = {
   error_try_again: 'An error occurred. Please try again.',
   error_no_data_found: 'Data not found.',
   error_page_not_found: 'Page not found',
+  access_denied_title: 'Access denied',
+  access_denied_message: 'This page is available only to administrators. Please contact your administrator if you believe this is a mistake.',
   smart_validation_critical: 'Please fill in the following required fields.',
   smart_validation_critical_list: 'Please complete: {fields}',
   smart_validation_suggestion: 'Suggestion: ',
@@ -101,13 +103,21 @@ export const en = {
   landing_stats_clinics: 'Partner Clinics',
   landing_stats_analyses: 'Successful Analyses',
   landing_stats_experts: 'AI Specialists',
+
+  landing_hero_capability_consilium: 'Multi-specialist AI consilium',
+  landing_hero_capability_languages: 'Uzbek, Karakalpak, Russian, English',
+  landing_hero_capability_tools: 'ECG, lab and drug-interaction tools',
+  landing_hero_capability_export: 'PDF / DOCX report and e-prescription',
+  landing_platform_note_title: 'About the platform',
+  landing_platform_note_desc:
+    'AiDoktor is a decision-support tool for clinicians. It does not diagnose and does not prescribe: every conclusion is advisory and must be reviewed and confirmed by the treating doctor, who remains responsible for the patient.',
   
   landing_features_title: 'Limitless Capabilities',
   landing_features_desc: "Farg'ona JSTI helps doctors solve the most complex tasks encountered in daily practice.",
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Consult in real-time with Cardiologists, Neurologists, Oncologists, and 10+ other virtual specialists.',
   landing_feature_safe: 'Safe & Accurate',
-  landing_feature_safe_desc: 'Based on international FDA and Ministry of Health standards, adhering to Evidence-Based Medicine (EBM).',
+  landing_feature_safe_desc: 'Built around evidence-based medicine (EBM) principles: every conclusion stays advisory and has to be confirmed by the treating doctor.',
   landing_feature_global: 'Global Knowledge Base',
   landing_feature_global_desc: 'Instantly analyze the latest medical research and articles from around the world.',
   landing_feature_ecg: 'ECG Analysis',
@@ -115,7 +125,7 @@ export const en = {
   landing_feature_drug: 'Drug Interactions',
   landing_feature_drug_desc: 'Check for safety when taking multiple medications simultaneously.',
   landing_feature_risk: 'Risk Scoring',
-  landing_feature_risk_desc: 'Assess patient risk using international scales like ASCVD, CHADS-VASc.',
+  landing_feature_risk_desc: 'Calculate CHA2DS2-VASc and HEART locally from the values you enter, plus a rough cardiovascular risk-factor screen.',
   
   landing_how_title: 'System Workflow',
   landing_how_subtitle: 'Simple and Effective',
@@ -165,6 +175,8 @@ export const en = {
     template_free_text: 'Free text',
     template_select: 'Select template...',
   data_form_vitals_section_title: 'Objective Examination (Vital Signs)',
+  'specialty_gpt-4o': 'Radiology',
+  gender_other: 'Other',
   specialty_gastro: 'Gastroenterology',
   specialty_cardio: 'Cardiology',
   specialty_neuro: 'Neurology',
@@ -236,7 +248,10 @@ export const en = {
   tool_guideline_placeholder: 'Enter disease or condition...',
   tool_guideline_loading: 'Analyzing guidelines...',
   tool_drug_identifier_placeholder: 'Drug name (Panadol, Nimesil, Augmentin...)',
-  tool_lab_interpreter_placeholder: 'Enter lab result...',
+  tool_lab_interpreter_placeholder: 'Enter lab result, e.g. "ALT 150 U/L"...',
+  tool_risk_cv_screen_option: 'Cardiovascular risk-factor screen (not a validated score)',
+  tool_risk_scoring_disclaimer:
+    'Scores are computed locally from the values you enter. CHA2DS2-VASc and HEART follow their published point definitions; the risk-factor screen is a rough triage aid, not a validated score. Annual event percentages are deliberately not shown — read them from the official source table.',
   tool_patient_explanation_placeholder: 'Enter medical summary here...',
   tool_pediatric_drug_label: 'Drug Name',
   tool_insurance_procedure_label: 'Procedure Name',
@@ -499,6 +514,8 @@ export const en = {
   stats_feedback_accuracy_sub:
     'How your diagnosis view matched the final diagnosis',
   stats_feedback_sample_note: 'sample',
+  stats_feedback_insufficient: 'Not enough ratings yet to report accuracy',
+  stats_feedback_sample_size: 'n={count} ratings',
   stats_top_diagnoses: 'Top 3 Diagnoses',
   stats_case: '{count} case | {count} cases',
   stats_no_data: 'Not enough data yet.',
@@ -2005,6 +2022,12 @@ report_dosage: 'Dosage',
   prescription_audit_dose: 'Dose',
   prescription_audit_interactions: 'Drug interactions',
   prescription_audit_recommendations: 'Overall recommendations',
+
+
+  // --- boshqa tillarda mavjud bo'lgan, en'da yetishmayotgan kalitlar ---
+  final_report_differential_label: 'Muqobil tashxis',
+  'specialist_name_llama 3': 'Onkolog',
+  'specialty_llama 3': 'Onkologiya',
 
   ...primaryCareEn,
 };

@@ -73,8 +73,7 @@ export class WakeWordDetector {
     onWakeWord: WakeWordCallback,
     onError:    WakeWordErrorCallback = () => {},
   ): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
       onError("Bu brauzer ovozni tanishni qo'llab-quvvatlamaydi. Chrome ishlatib ko'ring.");
       return false;
@@ -89,8 +88,8 @@ export class WakeWordDetector {
     return true;
   }
 
-  private _setupRecognition(SR: typeof SpeechRecognition): void {
-    this.recognition = new SR() as SpeechRecognition;
+  private _setupRecognition(SR: SpeechRecognitionConstructor): void {
+    this.recognition = new SR();
     this.recognition.lang            = this._getLang();
     this.recognition.continuous      = true;
     this.recognition.interimResults  = true;
@@ -263,14 +262,10 @@ export async function getMicStreamWithNoiseFilter(
       echoCancellation:    true,
       noiseSuppression:    true,
       autoGainControl:     true,
-      // Extended constraints (Chrome orqali)
-      // @ts-expect-error experimental
+      // Extended constraints (Chrome orqali) - typed in src/types/speech.d.ts
       googNoiseSuppression: true,
-      // @ts-expect-error experimental
       googHighpassFilter:   forSurgery, // Operatsiya asboblari shovqinini filtrlash
-      // @ts-expect-error experimental
       googEchoCancellation: true,
-      // @ts-expect-error experimental
       googAutoGainControl:  true,
     },
   };

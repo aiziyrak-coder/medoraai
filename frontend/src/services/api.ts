@@ -314,6 +314,36 @@ function formatDrfErrors(errors: Record<string, string[] | unknown>): string {
   return parts.length ? parts.join(' ') : '';
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Narrow an untrusted JSON envelope's `pagination` field.
+ * The body comes off the wire as `unknown`; returns undefined when it is not
+ * the DRF page shape rather than trusting whatever the server sent.
+ */
+const toPagination = (v: unknown): ApiResponse['pagination'] => {
+  if (!isRecord(v) || typeof v.count !== 'number') return undefined;
+  return {
+    count:        v.count,
+    next:         typeof v.next === 'string' ? v.next : null,
+    previous:     typeof v.previous === 'string' ? v.previous : null,
+    page_size:    typeof v.page_size === 'number' ? v.page_size : 0,
+    current_page: typeof v.current_page === 'number' ? v.current_page : 1,
+    total_pages:  typeof v.total_pages === 'number' ? v.total_pages : 1,
+  };
+};
+
+/** Narrow an untrusted `error` field into the ApiResponse error shape. */
+const toApiError = (v: unknown, fallbackCode: number): ApiResponse['error'] => {
+  if (!isRecord(v) || typeof v.message !== 'string') return undefined;
+  return {
+    code:    typeof v.code === 'number' ? v.code : fallbackCode,
+    message: v.message,
+    details: v.details,
+  };
+};
+
 /**
  * Handle API response
  */
@@ -364,18 +394,18 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
     return {
       success: true,
       data: data.data as T,
-      pagination: data.pagination,
+      pagination: toPagination(data.pagination),
     };
   }
 
   // Handle standard responses
   if (data.success !== undefined) {
     return {
-      success: data.success,
+      success: data.success === true,
       data: data.data as T,
-      error: data.error,
-      summary: data.summary,
-      pagination: data.pagination,
+      error: toApiError(data.error, response.status),
+      summary: isRecord(data.summary) ? data.summary : undefined,
+      pagination: toPagination(data.pagination),
     };
   }
 
@@ -387,14 +417,33 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
 };
 
 /**
- * Refresh access token using refresh token
+ * Refresh access token using refresh token.
+ *
+ * Bitta urinish (single-flight): backendda ROTATE_REFRESH_TOKENS yoqilgan,
+ * ya'ni refresh token bir marta ishlatiladi. Bir vaqtda kelgan bir nechta 401
+ * alohida-alohida refresh yuborsa — birinchisi tokenni almashtiradi, qolganlari
+ * eskisi bilan 401 oladi va shifokor ish o'rtasida tizimdan chiqib ketadi.
+ * Shuning uchun barcha chaqiruvchilar bitta so'rovni kutadi.
  */
-const refreshAccessToken = async (): Promise<boolean> => {
+let refreshInFlight: Promise<boolean> | null = null;
+
+const refreshAccessToken = (): Promise<boolean> => {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = doRefreshAccessToken().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+};
+
+const doRefreshAccessToken = async (): Promise<boolean> => {
   const refreshToken = getRefreshToken();
-  
+
   if (!refreshToken) {
     return false;
   }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
   try {
     const did = getOrCreateDeviceId();
@@ -408,6 +457,7 @@ const refreshAccessToken = async (): Promise<boolean> => {
     const response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
       method: 'POST',
       headers,
+      signal: controller.signal,
       body: JSON.stringify({
         refresh: refreshToken,
         ...(did ? { device_id: did, device_info: headers['X-Device-Info'] } : {}),
@@ -417,7 +467,7 @@ const refreshAccessToken = async (): Promise<boolean> => {
     if (response.ok) {
       const data = await response.json();
       if (data.access) {
-        // Keep the same refresh token or use new one if provided
+        // Rotatsiya yoqilgan bo'lsa backend yangi refresh qaytaradi.
         const newRefresh = data.refresh || refreshToken;
         saveTokens(data.access, newRefresh);
         return true;
@@ -426,6 +476,8 @@ const refreshAccessToken = async (): Promise<boolean> => {
     return false;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 };
 

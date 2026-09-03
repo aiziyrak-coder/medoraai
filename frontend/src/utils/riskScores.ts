@@ -1,4 +1,6 @@
-/** Klinik xavf shkalalari — deterministik hisoblash (AI faqat talqin uchun). */
+/** Klinik xavf shkalalari — deterministik hisoblash (AI faqat talqin uchun).
+ *  MUHIM: bu yerda yillik xavf foizlari qaytarilmaydi. Foiz qiymatlari faqat
+ *  nashr etilgan rasmiy jadvallardan olinishi kerak — ular bu yerda tekshirilmagan. */
 
 export type ChadsVascInput = {
   chf: boolean;
@@ -32,25 +34,21 @@ export function calculateChadsVasc(input: ChadsVascInput): number {
 }
 
 export function interpretChadsVasc(score: number, lang: string): string {
-  const uz =
-    score === 0
-      ? 'Past insult xavfi (~0% yiliga). Antikoagulyant odatda ko\'rsatilmaydi.'
-      : score === 1
-        ? 'O\'rta-past xavf. Individual baholash kerak.'
-        : score >= 2
-          ? `Yuqori insult xavfi (taxminan ${score >= 4 ? '4-8' : '2-4'}% yiliga). Antikoagulyant terapiyani ko\'rib chiqing.`
-          : '';
   if (lang.startsWith('en')) {
-    if (score === 0) return 'Low stroke risk (~0%/year). Anticoagulation usually not indicated.';
-    if (score === 1) return 'Low-moderate risk. Individual assessment needed.';
-    return `Elevated stroke risk. Consider anticoagulation (score ${score}).`;
+    const tail = 'Take the annual stroke risk from the published CHA2DS2-VASc table, not from this tool.';
+    if (score === 0) return `CHA2DS2-VASc ${score}: low-risk category. Anticoagulation usually not indicated. ${tail}`;
+    if (score === 1) return `CHA2DS2-VASc ${score}: low-to-moderate category. Individual assessment needed. ${tail}`;
+    return `CHA2DS2-VASc ${score}: elevated-risk category. Consider anticoagulation. ${tail}`;
   }
-  return uz;
+  const tail = 'Yillik insult xavfi foizini ushbu vositadan emas, rasmiy CHA2DS2-VASc jadvalidan oling.';
+  if (score === 0) return `CHA2DS2-VASc ${score}: past xavf toifasi. Antikoagulyant odatda ko'rsatilmaydi. ${tail}`;
+  if (score === 1) return `CHA2DS2-VASc ${score}: o'rta-past toifa. Individual baholash kerak. ${tail}`;
+  return `CHA2DS2-VASc ${score}: yuqori xavf toifasi. Antikoagulyant terapiyani ko'rib chiqing. ${tail}`;
 }
 
 export function calculateHeart(input: HeartScoreInput): number {
   let score = 0;
-  const histMap = { highly: 2, moderate: 1, slightly: 1, none: 0 };
+  const histMap = { highly: 2, moderate: 1, slightly: 0, none: 0 };
   const ecgMap = { significant: 2, nonspecific: 1, normal: 0 };
   score += histMap[input.history] ?? 0;
   score += ecgMap[input.ecg] ?? 0;
@@ -64,17 +62,24 @@ export function calculateHeart(input: HeartScoreInput): number {
 
 export function interpretHeart(score: number, lang: string): string {
   if (lang.startsWith('en')) {
-    if (score <= 3) return `HEART ${score}: Low risk (~1-2% MACE). Outpatient follow-up may be appropriate.`;
-    if (score <= 6) return `HEART ${score}: Moderate risk. Observation and serial troponin/ECG recommended.`;
-    return `HEART ${score}: High risk. Urgent cardiology evaluation and admission considered.`;
+    const tail = 'Take the MACE rate for this band from the published HEART score data, not from this tool.';
+    if (score <= 3) return `HEART ${score}: low-risk band. Outpatient follow-up may be appropriate. ${tail}`;
+    if (score <= 6) return `HEART ${score}: moderate-risk band. Observation and serial troponin/ECG recommended. ${tail}`;
+    return `HEART ${score}: high-risk band. Urgent cardiology evaluation and admission considered. ${tail}`;
   }
-  if (score <= 3) return `HEART ${score}: Past xavf (~1-2% MACE). Ambulator kuzatuv mumkin.`;
-  if (score <= 6) return `HEART ${score}: O'rta xavf. Kuzatuv va qayta troponin/EKG tavsiya etiladi.`;
-  return `HEART ${score}: Yuqori xavf. Shoshilinch kardiologik baholash va statsionar ko'rib chiqiladi.`;
+  const tail = "MACE ko'rsatkichini ushbu vositadan emas, rasmiy HEART shkalasi manbasidan oling.";
+  if (score <= 3) return `HEART ${score}: past xavf toifasi. Ambulator kuzatuv mumkin. ${tail}`;
+  if (score <= 6) return `HEART ${score}: o'rta xavf toifasi. Kuzatuv va qayta troponin/EKG tavsiya etiladi. ${tail}`;
+  return `HEART ${score}: yuqori xavf toifasi. Shoshilinch kardiologik baholash va statsionar ko'rib chiqiladi. ${tail}`;
 }
 
-/** ASCVD — soddalashtirilgan Framingham-ga yaqin ball (0-20+) */
-export type AscvdInput = {
+/**
+ * Yurak-qon tomir XAVF OMILLARI SKRINI — validatsiya qilinmagan ichki ball (0-20+).
+ * Bu ASCVD Pooled Cohort Equations EMAS va boshqa biror nashr etilgan shkala emas:
+ * bu shunchaki mavjud xavf omillarini sanab chiqadigan qo'pol saralash vositasi.
+ * Hech qanday yillik voqea ehtimoli (%) qaytarilmaydi.
+ */
+export type CvRiskFactorInput = {
   age: number;
   male: boolean;
   smoker: boolean;
@@ -85,7 +90,7 @@ export type AscvdInput = {
   hdl: number;
 };
 
-export function calculateAscvdSimplified(input: AscvdInput): number {
+export function calculateCvRiskFactorScreen(input: CvRiskFactorInput): number {
   let pts = 0;
   if (input.age >= 70) pts += 4;
   else if (input.age >= 60) pts += 3;
@@ -105,13 +110,17 @@ export function calculateAscvdSimplified(input: AscvdInput): number {
   return pts;
 }
 
-export function interpretAscvd(score: number, lang: string): string {
+export function interpretCvRiskFactorScreen(score: number, lang: string): string {
   if (lang.startsWith('en')) {
-    if (score <= 4) return `ASCVD risk points ${score}: lower category — lifestyle and periodic lipid panel.`;
-    if (score <= 8) return `ASCVD risk points ${score}: moderate — statin and risk factor control per guidelines.`;
-    return `ASCVD risk points ${score}: high — intensive lipid lowering and cardiology follow-up.`;
+    const tail =
+      'This is a rough risk-factor screen, not a validated risk score. For a quantitative 10-year risk, use a validated calculator (e.g. ASCVD Pooled Cohort Equations or SCORE2).';
+    if (score <= 4) return `Risk-factor screen ${score}: few risk factors — lifestyle advice and a periodic lipid panel. ${tail}`;
+    if (score <= 8) return `Risk-factor screen ${score}: several risk factors — review lipid-lowering therapy and risk-factor control per guidelines. ${tail}`;
+    return `Risk-factor screen ${score}: many risk factors — formal risk assessment and cardiology follow-up. ${tail}`;
   }
-  if (score <= 4) return `ASCVD ball ${score}: pastroq kategoriya — hayot tarzi va lipid panel muntazam.`;
-  if (score <= 8) return `ASCVD ball ${score}: o'rta — statin va xavf omillarini nazorat qiling.`;
-  return `ASCVD ball ${score}: yuqori — intensiv lipid pasaytirish va kardiolog kuzatuvi.`;
+  const tail =
+    "Bu qo'pol xavf omillari skrini, validatsiya qilingan shkala emas. Miqdoriy 10 yillik xavf uchun validatsiyalangan kalkulyatordan (masalan ASCVD Pooled Cohort Equations yoki SCORE2) foydalaning.";
+  if (score <= 4) return `Xavf omillari skrini ${score}: omillar kam — hayot tarzi va muntazam lipid panel. ${tail}`;
+  if (score <= 8) return `Xavf omillari skrini ${score}: bir nechta omil — lipid pasaytiruvchi terapiya va xavf omillari nazoratini ko'rib chiqing. ${tail}`;
+  return `Xavf omillari skrini ${score}: omillar ko'p — rasmiy xavf baholash va kardiolog kuzatuvi. ${tail}`;
 }

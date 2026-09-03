@@ -5,9 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 const PatientExplanationGenerator: React.FC = () => {
     const { t, language } = useTranslation();
-    const [clinicalText, setClinicalText] = useState(
-        "Tashxis: Nostabil stenokardiya. Koronar angiografiya natijalariga ko'ra, chap oldingi tushuvchi arteriyaning proksimal qismida 75% gemodinamik ahamiyatga ega stenozi aniqlandi. EKGda V2-V4 tarmoqlarida ST segmenti depressiyasi kuzatiladi. Troponin I darajasi me'yorida. Ikki tomonlama antiagregant terapiya (Aspirin, Klopidogrel) va statinlar bilan davolash tavsiya etiladi."
-    );
+    const [clinicalText, setClinicalText] = useState('');
     const [patientText, setPatientText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

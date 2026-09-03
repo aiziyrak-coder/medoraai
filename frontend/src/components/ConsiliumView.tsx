@@ -4,7 +4,8 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import type { PatientData, FinalReport } from '../types';
-import { normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
+import { normalizeCriticalFinding, normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
+import { asRecord } from '../utils/record';
 import { normalizeConsensusDiagnosis } from '../types';
 import { enrichFinalReport } from '../utils/reportNormalize';
 import { runConsilium, type ConsiliumResult, type DebateMessage } from '../services/apiAiService';
@@ -85,7 +86,44 @@ function PhaseIndicator({
   );
 }
 
-function DebateCard({ msg, t }: { msg: DebateMessage; t: (key: string) => string }) {
+/**
+ * The consilium endpoint returns medications as flat string maps
+ * (Record<string, string>), while FinalReport requires `name`, `dosage` and
+ * `notes`. Map explicitly instead of asserting the shape; entries without a
+ * drug name are dropped rather than rendered as blank rows.
+ */
+function toMedicationRecommendations(
+  raw: Array<Record<string, string>> | undefined,
+): FinalReport['medicationRecommendations'] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((m) => ({
+      name:              String(m?.name ?? m?.drug ?? '').trim(),
+      dosage:            String(m?.dosage ?? ''),
+      notes:             String(m?.notes ?? m?.instructions ?? ''),
+      frequency:         m?.frequency,
+      timing:            m?.timing,
+      duration:          m?.duration,
+      instructions:      m?.instructions,
+      localAvailability: m?.localAvailability ?? m?.local_availability,
+      priceEstimate:     m?.priceEstimate ?? m?.price_estimate,
+      contraindications: m?.contraindications,
+      monitoring:        m?.monitoring,
+    }))
+    .filter((m) => m.name);
+}
+
+function DebateCard({ msg, t }: {
+  msg: DebateMessage;
+  t: (key: string) => string;
+  /**
+   * React consumes and strips `key` before props reach the component, so this is
+   * never read. It is declared only because `@types/react` is not installed:
+   * React's own JSX types special-case `key`, and without them TypeScript sees it
+   * as an excess prop at the call site. Remove once @types/react is added.
+   */
+  key?: React.Key;
+}) {
   const agentId = msg.id.split('-')[0];
   const colorClass = PROFESSOR_COLORS[agentId] || 'bg-slate-600';
   const icon       = PROFESSOR_ICONS[agentId]  || 'K';
@@ -165,23 +203,31 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
       // Convert to FinalReport format for parent (normalize in case API returns different shape)
       const fr = resp.data.final_report;
       const consensusDiagnosis = normalizeConsensusDiagnosis(fr?.consensusDiagnosis);
-      const frAny = fr as unknown as {
-        folkMedicine?: unknown;
-        folk_medicine?: unknown;
-        nutritionPrevention?: unknown;
-        nutrition_prevention?: unknown;
-      };
-      const fm = normalizeFolkMedicine(frAny.folkMedicine ?? frAny.folk_medicine);
-      const nprev = normalizeNutritionPrevention(frAny.nutritionPrevention ?? frAny.nutrition_prevention);
+      // Undeclared snake_case aliases the backend may add.
+      const frRaw = asRecord(fr);
+      const fm = normalizeFolkMedicine(frRaw.folkMedicine ?? frRaw.folk_medicine);
+      const nprev = normalizeNutritionPrevention(frRaw.nutritionPrevention ?? frRaw.nutrition_prevention);
+      // ConsiliumReport overlaps FinalReport, but these fields have different
+      // shapes and must be re-derived rather than spread through. In particular
+      // `followUpPlan` is a summary *string* here while FinalReport declares
+      // FollowUpTask[] - exportReportSections/reportDisplayConsolidation call
+      // .map() on it, so spreading the string through crashed report export.
+      const {
+        followUpPlan:              _followUpPlanText,
+        medicationRecommendations: flatMedications,
+        criticalFinding:           _rawCriticalFinding,
+        debateHistory:             _rawDebateHistory,
+        ...frPassThrough
+      } = fr;
       onReport(enrichFinalReport({
-        ...(fr as FinalReport),
+        ...frPassThrough,
         consensusDiagnosis,
         treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
-        medicationRecommendations: (Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : []) as FinalReport['medicationRecommendations'],
+        medicationRecommendations: toMedicationRecommendations(flatMedications),
         recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
         unexpectedFindings: typeof fr.unexpectedFindings === 'string' ? fr.unexpectedFindings : '',
         uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
-        criticalFinding: fr.criticalFinding,
+        criticalFinding: normalizeCriticalFinding(fr.criticalFinding),
         ...(fm ? { folkMedicine: fm } : {}),
         ...(nprev ? { nutritionPrevention: nprev } : {}),
       }, { patientData, language }));
@@ -272,8 +318,8 @@ export const ConsiliumView: React.FC<Props> = ({ patientData, language, onReport
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {(Array.isArray(result.professors) ? result.professors : []).filter((p: { id?: string }) => p.id !== 'gpt4o').map((prof: { id?: string; name?: string; title?: string; initialDiagnosis?: string }) => (
                   <div key={prof.id}
-                       className={`rounded-xl p-3 text-xs ${PROFESSOR_COLORS[prof.id] || 'bg-slate-600'} bg-opacity-20 border border-slate-600/30 flex flex-col`}>
-                    <p className="font-semibold text-white">{PROFESSOR_ICONS[prof.id]} {prof.name}</p>
+                       className={`rounded-xl p-3 text-xs ${(prof.id && PROFESSOR_COLORS[prof.id]) || 'bg-slate-600'} bg-opacity-20 border border-slate-600/30 flex flex-col`}>
+                    <p className="font-semibold text-white">{prof.id ? PROFESSOR_ICONS[prof.id] : null} {prof.name}</p>
                     <p className="text-slate-300 truncate">{prof.title}</p>
                   </div>
                 ))}

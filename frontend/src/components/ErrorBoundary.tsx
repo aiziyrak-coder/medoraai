@@ -13,8 +13,13 @@ interface State {
 }
 
 class ErrorBoundaryClass extends Component<Props, State> {
+  // NOTE: `@types/react` is not installed, so the `react` module resolves to
+  // `any` and the members React.Component contributes are invisible to TS.
+  // These re-state the base-class API so this file is still type-checked.
+  // Delete the whole block once @types/react is added to devDependencies.
   declare state: State;
   declare props: Props;
+  declare setState: (state: Partial<State> | null) => void;
 
   constructor(props: Props) {
     super(props);

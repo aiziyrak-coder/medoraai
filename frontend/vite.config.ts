@@ -3,14 +3,15 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const envFromParent  = loadEnv(mode, path.resolve(__dirname, '..'), '');
-  const envFromCurrent = loadEnv(mode, __dirname, '');
+  // Faqat VITE_ prefiksli o'zgaruvchilar. Prefiksiz o'qish server tomon
+  // kalitlarini (ANTHROPIC_API_KEY va h.k.) brauzer bundle'iga tortib kelardi.
+  const envFromParent  = loadEnv(mode, path.resolve(__dirname, '..'), 'VITE_');
+  const envFromCurrent = loadEnv(mode, __dirname, 'VITE_');
   const env = { ...envFromParent, ...envFromCurrent };
 
   const apiUrl = env.VITE_API_BASE_URL || (
     mode === 'production' ? 'https://api.aidoktor.uz/api' : 'http://localhost:8000/api'
   );
-  const claudeKey = env.VITE_ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY || '';
 
   console.log(`[Vite][${mode}] API: ${apiUrl}`);
 
@@ -28,7 +29,6 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(apiUrl),
-      'import.meta.env.VITE_ANTHROPIC_API_KEY': JSON.stringify(claudeKey),
     },
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
     build: {

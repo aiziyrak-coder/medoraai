@@ -25,6 +25,31 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
+    "noEmit": true,
+
+    // Strictness. Everything below is currently CLEAN (tsc --noEmit reports 0).
+    //
+    // `strict: true` is NOT on yet, and the only thing blocking it is
+    // `noImplicitAny`: `@types/react` / `@types/react-dom` are not installed, so
+    // `react` resolves to `any` and enabling noImplicitAny reports ~8700 errors
+    // (every React import + every JSX element). Add those two devDependencies
+    // first, pay off the fallout, then flip `strict: true` and delete this list.
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "useUnknownInCatchVariables": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "src",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "public",
+    "scripts"
+  ]
 }

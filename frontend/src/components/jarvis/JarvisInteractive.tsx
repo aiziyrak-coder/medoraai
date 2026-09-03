@@ -9,7 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { SpeechLanguage, JarvisChatResult } from '../../services/speechService';
 import {
   RealtimeSTT, speakText, stopSpeaking, isSpeaking,
-  jarvisChat, jarvisChatStream, AudioWaveform as _WF,
+  jarvisChat, jarvisChatStream,
   AudioRecorder,
 } from '../../services/speechService';
 import { AudioWaveform } from './AudioWaveform';

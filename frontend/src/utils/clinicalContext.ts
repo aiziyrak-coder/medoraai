@@ -62,7 +62,9 @@ export function buildClinicalContextText(
     `BEMOR: ${name || "Noma'lum"}${father ? ` (${father})` : ''}, ${s(data.age) || '-'} yosh, jins: ${s(data.gender) || '-'}.`,
   );
 
-  const fields: [keyof PatientData | string, string][] = [
+  // Typed as keyof PatientData (was `keyof PatientData | string`, which made the
+  // key list unchecked) so a renamed/typo'd field is now a compile error.
+  const fields: [keyof PatientData, string][] = [
     ['complaints', 'SHIKOYATLAR'],
     ['history', 'ANAMNEZ'],
     ['objectiveData', "OB'EKTIV / VITAL"],
@@ -74,7 +76,7 @@ export function buildClinicalContextText(
     ['pharmacogenomicsReport', 'FARMAKOGENOMIKA'],
   ];
   for (const [key, label] of fields) {
-    const val = s((data as Record<string, unknown>)[key as string]);
+    const val = s(data[key]);
     if (val) parts.push(`${label}: ${val}`);
   }
 

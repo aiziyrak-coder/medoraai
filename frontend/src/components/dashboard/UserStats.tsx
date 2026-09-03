@@ -3,8 +3,8 @@ import React from 'react';
 import { UserStats } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
-    FEEDBACK_ACCURACY_SAMPLE_PERCENT,
     feedbackAccuracyToDisplayPercent,
+    hasSufficientFeedbackSample,
 } from '../../services/caseService';
 
 interface UserStatsProps {
@@ -30,18 +30,17 @@ const StatItem: React.FC<{
 
 const UserStatsComponent: React.FC<UserStatsProps> = ({ stats }) => {
     const { t, language } = useTranslation();
-    const feedbackDisplayPct =
-        stats.feedbackEvalCount === 0
-            ? FEEDBACK_ACCURACY_SAMPLE_PERCENT
-            : feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy);
-    const feedbackDisplayPctText = Number(feedbackDisplayPct).toLocaleString(
-        language === 'ru' ? 'ru-RU' : language?.startsWith('uz') ? 'uz-UZ' : 'en-US',
-        { maximumFractionDigits: 1 },
-    );
-    const feedbackSubtitle =
-        stats.feedbackEvalCount === 0
-            ? `${t('stats_feedback_accuracy_sub')} (${t('stats_feedback_sample_note')})`
-            : t('stats_feedback_accuracy_sub');
+    const evalCount = stats.feedbackEvalCount ?? 0;
+    const hasSample = hasSufficientFeedbackSample(evalCount);
+    const sampleNote = t('stats_feedback_sample_size', { count: evalCount });
+    const feedbackValue = hasSample
+        ? `${feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy).toLocaleString(
+              language === 'ru' ? 'ru-RU' : language?.startsWith('uz') ? 'uz-UZ' : 'en-US',
+          )}%`
+        : '—';
+    const feedbackSubtitle = hasSample
+        ? `${t('stats_feedback_accuracy_sub')} · ${sampleNote}`
+        : `${t('stats_feedback_insufficient')} · ${sampleNote}`;
 
     return (
         <div className="glass-panel p-5 h-full flex flex-col">
@@ -51,8 +50,8 @@ const UserStatsComponent: React.FC<UserStatsProps> = ({ stats }) => {
                 <StatItem label={t('stats_total_analyses')} value={stats.totalAnalyses} color="text-[#007AFF]" />
                 <StatItem
                     label={t('stats_feedback_accuracy')}
-                    value={`${feedbackDisplayPctText}%`}
-                    color="text-[#34C759]"
+                    value={feedbackValue}
+                    color={hasSample ? 'text-[#34C759]' : 'text-text-secondary'}
                     subtitle={feedbackSubtitle}
                 />
             </div>

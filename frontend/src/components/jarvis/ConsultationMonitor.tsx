@@ -11,7 +11,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { PatientData } from '../../types';
 import type { SpeechLanguage, ConsultationDiagnosis } from '../../services/speechService';
 import {
-  RealtimeSTT, AudioRecorder, AudioWaveform,
+  RealtimeSTT, AudioRecorder,
   addTranscriptChunk, generateConsultationDiagnosis,
   createJarvisSession, endJarvisSession,
   speakText, stopSpeaking,

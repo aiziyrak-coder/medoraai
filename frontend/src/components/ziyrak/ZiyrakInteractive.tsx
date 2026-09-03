@@ -162,13 +162,13 @@ export const ZiyrakInteractive: React.FC<Props> = ({
   const startListening = useCallback(() => {
     if (isListening) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { onError("STT qo'llab-quvvatlanmaydi"); return; }
 
     const localeMap: Record<string,string> = {
       "uz-L":"uz-UZ","uz-C":"uz-UZ","ru":"ru-RU","en":"en-US",
     };
-    const rec = new SR() as SpeechRecognition;
+    const rec = new SR();
     rec.lang           = localeMap[language] || "uz-UZ";
     rec.continuous     = false;
     rec.interimResults = true;

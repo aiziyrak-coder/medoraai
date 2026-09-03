@@ -1,7 +1,8 @@
 import type { FinalReport, ImagingModalityBlock } from '../types';
 import { enrichFinalReport } from './reportNormalize';
 
-export type ExportTr = (key: string, fallback: string) => string;
+/** `fallback` is optional - createExportTr's implementation already treats it so. */
+export type ExportTr = (key: string, fallback?: string) => string;
 
 /** Eksportdan oldin hisobotni normallashtirish */
 export function prepareExportReport(report: FinalReport): FinalReport {

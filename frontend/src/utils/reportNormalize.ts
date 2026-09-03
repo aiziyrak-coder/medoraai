@@ -303,76 +303,25 @@ export function normalizePrognosisReport(raw: unknown): PrognosisReport | null {
   };
 }
 
-/** AI yoki tarmoq xatosi bo'lsa ham konsensus va bemor ma'lumotlaridan to'liq prognoz blokini beradi */
+/**
+ * Modelning haqiqiy prognozini qaytaradi. Model prognoz bermagan bo'lsa —
+ * `undefined`. Ilgari bu yerda konsensus nomidan shablon prognoz to'qilar va
+ * unga qotirilgan 0.65 ishonch bali qo'yilar edi: pankreas saratoni bilan
+ * oddiy shamollash uchun matn bir xil chiqardi. To'qish olib tashlandi.
+ */
 export function ensurePrognosisReport(
   pr: PrognosisReport | null | undefined,
-  fr: FinalReport,
-  patientData: PatientData = {} as PatientData,
-  language: Language = 'uz-L',
-): PrognosisReport {
-  const dx = normalizeConsensusDiagnosis(fr.consensusDiagnosis);
-  const dxNames = dx.map((d) => d.name).filter(Boolean).join('; ') || 'klinik holat';
-  const shortRaw = (pr?.shortTermPrognosis || '').trim();
-  const longRaw = (pr?.longTermPrognosis || '').trim();
-  const shortOk = shortRaw.length > 2 && shortRaw !== '-';
-  const longOk = longRaw.length > 2 && longRaw !== '-';
-  const factorsOk = Array.isArray(pr?.keyFactors) && pr!.keyFactors!.some((f) => String(f).trim().length > 3);
-
-  if (shortOk && longOk && factorsOk && pr) {
-    return {
-      ...pr,
-      confidenceScore: typeof pr.confidenceScore === 'number' ? pr.confidenceScore : 0.65,
-    };
-  }
-
-  const isRu = language === 'ru';
-  const isEn = language === 'en';
-  const medHints = (fr.medicationRecommendations || [])
-    .map((m) => String(m.name ?? '').trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .join(', ');
-
-  const shortTerm = shortOk && pr
-    ? pr.shortTermPrognosis
-    : isEn
-      ? `Short term (1–3 months): based on the consensus (${dxNames}), expected course depends on adherence to the proposed plan and follow-up. Symptoms may improve as treatment takes effect; monitor for warning signs and repeat tests as advised.${medHints ? ` Key medications: ${medHints}.` : ''}`
-      : isRu
-        ? `Краткосрочно (1–3 мес.): по консенсусу (${dxNames}) ожидается ответ на терапию при соблюдении плана; контроль симптомов и анализов по назначению.${medHints ? ` Препараты: ${medHints}.` : ''}`
-        : `Qisqa muddat (1–3 oy): konsensus bo'yicha asosiy yo'nalish — ${dxNames}. Taklif qilingan davolash va kuzatuvga rioya qilinsa, simptomlar vaqt o'tishi bilan yaxshilanishi yoki barqarorlashishi mumkin; ogohlantiruvchi belgilar va qayta tekshiruvlar bo'yicha shifokor ko'rsatmalariga amal qiling.${medHints ? ` Asosiy dorilar: ${medHints}.` : ''}`;
-
-  const longTerm = longOk && pr
-    ? pr.longTermPrognosis
-    : isEn
-      ? `Long term (1–5 years): prognosis depends on chronicity, comorbidities, lifestyle, and adherence. Regular follow-up and prevention reduce recurrence and complications.`
-      : isRu
-        ? `Долгосрочно (1–5 лет): прогноз зависит от хроничности, сопутствующих заболеваний и соблюдения терапии; профилактика и диспансеризация снижают риск обострений.`
-        : `Uzoq muddat (1–5 yil): surunkali kasalliklar uchun prognoz yosh, qo'shimcha kasalliklar, hayot tarzi va davolashga rioya qilish bilan bog'liq. Muntazam kuzatuv va profilaktika qayta yuzaga kelish va asoratlarni kamaytiradi.`;
-
-  const complaintsSnippet = (patientData.complaints || '').trim();
-  const keyFactors: string[] = factorsOk && pr && pr.keyFactors
-    ? pr.keyFactors.filter((f) => String(f).trim().length > 0)
-    : [
-        `${isEn ? 'Consensus diagnosis' : isRu ? 'Консенсус-диагноз' : 'Konsensus tashxis'}: ${dxNames}`,
-        patientData.age
-          ? (isEn ? `Age: ${patientData.age}` : isRu ? `Возраст: ${patientData.age}` : `Yosh: ${patientData.age}`)
-          : (isEn ? 'Clinical context' : isRu ? 'Клинический контекст' : 'Klinik kontekst'),
-        complaintsSnippet
-          ? (isEn
-            ? `Chief complaints: ${complaintsSnippet.slice(0, 200)}${complaintsSnippet.length > 200 ? '…' : ''}`
-            : isRu
-              ? `Жалобы: ${complaintsSnippet.slice(0, 200)}${complaintsSnippet.length > 200 ? '…' : ''}`
-              : `Shikoyatlar: ${complaintsSnippet.slice(0, 200)}${complaintsSnippet.length > 200 ? '…' : ''}`)
-          : (isEn ? 'Treatment adherence and follow-up visits' : isRu ? 'Соблюдение терапии и визиты' : 'Davolashga rioya qilish va qayta ko‘rish'),
-        isEn ? 'Comorbidities and risk factors from the record' : isRu ? 'Сопутствующие заболевания и факторы риска' : 'Qo‘shimcha kasalliklar va xavf omillari (ma\'lumotlar bo\'yicha)',
-      ];
-
-  return {
-    shortTermPrognosis: shortTerm,
-    longTermPrognosis: longTerm,
-    keyFactors,
-    confidenceScore: typeof pr?.confidenceScore === 'number' ? pr.confidenceScore : 0.55,
-  };
+): PrognosisReport | undefined {
+  if (!pr) return undefined;
+  const shortRaw = (pr.shortTermPrognosis || '').trim();
+  const longRaw = (pr.longTermPrognosis || '').trim();
+  const hasShort = shortRaw.length > 2 && shortRaw !== '-';
+  const hasLong = longRaw.length > 2 && longRaw !== '-';
+  if (!hasShort && !hasLong) return undefined;
+  // confidenceScore faqat model bergan bo'lsa uzatiladi — o'ylab topilmaydi.
+  if (typeof pr.confidenceScore === 'number') return pr;
+  const { confidenceScore: _unreported, ...withoutScore } = pr;
+  return withoutScore;
 }
 
 export type EnrichFinalReportOptions = {
@@ -713,12 +662,9 @@ export function enrichFinalReport(raw: FinalReport, opts?: EnrichFinalReportOpti
   const existingPrognosis = normalizePrognosisReport(
     out.prognosisReport ?? r.prognosis_report,
   );
-  out.prognosisReport = ensurePrognosisReport(
-    existingPrognosis,
-    out,
-    opts?.patientData,
-    opts?.language ?? 'uz-L',
-  );
+  const realPrognosis = ensurePrognosisReport(existingPrognosis);
+  if (realPrognosis) out.prognosisReport = realPrognosis;
+  else delete out.prognosisReport;
 
   const lang = opts?.language ?? 'uz-L';
   if (!out.nutritionPrevention) {
@@ -766,12 +712,12 @@ function buildNutritionPreventionFallback(
   const isEn = language.startsWith('en');
   const isKaa = language === 'kaa';
   const intro = isRu
-    ? `Рекомендации по питанию и профилактике для «${diag}».`
+    ? 'Общие рекомендации по питанию и профилактике. Список не привязан к диагнозу.'
     : isEn
-      ? `Diet and prevention guidance for «${diag}».`
+      ? 'General diet and prevention guidance. Not tailored to the diagnosis.'
       : isKaa
-        ? `«${diag}» ushın durıs awqatlanıw hám profilaktika usınısları.`
-        : `«${diag}» uchun to'g'ri ovqatlanish va profilaktika tavsiyalari (WHO va xalqaro qo'llanmalar asosida).`;
+        ? 'Ulıwma awqatlanıw hám profilaktika usınısları. Diagnozǵa iykemlestirilmegen.'
+        : `Umumiy ovqatlanish va profilaktika tavsiyalari. Bu ro'yxat tashxisga moslanmagan — individual parhez shifokor bilan belgilanadi.`;
   const disclaimer = isRu
     ? 'Индивидуальная диета — после консультации врача.'
     : isEn

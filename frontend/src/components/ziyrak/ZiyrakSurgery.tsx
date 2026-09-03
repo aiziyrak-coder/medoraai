@@ -108,11 +108,11 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
   // Background Monitor (barcha muloqotni yozib borish)
   const startBackgroundMonitor = useCallback((sid: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
 
     const localeMap: Record<string,string> = { "uz-L":"uz-UZ","uz-C":"uz-UZ","ru":"ru-RU","en":"en-US" };
-    const rec = new SR() as SpeechRecognition;
+    const rec = new SR();
     rec.lang           = localeMap[language] || "uz-UZ";
     rec.continuous     = true;
     rec.interimResults = false;
@@ -163,11 +163,11 @@ export const ZiyrakSurgery: React.FC<Props> = ({ language, onError, onStateChang
     } catch { /* fallback: no waveform */ }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { onError("STT qo'llab-quvvatlanmaydi"); return; }
 
     const localeMap: Record<string,string> = { "uz-L":"uz-UZ","uz-C":"uz-UZ","ru":"ru-RU","en":"en-US" };
-    const rec = new SR() as SpeechRecognition;
+    const rec = new SR();
     rec.lang           = localeMap[language] || "uz-UZ";
     rec.continuous     = false;
     rec.interimResults = false;

@@ -1,4 +1,5 @@
 
+import EmergencyTriageView from './components/emergency/EmergencyTriageView';
 import React, { useState, useCallback, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import type { PatientData, ChatMessage, FinalReport, ProgressUpdate, User, AnalysisRecord, Diagnosis, DetectedMedication, DiagnosisFeedback, CriticalFinding, UserStats, AppView, PrognosisReport } from './types';
 import { normalizeConsensusDiagnosis } from './types';
@@ -68,6 +69,7 @@ import DocumentReportIcon from './components/icons/DocumentReportIcon';
 import LightBulbIcon from './components/icons/LightBulbIcon';
 import CopyrightIcon from './components/icons/CopyrightIcon';
 import { AIModel } from './constants/specialists';
+import { asRecord } from './utils/record';
 import {
     PLATFORM_NAME,
     INSTITUTE_LOGO_SRC,
@@ -98,13 +100,23 @@ const AppContent: React.FC = () => {
     const [showGuide, setShowGuide] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
 
+    /**
+     * Serverdan profil tekshiruvi tugadimi. Imtiyozli sahifalar (rektor / klinika admin)
+     * localStorage'ga emas, faqat shu tekshiruvdan keyingi holatga tayanadi.
+     */
+    const [authChecked, setAuthChecked] = useState(() => !authService.getCurrentUser());
+
     // Sync with API when token exists; clear stale session when no token (avoids 401 on profile/analyses)
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            setAuthChecked(true);
+            return;
+        }
         if (!getAuthToken()) {
             clearTokens();
             setCurrentUser(null);
             setShowLanding(true);
+            setAuthChecked(true);
             return;
         }
         import('./services/apiAuthService').then(({ getProfile }) => {
@@ -119,8 +131,8 @@ const AppContent: React.FC = () => {
                     setCurrentUser(null);
                     setShowLanding(true);
                 }
-            });
-        });
+            }).finally(() => setAuthChecked(true));
+        }).catch(() => setAuthChecked(true));
     }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount to validate session
 
     /** Sessiya yo'q bo'lsa (chiqish yoki token eskirishi) joriy foydalanuvchiga tegishli tarixni tozalaymiz */
@@ -937,7 +949,7 @@ const AppContent: React.FC = () => {
                     language,
                 });
                 if (resp.success && resp.data) {
-                    const d = resp.data as Record<string, unknown>;
+                    const d = asRecord(resp.data);
                     const parts: string[] = [];
                     if (typeof d.follow_up === 'string' && d.follow_up.trim()) parts.push(d.follow_up);
                     if (typeof d.return_visit === 'string' && d.return_visit.trim()) {
@@ -1080,12 +1092,16 @@ const AppContent: React.FC = () => {
     );
 
     const renderMainContent = () => {
+        // Sessiya yo'q bo'lsa bu yerga kelmasligi kerak — lekin `currentUser!` bilan yiqilmaslik uchun himoya
+        if (!currentUser) {
+            return <div className="text-center p-8 text-slate-500">{t('error_page_not_found')}</div>;
+        }
         switch (appView) {
             case 'dashboard':
                 return (
                     <ScrollWrapper>
                         <Dashboard
-                            userName={currentUser!.name}
+                            userName={currentUser.name || ''}
                             onNewAnalysis={() => handleNavigation('new_analysis')}
                             onViewHistory={() => setAppView('history')}
                             onOpenUziUtt={() => setAppView('uzi_utt')}
@@ -1094,6 +1110,7 @@ const AppContent: React.FC = () => {
                             onOpenPopulation={() => setAppView('primary_care')}
                             onOpenPatientStatistics={() => setAppView('patient_statistics')}
                             onOpenPatientDossier={() => setAppView('patient_dossier')}
+                            onOpenEmergencyTriage={() => setAppView('emergency_triage')}
                             recentAnalyses={userHistory.slice(0, 5)}
                             allAnalyses={userHistory}
                             onSelectAnalysis={viewHistoryItem}
@@ -1150,10 +1167,13 @@ const AppContent: React.FC = () => {
 
             case 'live_analysis':
             case 'view_history_item': {
+                if (!patientData) {
+                    return <div className="text-center p-8 text-slate-500">{t('error_no_data_found')}</div>;
+                }
                 const record: Partial<AnalysisRecord> = {
                     id: currentAnalysisRecord?.id,
                     patientId: currentAnalysisRecord?.patientId,
-                    patientData: patientData!,
+                    patientData,
                     debateHistory,
                     finalReport: finalReport ?? undefined,
                     followUpHistory,
@@ -1265,6 +1285,18 @@ const AppContent: React.FC = () => {
                     </div>
                 );
 
+            case 'emergency_triage':
+                return (
+                    <div className="min-h-full flex flex-col min-w-0">
+                        <ScrollWrapper>
+                            <EmergencyTriageView
+                                language={language}
+                                onBack={() => handleNavigation('dashboard')}
+                            />
+                        </ScrollWrapper>
+                    </div>
+                );
+
             case 'patient_statistics':
                 return (
                     <div className="min-h-full flex flex-col min-w-0">
@@ -1292,8 +1324,17 @@ const AppContent: React.FC = () => {
         }
     };
     
-    // --- DIRECTOR DASHBOARD ---
-    if (isRectorPath) {
+    /**
+     * Imtiyozli panellar uchun yagona rol sharti — header'dagi "Admin" linki bilan bir xil.
+     * Bayroqlar faqat serverdan tasdiqlangan profildan olinadi (localStorage'ni tahrirlash yordam bermaydi).
+     */
+    const canAccessAdminPanels = authService.isAdminPanelUser();
+
+    /**
+     * Rektor / klinika admin route'lari uchun himoya. Bloklovchi ekran qaytarsa — o'sha ko'rsatiladi,
+     * null qaytarsa — foydalanuvchi panelni ochishi mumkin.
+     */
+    const renderAdminPanelGate = (): React.ReactNode | null => {
         if (!currentUser) {
             return (
                 <div className="relative">
@@ -1304,21 +1345,46 @@ const AppContent: React.FC = () => {
                 </div>
             );
         }
+        // Server profili hali tekshirilmagan — ruxsat qarorini keshga tayanib qabul qilmaymiz
+        if (!authChecked) {
+            return (
+                <div className="flex-1 flex items-center justify-center p-8 text-text-secondary">
+                    {t('loading_text')}
+                </div>
+            );
+        }
+        if (!canAccessAdminPanels) {
+            return (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+                    <h2 className="text-lg font-bold text-slate-800">{t('access_denied_title')}</h2>
+                    <p className="text-sm text-slate-500 max-w-md">{t('access_denied_message')}</p>
+                    <button
+                        onClick={() => { window.location.href = '/'; }}
+                        className="mt-1 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors px-4 py-2 rounded-xl border border-teal-100 hover:bg-teal-50"
+                    >
+                        {t('back_to_home')}
+                    </button>
+                </div>
+            );
+        }
+        // Obuna darvozasi bu yerda ham amal qiladi — panel orqali to'lov sahifasini chetlab o'tib bo'lmaydi
+        if (!authService.hasActiveSubscription(currentUser)) {
+            return <SubscriptionPage user={currentUser} onSubscriptionPending={handleSubscriptionPending} onLogout={handleLogout} />;
+        }
+        return null;
+    };
+
+    // --- DIRECTOR DASHBOARD ---
+    if (isRectorPath) {
+        const gate = renderAdminPanelGate();
+        if (gate) return <>{gate}</>;
         return <RectorDashboard onBackToMain={() => { window.location.href = '/'; }} />;
     }
 
     // --- KLINIKA GURUHI ADMIN PANEL ---
     if (isClinicAdminPath) {
-        if (!currentUser) {
-            return (
-                <div className="relative">
-                    <button onClick={() => { window.location.href = '/'; }} className="absolute top-4 left-4 z-50 text-white/60 hover:text-white transition-colors">
-                        &larr; Bosh sahifa
-                    </button>
-                    <AuthPage onLoginSuccess={handleLoginSuccess} />
-                </div>
-            );
-        }
+        const gate = renderAdminPanelGate();
+        if (gate) return <>{gate}</>;
         return <ClinicAdminDashboard onBackToMain={() => { window.location.href = '/'; }} />;
     }
 
@@ -1345,6 +1411,14 @@ const AppContent: React.FC = () => {
     }
 
     // --- SUBSCRIPTION CHECK ---
+    // Server profili tekshirilmaguncha to'lov sahifasini ko'rsatmaymiz (keshdagi holat noto'liq bo'lishi mumkin)
+    if (!authChecked) {
+        return (
+            <div className="flex-1 flex items-center justify-center p-8 text-text-secondary">
+                {t('loading_text')}
+            </div>
+        );
+    }
     if (!authService.hasActiveSubscription(currentUser)) {
         return <SubscriptionPage user={currentUser} onSubscriptionPending={handleSubscriptionPending} onLogout={handleLogout} />;
     }
@@ -1375,7 +1449,7 @@ const AppContent: React.FC = () => {
         <div className="flex flex-col flex-1 min-h-0 w-full max-w-[100vw] font-sans text-text-primary app-bg relative overflow-x-hidden">
             {/* Oq/kulrang animatsion gradient (index.css .app-bg) */}
             {criticalFinding && <CriticalFindingAlert finding={criticalFinding} onClose={() => setCriticalFinding(null)} />}
-            {rationaleMessage && <RationaleModal message={rationaleMessage} patientData={patientData!} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
+            {rationaleMessage && patientData && <RationaleModal message={rationaleMessage} patientData={patientData} debateHistory={debateHistory} onClose={() => setRationaleMessage(null)} />}
             {isApiConfigured() && !apiHealthy && !isProcessing && (
                 <div className="flex-none flex items-center justify-center gap-2 sm:gap-3 py-2 page-px bg-amber-500/90 text-white text-xs sm:text-sm font-medium z-40 flex-wrap">
                     {healthStatus === 400 ? (
@@ -1411,7 +1485,7 @@ const AppContent: React.FC = () => {
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0">
                         <DeviceSessionBanner variant="compact" />
                         <LanguageSwitcher language={language} onLanguageChange={setLanguage as (lang: Language) => void} />
-                        {(currentUser?.isClinicGroupAdmin || currentUser?.isStaff || currentUser?.isSuperuser) && (
+                        {canAccessAdminPanels && (
                             <a
                                 href="/klinika-admin"
                                 className="text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors px-2 sm:px-3 py-2 hover:bg-teal-50 rounded-xl border border-transparent hover:border-teal-100 shrink-0"

@@ -5,7 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 const LabValueInterpreter: React.FC = () => {
     const { t, language } = useTranslation();
-    const [labValue, setLabValue] = useState('K+ 5.9 mEq/L');
+    const [labValue, setLabValue] = useState('');
     const [interpretation, setInterpretation] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

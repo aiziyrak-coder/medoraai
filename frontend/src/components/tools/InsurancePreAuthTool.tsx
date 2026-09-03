@@ -31,7 +31,7 @@ const InsurancePreAuthTool: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
             firstName: patientName,
             lastName: '',
             age,
-            gender: 'unknown',
+            gender: '', // PatientData models 'not specified' as '' - this tool never collects gender
             complaints: justification,
             history: '',
         };

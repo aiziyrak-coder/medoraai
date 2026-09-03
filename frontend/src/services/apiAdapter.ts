@@ -33,6 +33,12 @@ export const login = async (credentials: { phone: string; password?: string }): 
  * Register (API only)
  */
 export const register = async (user: User): Promise<{ success: boolean; message: string }> => {
+  // Self-registration creates clinic accounts only (RegisterData.role is 'clinic');
+  // 'staff' and 'regional_stats' accounts are provisioned by an admin. Previously
+  // this passed any UserRole straight through to the clinic-only endpoint.
+  if (user.role !== 'clinic') {
+    return { success: false, message: "Bu rol uchun o'zini ro'yxatdan o'tkazish mumkin emas. Administratorga murojaat qiling." };
+  }
   if (isApiAvailable()) {
     return await apiAuthService.register({
       phone: user.phone,

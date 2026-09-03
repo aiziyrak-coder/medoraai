@@ -252,7 +252,10 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     onLinkedPatientChange,
     returnVisitMode = false,
     onPatientBaselineLoaded,
-}) => {
+// Props are annotated explicitly: with `@types/react` absent, React.FC<T> resolves
+// to `any`, so without this every prop in this component would be untyped (and
+// `linkedPatientKey = null` would infer the literal type `null`).
+}: DataInputFormProps) => {
     const { t, language } = useTranslation();
     const { isListening, transcript, startListening, stopListening, isSupported } = useSpeechToText();
     const wasListeningRef = useRef(false);
@@ -605,18 +608,6 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         }
     };
 
-    const fillNormalVitals = () => {
-        setVitals({
-            bpSystolic: '120',
-            bpDiastolic: '80',
-            heartRate: '72',
-            temperature: '36.6',
-            spO2: '98',
-            respirationRate: '16'
-        });
-        setVitalErrors({});
-    };
-
     const handleVitalChange = (field: keyof typeof vitals, value: string) => {
         // Bo'sh, yoki raqam (minus, kasr qo'llab-quvvatlanadi)
         if (value !== '' && !/^-?\d*\.?\d*$/.test(value)) return;
@@ -660,7 +651,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
         
-        const newFiles = Array.from(e.target.files);
+        const newFiles = Array.from<File>(e.target.files);
         const errors: Record<string, string> = {};
         
         newFiles.forEach((file: File) => {
@@ -780,7 +771,7 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
         // Construct Objective Data String from Vitals (translated labels)
         const objectiveString = buildObjectivePreview() || '';
 
-        let attachmentData: PatientData['attachments'] = [];
+        let attachmentData: NonNullable<PatientData['attachments']> = [];
         if (attachments.length > 0) {
             try {
                 attachmentData = await Promise.all(
@@ -1299,15 +1290,6 @@ const DataInputForm: React.FC<DataInputFormProps> = ({
                             orderClass="order-3"
                             gridClass="lg:col-start-9 lg:row-start-1 lg:col-span-4"
                         >
-                            <div className="flex justify-end shrink-0 -mt-1 mb-1">
-                                <button
-                                    type="button"
-                                    onClick={fillNormalVitals}
-                                    className="text-[10px] font-semibold px-3 py-1 rounded-lg bg-violet-100 text-violet-800 hover:bg-violet-200 border border-violet-200 transition-colors"
-                                >
-                                    {t('vitals_normal_btn')}
-                                </button>
-                            </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 flex-1 content-stretch">
                                 <VitalInput
                                     id="vital-weight"

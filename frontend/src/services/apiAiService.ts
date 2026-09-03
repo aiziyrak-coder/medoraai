@@ -8,6 +8,7 @@
  */
 import { apiPost, API_BASE_URL, type ApiResponse } from './api';
 import { API_CONFIG } from '../config/api';
+import { SseBuffer, type SseEvent } from './sseParser';
 import type { PatientData, Diagnosis, AIModel } from '../types';
 import { mapApiSpecialistToAIModel } from '../utils/specialistDisplay';
 
@@ -103,7 +104,7 @@ export interface DoctorSupportResult {
   uzbek_protocol_ref?:   string;
   // drug_check
   drugs_analyzed?:       Array<Record<string, unknown>>;
-  interactions?:         Array<{ drugs: string[]; severity: string; description: string }>;
+  interactions?:         Array<{ drugs: string[]; severity: string; description: string; action?: string }>;
   overall_safety?:       string;
   recommendations?:      string[];
   // lab_interpretation
@@ -217,13 +218,27 @@ export const runDoctorSupportStream = (
   onDone:  (fullText: string) => void,
   onError: (err: string) => void,
 ): (() => void) => {
-  let aborted = false;
-  let fullText = '';
+  let aborted   = false;   // foydalanuvchi to'xtatdi
+  let timedOut  = false;   // vaqt tugadi
+  let settled   = false;   // callback allaqachon chaqirilgan
+  let fullText  = '';
 
   const accessToken = localStorage.getItem('access_token') || '';
+  const controller  = new AbortController();
+  const timer = setTimeout(() => {
+    if (!settled) { timedOut = true; controller.abort(); }
+  }, API_CONFIG.AI_TIMEOUT_MS);
+
+  const finish = (fn: () => void) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    fn();
+  };
 
   fetch(`${API_BASE_URL}/ziyrak/doctor-stream/`, {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type':  'application/json',
       'Authorization': `Bearer ${accessToken}`,
@@ -238,45 +253,41 @@ export const runDoctorSupportStream = (
     .then(async (resp) => {
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        onError((body as { error?: { message?: string } })?.error?.message || `HTTP ${resp.status}`);
+        finish(() => onError((body as { error?: { message?: string } })?.error?.message || `HTTP ${resp.status}`));
         return;
       }
       const reader  = resp.body?.getReader();
       const decoder = new TextDecoder();
-      if (!reader) { onError('Stream reader unavailable'); return; }
+      if (!reader) { finish(() => onError('Stream reader unavailable')); return; }
+
+      // Tarmoq bo'lagi SSE hodisa chegarasiga mos tushmaydi — buferlash shart.
+      const sse = new SseBuffer();
+
+      const handle = (events: SseEvent[]): boolean => {
+        for (const ev of events) {
+          if (ev.error) { finish(() => onError(ev.error as string)); return true; }
+          if (ev.done)  { finish(() => onDone(fullText));            return true; }
+          if (ev.chunk) { fullText += ev.chunk; onChunk(fullText); }
+        }
+        return false;
+      };
 
       while (!aborted) {
         const { value, done } = await reader.read();
         if (done) break;
-        const raw = decoder.decode(value, { stream: true });
-        // Parse SSE: "data: {...}\n\n"
-        for (const line of raw.split('\n')) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith('data:')) continue;
-          const payload = trimmed.slice(5).trim();
-          if (payload === '[DONE]') {
-            onDone(fullText);
-            return;
-          }
-          try {
-            const obj = JSON.parse(payload) as { chunk?: string; error?: string };
-            if (obj.error) { onError(obj.error); return; }
-            if (obj.chunk) {
-              fullText += obj.chunk;
-              onChunk(fullText);
-            }
-          } catch {
-            // ignore parse errors mid-stream
-          }
-        }
+        if (handle(sse.push(decoder.decode(value, { stream: true })))) return;
       }
-      onDone(fullText);
+      // Oqim [DONE] siz yopildi — qolgan buferni ham hisobga olamiz.
+      if (handle(sse.push(decoder.decode()))) return;
+      if (handle(sse.flush())) return;
+      finish(() => onDone(fullText));
     })
     .catch((err: unknown) => {
-      if (!aborted) onError(String(err));
+      if (aborted) { settled = true; clearTimeout(timer); return; }  // foydalanuvchi to'xtatdi — xato emas
+      finish(() => onError(timedOut ? 'Stream vaqti tugadi' : String(err)));
     });
 
-  return () => { aborted = true; };
+  return () => { aborted = true; controller.abort(); clearTimeout(timer); };
 };
 
 // ---
@@ -317,22 +328,14 @@ export const recommendSpecialists = async (
 export const generateInitialDiagnoses = async (
   patientData: PatientData,
 ): Promise<ApiResponse<Diagnosis[]>> => {
-  const response = await apiPost<Diagnosis[]>(
+  // AI ishlamasa xatoni xato holicha qaytaramiz.
+  // Ilgari bu yerda 503 "success: true, data: []" ga aylantirilardi — shifokor
+  // "differensial tashxis yo'q" deb tushunardi, aslida xizmat yiqilgan edi.
+  return apiPost<Diagnosis[]>(
     '/ziyrak/generate-diagnoses/',
     { patient_data: patientData },
     API_CONFIG.AI_TIMEOUT_MS,
   );
-  if (!response.success && (response.error?.code === 503 || response.error?.code === 0)) {
-    return {
-      success: true,
-      data: [],
-      warning:
-        response.error?.code === 0
-          ? "AI so'rovi uzoq tushdi yoki tarmoq uzildi. Qayta urinib ko'ring."
-          : "AI xizmati vaqtincha band. Bo'sh ro'yxat bilan davom eting yoki keyinroq qayta urinib ko'ring.",
-    };
-  }
-  return response;
 };
 
 /** Backwards-compat - now calls consilium */

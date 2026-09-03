@@ -15,6 +15,13 @@ import { Language } from '../i18n/LanguageContext';
 import { PhoneInputWith998, toFullPhone, fromFullPhone } from './PhoneInputWith998';
 import DeviceSessionBanner from './DeviceSessionBanner';
 
+/** Exhaustive over User['role'] - adding a role forces a label here. */
+const ROLE_LABELS: Record<User['role'], string> = {
+    clinic:         'Klinika',
+    staff:          'Registrator',
+    regional_stats: 'Viloyat statistikasi',
+};
+
 interface AuthPageProps {
     onLoginSuccess: (user: User) => void;
 }
@@ -113,9 +120,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         .sort((a, b) => a.localeCompare(b));
 
     // Create pools for rotating cards from available specialties
-    const specialtyPools = [];
+    const specialtyPools: string[][] = [];
     for (let i = 0; i < 5; i++) {
-        const pool = [];
+        const pool: string[] = [];
         for (let j = 0; j < 3; j++) {
             const index = (i * 3 + j) % availableSpecialties.length;
             pool.push(availableSpecialties[index]);
@@ -190,10 +197,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 const result = await authService.login({ phone: fullPhone, password });
                 if (result.success) {
                     const user = authService.getCurrentUser();
-                    // Validation for correct role login
-                    if (user && user.role !== expectedLoginRole) {
-                        const roleLabel = user.role === 'clinic' ? 'Klinika' : user.role === 'doctor' ? 'Shifokor' : user.role === 'staff' ? 'Registrator' : user.role;
-                        setError(t('auth_wrong_portal', { role: roleLabel }));
+                    // Validation for correct role login.
+                    // The portal switcher only offers 'clinic' and 'staff'; 'regional_stats'
+                    // accounts have no portal tab of their own and App.tsx routes them
+                    // straight to RegionalStatsDashboard, so they must not be gated here.
+                    if (user && user.role !== 'regional_stats' && user.role !== expectedLoginRole) {
+                        setError(t('auth_wrong_portal', { role: ROLE_LABELS[user.role] }));
                         authService.logout();
                     } else if (user) {
                         onLoginSuccess(user);

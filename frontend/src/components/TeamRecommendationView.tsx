@@ -229,7 +229,7 @@ const TeamRecommendationView: React.FC<TeamRecommendationViewProps> = ({ recomme
                         <p className="text-xs text-slate-500 text-center mt-8">Hali mutaxassis tanlanmagan</p>
                     ) : (
                         <div className="flex-1 min-h-0 space-y-1 overflow-y-auto touch-scroll-y">
-                            {Array.from(selectedSpecialists).map((model: AIModel) => {
+                            {Array.from<AIModel>(selectedSpecialists).map((model) => {
                                 const spec = AI_SPECIALISTS[model];
                                 return (
                                     <div key={model} className="flex items-center gap-2 p-1.5 bg-white rounded border border-blue-100">

@@ -5,11 +5,21 @@ import { apiGet, apiPost, apiPut, apiPatch, apiDelete, type ApiResponse } from '
 import type { AnalysisRecord, DiagnosisFeedback, FinalReport, ChatMessage, AnalysisStatsPayload } from '../types';
 import { normalizeConsensusDiagnosis } from '../types';
 import { enrichFinalReport } from '../utils/reportNormalize';
+import { asRecord } from '../utils/record';
 
 export interface ApiAnalysisRecord {
   id: number;
-  patient: number;
-  patient_id: string;
+  /** Django's primary-key alias; some DRF serializers emit `pk` instead of `id`. */
+  pk?: number;
+  /**
+   * DRF returns this either as a bare primary key or, on depth>0 serializers,
+   * as a nested object - and as null for an unlinked record. It was previously
+   * declared `number`, which made the nested-object branch below statically
+   * unreachable (`typeof x === 'object'` narrowed `number` to `null`).
+   */
+  patient: number | { id?: number } | null;
+  /** Absent on some list serializers. */
+  patient_id?: string;
   patient_data: Record<string, unknown>;
   debate_history: ChatMessage[];
   final_report: FinalReport;
@@ -44,9 +54,16 @@ const planItemToStr = (item: unknown): string => {
 };
 
 export const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
-  const fr = (api.final_report || {}) as Record<string, unknown>;
-  const a = api as ApiAnalysisRecord & { patient_id?: string; patient?: number | { id?: number } };
-  const patientId = a.patient_id ?? (typeof a.patient === 'object' && a.patient?.id != null ? String(a.patient.id) : String(a.patient ?? ''));
+  const fr = asRecord(api.final_report || {});
+  const patient = api.patient;
+  const patientId =
+    api.patient_id
+    ?? (patient !== null && typeof patient === 'object'
+          ? (patient.id != null ? String(patient.id) : '')
+          : String(patient ?? ''));
+  // patient_data is an opaque JSON column that this same client writes from a
+  // PatientData, so widening it back is a real round-trip, not a guess.
+  const patientData = api.patient_data as unknown as AnalysisRecord['patientData'];
   const rawTreatmentPlan = Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : Array.isArray(fr.treatment_plan) ? fr.treatment_plan : [];
   const treatmentPlan = rawTreatmentPlan.map(planItemToStr).filter(s => s.trim());
   const rawMeds = Array.isArray(fr.medicationRecommendations) ? fr.medicationRecommendations : Array.isArray(fr.medication_recommendations) ? fr.medication_recommendations : [];
@@ -61,7 +78,7 @@ export const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
     id: String(api?.id ?? api?.pk ?? ''),
     patientId,
     date: api?.created_at ?? new Date().toISOString(),
-    patientData: api.patient_data as unknown as AnalysisRecord['patientData'],
+    patientData,
     debateHistory: api.debate_history || [],
     finalReport: enrichFinalReport({
       ...fr,
@@ -79,7 +96,7 @@ export const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
         return String(t ?? '');
       }),
     } as FinalReport, {
-      patientData: api.patient_data as AnalysisRecord['patientData'],
+      patientData,
     }),
     followUpHistory: api.follow_up_history,
     detectedMedications: api.detected_medications,
@@ -90,7 +107,17 @@ export const apiToAnalysisRecord = (api: ApiAnalysisRecord): AnalysisRecord => {
 /**
  * Convert frontend AnalysisRecord to API format
  */
-const safeArr = <T>(v: unknown): T[] => (Array.isArray(v) ? v as T[] : []);
+/**
+ * Defensive array access: yields [] for anything that is not an array.
+ * The first overload preserves the element type when the input is already
+ * typed (previously every call inferred `unknown[]`, silently widening the
+ * already-typed fields of AnalysisRecord).
+ */
+function safeArr<T>(v: readonly T[] | null | undefined): T[];
+function safeArr<T = unknown>(v: unknown): T[];
+function safeArr(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
 
 const MAX_MSG_LEN = 4000;
 const MAX_DEBATE_ITEMS = 60;

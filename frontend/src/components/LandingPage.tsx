@@ -266,16 +266,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                                     <PlayIcon className="w-5 h-5" /> {t('landing_cta_guide')}
                                 </button>
                             </div>
-                            <div className="mt-10 sm:mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-2xl mx-auto">
+                            <div className="mt-10 sm:mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-3xl mx-auto">
                                 {[
-                                    { label: t('landing_stats_protocols'), value: '15,000+' },
-                                    { label: t('landing_stats_clinics'), value: '50+' },
-                                    { label: t('landing_stats_analyses'), value: '100K+' },
-                                    { label: t('landing_stats_experts'), value: '12+' },
-                                ].map((s, i) => (
-                                    <div key={i} className="text-center bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-slate-200/50">
-                                        <p className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-600">{s.value}</p>
-                                        <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">{s.label}</p>
+                                    t('landing_hero_capability_consilium'),
+                                    t('landing_hero_capability_languages'),
+                                    t('landing_hero_capability_tools'),
+                                    t('landing_hero_capability_export'),
+                                ].map((label, i) => (
+                                    <div key={i} className="text-center bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-slate-200/50 flex items-center justify-center min-h-[72px]">
+                                        <p className="text-[11px] sm:text-xs font-semibold text-slate-600 leading-snug">{label}</p>
                                     </div>
                                 ))}
                             </div>
@@ -305,22 +304,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                                 ))}
                             </div>
                             <div className="mt-10 p-4 sm:p-6 rounded-2xl bg-white/80 backdrop-blur-sm border border-slate-200">
-                                <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-4 text-center">Platforma samaradorligi</p>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                    {[
-                                        { label: t('landing_stats_protocols'), pct: 94, color: 'bg-gradient-to-r from-violet-500 to-fuchsia-500' },
-                                        { label: t('landing_stats_clinics'), pct: 88, color: 'bg-gradient-to-r from-emerald-500 to-teal-500' },
-                                        { label: t('landing_stats_analyses'), pct: 98, color: 'bg-gradient-to-r from-blue-500 to-cyan-500' },
-                                        { label: t('landing_stats_experts'), pct: 92, color: 'bg-gradient-to-r from-orange-500 to-amber-500' },
-                                    ].map((s, i) => (
-                                        <div key={i} className="text-center">
-                                            <div className="h-2 sm:h-2.5 rounded-full bg-slate-200 overflow-hidden mb-2">
-                                                <div className={`h-full rounded-full ${s.color} transition-all duration-1000`} style={{ width: `${s.pct}%` }} />
-                                            </div>
-                                            <p className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide">{s.label}</p>
-                                        </div>
-                                    ))}
-                                </div>
+                                <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-3 text-center">{t('landing_platform_note_title')}</p>
+                                <p className="text-sm text-slate-600 leading-relaxed text-center max-w-2xl mx-auto">{t('landing_platform_note_desc')}</p>
                             </div>
                         </div>
                     </section>
@@ -359,12 +344,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onOpenGuide, onOpenA
                             <div className="mb-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 px-2">
                                 <span className="text-[10px] sm:text-xs text-slate-400 font-medium">01</span>
                                 <div className="flex-1 h-0.5 sm:h-1 min-w-[40px] rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400" />
-                                <span className="text-[10px] text-violet-600 font-semibold">2–5 min</span>
-                                <div className="flex-1 h-0.5 sm:h-1 min-w-[40px] rounded-full bg-gradient-to-r from-fuchsia-400 to-emerald-400" />
                                 <span className="text-[10px] sm:text-xs text-slate-400 font-medium">02</span>
                                 <div className="flex-1 h-0.5 sm:h-1 min-w-[40px] rounded-full bg-gradient-to-r from-fuchsia-400 to-emerald-400" />
-                                <span className="text-[10px] text-emerald-600 font-semibold">5–15 min</span>
-                                <div className="flex-1 h-0.5 sm:h-1 min-w-[40px] rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300" />
                                 <span className="text-[10px] sm:text-xs text-slate-400 font-medium">03</span>
                             </div>
                             <p className="text-center text-xs text-slate-500 mb-6 px-2">

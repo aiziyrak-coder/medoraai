@@ -6,18 +6,18 @@ import { useTranslation } from '../../hooks/useTranslation';
 import {
     calculateChadsVasc,
     calculateHeart,
-    calculateAscvdSimplified,
+    calculateCvRiskFactorScreen,
     interpretChadsVasc,
     interpretHeart,
-    interpretAscvd,
+    interpretCvRiskFactorScreen,
     type ChadsVascInput,
     type HeartScoreInput,
-    type AscvdInput,
+    type CvRiskFactorInput,
 } from '../../utils/riskScores';
 
 const RiskScoringTool: React.FC = () => {
     const { t, language } = useTranslation();
-    const [scoreType, setScoreType] = useState('CHADS-VASc');
+    const [scoreType, setScoreType] = useState('CHA2DS2-VASc');
     const [result, setResult] = useState<RiskScore | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,7 @@ const RiskScoringTool: React.FC = () => {
             let localInterpretation = '';
             let factors: Record<string, unknown> = { age, female };
 
-            if (scoreType === 'CHADS-VASc') {
+            if (scoreType === 'CHA2DS2-VASc') {
                 const input: ChadsVascInput = {
                     chf,
                     hypertension,
@@ -75,7 +75,7 @@ const RiskScoringTool: React.FC = () => {
                 factors = { ...input };
                 localInterpretation = interpretHeart(score, language);
             } else {
-                const input: AscvdInput = {
+                const input: CvRiskFactorInput = {
                     age,
                     male: !female,
                     smoker,
@@ -85,9 +85,9 @@ const RiskScoringTool: React.FC = () => {
                     totalCholesterol: totalChol,
                     hdl,
                 };
-                score = calculateAscvdSimplified(input);
+                score = calculateCvRiskFactorScreen(input);
                 factors = { ...input };
-                localInterpretation = interpretAscvd(score, language);
+                localInterpretation = interpretCvRiskFactorScreen(score, language);
             }
 
             const scoreResult = await calculateRiskScore(
@@ -118,7 +118,10 @@ const RiskScoringTool: React.FC = () => {
     return (
         <div className="glass-panel p-6 md:p-8">
             <h3 className="text-xl font-bold text-text-primary">{t('tools_risk_scoring_title')}</h3>
-            <p className="text-sm text-text-secondary mt-1 mb-6">{t('tools_risk_scoring_desc')}</p>
+            <p className="text-sm text-text-secondary mt-1 mb-3">{t('tools_risk_scoring_desc')}</p>
+            <p className="text-xs text-text-secondary/90 mb-6 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                {t('tool_risk_scoring_disclaimer')}
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
@@ -128,9 +131,9 @@ const RiskScoringTool: React.FC = () => {
                         onChange={(e) => setScoreType(e.target.value)}
                         className="w-full common-input custom-select"
                     >
-                        <option value="CHADS-VASc">CHADS-VASc (Insult xavfi)</option>
+                        <option value="CHA2DS2-VASc">CHA2DS2-VASc (Insult xavfi)</option>
                         <option value="HEART">HEART Score (Ko'krak og'rig'i)</option>
-                        <option value="ASCVD">ASCVD (Yurak-qon tomir xavfi)</option>
+                        <option value="CV-RISK-SCREEN">{t('tool_risk_cv_screen_option')}</option>
                     </select>
                 </div>
                 <div>
@@ -146,7 +149,7 @@ const RiskScoringTool: React.FC = () => {
                 </div>
             </div>
 
-            {scoreType === 'CHADS-VASc' && (
+            {scoreType === 'CHA2DS2-VASc' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 p-3 bg-slate-50 rounded-lg border">
                     <CheckRow label="Yurak yetishmovchiligi (CHF)" checked={chf} onChange={setChf} />
                     <CheckRow label="Arterial gipertenziya" checked={hypertension} onChange={setHypertension} />
@@ -190,7 +193,7 @@ const RiskScoringTool: React.FC = () => {
                 </div>
             )}
 
-            {scoreType === 'ASCVD' && (
+            {scoreType === 'CV-RISK-SCREEN' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3 bg-slate-50 rounded-lg border text-sm">
                     <CheckRow label="Erkak" checked={!female} onChange={(v) => setFemale(!v)} />
                     <CheckRow label="Chekuvchi" checked={smoker} onChange={setSmoker} />

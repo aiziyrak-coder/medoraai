@@ -19,7 +19,9 @@ import type {
     PrognosisReport,
     RelatedResearch,
 } from '../types';
-import { normalizeConsensusDiagnosis, normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
+import { normalizeConsensusDiagnosis, normalizeCriticalFinding, normalizeFolkMedicine, normalizeNutritionPrevention } from '../types';
+import type { DoctorSupportResult } from './apiAiService';
+import { asRecord } from '../utils/record';
 import { AIModel } from "../constants/specialists";
 import { AI_SPECIALISTS } from "../constants";
 import { Language } from "../i18n/LanguageContext";
@@ -248,7 +250,8 @@ export function getCaseBasedClarificationQuestions(data: PatientData, language: 
     const symptoms = [...new Set(parts)].slice(0, 3);
     if (symptoms.length === 0) return [];
 
-    const templates: Record<Language, (s: string) => string> = {
+    // Each template returns the three question variants, indexed [0..2] below.
+    const templates: Record<Language, (s: string) => [string, string, string]> = {
         'uz-L': (s) => [
             `${s} qachondan boshlanib, qanday kechmoqda?`,
             `${s} uchun qanday davolash yoki tekshiruv qilingan?`,
@@ -633,11 +636,21 @@ type ClaudeContentPart =
     | { type: 'text'; text: string }
     | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } };
 
+type TextPart       = { text: string };
+type InlineDataPart = { inlineData: { mimeType: string; data: string } };
+type PromptPart     = TextPart | InlineDataPart;
+/**
+ * A multimodal prompt: the first part is ALWAYS the instruction text (builders
+ * append to `parts[0].text`), any attachments follow. Modelled as a non-empty
+ * tuple so that `parts[0].text` is statically known to exist.
+ */
+type PromptParts    = [TextPart, ...PromptPart[]];
+
 /**
  * Core Claude API call. Supports text & multimodal (images via base64).
  */
 const callClaude = async (
-    prompt: string | { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> },
+    prompt: string | { parts: PromptPart[] },
     model: string = MODEL_PRO,
     responseSchema?: unknown,
     _useSearch: boolean = false,
@@ -786,12 +799,25 @@ const callClaude = async (
     }
 };
 
+/**
+ * Typed wrapper for schema-constrained JSON calls to `callClaude`.
+ *
+ * `callClaude` returns `unknown` because the model's JSON is untrusted. `T` here
+ * is the *expected* shape declared by the `responseSchema` argument; it is NOT
+ * verified at runtime, so callers must still tolerate missing/oddly-shaped
+ * fields. Keeping the single unchecked step in this one auditable place is the
+ * point - it replaces one bare `as` per call site.
+ */
+const callClaudeJson = async <T>(
+    ...args: Parameters<typeof callClaude>
+): Promise<T> => (await callClaude(...args)) as T;
+
 /** Build multimodal prompt for Gemini (used by stream fallback). */
 const buildMultimodalMessages = (
     _systemInstr: string,
-    prompt: { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> },
+    prompt: { parts: PromptPart[] },
     _wantJson: boolean
-): { parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> } => prompt;
+): { parts: PromptPart[] } => prompt;
 
 // Helper to construct multimodal prompts (Text + Images)
 const buildMultimodalPrompt = (
@@ -806,7 +832,7 @@ const buildMultimodalPrompt = (
     const historyContext = getRelevantHistoryContext(data.complaints, pastCases);
     const clinicalBlock = buildClinicalContextText(data, language, contextExtra);
 
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    const parts: PromptParts = [
         { text: `${introText}\n\n${historyContext}\n\n--- TO'LIQ KLINIK KONTEKST ---\n${clinicalBlock}` },
     ];
 
@@ -839,7 +865,7 @@ const buildMultimodalPrompt = (
 const buildFastDoctorPrompt = (introText: string, data: PatientData) => {
     const { attachments, ...rest } = data;
     const textData = JSON.stringify(rest);
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    const parts: PromptParts = [
         { text: `${introText}\n\nPATIENT: ${textData}` }
     ];
     if (attachments && attachments.length > 0 && includeAttachmentsInAi()) {
@@ -978,7 +1004,7 @@ export const generateFastDoctorConsultation = async (
         recommendedTests,
         unexpectedFindings: '',
         uzbekistanLegislativeNote: localizedMedicalText(language, 'protocol'),
-        criticalFinding: safe(result.criticalFinding) ? result.criticalFinding as { finding: string; implication: string; urgency: string } : undefined,
+        criticalFinding: normalizeCriticalFinding(result.criticalFinding),
     };
     return enrichFinalReport({ ...base, ...(result as Partial<FinalReport>) });
 };
@@ -1066,14 +1092,14 @@ export const getDynamicSuggestions = async (complaintText: string, language: Lan
             diagnosticQuestions: { type: 'array', items: { type: 'string' } },
         }
     };
-    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
-/** Doctor Support via Claude (frontend). Returns shape compatible with apiAiService.DoctorSupportResult. */
+/** Doctor Support via Claude (frontend). Mirrors the backend runDoctorSupport contract. */
 export const runDoctorSupportViaClaude = async (
     patientData: PatientData,
     options: { query?: string; taskType?: string; language?: string } = {},
-): Promise<Record<string, unknown>> => {
+): Promise<DoctorSupportResult> => {
     const taskType = options.taskType || 'quick_consult';
     const language = (options.language || 'uz-L') as Language;
     const query = options.query || '';
@@ -1131,12 +1157,12 @@ export const runDoctorSupportViaClaude = async (
             },
         },
         drug_check: {
-            prompt: `Dorilarni tahlil qiling: o'zaro ta'sirlar, dozalar, O'zbekistonda mavjudligi. interactions (drugs, severity, description), overall_safety, recommendations. Til: ${langLabel}.`,
+            prompt: `Dorilarni tahlil qiling: o'zaro ta'sirlar, dozalar, O'zbekistonda mavjudligi. interactions (drugs, severity, description, action), overall_safety, recommendations. Til: ${langLabel}.`,
             schema: {
                 type: 'object',
                 properties: {
                     drugs_analyzed: { type: 'array', items: { type: 'object' } },
-                    interactions: { type: 'array', items: { type: 'object', properties: { drugs: { type: 'array', items: { type: 'string' } }, severity: { type: 'string' }, description: { type: 'string' } } } },
+                    interactions: { type: 'array', items: { type: 'object', properties: { drugs: { type: 'array', items: { type: 'string' } }, severity: { type: 'string' }, description: { type: 'string' }, action: { type: 'string' } } } },
                     overall_safety: { type: 'string' },
                     recommendations: { type: 'array', items: { type: 'string' } },
                 },
@@ -1177,7 +1203,7 @@ export const runDoctorSupportViaClaude = async (
     const maxTok = usePro ? 4096 : 3000;
 
     try {
-        const raw = await callClaude(userContent, model, schema, false, systemInstr, true, maxTok) as Record<string, unknown>;
+        const raw = await callClaudeJson<Partial<DoctorSupportResult>>(userContent, model, schema, false, systemInstr, true, maxTok);
         if (!raw || typeof raw !== 'object') {
             return { _task_type: taskType, _language: language, error: 'AI javob qayta ishlashda xatolik' };
         }
@@ -1386,7 +1412,9 @@ async function runConsiliumDebateBatch(
         return {
             role: String(spec.role),
             name: stripAiParentheticals(specialist?.name || String(spec.role)),
-            title: specialist?.title || 'mutaxassis',
+            // AI_SPECIALISTS entries carry `specialty`, never `title` - reading
+            // `.title` made this constant 'mutaxassis' for every specialist.
+            title: specialist?.specialty || 'mutaxassis',
         };
     });
 
@@ -1482,12 +1510,21 @@ async function runBackendConsilium(
         throw new Error(msg);
     }
     const respExtra = resp as { clinical_red_flags?: unknown };
-    const fr = resp.data.final_report as FinalReport & Record<string, unknown>;
-    const redFlagsRaw = fr.clinicalRedFlags
-        ?? (fr as { clinical_red_flags?: unknown }).clinical_red_flags
+    const frTyped = resp.data.final_report;
+    // The backend also emits snake_case aliases and a few fields that are not on
+    // ConsiliumReport; read those through a record view of the same object rather
+    // than inventing an inline cast at every access.
+    const frRaw = asRecord(frTyped);
+    const redFlagsRaw = frRaw.clinicalRedFlags
+        ?? frRaw.clinical_red_flags
         ?? respExtra.clinical_red_flags
         ?? [];
-    const debateRaw = (fr.debateHistory ?? fr.debate_history ?? []) as Array<Record<string, unknown>>;
+    const debateSource: unknown[] = Array.isArray(frTyped.debateHistory)
+        ? frTyped.debateHistory
+        : Array.isArray(frRaw.debate_history) ? frRaw.debate_history : [];
+    const debateRaw: Array<Record<string, unknown>> = debateSource
+        .filter((m): m is object => !!m && typeof m === 'object')
+        .map(asRecord);
     const chatMessages: ChatMessage[] = [];
     for (let i = 0; i < debateRaw.length; i++) {
         const m = debateRaw[i];
@@ -1510,46 +1547,64 @@ async function runBackendConsilium(
         chatMessages.push(msg);
         onProgress({ type: 'message', message: msg });
     }
-    const critical = fr.criticalFinding ?? (fr as { critical_finding?: CriticalFinding }).critical_finding;
-    if (critical?.finding) {
-        onProgress({ type: 'critical_finding', data: critical as CriticalFinding });
+    // ConsiliumReport types `urgency` as a free string; normalize to High|Medium.
+    const critical = normalizeCriticalFinding(frTyped.criticalFinding ?? frRaw.critical_finding);
+    if (critical) {
+        onProgress({ type: 'critical_finding', data: critical });
     }
     const rawConsensus =
-        fr.consensusDiagnosis
-        ?? (fr as { consensus_diagnosis?: unknown }).consensus_diagnosis
+        frTyped.consensusDiagnosis
+        ?? frRaw.consensus_diagnosis
         ?? (resp.data as { phases?: { phase3_consensus_raw?: { consensus_diagnosis?: unknown } } })?.phases?.phase3_consensus_raw?.consensus_diagnosis;
     let consensusDiagnosis = normalizeConsensusDiagnosis(rawConsensus);
     if (!consensusDiagnosis.length) {
         const p3 = (resp.data as { phases?: { phase3_consensus_raw?: Record<string, unknown> } })?.phases?.phase3_consensus_raw;
         if (p3) consensusDiagnosis = normalizeConsensusDiagnosis(p3.consensus_diagnosis ?? p3.consensusDiagnosis);
     }
-    const folkMedicine = normalizeFolkMedicine(fr.folkMedicine ?? (fr as { folk_medicine?: unknown }).folk_medicine);
+    const folkMedicine = normalizeFolkMedicine(frRaw.folkMedicine ?? frRaw.folk_medicine);
     const nutritionPrevention = normalizeNutritionPrevention(
-        fr.nutritionPrevention ?? (fr as { nutrition_prevention?: unknown }).nutrition_prevention,
+        frRaw.nutritionPrevention ?? frRaw.nutrition_prevention,
     );
-    const pharmaWarnings = Array.isArray(fr.pharmacologyWarnings)
-        ? fr.pharmacologyWarnings
-        : Array.isArray((fr as { pharmacology_warnings?: string[] }).pharmacology_warnings)
-            ? (fr as { pharmacology_warnings: string[] }).pharmacology_warnings
+    const pharmaWarnings = Array.isArray(frTyped.pharmacologyWarnings)
+        ? frTyped.pharmacologyWarnings
+        : Array.isArray(frRaw.pharmacology_warnings)
+            ? frRaw.pharmacology_warnings.map(String)
             : [];
     const clinicalRedFlags = Array.isArray(redFlagsRaw)
         ? redFlagsRaw.filter((f): f is { severity: string; code: string; message: string; action: string } =>
             !!f && typeof f === 'object' && 'message' in (f as object))
         : [];
+    // ConsiliumReport overlaps FinalReport but three fields have genuinely
+    // different shapes and MUST NOT be spread through:
+    //   followUpPlan   - a summary *string* here, FollowUpTask[] on FinalReport
+    //                    (exportReportSections/reportDisplayConsolidation call
+    //                    .map() on it, so spreading the string crashed export);
+    //   medicationRecommendations - flat string maps, re-derived below;
+    //   criticalFinding - free-text urgency, normalized above;
+    //   debateHistory   - DebateMessage[], not a FinalReport field at all.
+    // Everything else (including undeclared runtime keys) is passed through so
+    // enrichFinalReport can still pick up optional server-supplied sections.
+    const {
+        followUpPlan:              _followUpPlanText,
+        medicationRecommendations: _flatMedications,
+        criticalFinding:           _rawCriticalFinding,
+        debateHistory:             _rawDebateHistory,
+        ...frPassThrough
+    } = frTyped;
     let report = enrichFinalReport({
-        ...fr,
+        ...frPassThrough,
+        criticalFinding: critical,
         consensusDiagnosis,
-        treatmentPlan: Array.isArray(fr.treatmentPlan) ? fr.treatmentPlan : [],
+        treatmentPlan: Array.isArray(frTyped.treatmentPlan) ? frTyped.treatmentPlan : [],
         medicationRecommendations: [],
-        recommendedTests: Array.isArray(fr.recommendedTests) ? fr.recommendedTests : [],
+        recommendedTests: Array.isArray(frTyped.recommendedTests) ? frTyped.recommendedTests : [],
         unexpectedFindings: (() => {
-            const u = fr.unexpectedFindings ?? (fr as { unexpected_findings?: string }).unexpected_findings;
+            const u = frTyped.unexpectedFindings ?? frRaw.unexpected_findings;
             if (typeof u === 'string' && u.trim()) return u;
-            const ag = (fr as { agreement_summary?: string; agreementSummary?: string }).agreement_summary
-                ?? (fr as { agreementSummary?: string }).agreementSummary;
+            const ag = frRaw.agreement_summary ?? frRaw.agreementSummary;
             return typeof ag === 'string' ? ag : String(u ?? '');
         })(),
-        uzbekistanLegislativeNote: typeof fr.uzbekistanLegislativeNote === 'string' ? fr.uzbekistanLegislativeNote : '',
+        uzbekistanLegislativeNote: typeof frTyped.uzbekistanLegislativeNote === 'string' ? frTyped.uzbekistanLegislativeNote : '',
         pharmacologyWarnings: pharmaWarnings,
         clinicalRedFlags,
         ...(folkMedicine ? { folkMedicine } : {}),
@@ -1568,7 +1623,7 @@ async function runBackendConsilium(
             if (generated) {
                 report = {
                     ...report,
-                    prognosisReport: ensurePrognosisReport(generated, report, patientData, language),
+                    ...(ensurePrognosisReport(generated) ? { prognosisReport: ensurePrognosisReport(generated) } : {}),
                 };
             }
         } catch (e) {
@@ -1785,7 +1840,8 @@ ${labForSpec ? `Laboratoriya ma'lumoti: ${labForSpec}` : ''}${attachmentsNoteFor
                 onProgress({ type: 'thinking', model: spec.role });
                 const specialist = AI_SPECIALISTS[spec.role];
                 const specName = stripAiParentheticals(specialist?.name || String(spec.role));
-                const specTitle = specialist?.title || 'mutaxassis';
+                // See above: the field is `specialty`, not `title`.
+                const specTitle = specialist?.specialty || 'mutaxassis';
                 const textPrompt = `Siz - ${specName} (${specTitle}). QOIDA: Konsiliumda hech bir yozuv oldindan kiritilmaydi — suhbat va kasallikni o'qib, o'z fikringizni yozasiz. "Hurmatli professor" yoki boshqa rasmiy salomlashuv YOZMANG — to'g'ridan-to'g'ri tashxis va fikr. Bir-birini rozi qilish yoki mulozamat ko'rsatish maqsad emas; muhimi aniq tashxis va dalilli, CHUQUR tahlil; e'tibor kasallikga. Ob'ektiv ko'rik va laboratoriya/hujjatlar berilgan — shifokordan so'ramang.
 
 --- BEMOR MA'LUMOTLARI (ob'ektiv ko'rik, lab va hujjatlar allaqachon kiritilgan — hisobga oling, qayta so'ramang) ---
@@ -1951,7 +2007,7 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         REQUIREMENTS:
         1. consensusDiagnosis: har biri uchun reasoningChain (kamida 4-6 qadam), justification (kamida 6-8 jumla — har biri aniq klinik fakt + talqin), evidenceLevel. uzbekProtocolMatch: SSV protokol nomi yoki protokoldan chetga chiqish sababi. Yakuniy xulosa universitet klinikasi darajasida professional, faktlarga asoslangan bo'lsin.
         2. treatmentPlan: MAJBURIY, bo'sh massiv QAYTARMANG. 3-7 ketma-ket qadam, har biri 1 qisqa, aniq jumla (amaliy). SSV protokollarini asos qiling; protokoldan chetga chiqsangiz 1 qisqa sabab. Shoshilinch bo'lsa birinchi qadamlar birinchi bo'lsin.
-        3. medicationRecommendations: MAJBURIY — HECH QACHON bo'sh massiv qoldirmang. Tashxis va kasallik asosida o'zingiz (dalillarga tayanib) O'zbekistonda mavjud, bemor uchun eng foydali va kerakli dorilarni tavsiya qiling; ortiqcha dori yozmang — faqat zarur va samarali. Har bir dori uchun: (a) name — ANIQ SAVDO NOMI (Nimesil, Sumamed, Metformin, Paratsetamol, Amlodipin, Omeprazol, Enalapril, Augmentin, Ibuprofen va h.k.). (b) dosage — aniq doza (masalan "500 mg kuniga 2 marta, 7 kun"). (c) notes — HAR BIR DORI UCHUN qo'llanma: qanday ichish (ovqatdan oldin/keyin, suv bilan va h.k.), kuniga necha marta, davomiylik; qisqa yo'riqnoma. (d) localAvailability — "O'zbekistonda mavjud" yoki muqobil savdo nomlari. Allergiya va dori o'zaro ta'sirini hisobga oling. Kamida 1 ta, odatda 2–5 ta zarur dori bo'lsin.
+        3. medicationRecommendations: Faqat mavjud klinik ma'lumot asosida asoslab bera oladigan dorilarni yozing. Ma'lumot yetarli bo'lmasa yoki dori tavsiyasi asoslanmagan bo'lsa — bo'sh massiv [] qaytaring, taxminiy dori O'YLAB TOPMANG. Tavsiya berilganda: dalillarga tayanib, O'zbekistonda mavjud, bemor uchun eng kerakli dorilarni ko'rsating; ortiqcha dori yozmang — faqat zarur va samarali. Har bir dori uchun: (a) name — ANIQ SAVDO NOMI (Nimesil, Sumamed, Metformin, Paratsetamol, Amlodipin, Omeprazol, Enalapril, Augmentin, Ibuprofen va h.k.). (b) dosage — aniq doza (masalan "500 mg kuniga 2 marta, 7 kun"). (c) notes — HAR BIR DORI UCHUN qo'llanma: qanday ichish (ovqatdan oldin/keyin, suv bilan va h.k.), kuniga necha marta, davomiylik; qisqa yo'riqnoma. (d) localAvailability — "O'zbekistonda mavjud" yoki muqobil savdo nomlari. Allergiya va dori o'zaro ta'sirini hisobga oling. Soni cheklangan bo'lsin — odatda 2–5 ta, asoslanmasa 0 ta.
         4. criticalFinding: MAJBURIY. Agar suhbatda yoki bemor ma'lumotlarida hayotga xavf, shoshilinch holat, kritik topilma (masalan anafilaksiya, miokard infarkt, insult, jiddiy qon ketish, septik shok, nafas yetishmovchiligi, xavfli aritmiya va h.k.) tilga olingan yoki ehtimoli bor bo'lsa — to'ldiring: finding (qisqa, aniq), implication (oqibat), urgency ("High" yoki "Medium"). Barchasi o'zbekcha. Yo'q bo'lsa null/bo'sh.
         5. recommendedTests: yetishmayotgan muhim tekshiruvlar (O'zbekiston LITS va standartlariga mos).
         6. uzbekistanLegislativeNote: "O'zbekiston Respublikasi sog'liqni saqlash qonunchiligi va SSV klinik protokollariga muvofiq" yoki agar takliflar protokoldan chetga chiqsa "Dalil asosida innovatsion/alternativ yondashuv sifatida taklif qilindi" kabi qisqacha eslatma.
@@ -2056,40 +2112,24 @@ VAZIFA: Suhbatdagi asosiy fikr/farqni qisqacha ko'rsating va keyingi mavzu matni
         }
 
         const rejectedHypotheses = normalizeRejectedHypotheses(
-            rawReport as Record<string, unknown>,
+            asRecord(rawReport),
             normalizeConsensusDiagnosis(rawReport.consensusDiagnosis),
         );
-        let medicationRecommendations = (Array.isArray(rawReport.medicationRecommendations) ? rawReport.medicationRecommendations : []).map((m: { name?: string; dosage?: string; notes?: string; localAvailability?: string; priceEstimate?: string }) => {
-            const name = String(m?.name ?? '').trim();
-            const localAvailability = String(m?.localAvailability ?? '').trim();
-            return {
-                name: name || localAvailability || 'Dori',
-                dosage: String(m?.dosage ?? '').trim(),
-                notes: String(m?.notes ?? ''),
-                localAvailability: localAvailability || undefined,
-                priceEstimate: m?.priceEstimate,
-            };
-        });
-        // Agar dori tavsiyalari bo'sh bo'lsa, tashxis asosida o'zimiz aniqlaymiz (fallback)
-        if (medicationRecommendations.length === 0 && !shouldSkipReportFallbackLlm()) {
-            const diagnosisNames = (normalizeConsensusDiagnosis(rawReport.consensusDiagnosis).map(d => d.name).filter(Boolean)).slice(0, 3);
-            if (diagnosisNames.length > 0) {
-                try {
-                    const fallbackMedsPrompt = `Tashxis(lar): ${diagnosisNames.join(', ')}. Ushbu tashxis(lar) uchun O'zbekistonda mavjud, bemor uchun eng kerakli 2–5 ta dori tavsiya qiling. Har biri uchun: name (savdo nomi), dosage (aniq doza), notes (qanday ichish, ovqatdan oldin/keyin, kuniga necha marta — qisqa yo'riqnoma), localAvailability. FAQAT JSON massiv: [{"name":"...","dosage":"...","notes":"...","localAvailability":"..."}]. Ortiqcha dori yozmang. TIL: ${langMap[language]}.`;
-                    const fallbackRaw = await callClaude(fallbackMedsPrompt, DEPLOY_FAST, { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dosage: { type: 'string' }, notes: { type: 'string' }, localAvailability: { type: 'string' } } } }, false, systemInstrDebate, true, 1024) as unknown;
-                    const fallbackArr = Array.isArray(fallbackRaw) ? fallbackRaw : (fallbackRaw && typeof fallbackRaw === 'object' && Array.isArray((fallbackRaw as Record<string, unknown>).medications) ? (fallbackRaw as Record<string, unknown>).medications : []);
-                    const fallbackMeds = (Array.isArray(fallbackArr) ? fallbackArr : []).map((m: { name?: string; dosage?: string; notes?: string; localAvailability?: string }) => ({
-                        name: String(m?.name ?? '').trim() || 'Dori',
-                        dosage: String(m?.dosage ?? '').trim(),
-                        notes: String(m?.notes ?? ''),
-                        localAvailability: (m?.localAvailability && String(m.localAvailability).trim()) || undefined,
-                    }));
-                    if (fallbackMeds.length > 0) medicationRecommendations = fallbackMeds;
-                } catch {
-                    // ignore fallback failure
-                }
-            }
-        }
+        // Konsilium qaytargan dorilar — nomsiz yozuvlar tashlab yuboriladi.
+        // Ro'yxat bo'sh bo'lsa bo'sh qoladi: dori tavsiyasi o'ylab topilmaydi.
+        const medicationRecommendations = (Array.isArray(rawReport.medicationRecommendations) ? rawReport.medicationRecommendations : [])
+            .map((m: { name?: string; dosage?: string; notes?: string; localAvailability?: string; priceEstimate?: string }) => {
+                const name = String(m?.name ?? '').trim();
+                const localAvailability = String(m?.localAvailability ?? '').trim();
+                return {
+                    name: name || localAvailability,
+                    dosage: String(m?.dosage ?? '').trim(),
+                    notes: String(m?.notes ?? ''),
+                    localAvailability: localAvailability || undefined,
+                    priceEstimate: m?.priceEstimate,
+                };
+            })
+            .filter((m) => m.name.length > 0);
         const planItemToStr = (item: unknown): string => {
             if (typeof item === 'string') return item;
             if (item && typeof item === 'object') {
@@ -2152,9 +2192,13 @@ FAQAT JSON massiv: ["...","..."].`;
                 logger.warn('prognosis generation failed', e);
             }
         }
-        const prognosisReport = ensurePrognosisReport(generatedPrognosis, rawReport, patientData, language);
-        lastLivePrognosis = prognosisReport;
-        onProgress({ type: 'prognosis_update', data: prognosisReport });
+        // ensurePrognosisReport returns undefined when the model produced nothing
+        // real; do not emit an empty prognosis update in that case.
+        const prognosisReport = ensurePrognosisReport(generatedPrognosis);
+        if (prognosisReport) {
+            lastLivePrognosis = prognosisReport;
+            onProgress({ type: 'prognosis_update', data: prognosisReport });
+        }
 
         const folkMedicine = normalizeFolkMedicine((rawReport as unknown as { folkMedicine?: unknown }).folkMedicine);
         const nutritionPrevention = normalizeNutritionPrevention(
@@ -2238,7 +2282,7 @@ export const analyzeEcgImage = async (image: { base64Data: string, mimeType: str
         required: ['rhythm', 'heartRate', 'prInterval', 'qrsDuration', 'qtInterval', 'axis', 'morphology', 'interpretation']
     };
     
-    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 const UZI_UTT_URGENCY: UziUttUrgency[] = ['routine', 'soon', 'urgent', 'emergent'];
@@ -2386,7 +2430,7 @@ export const analyzeUziUttDocuments = async (
         'Return ONLY valid JSON matching the schema.',
     ].filter(Boolean).join('\n');
 
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [{ text: intro }];
+    const parts: PromptParts = [{ text: intro }];
     for (let i = 0; i < files.length; i++) {
         const f = files[i];
         parts.push({ text: `Attachment ${i + 1}: ${f.fileName || 'file'}` });
@@ -2441,7 +2485,7 @@ export const getIcd10Codes = async (diagnosis: string, language: Language): Prom
             required: ['code', 'description'],
         }
     };
-    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 function normalizeGuidelineResult(raw: {
@@ -2546,7 +2590,7 @@ export const calculatePediatricDose = async (drugName: string, weightKg: number,
         },
         required: ['drugName', 'dose', 'calculation', 'warnings'],
     };
-    return callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 export const calculateRiskScore = async (
@@ -2582,7 +2626,7 @@ export const calculateRiskScore = async (
         },
         required: ['name', 'score', 'interpretation'],
     };
-    return callClaude(prompt, DEPLOY_PRO, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_PRO, schema, false, systemInstr);
 };
 
 export const generatePatientEducationContent = async (report: FinalReport, language: Language): Promise<PatientEducationTopic[]> => {
@@ -2600,7 +2644,7 @@ export const generatePatientEducationContent = async (report: FinalReport, langu
             required: ['title', 'content'],
         }
     };
-    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 export const continueDebate = async (
@@ -2685,7 +2729,7 @@ export const suggestCmeTopics = async (history: AnalysisRecord[], language: Lang
             required: ['topic', 'relevance'],
         },
     };
-    return callClaude(prompt, DEPLOY_FAST, schema, false, systemInstr);
+    return callClaudeJson(prompt, DEPLOY_FAST, schema, false, systemInstr);
 };
 
 // --- DORI TOOLLAR ---

@@ -151,17 +151,14 @@ export class RealtimeSTT {
     onError:      OnErrorFn,
     continuous:   boolean = true,
   ): void {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognitionClass = (window as any).SpeechRecognition
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      || (window as any).webkitSpeechRecognition;
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
       onError('Bu brauzer Web Speech API ni qo\'llab-quvvatlamaydi. Chrome yoki Edge ishlatib ko\'ring.');
       return;
     }
 
-    this.recognition = new SpeechRecognitionClass() as SpeechRecognition;
+    this.recognition = new SpeechRecognitionClass();
     this.recognition.lang            = AZURE_LOCALE[this.language] || 'uz-UZ';
     this.recognition.continuous      = continuous;
     this.recognition.interimResults  = true;
@@ -381,7 +378,9 @@ export const jarvisChat = async (
 export const addTranscriptChunk = async (
   sessionId: string,
   text:      string,
-  speaker:   'doctor' | 'patient' | 'system' = 'unknown',
+  // Must match TranscriptChunk['speaker'] - 'unknown' is the documented default
+  // for an unattributed chunk, and was previously missing from this union.
+  speaker:   TranscriptChunk['speaker'] = 'unknown',
 ) => apiPost('/ziyrak/transcript/add/', {
   session_id: sessionId,
   text,

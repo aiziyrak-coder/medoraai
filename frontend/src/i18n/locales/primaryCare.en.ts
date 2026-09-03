@@ -275,4 +275,4 @@ export const primaryCareEn = {
   pc_week_optional: 'Week (optional)',
   pc_guide_mod_family: 'Family passport',
   pc_guide_mod_family_desc: 'Link family members, family medical care and social risk monitoring.',
-} as const;
+};

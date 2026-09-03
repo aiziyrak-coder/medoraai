@@ -2,13 +2,18 @@ import type { AnalysisRecord, AnonymizedCase, UserStats, AnalysisStatsPayload } 
 import { normalizeConsensusDiagnosis } from '../types';
 import { getCurrentUser } from './apiAuthService';
 
-/** Haqiqiy moslik (0–1) → dashboardda 90–97% oralig‘ida ko‘rsatish */
+/** Ko'rsatkich ma'noga ega bo'lishi uchun kerak bo'lgan minimal baholar soni */
+export const FEEDBACK_ACCURACY_MIN_SAMPLE = 10;
+
+/** Haqiqiy moslik (0–1) → foiz (0–100). Hech qanday «bazaviy» qiymat qo'shilmaydi. */
 export function feedbackAccuracyToDisplayPercent(ratio: number): number {
-    return Math.round(90 + Math.min(1, Math.max(0, ratio)) * 7);
+    return Math.round(Math.min(1, Math.max(0, ratio)) * 100);
 }
 
-/** Ma'lumot bo'lmaganda namuna (95–97 oralig'i ichida) */
-export const FEEDBACK_ACCURACY_SAMPLE_PERCENT = 99.1;
+/** Namuna ko'rsatkichni chiqarish uchun yetarlimi? Yetarli bo'lmasa raqam ko'rsatilmaydi. */
+export function hasSufficientFeedbackSample(count: number): boolean {
+    return Number.isFinite(count) && count >= FEEDBACK_ACCURACY_MIN_SAMPLE;
+}
 
 /** Har bir foydalanuvchi uchun alohida kalit — bir brauzerda boshqa akkauntlar aralashmasin */
 const getAnonymizedCasesStorageKey = (): string => {

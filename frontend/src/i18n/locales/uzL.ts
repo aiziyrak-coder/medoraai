@@ -18,6 +18,8 @@ export const uzL: TranslationSet = {
   error_try_again: 'Xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring.',
   error_no_data_found: 'Ma\'lumotlar topilmadi.',
   error_page_not_found: 'Sahifa topilmadi',
+  access_denied_title: "Ruxsat yo'q",
+  access_denied_message: "Bu sahifa faqat administratorlar uchun. Xatolik deb hisoblasangiz, administrator bilan bog'laning.",
 
   // Landing Page
   landing_hero_badge: 'Klinik Tafakkur Inqilobi v1.0',
@@ -30,13 +32,21 @@ export const uzL: TranslationSet = {
   landing_stats_clinics: 'Hamkor Klinikalar',
   landing_stats_analyses: 'Muvaffaqiyatli Tahlillar',
   landing_stats_experts: 'AI Mutaxassislar',
+
+  landing_hero_capability_consilium: "Ko'p mutaxassisli AI konsilium",
+  landing_hero_capability_languages: "O'zbek, qoraqalpoq, rus, ingliz tillari",
+  landing_hero_capability_tools: "EKG, laborator va dori o'zaro ta'siri vositalari",
+  landing_hero_capability_export: 'PDF / DOCX hisobot va e-retsept',
+  landing_platform_note_title: 'Platforma haqida',
+  landing_platform_note_desc:
+    "AiDoktor — shifokor uchun qaror qo'llab-quvvatlash vositasi. U tashxis qo'ymaydi va davolashni belgilamaydi: har bir xulosa maslahat xarakterida bo'lib, davolovchi shifokor tomonidan tekshirilishi va tasdiqlanishi shart. Bemor uchun javobgarlik shifokorda qoladi.",
   
   landing_features_title: 'Imkoniyatlar Chegarasiz',
   landing_features_desc: 'Farg\'ona JSTI tibbiy platformasi shifokorlarga kundalik faoliyatida duch keladigan eng murakkab vazifalarni hal qilishda yordam beradi.',
   landing_feature_consultium: 'AI Konsilium',
   landing_feature_consultium_desc: 'Kardiolog, Nevrolog, Onkolog va boshqa 10+ virtual mutaxassislar bilan real vaqtda maslahatlashing.',
   landing_feature_safe: 'Xavfsiz & Aniq',
-  landing_feature_safe_desc: 'Xalqaro FDA va SSV standartlariga asoslangan, dalillarga tayangan tibbiyot (EBM) tamoyillari.',
+  landing_feature_safe_desc: "Dalillarga tayangan tibbiyot (EBM) tamoyillari asosida: har bir xulosa maslahat xarakterida bo'lib, davolovchi shifokor tasdig'ini talab qiladi.",
   landing_feature_global: 'Global Bilimlar Bazasi',
   landing_feature_global_desc: 'Dunyo bo\'ylab eng so\'nggi tibbiy tadqiqotlar va maqolalarni bir zumda tahlil qiling.',
   landing_feature_ecg: 'EKG Tahlili',
@@ -44,7 +54,7 @@ export const uzL: TranslationSet = {
   landing_feature_drug: 'Dorilar O\'zaro Ta\'siri',
   landing_feature_drug_desc: 'Bir vaqtning o\'zida bir nechta dori vositalarini qabul qilishda xavfsizlikni tekshiring.',
   landing_feature_risk: 'Xavf Skoring',
-  landing_feature_risk_desc: 'ASCVD, CHADS-VASc kabi xalqaro shkalalar yordamida bemor xavf darajasini baholang.',
+  landing_feature_risk_desc: 'CHA2DS2-VASc va HEART ballarini kiritilgan qiymatlar asosida mahalliy hisoblang, shuningdek yurak-qon tomir xavf omillari skrini.',
   
   landing_how_title: 'Ishlash Tizimi',
   landing_how_subtitle: 'Oddiy va Samarali',
@@ -165,7 +175,10 @@ export const uzL: TranslationSet = {
   tool_guideline_placeholder: 'Kasallik yoki holatni kiriting...',
   tool_guideline_loading: "Qo'llanmalar tahlil qilinmoqda...",
   tool_drug_identifier_placeholder: "Dori nomi (Panadol, Nimesil, Augmentin...)",
-  tool_lab_interpreter_placeholder: 'Tahlil natijasini kiriting...',
+  tool_lab_interpreter_placeholder: 'Tahlil natijasini kiriting, masalan "ALT 150 U/L"...',
+  tool_risk_cv_screen_option: 'Yurak-qon tomir xavf omillari skrini (validatsiyalanmagan)',
+  tool_risk_scoring_disclaimer:
+    "Ballar siz kiritgan qiymatlar asosida mahalliy hisoblanadi. CHA2DS2-VASc va HEART nashr etilgan ball ta'riflariga amal qiladi; xavf omillari skrini esa qo'pol saralash vositasi, validatsiyalangan shkala emas. Yillik voqea foizlari bu yerda ataylab ko'rsatilmaydi — ularni rasmiy manba jadvalidan oling.",
   tool_patient_explanation_placeholder: 'Tibbiy xulosani shu yerga kiriting...',
   tool_pediatric_drug_label: 'Dori Nomi',
   tool_insurance_procedure_label: 'Muolaja Nomi',
@@ -502,6 +515,8 @@ export const uzL: TranslationSet = {
   stats_feedback_accuracy_sub:
     "Tashxis bo'yicha fikringiz va yakuniy natija mosligi",
   stats_feedback_sample_note: 'namuna',
+  stats_feedback_insufficient: "Aniqlikni ko'rsatish uchun ma'lumot yetarli emas",
+  stats_feedback_sample_size: 'n={count} baho',
   stats_top_diagnoses: 'Top 3 Tashxis',
   stats_case: '{count} holat',
   stats_no_data: 'Hali yetarli ma\'lumot yo\'q.',

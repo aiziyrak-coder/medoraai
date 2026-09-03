@@ -64,10 +64,10 @@ export const ZiyrakConsultation: React.FC<Props> = ({
 
       // Speech Recognition
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) { onError("Brauzer STT ni qo'llab-quvvatlamaydi"); return; }
 
-      const rec = new SR() as SpeechRecognition;
+      const rec = new SR();
       const localeMap: Record<string, string> = {
         "uz-L": "uz-UZ", "uz-C": "uz-UZ", "ru": "ru-RU", "en": "en-US",
       };

@@ -2,31 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from './useTranslation';
 import { logger } from '../utils/logger';
 
-interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start(): void;
-    stop(): void;
-    onresult: (event: SpeechRecognitionEvent) => void;
-    onerror: (event: SpeechRecognitionErrorEvent) => void;
-    onend: () => void;
-}
-
-interface SpeechRecognitionEvent extends Event {
-    results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-    error: string;
-}
-
-declare global {
-    interface Window {
-        SpeechRecognition: { new(): SpeechRecognition };
-        webkitSpeechRecognition: { new(): SpeechRecognition };
-    }
-}
+// Web Speech API types live in src/types/speech.d.ts (they are absent from lib.dom).
 
 const langCodeMap: Record<string, string> = {
     'uz-L': 'uz-UZ',

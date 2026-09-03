@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { AnalysisRecord, UserStats } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Language } from '../../i18n/LanguageContext';
-import { feedbackAccuracyToDisplayPercent, FEEDBACK_ACCURACY_SAMPLE_PERCENT } from '../../services/caseService';
+import { feedbackAccuracyToDisplayPercent, hasSufficientFeedbackSample } from '../../services/caseService';
 import {
     getLocationStats,
     type DistrictLocationStat,
@@ -186,10 +186,9 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
     const total = stats.totalAnalyses;
     const newPatients = stats.newPatients30d ?? insights.newPatients;
     const returnPatients = stats.returnPatients30d ?? insights.returnPatients;
-    const acc =
-        stats.feedbackEvalCount === 0
-            ? FEEDBACK_ACCURACY_SAMPLE_PERCENT
-            : feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy);
+    const feedbackEvalCount = stats.feedbackEvalCount ?? 0;
+    const hasFeedbackSample = hasSufficientFeedbackSample(feedbackEvalCount);
+    const acc = hasFeedbackSample ? `${feedbackAccuracyToDisplayPercent(stats.feedbackAccuracy)}%` : '—';
 
     const avgWeek = week > 0 ? (week / 7).toFixed(1) : null;
     const avgMonth = month > 0 ? (month / 30).toFixed(1) : null;
@@ -381,9 +380,16 @@ const AnalyticsHubPanel: React.FC<AnalyticsHubPanelProps> = ({ stats, allAnalyse
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                             {t('stats_feedback_accuracy')}
                         </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{t('dashboard_analytics_feedback_hint')}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                            {hasFeedbackSample ? t('dashboard_analytics_feedback_hint') : t('stats_feedback_insufficient')}
+                        </p>
                     </div>
-                    <p className="text-3xl font-black text-sky-700 tabular-nums">{acc}%</p>
+                    <div className="text-right">
+                        <p className={`text-3xl font-black tabular-nums ${hasFeedbackSample ? 'text-sky-700' : 'text-slate-400'}`}>{acc}</p>
+                        <p className="text-[10px] text-slate-400 tabular-nums mt-0.5">
+                            {t('stats_feedback_sample_size', { count: feedbackEvalCount })}
+                        </p>
+                    </div>
                 </div>
             </div>
 

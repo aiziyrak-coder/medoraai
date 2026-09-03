@@ -25,7 +25,8 @@ export type AppView =
   | 'population'
   | 'primary_care'
   | 'patient_statistics'
-  | 'patient_dossier';
+  | 'patient_dossier'
+  | 'emergency_triage';
 
 /** Bemor marshrutlash: mutaxassis, tekshiruv rejasi, statsionar */
 export interface PatientRouting {
@@ -264,7 +265,8 @@ export interface PrognosisReport {
   shortTermPrognosis: string;
   longTermPrognosis: string;
   keyFactors: string[];
-  confidenceScore: number; // 0-1
+  /** 0-1. Optional: only present when the model actually reported it - it is never invented. */
+  confidenceScore?: number;
 }
 
 export interface Referral {
@@ -447,6 +449,25 @@ export function getReasoningChainArray(d: { reasoningChain?: unknown }): string[
   return [];
 }
 
+/**
+ * Coerce a model-produced critical finding into CriticalFinding.
+ *
+ * The model returns `urgency` as free text ('Critical', 'high', 'o'rta', ...),
+ * but CriticalFinding admits only 'High' | 'Medium'. Anything not recognisably
+ * "medium" is treated as High: for a *critical* finding, over-escalating is the
+ * safe direction. Returns undefined when there is no finding text at all.
+ */
+export function normalizeCriticalFinding(raw: unknown): CriticalFinding | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const o = raw as Record<string, unknown>;
+  const finding = String(o.finding ?? '').trim();
+  if (!finding) return undefined;
+  const urgencyText = String(o.urgency ?? '').trim().toLowerCase();
+  const urgency: CriticalFinding['urgency'] =
+    /^(medium|moderate|mid|o'rta|orta|средн)/.test(urgencyText) ? 'Medium' : 'High';
+  return { finding, implication: String(o.implication ?? '').trim(), urgency };
+}
+
 /** API snake_case / Gemini nomlarini birlashtiradi. */
 export function normalizeFolkMedicine(raw: unknown): FolkMedicineSection | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
@@ -542,7 +563,9 @@ export function normalizeConsensusDiagnosis(raw: unknown): Diagnosis[] {
     }
   }
 
-  const mapped = items.map((item: Record<string, unknown>) => {
+  const mapped = items
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+    .map((item) => {
     const pRaw = Number(item?.probability ?? 0);
     const pNorm = Number.isFinite(pRaw)
       ? (pRaw >= 0 && pRaw <= 1 ? pRaw * 100 : pRaw)

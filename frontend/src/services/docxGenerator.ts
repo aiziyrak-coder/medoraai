@@ -1,6 +1,5 @@
 import {
     Document,
-    DocumentDefaults,
     Packer,
     Paragraph,
     TextRun,
@@ -415,10 +414,16 @@ export const generateDocxReport = async (
 
     const doc = new Document({
         styles: {
-            default: new DocumentDefaults({
-                run: { font: 'Calibri', size: 22 },
-                paragraph: { spacing: { after: 100, line: 276 } },
-            }),
+            // `styles.default` is an IDefaultStylesOptions *options object*, not an
+            // XmlComponent. Passing `new DocumentDefaults(...)` here type-errored and,
+            // at runtime, docx never picked the defaults up - so the Calibri 22pt /
+            // line-spacing defaults were silently absent from every exported .docx.
+            default: {
+                document: {
+                    run: { font: 'Calibri', size: 22 },
+                    paragraph: { spacing: { after: 100, line: 276 } },
+                },
+            },
         },
         sections: [{ children }],
     });

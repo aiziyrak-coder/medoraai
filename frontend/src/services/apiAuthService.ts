@@ -4,6 +4,7 @@
  */
 import { apiPost, apiGet, apiPatch, saveTokens, clearTokens, saveUserData, getUserData, getRefreshToken, getOrCreateDeviceId } from './api';
 import type { User } from '../types';
+import { asRecord } from '../utils/record';
 
 /** Backend validatsiya xatolarini (details) bitta matnga yig'adi */
 function formatErrorDetails(details: unknown): string {
@@ -60,11 +61,66 @@ function normalizeUser(apiUser: Record<string, unknown>): User {
   };
 }
 
-/** Foydalanuvchining obunasi faolmi (backend has_active_subscription bilan mos; trial yo'q) */
-export function hasActiveSubscription(user: User): boolean {
+const USER_ROLES: ReadonlyArray<User['role']> = ['clinic', 'staff', 'regional_stats'];
+
+/**
+ * localStorage'dagi user_data ishonchsiz manba — shakli tekshirilmasa,
+ * ixtiyoriy odam `isSuperuser: true` yozib qo'yishi mumkin.
+ * Shu sabab faqat kerakli maydonlari to'g'ri turdagi obyektnigina qabul qilamiz.
+ */
+function isValidStoredUser(value: unknown): value is User {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const u = value as Record<string, unknown>;
+  if (typeof u.phone !== 'string' || !u.phone) return false;
+  if (typeof u.name !== 'string') return false;
+  if (typeof u.role !== 'string' || !USER_ROLES.includes(u.role as User['role'])) return false;
+  const optionalBooleans = ['isStaff', 'isSuperuser', 'isClinicGroupAdmin', 'hasActiveSubscription'] as const;
+  for (const key of optionalBooleans) {
+    if (u[key] !== undefined && typeof u[key] !== 'boolean') return false;
+  }
+  const optionalStrings = ['subscriptionStatus', 'subscriptionExpiry', 'clinicGroupName', 'scopedRegionId'] as const;
+  for (const key of optionalStrings) {
+    if (u[key] !== undefined && u[key] !== null && typeof u[key] !== 'string') return false;
+  }
+  if (u.specialties !== undefined && !Array.isArray(u.specialties)) return false;
+  return true;
+}
+
+/**
+ * Serverdan (login / register / profile) kelgan yagona ishonchli holat.
+ * localStorage faqat UI'ni tez ko'rsatish uchun kesh — huquq qarori uchun emas.
+ */
+let verifiedUser: User | null = null;
+
+/** Serverdan tasdiqlangan profil (yo'q bo'lsa null) */
+export function getVerifiedUser(): User | null {
+  return verifiedUser;
+}
+
+/** Server profili shu sessiyada tasdiqlanganmi */
+export function isSessionVerified(): boolean {
+  return verifiedUser !== null;
+}
+
+function setVerifiedUser(user: User | null): void {
+  verifiedUser = user;
+}
+
+/** Faqat serverdan tasdiqlangan bayroqlar asosida imtiyozli panellarga ruxsat */
+export function isAdminPanelUser(): boolean {
+  const u = verifiedUser;
+  if (!u) return false;
+  return Boolean(u.isClinicGroupAdmin || u.isStaff || u.isSuperuser);
+}
+
+/**
+ * @param trusted `user` serverdan kelganmi. Kesh uchun `false` — u holda imtiyozli
+ *   bayroqlar (isSuperuser va h.k.) e'tiborga olinmaydi, chunki ularni localStorage'da yozib qo'yish mumkin.
+ */
+function computeActiveSubscription(user: User, trusted: boolean): boolean {
   if (user.role === 'staff' || user.role === 'regional_stats') return true;
-  if (user.isStaff || user.isSuperuser) return true;
-  if (user.isClinicGroupAdmin) return true;
+  if (trusted && (user.isStaff || user.isSuperuser)) return true;
+  if (trusted && user.isClinicGroupAdmin) return true;
   if (typeof user.hasActiveSubscription === 'boolean') return user.hasActiveSubscription;
   if (user.subscriptionStatus === 'pending') return false;
   if (user.subscriptionStatus !== 'active') return false;
@@ -72,6 +128,17 @@ export function hasActiveSubscription(user: User): boolean {
   if (user.subscriptionExpiry && new Date(user.subscriptionExpiry) > now) return true;
   if (!user.trialEndsAt && !user.subscriptionExpiry) return true;
   return false;
+}
+
+/**
+ * Foydalanuvchining obunasi faolmi (backend has_active_subscription bilan mos; trial yo'q).
+ * Serverdan tasdiqlangan profil bo'lsa — qaror faqat o'sha profildan olinadi;
+ * bo'lmasa (birinchi render / tarmoq kutilmoqda) kesh optimistik ishlatiladi.
+ */
+export function hasActiveSubscription(user: User): boolean {
+  if (verifiedUser) return computeActiveSubscription(verifiedUser, true);
+  if (!user) return false;
+  return computeActiveSubscription(user, false);
 }
 
 export interface LoginCredentials {
@@ -125,7 +192,9 @@ export const register = async (data: RegisterData): Promise<{ success: boolean; 
     
     if (response.success && response.data) {
       saveTokens(response.data.tokens.access, response.data.tokens.refresh);
-      saveUserData(normalizeUser(response.data.user as unknown as Record<string, unknown>));
+      const user = normalizeUser(asRecord(response.data.user));
+      saveUserData(user);
+      setVerifiedUser(user);
       return {
         success: true,
         message: "Ro'yxatdan o'tish muvaffaqiyatli yakunlandi.",
@@ -173,7 +242,9 @@ export const login = async (credentials: LoginCredentials): Promise<{ success: b
     
     if (response.success && response.data) {
       saveTokens(response.data.tokens.access, response.data.tokens.refresh);
-      saveUserData(normalizeUser(response.data.user as unknown as Record<string, unknown>));
+      const user = normalizeUser(asRecord(response.data.user));
+      saveUserData(user);
+      setVerifiedUser(user);
       return {
         success: true,
         message: "Tizimga muvaffaqiyatli kirdingiz.",
@@ -207,19 +278,36 @@ export const logout = (): void => {
   if (refresh || deviceId) {
     apiPost('/auth/logout-session/', { refresh, device_id: deviceId }).catch(() => null);
   }
+  setVerifiedUser(null);
   clearTokens();
 };
 
 /**
- * Get current user
+ * Get current user (keshdan). Shakli buzilgan bo'lsa — tizimdan chiqqan deb hisoblaymiz.
  */
 export const getCurrentUser = (): User | null => {
-  const userData = getUserData();
-  return userData as User | null;
+  if (verifiedUser) return verifiedUser;
+  let userData: unknown = null;
+  try {
+    userData = getUserData();
+  } catch {
+    userData = null;
+  }
+  if (!isValidStoredUser(userData)) {
+    if (userData != null) {
+      try {
+        localStorage.removeItem('user_data');
+      } catch {
+        /* storage o'chirilgan bo'lishi mumkin */
+      }
+    }
+    return null;
+  }
+  return userData;
 };
 
 /**
- * Get user profile from API
+ * Get user profile from API — imtiyoz va obuna uchun yagona ishonchli manba.
  */
 export const getProfile = async (): Promise<User | null> => {
   const cached = getCurrentUser();
@@ -229,12 +317,14 @@ export const getProfile = async (): Promise<User | null> => {
     if (response.success && response.data) {
       const user = normalizeUser(response.data);
       saveUserData(user);
+      setVerifiedUser(user);
       return user;
     }
 
     const code = response.error?.code;
     // Faqat aniq autentifikatsiya rad etilganda sessiyani yopamiz
     if (code === 401 || code === 403) {
+      setVerifiedUser(null);
       return null;
     }
     // 0 = tarmoq, 5xx va hokazo — foydalanuvchini saqlab qolamiz (bo'sh sahifa / chiqish emas)
@@ -252,8 +342,9 @@ export const updateProfile = async (data: Partial<User>): Promise<{ success: boo
     const response = await apiPatch<User>('/auth/profile/', data);
     
     if (response.success && response.data) {
-      const user = normalizeUser(response.data as Record<string, unknown>);
+      const user = normalizeUser(asRecord(response.data));
       saveUserData(user);
+      setVerifiedUser(user);
       return {
         success: true,
         message: 'Profil yangilandi.',
