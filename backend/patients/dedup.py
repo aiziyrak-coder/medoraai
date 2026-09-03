@@ -112,31 +112,58 @@ def merge_patients(keep: Patient, remove: Patient) -> Patient:
 
 
 def merge_all_phone_duplicates() -> list[tuple[int, int]]:
-    """Barcha telefon dublikatlarini birlashtirish — (saqlangan_id, o'chirilgan_id)."""
+    """
+    Barcha telefon dublikatlarini birlashtirish — (saqlangan_id, o'chirilgan_id).
+    Bitta o'tish: jadval bir marta o'qiladi (faqat id/telefon), guruhlar normalizatsiya
+    qilingan raqam bo'yicha tuziladi. Ilgari har bir bemor uchun to'liq jadval
+    qayta o'qilardi (O(N²)).
+    """
+    from collections import defaultdict
+
+    from django.db.models import Count
+
     from analyses.models import AnalysisRecord
 
+    groups: dict[str, list[int]] = defaultdict(list)
+    rows = (
+        Patient.objects.exclude(phone='')
+        .exclude(phone__isnull=True)
+        .order_by('created_at')
+        .values_list('id', 'phone')
+    )
+    for pk, phone in rows.iterator(chunk_size=2000):
+        key = normalize_patient_phone(phone)
+        if key:
+            groups[key].append(pk)
+
+    dup_ids = [pk for ids in groups.values() if len(ids) > 1 for pk in ids]
+    if not dup_ids:
+        return []
+
+    # Tahlillar soni — agregat so'rov (har bir bemor uchun alohida COUNT emas).
+    # IN ro'yxati bo'laklarga bo'linadi: SQLite da 999 ta o'zgaruvchi chegarasi bor.
+    analysis_counts: dict[int, int] = {}
+    for start in range(0, len(dup_ids), 900):
+        chunk = dup_ids[start:start + 900]
+        for row in (
+            AnalysisRecord.objects.filter(patient_id__in=chunk)
+            .order_by()
+            .values('patient_id')
+            .annotate(c=Count('id'))
+        ):
+            analysis_counts[row['patient_id']] = row['c']
+
     merged: list[tuple[int, int]] = []
-    seen_phones: set[str] = set()
-    for patient in Patient.objects.exclude(phone='').order_by('created_at'):
-        key = normalize_patient_phone(patient.phone)
-        if not key or key in seen_phones:
+    for ids in groups.values():
+        if len(ids) < 2:
             continue
-        dupes = [
-            p for p in Patient.objects.filter(phone__isnull=False).exclude(phone='')
-            if normalize_patient_phone(p.phone) == key
-        ]
+        dupes = list(Patient.objects.filter(pk__in=ids))
         if len(dupes) < 2:
-            seen_phones.add(key)
             continue
-
-        def _analysis_count(p: Patient) -> int:
-            return AnalysisRecord.objects.filter(patient=p).count()
-
-        dupes.sort(key=lambda p: (-_analysis_count(p), p.created_at))
+        dupes.sort(key=lambda p: (-analysis_counts.get(p.pk, 0), p.created_at))
         keep = dupes[0]
         for other in dupes[1:]:
             removed_id = other.pk
             merge_patients(keep, other)
             merged.append((keep.pk, removed_id))
-        seen_phones.add(key)
     return merged

@@ -1,10 +1,11 @@
+import os
 #!/usr/bin/env python3
 """Write VITE_GEMINI_API_KEY to server frontend/.env.local before build"""
 import paramiko
 
 SERVER_USER = "root"
 SERVER_HOST = "aidoktor.uz"
-SERVER_PASSWORD = "Ziyrak2025Ai"
+SERVER_PASSWORD = os.environ["SERVER_PASSWORD"]
 REMOTE_DIR = "/root/medoraai"
 
 GEMINI_API_KEY = ""  # Set manually on server - do NOT put key here

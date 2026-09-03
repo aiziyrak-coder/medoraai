@@ -1,18 +1,22 @@
-"""Bemorlar statistikasi — filtrlar va kesimlar."""
+"""Bemorlar statistikasi — filtrlar va kesimlar (barchasi SQL darajasida)."""
 from __future__ import annotations
 
 import io
+import logging
 import re
 from collections import Counter
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import CharField, Count, Exists, OuterRef, Q, QuerySet, Subquery, Value
+from django.db.models.functions import Coalesce, NullIf, Upper
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-from .icd10_catalog import ICD10_CHAPTERS, chapter_by_code, chapter_for_icd, icd_in_chapter, normalize_icd_code
+from .icd10_catalog import ICD10_CHAPTERS, chapter_by_code, chapter_for_icd, normalize_icd_code
 from .models import PopulationRecord
 from .primary_care_models import DispensaryRecord
+
+logger = logging.getLogger(__name__)
 
 AGE_BUCKETS = (
     ('0-1', 0, 1),
@@ -23,6 +27,14 @@ AGE_BUCKETS = (
     ('60-74', 60, 74),
     ('75+', 75, 200),
 )
+
+# SQLite da SQLITE_MAX_VARIABLE_NUMBER = 999 — IN ro'yxati shundan oshmasligi kerak
+_MAX_IN_PARAMS = 900
+_MAX_DISTINCT_AGE_VALUES = 2000
+# Excel eksport uchun qattiq chegara (xotira va gunicorn timeout)
+EXPORT_MAX_ROWS = 50000
+# Statistika keshi (sekund)
+STATISTICS_CACHE_TTL = 120
 
 
 def parse_age_int(age_raw: str) -> int | None:
@@ -45,37 +57,95 @@ def age_bucket(age_raw: str) -> str:
     return 'unknown'
 
 
-def _effective_icd(rec: PopulationRecord, disp_map: dict[int, str]) -> str:
-    code = (rec.dispensary_icd_code or disp_map.get(rec.id) or '').strip()
-    return normalize_icd_code(code)
-
-
-def _effective_disability_group(rec: PopulationRecord) -> str:
-    g = (rec.disability_group or '').strip()
+def _effective_disability_group(group: str, risk_disabled: bool) -> str:
+    g = (group or '').strip()
     if g:
         return g
-    if rec.risk_disabled:
+    if risk_disabled:
         return 'unknown'
     return ''
 
 
-def _build_disp_map(pop_ids: list[int]) -> dict[int, str]:
-    if not pop_ids:
-        return {}
-    out: dict[int, str] = {}
-    for row in (
-        DispensaryRecord.objects.filter(population_id__in=pop_ids, is_active=True)
-        .order_by('population_id', '-registered_date')
-        .values('population_id', 'icd10_code')
-    ):
-        pid = row['population_id']
-        if pid not in out and row.get('icd10_code'):
-            out[pid] = str(row['icd10_code'])
-    return out
+def annotate_effective_icd(qs: QuerySet) -> QuerySet:
+    """
+    D-hisob kodi: PopulationRecord dagi kod, bo'lmasa oxirgi faol dispanser yozuvidan.
+    Subquery orqali — ilgari bu yerda barcha id lar ro'yxati bilan IN so'rovi bor edi
+    (SQLite da 999 ta o'zgaruvchi chegarasi va katta xotira).
+    """
+    if 'effective_icd' in qs.query.annotations:
+        return qs
+    latest_disp = (
+        DispensaryRecord.objects.filter(population_id=OuterRef('pk'), is_active=True)
+        .exclude(icd10_code='')
+        .order_by('-registered_date')
+        .values('icd10_code')[:1]
+    )
+    return qs.annotate(
+        effective_icd=Upper(
+            Coalesce(
+                NullIf('dispensary_icd_code', Value('')),
+                Subquery(latest_disp),
+                Value(''),
+                output_field=CharField(),
+            )
+        ),
+    )
 
 
-def filter_population_records(qs: QuerySet, params: dict[str, Any]) -> list[PopulationRecord]:
-    """Filtrlarni qo'llash — yosh va kasallik turi Python darajasida."""
+def _chapter_range(chapter) -> tuple[str, str]:
+    """XKT-10 sinfi uchun kod oralig'i: [start, end_exclusive) — matnli taqqoslash uchun."""
+    start = f'{chapter.letter_start}{chapter.num_start:02d}'
+    if chapter.num_end >= 99:
+        end_exclusive = f'{chr(ord(chapter.letter_end) + 1)}00'
+    else:
+        end_exclusive = f'{chapter.letter_end}{chapter.num_end + 1:02d}'
+    return start, end_exclusive
+
+
+def _apply_age_value_filter(qs: QuerySet, matches, fallback: list[str]) -> QuerySet:
+    """
+    Yosh — matn maydoni ("45", "45 yosh"). Mavjud turli qiymatlar ro'yxati kichik
+    (bitta yengil DISTINCT so'rov), shuning uchun mos qiymatlarni Python da tanlab,
+    filtrni SQL ga IN ko'rinishida beramiz — jadval Python ga yuklanmaydi.
+    """
+    distinct = list(
+        qs.order_by().values_list('age', flat=True).distinct()[:_MAX_DISTINCT_AGE_VALUES]
+    )
+    match = [v for v in distinct if matches(v)]
+    if len(distinct) < _MAX_DISTINCT_AGE_VALUES:
+        if len(match) <= _MAX_IN_PARAMS:
+            return qs.filter(age__in=match)
+        match_set = set(match)
+        skip = [v for v in distinct if v not in match_set]
+        if len(skip) <= _MAX_IN_PARAMS:
+            return qs.exclude(age__in=skip)
+    logger.warning(
+        "Yosh filtri: juda ko'p turli qiymat (%s) — faqat sof raqamli yoshlar bo'yicha filtrlanadi",
+        len(distinct),
+    )
+    return qs.filter(age__in=fallback)
+
+
+def _apply_age_range_filter(qs: QuerySet, lo: int, hi: int) -> QuerySet:
+    def _matches(value: str) -> bool:
+        a = parse_age_int(value)
+        return a is not None and lo <= a <= hi
+
+    return _apply_age_value_filter(
+        qs, _matches, [str(a) for a in range(max(lo, 0), min(hi, 200) + 1)],
+    )
+
+
+def _apply_age_bucket_filter(qs: QuerySet, label: str) -> QuerySet:
+    fallback = [
+        str(a) for a in range(0, 201)
+        if age_bucket(str(a)) == label
+    ]
+    return _apply_age_value_filter(qs, lambda v: age_bucket(v) == label, fallback)
+
+
+def filter_population_queryset(qs: QuerySet, params: dict[str, Any]) -> QuerySet:
+    """Filtrlarni to'liq SQL darajasida qo'llaydi (natija — queryset, ro'yxat emas)."""
     region_id = (params.get('region_id') or '').strip()
     district_id = (params.get('district_id') or '').strip()
     health_group = (params.get('health_group') or '').strip()
@@ -89,6 +159,8 @@ def filter_population_records(qs: QuerySet, params: dict[str, Any]) -> list[Popu
     disability = (params.get('disability') or '').strip().lower()
     disability_group = (params.get('disability_group') or '').strip()
     dispensary = (params.get('dispensary') or params.get('d_account') or '').strip().lower()
+
+    qs = annotate_effective_icd(qs)
 
     brigade_id = params.get('brigade_id')
     if brigade_id:
@@ -119,51 +191,45 @@ def filter_population_records(qs: QuerySet, params: dict[str, Any]) -> list[Popu
     if disability_group:
         qs = qs.filter(disability_group__iexact=disability_group)
 
+    # Dispanser bog'lanishi Exists() bilan — JOIN dublikatlari va .distinct() kerak emas
+    active_disp = DispensaryRecord.objects.filter(population_id=OuterRef('pk'), is_active=True)
     if dispensary in ('yes', 'true', '1', 'ha', 'bor'):
         qs = qs.filter(
             Q(dispensary_registered=True)
             | ~Q(dispensary_icd_code='')
-            | Q(dispensary_records__is_active=True),
-        ).distinct()
+            | Exists(active_disp),
+        )
     elif dispensary in ('no', 'false', '0', 'yoq', "yo'q", 'yoq'):
-        qs = qs.filter(dispensary_registered=False, dispensary_icd_code='').exclude(
-            dispensary_records__is_active=True,
-        ).distinct()
+        qs = qs.filter(dispensary_registered=False, dispensary_icd_code='').filter(
+            ~Exists(active_disp),
+        )
 
     if icd_code:
         qs = qs.filter(
             Q(dispensary_icd_code__iexact=icd_code)
             | Q(dispensary_icd_code__istartswith=icd_code)
-            | Q(dispensary_records__icd10_code__iexact=icd_code, dispensary_records__is_active=True),
-        ).distinct()
-
-    records = list(qs.select_related('brigade'))
+            | Exists(active_disp.filter(icd10_code__iexact=icd_code)),
+        )
 
     if age_group:
-        records = [r for r in records if age_bucket(r.age) == age_group]
+        qs = _apply_age_bucket_filter(qs, age_group)
     elif age_min not in (None, '') or age_max not in (None, ''):
         lo = int(age_min) if age_min not in (None, '') else 0
         hi = int(age_max) if age_max not in (None, '') else 200
-        records = [
-            r for r in records
-            if (a := parse_age_int(r.age)) is not None and lo <= a <= hi
-        ]
+        qs = _apply_age_range_filter(qs, lo, hi)
 
     if disease_chapter:
         ch = chapter_by_code(disease_chapter)
         if ch:
-            disp_map = _build_disp_map([r.id for r in records])
-            records = [
-                r for r in records
-                if (code := _effective_icd(r, disp_map)) and icd_in_chapter(code, ch)
-            ]
+            start, end_exclusive = _chapter_range(ch)
+            qs = qs.filter(effective_icd__gte=start, effective_icd__lt=end_exclusive)
 
-    return records
+    return qs
 
 
-def compute_population_statistics(records: list[PopulationRecord], *, lang: str = 'uz') -> dict[str, Any]:
-    pop_ids = [r.id for r in records]
-    disp_map = _build_disp_map(pop_ids)
+def compute_population_statistics(qs: QuerySet, *, lang: str = 'uz') -> dict[str, Any]:
+    """Kesimlarni DB agregatlari bilan hisoblaydi — qatorlar Python ga yuklanmaydi."""
+    qs = annotate_effective_icd(qs).order_by()
 
     by_district: Counter[str] = Counter()
     by_region: Counter[str] = Counter()
@@ -178,30 +244,40 @@ def compute_population_statistics(records: list[PopulationRecord], *, lang: str 
 
     region_names, district_meta = _region_names()
 
-    for rec in records:
-        rid = str(rec.region_id or '')
-        did = str(rec.district_id or '')
-        by_region[region_names.get(rid, rid or '—')] += 1
-        dname = district_meta.get(did, {}).get('district_name', did or '—')
-        by_district[dname] += 1
-        by_age[age_bucket(rec.age)] += 1
-        by_health[rec.health_group or '—'] += 1
-        by_gender[rec.gender or '—'] += 1
+    total = qs.count()
 
-        dg = _effective_disability_group(rec)
-        if rec.risk_disabled or dg:
-            disabled_count += 1
-            by_disability_group[dg or 'unknown'] += 1
+    for row in qs.values('region_id', 'district_id').annotate(c=Count('id', distinct=True)):
+        rid = str(row['region_id'] or '')
+        did = str(row['district_id'] or '')
+        by_region[region_names.get(rid, rid or '—')] += row['c']
+        by_district[district_meta.get(did, {}).get('district_name', did or '—')] += row['c']
 
-        icd = _effective_icd(rec, disp_map)
-        if icd or rec.dispensary_registered:
-            dispensary_count += 1
+    for row in qs.values('age').annotate(c=Count('id', distinct=True)):
+        by_age[age_bucket(row['age'])] += row['c']
+
+    for row in qs.values('health_group').annotate(c=Count('id', distinct=True)):
+        by_health[row['health_group'] or '—'] += row['c']
+
+    for row in qs.values('gender').annotate(c=Count('id', distinct=True)):
+        by_gender[row['gender'] or '—'] += row['c']
+
+    for row in qs.values('disability_group', 'risk_disabled').annotate(c=Count('id', distinct=True)):
+        dg = _effective_disability_group(row['disability_group'], row['risk_disabled'])
+        if not dg:
+            continue
+        disabled_count += row['c']
+        by_disability_group[dg] += row['c']
+
+    for row in qs.values('effective_icd', 'dispensary_registered').annotate(c=Count('id', distinct=True)):
+        icd = normalize_icd_code(row['effective_icd'] or '')
+        if icd or row['dispensary_registered']:
+            dispensary_count += row['c']
         if icd:
-            by_icd[icd] += 1
+            by_icd[icd] += row['c']
             ch = chapter_for_icd(icd)
             if ch:
                 label = ch.name_ru if lang == 'ru' else ch.name_uz
-                by_disease_chapter[label] += 1
+                by_disease_chapter[label] += row['c']
 
     name_key = 'name_ru' if lang == 'ru' else 'name_uz'
     chapters_meta = [
@@ -210,7 +286,7 @@ def compute_population_statistics(records: list[PopulationRecord], *, lang: str 
     ]
 
     return {
-        'total': len(records),
+        'total': total,
         'disabled_total': disabled_count,
         'dispensary_total': dispensary_count,
         'by_region': _counter_list(by_region),
@@ -249,9 +325,12 @@ def _region_names() -> tuple[dict[str, str], dict[str, dict]]:
     return region_names, district_meta
 
 
-def export_statistics_excel(records: list[PopulationRecord]) -> bytes:
-    pop_ids = [r.id for r in records]
-    disp_map = _build_disp_map(pop_ids)
+def export_statistics_excel(qs: QuerySet) -> bytes:
+    """
+    Excel eksport — saralash SQL da, qatorlar iterator bilan oqim shaklida o'qiladi
+    (butun jadval Python ro'yxatiga yuklanmaydi) va EXPORT_MAX_ROWS bilan cheklanadi.
+    """
+    qs = annotate_effective_icd(qs).order_by('last_name', 'first_name')
     region_names, district_meta = _region_names()
 
     wb = Workbook()
@@ -266,19 +345,31 @@ def export_statistics_excel(records: list[PopulationRecord]) -> bytes:
         cell = ws.cell(row=1, column=col, value=h)
         cell.font = bold
 
-    for i, rec in enumerate(sorted(records, key=lambda r: (r.last_name, r.first_name)), start=2):
-        meta = district_meta.get(str(rec.district_id or ''), {})
-        ws.cell(row=i, column=1, value=rec.medical_card_number or rec.registry_number)
-        ws.cell(row=i, column=2, value=rec.last_name)
-        ws.cell(row=i, column=3, value=rec.first_name)
-        ws.cell(row=i, column=4, value=rec.father_name)
-        ws.cell(row=i, column=5, value=rec.age)
-        ws.cell(row=i, column=6, value=rec.gender)
-        ws.cell(row=i, column=7, value=region_names.get(str(rec.region_id or ''), ''))
+    rows = qs.values(
+        'medical_card_number', 'registry_number', 'last_name', 'first_name', 'father_name',
+        'age', 'gender', 'region_id', 'district_id', 'health_group',
+        'effective_icd', 'disability_group', 'risk_disabled',
+    )[:EXPORT_MAX_ROWS]
+    written = 0
+    for i, rec in enumerate(rows.iterator(chunk_size=1000), start=2):
+        meta = district_meta.get(str(rec['district_id'] or ''), {})
+        ws.cell(row=i, column=1, value=rec['medical_card_number'] or rec['registry_number'])
+        ws.cell(row=i, column=2, value=rec['last_name'])
+        ws.cell(row=i, column=3, value=rec['first_name'])
+        ws.cell(row=i, column=4, value=rec['father_name'])
+        ws.cell(row=i, column=5, value=rec['age'])
+        ws.cell(row=i, column=6, value=rec['gender'])
+        ws.cell(row=i, column=7, value=region_names.get(str(rec['region_id'] or ''), ''))
         ws.cell(row=i, column=8, value=meta.get('district_name', ''))
-        ws.cell(row=i, column=9, value=rec.health_group)
-        ws.cell(row=i, column=10, value=_effective_icd(rec, disp_map))
-        ws.cell(row=i, column=11, value=_effective_disability_group(rec))
+        ws.cell(row=i, column=9, value=rec['health_group'])
+        ws.cell(row=i, column=10, value=normalize_icd_code(rec['effective_icd'] or ''))
+        ws.cell(row=i, column=11, value=_effective_disability_group(
+            rec['disability_group'], rec['risk_disabled'],
+        ))
+        written += 1
+    if written >= EXPORT_MAX_ROWS:
+        logger.warning('Statistika eksporti %s qator bilan cheklandi', EXPORT_MAX_ROWS)
+        ws.cell(row=written + 2, column=1, value=f'... {EXPORT_MAX_ROWS} qator bilan cheklandi')
 
     buf = io.BytesIO()
     wb.save(buf)

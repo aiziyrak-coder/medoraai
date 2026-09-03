@@ -3,7 +3,7 @@ REM ============================================
 REM MedoraAI Server Deployment Script
 REM ============================================
 REM Server: root@medora.cdcgroup.uz
-REM Password: Ziyrak2025Ai
+REM Password: ${SERVER_PASSWORD}
 REM ============================================
 
 echo.
@@ -18,7 +18,7 @@ echo DEPLOYMENT STEPS:
 echo.
 echo 1. Connect to server via SSH:
 echo    ssh root@medora.cdcgroup.uz
-echo    Password: Ziyrak2025Ai
+echo    Password: ${SERVER_PASSWORD}
 echo.
 echo 2. Navigate to project directory:
 echo    cd /root/medoraai

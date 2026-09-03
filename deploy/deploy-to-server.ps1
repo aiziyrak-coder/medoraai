@@ -3,7 +3,7 @@
 # Server deployment script for MedoraAI
 $serverUser = "root"
 $serverHost = "medora.cdcgroup.uz"
-$serverPassword = "Ziyrak2025Ai"
+$serverPassword = $env:SERVER_PASSWORD
 $remoteDir = "/root/medoraai"
 
 Write-Host "=== MedoraAI Server Deployment ===" -ForegroundColor Cyan
@@ -64,7 +64,7 @@ try {
     Write-Host "=== MANUAL DEPLOYMENT INSTRUCTIONS ===" -ForegroundColor Yellow
     Write-Host "1. Connect to server:" -ForegroundColor White
     Write-Host "   ssh root@medora.cdcgroup.uz" -ForegroundColor Cyan
-    Write-Host "   Password: Ziyrak2025Ai" -ForegroundColor Cyan
+    Write-Host "   Password: $env:SERVER_PASSWORD" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "2. Pull changes:" -ForegroundColor White
     Write-Host "   cd /root/medoraai" -ForegroundColor Cyan

@@ -23,7 +23,7 @@ nano .env
 **.env fayliga quyidagilarni qo'shing:**
 
 ```env
-SECRET_KEY=django-insecure-AiDoktorai-dev-key-change-in-production
+SECRET_KEY=${SECRET_KEY}
 DEBUG=True
 
 # ENG MUHIM - ALLOWED_HOSTS:
@@ -37,11 +37,11 @@ DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=/root/AiDoktorai/backend/db.sqlite3
 
 # AI:
-GEMINI_API_KEY=AIzaSyCn4G1ZYDW_WZ9zCoP39EycFHkfrJAEGZA
+GEMINI_API_KEY=${GEMINI_API_KEY}
 AI_MODEL_DEFAULT=gemini-3-pro-preview
 
 # Telegram:
-TELEGRAM_BOT_TOKEN=8345119740:AAETf0ZTo8zh2A3S5TKIkm7nWQnhO74yBAo
+TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
 TELEGRAM_PAYMENT_GROUP_ID=-5041567370
 ```
 

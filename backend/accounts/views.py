@@ -3,7 +3,7 @@ Authentication and User Management Views
 """
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
@@ -92,6 +92,25 @@ def _extract_device_context(request, fallback_data=None):
 def _jwt_refresh_lifetime() -> timedelta:
     td = getattr(settings, 'SIMPLE_JWT', {}).get('REFRESH_TOKEN_LIFETIME')
     return td if isinstance(td, timedelta) else timedelta(days=7)
+
+
+def _expires_at_from_exp(exp) -> datetime:
+    """
+    JWT `exp` — UTC unix vaqti. Uni aware UTC datetime ga aylantiradi.
+    Diqqat: datetime.utcfromtimestamp() naive qiymat qaytaradi va timezone.make_aware()
+    uni TIME_ZONE (Asia/Tashkent, UTC+5) deb belgilab, muddatni 5 soatga oldinga surib
+    yuboradi — natijada sessiya muddatidan 5 soat oldin "eskirgan" deb hisoblanadi.
+    """
+    if not exp:
+        return timezone.now() + _jwt_refresh_lifetime()
+    try:
+        return datetime.fromtimestamp(int(exp), tz=dt_timezone.utc)
+    except (TypeError, ValueError, OverflowError, OSError):
+        return timezone.now() + _jwt_refresh_lifetime()
+
+
+class SessionRegistrationError(Exception):
+    """ActiveSession/OutstandingToken yozib bo'lmadi — token berilmasligi kerak."""
 
 
 def _refresh_session_still_valid(sess) -> bool:
@@ -271,7 +290,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             refresh = RefreshToken.for_user(user)
             jti = str(refresh.get('jti'))
             exp = refresh.get('exp')
-            expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
+            expires_at = _expires_at_from_exp(exp)
 
             try:
                 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
@@ -310,35 +329,42 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 
 def _register_session_for_tokens(user, refresh, device_id='', device_info=''):
-    """OutstandingToken va ActiveSession yozadi, limitdan ortiq sessiyalarni bekor qiladi."""
+    """
+    OutstandingToken va ActiveSession yozadi, limitdan ortiq sessiyalarni bekor qiladi.
+    Xato bo'lsa SessionRegistrationError ko'taradi: ActiveSession qatorisiz refresh token
+    berilsa, bitta-qurilma cheklovi jimgina o'chib qoladi va "barcha qurilmalardan chiqish"
+    ham bu sessiyani topa olmaydi.
+    """
     try:
-        jti = str(refresh.get('jti'))
-        exp = refresh.get('exp')
-        expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
-        try:
-            from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
-            OutstandingToken.objects.get_or_create(
-                jti=jti,
-                defaults={
-                    'user': user,
-                    'token': str(refresh),
-                    'created_at': timezone.now(),
-                    'expires_at': expires_at,
-                }
+        with transaction.atomic():
+            jti = str(refresh.get('jti'))
+            expires_at = _expires_at_from_exp(refresh.get('exp'))
+            try:
+                from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+            except ImportError:
+                OutstandingToken = None
+            if OutstandingToken is not None:
+                OutstandingToken.objects.get_or_create(
+                    jti=jti,
+                    defaults={
+                        'user': user,
+                        'token': str(refresh),
+                        'created_at': timezone.now(),
+                        'expires_at': expires_at,
+                    }
+                )
+            if device_id:
+                ActiveSession.objects.filter(user=user, device_id=device_id).exclude(refresh_jti=jti).delete()
+            ActiveSession.objects.create(
+                user=user,
+                refresh_jti=jti,
+                device_id=(device_id or '')[:128],
+                device_info=(device_info or '')[:255],
             )
-        except Exception as ex:
-            logger.warning("OutstandingToken create: %s", ex)
-        if device_id:
-            ActiveSession.objects.filter(user=user, device_id=device_id).exclude(refresh_jti=jti).delete()
-        ActiveSession.objects.create(
-            user=user,
-            refresh_jti=jti,
-            device_id=(device_id or '')[:128],
-            device_info=(device_info or '')[:255],
-        )
-        _revoke_oldest_sessions(user, user.max_concurrent_sessions())
+            _revoke_oldest_sessions(user, user.max_concurrent_sessions())
     except Exception as ex:
-        logger.warning("Session registration failed (user created): %s", ex)
+        logger.exception("Session registration failed (user_id=%s): %s", getattr(user, 'id', None), ex)
+        raise SessionRegistrationError(str(ex)) from ex
 
 
 class CustomTokenRefreshView(TokenRefreshView):
@@ -397,6 +423,14 @@ class CustomTokenRefreshView(TokenRefreshView):
         if not new_refresh:
             return response
 
+        # Sessiya aylanishi muvaffaqiyatsiz bo'lsa YANGI TOKEN BERILMAYDI: aks holda
+        # ActiveSession qatorisiz ishlaydigan refresh token qoladi va bitta-qurilma
+        # cheklovi shu foydalanuvchi uchun jimgina o'chib ketadi.
+        session_error = Response({
+            'success': False,
+            'error': {'code': 401, 'message': "Sessiyani yangilab bo'lmadi. Iltimos, qayta kiring."}
+        }, status=401, content_type='application/json')
+
         try:
             from rest_framework_simplejwt.settings import api_settings as jwt_settings
             payload = jwt_decode(
@@ -404,37 +438,47 @@ class CustomTokenRefreshView(TokenRefreshView):
                 jwt_settings.SIGNING_KEY,
                 algorithms=[jwt_settings.ALGORITHM],
             )
-            new_jti = str(payload.get('jti'))
+            new_jti = str(payload.get('jti') or '')
             user_id = payload.get('user_id')
-            if user_id and new_jti:
-                user = User.objects.filter(pk=user_id).first()
-                if user:
-                    jtis = [j for j in (old_jti, new_jti) if j]
-                    if jtis:
-                        ActiveSession.objects.filter(user=user, refresh_jti__in=jtis).delete()
-                    ActiveSession.objects.create(
-                        user=user,
-                        refresh_jti=new_jti,
-                        device_id=device_id[:128],
-                        device_info=device_info[:255],
-                    )
-                    exp = payload.get('exp')
-                    expires_at = timezone.make_aware(datetime.utcfromtimestamp(exp)) if exp else timezone.now() + timedelta(days=7)
-                    try:
-                        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
-                        OutstandingToken.objects.get_or_create(
-                            jti=new_jti,
-                            defaults={
-                                'user': user,
-                                'token': new_refresh,
-                                'created_at': timezone.now(),
-                                'expires_at': expires_at,
-                            }
-                        )
-                    except Exception:
-                        pass
         except Exception as ex:
-            logger.warning("CustomTokenRefreshView session update: %s", ex)
+            logger.exception("CustomTokenRefreshView: yangi refresh tokenni o'qib bo'lmadi: %s", ex)
+            return session_error
+
+        user = User.objects.filter(pk=user_id).first() if (user_id and new_jti) else None
+        if not user:
+            logger.error(
+                "CustomTokenRefreshView: token egasi topilmadi (user_id=%s, jti=%s)", user_id, new_jti,
+            )
+            return session_error
+
+        try:
+            with transaction.atomic():
+                jtis = [j for j in (old_jti, new_jti) if j]
+                if jtis:
+                    ActiveSession.objects.filter(user=user, refresh_jti__in=jtis).delete()
+                ActiveSession.objects.create(
+                    user=user,
+                    refresh_jti=new_jti,
+                    device_id=device_id[:128],
+                    device_info=device_info[:255],
+                )
+                try:
+                    from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+                except ImportError:
+                    OutstandingToken = None
+                if OutstandingToken is not None:
+                    OutstandingToken.objects.get_or_create(
+                        jti=new_jti,
+                        defaults={
+                            'user': user,
+                            'token': new_refresh,
+                            'created_at': timezone.now(),
+                            'expires_at': _expires_at_from_exp(payload.get('exp')),
+                        }
+                    )
+        except Exception as ex:
+            logger.exception("CustomTokenRefreshView session update (user_id=%s): %s", user.pk, ex)
+            return session_error
         return response
 
 
@@ -506,7 +550,18 @@ def register(request):
                     }, 400)
                 raise
             refresh = RefreshToken.for_user(user)
-            _register_session_for_tokens(user, refresh, device_id=device_id, device_info=device_info)
+            try:
+                _register_session_for_tokens(user, refresh, device_id=device_id, device_info=device_info)
+            except SessionRegistrationError:
+                # Hisob yaratildi, lekin sessiya yozilmadi — token bermaymiz (cheklov buzilmasin)
+                return _json_http_response({
+                    'success': False,
+                    'error': {
+                        'code': 500,
+                        'message': "Hisob yaratildi, lekin sessiya ochilmadi. Iltimos, tizimga kiring.",
+                        'details': {},
+                    }
+                }, 500)
             user_data = UserSerializer(user).data
             return _json_http_response({
                 'success': True,
@@ -895,18 +950,30 @@ def telegram_webhook(request):
     Tasdiqlash: obunani 30 kunga faollashtiradi.
     Rad etish: obunani rad etadi.
     """
+    import hmac as _hmac
     import json as _json
 
     token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
     if not token:
         return Response({'ok': True})
 
+    # Secret sozlanmagan bo'lsa webhook UMUMAN ishlamaydi (AllowAny bo'lgani uchun
+    # aks holda istalgan kishi to'lovni tasdiqlab, o'ziga obuna ochib olishi mumkin).
     webhook_secret = (getattr(settings, 'TELEGRAM_WEBHOOK_SECRET', None) or '').strip()
-    if webhook_secret:
-        header_secret = (request.headers.get('X-Telegram-Bot-Api-Secret-Token') or '').strip()
-        if header_secret != webhook_secret:
-            logger.warning('Telegram webhook: noto\'g\'ri yoki yo\'q secret token')
-            return Response({'ok': True})
+    if not webhook_secret:
+        logger.error('Telegram webhook: TELEGRAM_WEBHOOK_SECRET sozlanmagan — so\'rov rad etildi')
+        return Response(
+            {'ok': False, 'error': {'code': status.HTTP_503_SERVICE_UNAVAILABLE, 'message': 'Webhook sozlanmagan.'}},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    header_secret = (request.headers.get('X-Telegram-Bot-Api-Secret-Token') or '').strip()
+    if not _hmac.compare_digest(header_secret, webhook_secret):
+        logger.warning('Telegram webhook: noto\'g\'ri yoki yo\'q secret token')
+        return Response(
+            {'ok': False, 'error': {'code': status.HTTP_403_FORBIDDEN, 'message': 'Ruxsat yo\'q.'}},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     body = request.data
     callback_query = body.get('callback_query')

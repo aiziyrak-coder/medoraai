@@ -7,7 +7,8 @@ import re
 from collections import Counter
 from datetime import datetime, timedelta
 
-from django.db.models import Count
+from django.core.cache import cache
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +20,9 @@ from patients.models import Patient
 from patients.primary_care_service import build_primary_care_stats, ensure_default_screening_programs
 
 from .permissions import IsRegionalStatsViewer
+
+# Viloyat statistikasi og'ir (o'nlab agregat so'rov) — qisqa muddatli kesh
+REGIONAL_STATS_CACHE_TTL = 120
 
 
 def _region_meta(region_id: str) -> dict:
@@ -84,35 +88,44 @@ def _build_regional_stats(user, district_id: str | None = None) -> dict:
     count_30d = analyses_qs.filter(created_at__gte=thirty_days).count()
     new_patients_30d = patients_qs.filter(created_at__gte=thirty_days).count()
 
-    gender_counts = Counter(
-        patients_qs.exclude(gender='').values_list('gender', flat=True),
-    )
+    # Barcha kesimlar DB agregatlari orqali — ilgari butun ustunlar Python ga o'qilardi
+    gender_counts: Counter[str] = Counter({
+        row['gender']: row['c']
+        for row in patients_qs.exclude(gender='').order_by().values('gender').annotate(c=Count('id'))
+    })
     gender_breakdown = [
         {'gender': g, 'label': dict(Patient.GENDER_CHOICES).get(g, g), 'count': c}
         for g, c in gender_counts.most_common()
     ]
 
     age_groups: Counter[str] = Counter()
-    for age_raw in patients_qs.values_list('age', flat=True):
-        age = _parse_age(age_raw)
+    # Turli yosh qiymatlari kam (0..130) — guruhlab olamiz, keyin Python da yig'amiz
+    for row in patients_qs.order_by().values('age').annotate(c=Count('id')):
+        age = _parse_age(row['age'])
         if age is not None:
-            age_groups[_age_group(age)] += 1
+            age_groups[_age_group(age)] += row['c']
     age_breakdown = [
         {'group': label, 'count': age_groups[label]}
         for label in ['0-17', '18-29', '30-44', '45-59', '60+']
         if age_groups[label] > 0
     ]
 
-    district_patient_counts = Counter(
-        Patient.objects.filter(region_id=region_id)
+    district_patient_counts: Counter[str] = Counter({
+        row['district_id']: row['c']
+        for row in Patient.objects.filter(region_id=region_id)
         .exclude(district_id='')
-        .values_list('district_id', flat=True),
-    )
-    district_analysis_counts = Counter(
-        AnalysisRecord.objects.filter(patient__region_id=region_id)
+        .order_by()
+        .values('district_id')
+        .annotate(c=Count('id'))
+    })
+    district_analysis_counts: Counter[str] = Counter({
+        row['patient__district_id']: row['c']
+        for row in AnalysisRecord.objects.filter(patient__region_id=region_id)
         .exclude(patient__district_id='')
-        .values_list('patient__district_id', flat=True),
-    )
+        .order_by()
+        .values('patient__district_id')
+        .annotate(c=Count('id'))
+    })
     districts = []
     for did, pcount in district_patient_counts.most_common():
         districts.append({
@@ -138,9 +151,15 @@ def _build_regional_stats(user, district_id: str | None = None) -> dict:
                 name = str(diag).strip() or "Noma'lum"
             common_diagnoses[name] += 1
 
-    fb_qs = AnalysisUsefulnessFeedback.objects.filter(analysis__in=analyses_qs)
-    fb_total = fb_qs.count()
-    fb_positive = fb_qs.filter(useful=True).count()
+    # Har bir shifokorning alohida ovozi (analysis+user bo'yicha yagona) — bitta so'rov
+    fb = AnalysisUsefulnessFeedback.objects.filter(
+        analysis__in=analyses_qs.values('id'),
+    ).aggregate(
+        total=Count('id'),
+        positive=Count('id', filter=Q(useful=True)),
+    )
+    fb_total = fb['total'] or 0
+    fb_positive = fb['positive'] or 0
     feedback_accuracy = round(fb_positive / fb_total, 3) if fb_total > 0 else None
 
     weekly_activity = []
@@ -178,17 +197,22 @@ def _build_regional_stats(user, district_id: str | None = None) -> dict:
         .annotate(patient_count=Count('id'))
         .order_by('-patient_count')[:15]
     )
+    # Har bir klinika uchun alohida COUNT o'rniga — bitta agregat so'rov
+    clinic_analysis_counts = {
+        row['patient__home_clinic_group__name']: row['c']
+        for row in AnalysisRecord.objects.filter(patient__region_id=region_id)
+        .exclude(patient__home_clinic_group__isnull=True)
+        .order_by()
+        .values('patient__home_clinic_group__name')
+        .annotate(c=Count('id'))
+    }
     clinics = []
     for row in clinic_stats:
         name = row['home_clinic_group__name'] or "Noma'lum"
-        a_count = AnalysisRecord.objects.filter(
-            patient__region_id=region_id,
-            patient__home_clinic_group__name=row['home_clinic_group__name'],
-        ).count()
         clinics.append({
             'clinic_name': name,
             'patient_count': row['patient_count'],
-            'analysis_count': a_count,
+            'analysis_count': clinic_analysis_counts.get(row['home_clinic_group__name'], 0),
         })
 
     return {
@@ -233,7 +257,19 @@ def _build_primary_care_210(region_id: str, district_id: str | None) -> dict:
 def regional_stats_overview(request):
     """Viloyat bo'yicha to'liq statistika (tuman filtri ixtiyoriy)."""
     district_id = (request.query_params.get('district_id') or '').strip() or None
-    data = _build_regional_stats(request.user, district_id=district_id)
+    region_id = str(getattr(request.user, 'scoped_region_id', '') or '').strip()
+    cache_key = f'regional_stats_v1:{region_id}:{district_id or "-"}'
+    try:
+        data = cache.get(cache_key)
+    except Exception:
+        data = None
+    if data is None:
+        data = _build_regional_stats(request.user, district_id=district_id)
+        if data:
+            try:
+                cache.set(cache_key, data, REGIONAL_STATS_CACHE_TTL)
+            except Exception:
+                pass
     if not data:
         return Response({
             'success': False,

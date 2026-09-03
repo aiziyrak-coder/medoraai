@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """Serverda aidoktor.uz uchun HTTP javobni tekshirish."""
 import paramiko
@@ -6,7 +7,7 @@ import sys
 HOST = "167.71.53.238"
 USER = "root"
 KEY_PATH = __file__.replace("check_server.py", "deploy_key")
-PASSWORD = "Ziyrak2025Ai"
+PASSWORD = os.environ["SERVER_PASSWORD"]
 
 def main():
     client = paramiko.SSHClient()

@@ -15,19 +15,25 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'medoraai_backend.settings')
 django.setup()
 
 from accounts.models import User
-from django.conf import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment vars (parol HECH QACHON print qilinmaydi)
-ADMIN_PHONE = os.environ.get('ADMIN_PHONE', '+998901234567')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin2026!')
-ADMIN_NAME = os.environ.get('ADMIN_NAME', 'Admin')
+# Environment vars — default YO'Q (parol HECH QACHON print qilinmaydi va kodda saqlanmaydi)
+ADMIN_PHONE = (os.environ.get('ADMIN_PHONE') or '').strip()
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD') or ''
+ADMIN_NAME = (os.environ.get('ADMIN_NAME') or 'Admin').strip()
 
-# Production: require explicit admin password (no default)
-if not getattr(settings, 'DEBUG', True) and (not ADMIN_PASSWORD or ADMIN_PASSWORD == 'Admin2026!'):
-    print("Xatolik: Production rejimida ADMIN_PASSWORD env orqali o'rnatilishi shart (default ishlatilmaydi).")
+if not ADMIN_PHONE or not ADMIN_PASSWORD:
+    print(
+        "Xatolik: ADMIN_PHONE va ADMIN_PASSWORD env orqali berilishi shart "
+        "(kodda default qiymat yo'q).\n"
+        "Masalan: ADMIN_PHONE=+998... ADMIN_PASSWORD=... python create_superuser.py"
+    )
+    sys.exit(1)
+
+if len(ADMIN_PASSWORD) < 12:
+    print("Xatolik: ADMIN_PASSWORD kamida 12 ta belgidan iborat bo'lishi kerak.")
     sys.exit(1)
 
 try:

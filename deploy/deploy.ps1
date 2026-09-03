@@ -9,7 +9,7 @@ Write-Host ""
 # Configuration
 $ServerUser = "root"
 $ServerHost = "167.71.53.238"
-$ServerPassword = "Ziyrak2025Ai"
+$ServerPassword = $env:SERVER_PASSWORD
 $ProjectDir = "/root/medoraai"
 
 # Step 1: Push to GitHub
@@ -52,8 +52,8 @@ echo "========================================"
 cd /root/medoraai/backend
 
 cat > .env << 'EOF'
-SECRET_KEY=django-insecure-medoraai-dev-key-change-in-production
-DEBUG=True
+SECRET_KEY=${SECRET_KEY:?SECRET_KEY kerak: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"}
+DEBUG=False
 ALLOWED_HOSTS=localhost,127.0.0.1,medoraapi.cdcgroup.uz,medora.cdcgroup.uz,medora.ziyrak.org,medoraapi.ziyrak.org,20.82.115.71,167.71.53.238
 
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz
@@ -61,10 +61,10 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhos
 DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=/root/medoraai/backend/db.sqlite3
 
-GEMINI_API_KEY=AIzaSyCn4G1ZYDW_WZ9zCoP39EycFHkfrJAEGZA
+GEMINI_API_KEY=$env:GEMINI_API_KEY
 AI_MODEL_DEFAULT=gemini-3-pro-preview
 
-TELEGRAM_BOT_TOKEN=8345119740:AAETf0ZTo8zh2A3S5TKIkm7nWQnhO74yBAo
+TELEGRAM_BOT_TOKEN=$env:TELEGRAM_BOT_TOKEN
 TELEGRAM_PAYMENT_GROUP_ID=-5041567370
 EOF
 
@@ -143,13 +143,13 @@ Write-Host ""
 Write-Host "Option 1: Manual SSH (Recommended)" -ForegroundColor Cyan
 Write-Host "  1. Open PowerShell/Terminal" -ForegroundColor Gray
 Write-Host "  2. Run: ssh root@167.71.53.238" -ForegroundColor Gray
-Write-Host "  3. Password: Ziyrak2025Ai" -ForegroundColor Gray
+Write-Host "  3. Password: $env:SERVER_PASSWORD" -ForegroundColor Gray
 Write-Host "  4. Copy the script content from: $tempScript" -ForegroundColor Gray
 Write-Host "  5. Paste and run on server" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Option 2: Using Plink (Windows SSH tool)" -ForegroundColor Cyan
 Write-Host "  Download Plink from: https://www.putty.org/" -ForegroundColor Gray
-Write-Host "  Then run: plink -ssh root@167.71.53.238 -pw Ziyrak2025Ai bash /tmp/deploy_server.sh" -ForegroundColor Gray
+Write-Host "  Then run: plink -ssh root@167.71.53.238 -pw $env:SERVER_PASSWORD bash /tmp/deploy_server.sh" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Option 3: Use the bash script (if on WSL/Linux)" -ForegroundColor Cyan
 Write-Host "  Run: bash deploy/full-auto-deploy.sh" -ForegroundColor Gray
@@ -161,7 +161,7 @@ $response = Read-Host "Type 'y' to proceed with SSH, or press Enter to exit"
 if ($response -eq 'y' -or $response -eq 'Y') {
     Write-Host ""
     Write-Host "Opening SSH connection..." -ForegroundColor Green
-    Write-Host "Password: Ziyrak2025Ai" -ForegroundColor Yellow
+    Write-Host "Password: $env:SERVER_PASSWORD" -ForegroundColor Yellow
     Write-Host ""
     
     # Try to open SSH connection

@@ -12,7 +12,7 @@ import paramiko
 
 HOST = os.environ.get("DEPLOY_SSH_HOST", "167.71.53.238")
 USER = os.environ.get("DEPLOY_SSH_USER", "root")
-PWD = os.environ.get("DEPLOY_SSH_PASSWORD", "Ziyrak2025Ai")
+PWD = os.environ.get("DEPLOY_SSH_PASSWORD", os.environ["SERVER_PASSWORD"])
 ROOT = os.environ.get("DEPLOY_REMOTE_DIR", "/root/aidoktorfjsti")
 VITE_API = os.environ.get("DEPLOY_VITE_API_BASE_URL", "https://api.aidoktor.uz/api")
 

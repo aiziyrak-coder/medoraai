@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import re
 from typing import Any
 
@@ -14,6 +15,11 @@ from .models import Patient, PopulationRecord
 from .passport_serial import normalize_passport_serial, validate_passport_serial_format
 from .phone import normalize_patient_phone, patient_phone_variants
 from .registry_number import registry_number_lookup_q
+
+logger = logging.getLogger(__name__)
+
+# Import xatolarining namunasi javobda nechta qaytarilishi
+IMPORT_ERROR_SAMPLE_LIMIT = 20
 
 POPULATION_FIELDS = (
     'first_name', 'last_name', 'father_name', 'age', 'gender',
@@ -398,14 +404,14 @@ def _parse_excel_row(row_map: dict[str, Any]) -> dict[str, Any] | None:
     return out
 
 
-def import_population_excel(file_obj, *, user=None, region_id: str = '', district_id: str = '') -> dict[str, int]:
+def import_population_excel(file_obj, *, user=None, region_id: str = '', district_id: str = '') -> dict[str, Any]:
     wb = load_workbook(file_obj, read_only=True, data_only=True)
     ws = wb.active
     rows = ws.iter_rows(values_only=True)
     try:
         header_row = next(rows)
     except StopIteration:
-        return {'created': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
+        return {'created': 0, 'updated': 0, 'skipped': 0, 'errors': 0, 'error_samples': []}
 
     col_map: dict[int, str] = {}
     for idx, cell in enumerate(header_row):
@@ -414,7 +420,21 @@ def import_population_excel(file_obj, *, user=None, region_id: str = '', distric
             col_map[idx] = key
 
     created = updated = skipped = errors = 0
-    for row in rows:
+    error_samples: list[dict[str, Any]] = []
+
+    def _record_error(row_number: int, reason: str, exc: Exception | None = None) -> None:
+        """Har bir muvaffaqiyatsiz qatorni log qiladi va namuna sifatida saqlaydi."""
+        nonlocal errors
+        errors += 1
+        if exc is not None:
+            logger.exception('Aholi import: %s-qator xato — %s', row_number, reason)
+        else:
+            logger.warning('Aholi import: %s-qator xato — %s', row_number, reason)
+        if len(error_samples) < IMPORT_ERROR_SAMPLE_LIMIT:
+            error_samples.append({'row': row_number, 'reason': reason})
+
+    # 1-qator sarlavha, ma'lumot 2-qatordan boshlanadi
+    for row_number, row in enumerate(rows, start=2):
         if not row or all(c is None or str(c).strip() == '' for c in row):
             continue
         row_map: dict[str, Any] = {}
@@ -432,17 +452,28 @@ def import_population_excel(file_obj, *, user=None, region_id: str = '', distric
         try:
             existing = find_population_by_registry(parsed['registry_number'])
             if existing and user and not _population_owned_by_user(user, existing):
-                errors += 1
+                _record_error(row_number, 'Bu pasport raqami boshqa muassasa bazasida — ruxsat yo\'q')
                 continue
             upsert_population_from_data(parsed, user=user, source='excel')
             if existing:
                 updated += 1
             else:
                 created += 1
-        except Exception:
-            errors += 1
+        except Exception as exc:
+            _record_error(row_number, f'{type(exc).__name__}: {exc}'[:300], exc)
     wb.close()
-    return {'created': created, 'updated': updated, 'skipped': skipped, 'errors': errors}
+    if errors:
+        logger.warning(
+            'Aholi import yakuni: %s ta xato (yaratildi=%s, yangilandi=%s, tashlab ketildi=%s)',
+            errors, created, updated, skipped,
+        )
+    return {
+        'created': created,
+        'updated': updated,
+        'skipped': skipped,
+        'errors': errors,
+        'error_samples': error_samples,
+    }
 
 
 def export_population_excel(*, user=None) -> bytes:

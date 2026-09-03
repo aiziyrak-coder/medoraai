@@ -2,7 +2,7 @@
 User and Authentication Models
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -92,11 +92,22 @@ class ClinicGroup(models.Model):
 
     @classmethod
     def get_default_fjsti_group(cls):
-        """Barcha foydalanuvchilar uchun standart klinika guruhi (admin panelda yaratilgan bo‘lishi mumkin)."""
+        """
+        FJSTI guruhi (admin panelda yaratilgan bo‘lishi mumkin).
+
+        DIQQAT: bu guruh endi yangi foydalanuvchilarga avtomatik biriktirilmaydi —
+        faqat aniq (explicit) provisioning/bulk buyruqlar chaqiradi.
+        """
         g = cls.objects.filter(Q(name__iexact='FJSTI') | Q(slug__iexact='fjsti')).first()
         if g:
             return g
-        return cls.objects.create(name='FJSTI', is_active=True)
+        # Bir vaqtda kelgan so‘rovlar unique slug xatosiga tushmasligi uchun get_or_create
+        with transaction.atomic():
+            group, _ = cls.objects.get_or_create(
+                slug='fjsti',
+                defaults={'name': 'FJSTI', 'is_active': True},
+            )
+        return group
 
 
 class SubscriptionPayment(models.Model):
@@ -151,9 +162,9 @@ class UserManager(BaseUserManager):
         if not phone:
             raise ValueError('Telefon raqami kiritilishi shart')
 
-        if 'clinic_group' not in extra_fields and 'clinic_group_id' not in extra_fields:
-            extra_fields['clinic_group'] = ClinicGroup.get_default_fjsti_group()
-
+        # Klinika guruhi avtomatik biriktirilMAYDI. Guruh — bemorlarni ko'rish chegarasi:
+        # o'zi ro'yxatdan o'tgan foydalanuvchi hech kimning bemorini ko'rmasligi kerak.
+        # Guruh faqat aniq berilganda (provisioning yoki klinika admini qo'shganda) o'rnatiladi.
         user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -282,8 +293,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         # Registrator — klinika guruhiga bog'lanadi, alohida shifokorga emas
         if self.role == 'staff':
             self.linked_doctor = None
-        if self._state.adding and self.clinic_group_id is None:
-            self.clinic_group = ClinicGroup.get_default_fjsti_group()
+        # Standart guruhga avtomatik biriktirish olib tashlandi (tenancy):
+        # clinic_group bo'sh foydalanuvchi hech qanday guruh ma'lumotini ko'rmaydi.
         super().save(*args, **kwargs)
 
     @property

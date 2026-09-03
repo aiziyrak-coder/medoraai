@@ -67,25 +67,48 @@ class PopulationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='statistics')
     def statistics(self, request):
-        from .primary_care_access import population_for_user
-        from .population_statistics import compute_population_statistics, filter_population_records
+        import hashlib
+        import json as _json
 
-        qs = population_for_user(request.user)
+        from django.core.cache import cache
+
+        from .primary_care_access import population_for_user
+        from .population_statistics import (
+            STATISTICS_CACHE_TTL,
+            compute_population_statistics,
+            filter_population_queryset,
+        )
+
         params = request.query_params.dict()
         lang = (params.get('lang') or 'uz').split('-')[0]
-        records = filter_population_records(qs, params)
-        data = compute_population_statistics(records, lang=lang)
+        # Kesim og'ir (bir necha agregat so'rov) — bir xil filtr uchun keshdan beriladi
+        params_hash = hashlib.sha256(
+            _json.dumps(params, sort_keys=True, ensure_ascii=False).encode('utf-8'),
+        ).hexdigest()[:32]
+        cache_key = f'pop_stats_v1:{request.user.id}:{params_hash}'
+        try:
+            cached = cache.get(cache_key)
+        except Exception:
+            cached = None
+        if cached is not None:
+            return Response({'success': True, 'data': cached})
+
+        qs = filter_population_queryset(population_for_user(request.user), params)
+        data = compute_population_statistics(qs, lang=lang)
+        try:
+            cache.set(cache_key, data, STATISTICS_CACHE_TTL)
+        except Exception:
+            pass
         return Response({'success': True, 'data': data})
 
     @action(detail=False, methods=['get'], url_path='statistics/export')
     def statistics_export(self, request):
         from django.http import HttpResponse
         from .primary_care_access import population_for_user
-        from .population_statistics import export_statistics_excel, filter_population_records
+        from .population_statistics import export_statistics_excel, filter_population_queryset
 
-        qs = population_for_user(request.user)
-        records = filter_population_records(qs, request.query_params.dict())
-        content = export_statistics_excel(records)
+        qs = filter_population_queryset(population_for_user(request.user), request.query_params.dict())
+        content = export_statistics_excel(qs)
         response = HttpResponse(
             content,
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

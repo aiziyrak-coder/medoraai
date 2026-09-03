@@ -1,10 +1,11 @@
+import os
 #!/usr/bin/env python3
 """Fix nginx cache headers: index.html no-cache so browser always loads fresh JS/CSS"""
 import paramiko
 
 SERVER_USER = "root"
 SERVER_HOST = "167.71.53.238"
-SERVER_PASSWORD = "Ziyrak2025Ai"
+SERVER_PASSWORD = os.environ["SERVER_PASSWORD"]
 
 client = paramiko.SSHClient()
 client.set_missing_host_key_policy(paramiko.AutoAddPolicy())

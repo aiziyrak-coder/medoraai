@@ -2,7 +2,7 @@
 # Serverda avtomatik deploy - mening ishtirokimsiz
 
 SERVER="root@167.71.53.238"
-PASSWORD="Ziyrak2025Ai"
+PASSWORD="${SERVER_PASSWORD:?SERVER_PASSWORD muhit o'zgaruvchisi kerak}"
 
 echo "🚀 Serverga deploy boshlandi..."
 echo ""
@@ -27,15 +27,15 @@ cd backend
 
 echo "🔧 .env faylini yangilash..."
 cat > .env << 'EOF'
-SECRET_KEY=django-insecure-AiDoktorai-dev-key-change-in-production
-DEBUG=True
+SECRET_KEY="${SECRET_KEY:?SECRET_KEY muhit o'zgaruvchisi kerak}"
+DEBUG=False
 ALLOWED_HOSTS=localhost,127.0.0.1,AiDoktorapi.fargana.uz,AiDoktor.fargana.uz,AiDoktor.ziyrak.org,AiDoktorapi.ziyrak.org,20.82.115.71,167.71.53.238,medora.cdcgroup.uz,medoraapi.cdcgroup.uz
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://AiDoktor.fargana.uz,https://AiDoktorapi.fargana.uz,https://medora.cdcgroup.uz,https://medoraapi.cdcgroup.uz
 DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=/root/AiDoktorai/backend/db.sqlite3
-GEMINI_API_KEY=AIzaSyCn4G1ZYDW_WZ9zCoP39EycFHkfrJAEGZA
+GEMINI_API_KEY="${GEMINI_API_KEY:?GEMINI_API_KEY muhit o'zgaruvchisi kerak}"
 AI_MODEL_DEFAULT=gemini-3-pro-preview
-TELEGRAM_BOT_TOKEN=8345119740:AAETf0ZTo8zh2A3S5TKIkm7nWQnhO74yBAo
+TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN muhit o'zgaruvchisi kerak}"
 TELEGRAM_PAYMENT_GROUP_ID=-5041567370
 EOF
 echo "✅ .env created"

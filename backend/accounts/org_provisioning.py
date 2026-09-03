@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from accounts.models import ClinicGroup, SubscriptionPlan, User
-from accounts.org_catalog import org_password, org_phone, org_phone_legacy
+from accounts.org_catalog import generate_org_password, org_phone, org_phone_legacy
 
 
 def group_notes(code: str, days: int, *, stats_only: bool = False) -> str:
@@ -40,7 +40,9 @@ def provision_org_account(
     """
     phone = org_phone(idx)
     legacy_phone = org_phone_legacy(idx)
-    password = org_password(code, idx)
+    # Parol har provisioning'da yangidan tasodifiy generatsiya qilinadi va faqat shu yerdan
+    # qaytariladi (CSV/konsolga bir marta yoziladi). Keyin qayta hisoblab bo'lmaydi.
+    password = generate_org_password()
     slug = slugify(code)[:80] or f'{slug_fallback_prefix}-{idx:04d}'
     days = _days_until(expiry)
     notes = group_notes(code, days)
@@ -110,7 +112,9 @@ def provision_regional_stats_account(
     """
     phone = org_phone(idx)
     legacy_phone = org_phone_legacy(idx)
-    password = org_password(code, idx)
+    # Parol har provisioning'da yangidan tasodifiy generatsiya qilinadi va faqat shu yerdan
+    # qaytariladi (CSV/konsolga bir marta yoziladi). Keyin qayta hisoblab bo'lmaydi.
+    password = generate_org_password()
     slug = slugify(code)[:80] or f'{slug_fallback_prefix}-{idx:04d}'
     days = _days_until(expiry)
     notes = group_notes(code, days, stats_only=True)

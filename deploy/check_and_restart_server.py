@@ -1,10 +1,11 @@
+import os
 #!/usr/bin/env python3
 """Serverda backend va nginx holatini tekshirish va kerak bo'lsa restart."""
 import paramiko
 
 HOST = "167.71.53.238"
 USER = "root"
-PASSWORD = "Ziyrak2025Ai"
+PASSWORD = os.environ["SERVER_PASSWORD"]
 
 def main():
     c = paramiko.SSHClient()

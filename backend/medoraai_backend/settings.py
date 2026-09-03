@@ -214,12 +214,18 @@ REST_FRAMEWORK = {
 LOGIN_RATE_LIMIT_MAX = config('LOGIN_RATE_LIMIT_MAX', default=5, cast=int)
 LOGIN_RATE_LIMIT_WINDOW = config('LOGIN_RATE_LIMIT_WINDOW', default=900, cast=int)  # 15 daqiqa
 
-# JWT Settings
+# Backend oldidagi ISHONCHLI proxy soni (odatda 1 ta nginx).
+# Nginx `$proxy_add_x_forwarded_for` client yuborgan X-Forwarded-For OXIRIGA haqiqiy IP qo'shadi,
+# shuning uchun rate limit IP ni o'ngdan shu qiymatcha sanab oladi (chapdagilar soxta bo'lishi mumkin).
+TRUSTED_PROXY_COUNT = config('TRUSTED_PROXY_COUNT', default=1, cast=int)
+
+# JWT Settings — access qisqa (o'g'irlangan token uzoq amal qilmasin),
+# refresh aylanadi va eskisi blacklist ga tushadi (logout / qurilmalarni chiqarish ishlashi uchun).
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('JWT_ACCESS_MINUTES', default=30, cast=int)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=config('JWT_REFRESH_DAYS', default=7, cast=int)),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
@@ -231,7 +237,40 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# CORS Settings — .env dagi CORS_ALLOWED_ORIGINS defaultni almashtiradi; FJSTI domenlari har doim qo'shiladi
+def _startup_warn(message):
+    """
+    Startup ogohlantirishi. settings import paytida LOGGING hali qo'llanmagan —
+    logging ning lastResort handleri xabarni stderr ga chiqaradi (gunicorn logida ko'rinadi).
+    """
+    import logging as _logging
+    _logging.getLogger('medoraai_backend').warning(message)
+
+
+def _origins_from(raw):
+    return [s.strip() for s in str(raw or '').split(',') if s.strip()]
+
+
+def _harden_origins(origins, label):
+    """
+    Takrorlarni olib tashlaydi; production (DEBUG=False) da ochiq `http://` originlarni
+    tashlab yuboradi — credentials bilan plaintext origin MITM uchun ochiq.
+    Local development (DEBUG=True) da hammasi qoladi.
+    """
+    result = list(dict.fromkeys(origins))
+    if DEBUG:
+        return result
+    secure = [o for o in result if not o.lower().startswith('http://')]
+    dropped = [o for o in result if o not in secure]
+    if dropped:
+        _startup_warn(
+            f"{label}: plaintext http:// origins ignored in production: {', '.join(dropped)}"
+        )
+    if not secure:
+        _startup_warn(f"{label} is EMPTY after https filtering — set https:// origins in .env")
+    return secure
+
+
+# CORS Settings — .env dagi CORS_ALLOWED_ORIGINS to'liq ustun (default domenlar qo'shilmaydi)
 _CORS_DEFAULT_STR = (
     'http://localhost:3000,http://127.0.0.1:3000,'
     'https://fjsti.ziyrak.org,http://fjsti.ziyrak.org,'
@@ -250,16 +289,15 @@ _CORS_ALWAYS_APPEND = (
 )
 _cors_raw = config('CORS_ALLOWED_ORIGINS', default='')
 if _cors_raw and str(_cors_raw).strip():
-    _cors_base = [s.strip() for s in str(_cors_raw).split(',') if s.strip()]
+    # Operator .env da ro'yxat bergan — faqat o'sha amal qiladi, default domenlar QO'SHILMAYDI
+    _cors_base = _origins_from(_cors_raw)
 else:
-    _cors_base = [s.strip() for s in _CORS_DEFAULT_STR.split(',') if s.strip()]
-CORS_ALLOWED_ORIGINS = list(
-    dict.fromkeys(_cors_base + [o for o in _CORS_ALWAYS_APPEND if o not in _cors_base])
-)
+    _cors_base = _origins_from(_CORS_DEFAULT_STR) + list(_CORS_ALWAYS_APPEND)
+CORS_ALLOWED_ORIGINS = _harden_origins(_cors_base, 'CORS_ALLOWED_ORIGINS')
 
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF (Django 4+): ishonchli originlar — FJSTI har doim qo'shiladi (.env cheklangan bo'lsa ham)
+# CSRF (Django 4+): ishonchli originlar — .env dagi CSRF_TRUSTED_ORIGINS to'liq ustun
 _csrf_default = (
     'https://fjsti.ziyrak.org,https://fjstiapi.ziyrak.org,'
     'http://localhost:3000,http://127.0.0.1:3000,'
@@ -276,12 +314,11 @@ _CSRF_ALWAYS_APPEND = (
 )
 _csrf_raw = config('CSRF_TRUSTED_ORIGINS', default='')
 if _csrf_raw and str(_csrf_raw).strip():
-    _csrf_base = [s.strip() for s in str(_csrf_raw).split(',') if s.strip()]
+    # Operator .env da ro'yxat bergan — faqat o'sha amal qiladi, default domenlar QO'SHILMAYDI
+    _csrf_base = _origins_from(_csrf_raw)
 else:
-    _csrf_base = [s.strip() for s in _csrf_default.split(',') if s.strip()]
-CSRF_TRUSTED_ORIGINS = list(
-    dict.fromkeys(_csrf_base + [o for o in _CSRF_ALWAYS_APPEND if o not in _csrf_base])
-)
+    _csrf_base = _origins_from(_csrf_default) + list(_CSRF_ALWAYS_APPEND)
+CSRF_TRUSTED_ORIGINS = _harden_origins(_csrf_base, 'CSRF_TRUSTED_ORIGINS')
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -444,6 +481,16 @@ else:
             'LOCATION': 'FJSTI-cache',
         }
     }
+    if not DEBUG:
+        # LocMemCache HAR BIR PROTSESS uchun alohida: 4 ta gunicorn worker => har bir limit
+        # amalda 4 barobar katta, restartda esa nolga tushadi. Bu rate limit (IP bo'yicha
+        # tiered limitlar va telefon bo'yicha login brute-force hisoblagichi) ni ishonchsiz qiladi.
+        _startup_warn(
+            'REDIS_URL is not set: cache backend is per-process LocMemCache. '
+            'Rate limiting (IP buckets and per-phone login brute-force counters) is UNRELIABLE: '
+            'every gunicorn worker keeps its own counters and they reset on restart. '
+            'Set REDIS_URL in .env for production.'
+        )
 
 # Logging Configuration  -  file handlers only if logs dir exists and is writable (avoid startup crash)
 _LOGS_DIR = BASE_DIR / 'logs'

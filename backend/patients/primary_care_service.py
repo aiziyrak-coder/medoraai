@@ -799,7 +799,10 @@ def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brig
     if brigade_id:
         pop_qs = pop_qs.filter(brigade_id=brigade_id)
 
-    pop_ids = list(pop_qs.values_list('id', flat=True))
+    # Diqqat: id larni ro'yxatga yig'ib IN ga berish mumkin emas — SQLite da
+    # SQLITE_MAX_VARIABLE_NUMBER = 999, aholi 1000 dan oshsa "too many SQL variables".
+    # Shuning uchun subquery ishlatiladi.
+    pop_ids = pop_qs.order_by().values('id')
     today = timezone.now().date()
     year_start = date(today.year, 1, 1)
 
@@ -839,19 +842,35 @@ def build_primary_care_stats(*, region_id: str = '', district_id: str = '', brig
     if user:
         from .primary_care_access import brigades_for_user
         brigade_qs = brigades_for_user(user).filter(is_active=True)
+
+    # Har bir brigada uchun alohida COUNT o'rniga — bitta agregat so'rov (N+1 emas)
+    assigned_counts = {
+        row['brigade_id']: row['c']
+        for row in pop_qs.order_by()
+        .exclude(brigade__isnull=True)
+        .values('brigade_id')
+        .annotate(c=Count('id'))
+    }
+    year_plans = list(NetworkPlan.objects.filter(year=today.year))
+    plans_count_by_brigade: dict[int, int] = {}
+    annual_plan_by_brigade: dict[int, NetworkPlan] = {}
+    for p in year_plans:
+        plans_count_by_brigade[p.brigade_id] = plans_count_by_brigade.get(p.brigade_id, 0) + 1
+        if p.plan_level == 'annual' and p.brigade_id not in annual_plan_by_brigade:
+            annual_plan_by_brigade[p.brigade_id] = p
+
     for b in brigade_qs:
         if region_id and b.region_id != region_id:
             continue
         if district_id and b.district_id != district_id:
             continue
-        assigned = pop_qs.filter(brigade=b).count()
-        plan = NetworkPlan.objects.filter(brigade=b, plan_level='annual', year=today.year).first()
+        plan = annual_plan_by_brigade.get(b.id)
         brigade_stats.append({
             'id': b.id,
             'name': b.name,
-            'assigned_population': assigned,
+            'assigned_population': assigned_counts.get(b.id, 0),
             'target': b.target_population_size,
-            'plans_count': NetworkPlan.objects.filter(brigade=b, year=today.year).count(),
+            'plans_count': plans_count_by_brigade.get(b.id, 0),
             'plan_completion_pct': _plan_completion_pct(plan) if plan else 0,
             'targets': plan.targets if plan else {},
             'completed': plan.completed if plan else {},

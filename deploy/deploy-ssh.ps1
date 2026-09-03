@@ -12,7 +12,7 @@ if (-not (Test-Path $KeyPath)) {
     ssh-keygen -t ed25519 -f $KeyPath -N '""' -q
     $pub = Get-Content $KeyPathPub -Raw
     Write-Host ""
-    Write-Host "=== Serverda quyidagilarni bajaring (parol: Ziyrak2025Ai) ===" -ForegroundColor Cyan
+    Write-Host "=== Serverda quyidagilarni bajaring (parol: $env:SERVER_PASSWORD) ===" -ForegroundColor Cyan
     Write-Host "  ssh root@$Server"
     Write-Host "  (parolni kiriting)"
     Write-Host "  mkdir -p ~/.ssh"

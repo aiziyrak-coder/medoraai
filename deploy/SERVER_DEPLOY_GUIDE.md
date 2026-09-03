@@ -14,7 +14,7 @@ ssh root@167.71.53.238
 ssh root@AiDoktorapi.fargana.uz
 ```
 
-**Parol**: `Ziyrak2025Ai` (yoki sizning shaxsiy kalitingiz)
+**Parol**: `${SERVER_PASSWORD}` (yoki sizning shaxsiy kalitingiz)
 
 ---
 

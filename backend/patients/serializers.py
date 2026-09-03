@@ -3,7 +3,7 @@ Patient Serializers
 """
 import logging
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from .models import Patient, PatientAttachment
 from .access import user_can_view_clinical, strip_clinical_payload, CLINICAL_FIELDS
@@ -163,14 +163,23 @@ class PatientRegistryWriteSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         user = self.context['request'].user
         new_rn = validated_data.pop('registry_number', None)
-        if new_rn and new_rn != instance.registry_number:
-            instance.registry_number = new_rn
-            instance.save(update_fields=['registry_number', 'updated_at'])
         validated_data.pop('registry_number', None)
         clinical_keys = set(CLINICAL_FIELDS) - {'attachments'}
         for key in clinical_keys:
             validated_data.pop(key, None)
-        patient = super().update(instance, validated_data)
+        # Pasport raqami va qolgan maydonlar bitta tranzaksiyada — aks holda unikal
+        # to'qnashuvda bemor "raqamlangan, lekin yangilanmagan" holatda qolib ketadi
+        try:
+            with transaction.atomic():
+                if new_rn and new_rn != instance.registry_number:
+                    instance.registry_number = new_rn
+                    instance.save(update_fields=['registry_number', 'updated_at'])
+                patient = super().update(instance, validated_data)
+        except IntegrityError:
+            instance.refresh_from_db()
+            raise serializers.ValidationError({
+                'registry_number': 'Bu pasport seriya raqami bilan bemor allaqachon mavjud.',
+            })
         _sync_population_from_patient(patient, user)
         return patient
 

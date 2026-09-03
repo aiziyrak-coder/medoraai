@@ -2,6 +2,7 @@
 Patient Models
 """
 from django.db import models
+from django.utils import timezone
 from django.conf import settings
 
 
@@ -96,6 +97,20 @@ class PatientRegistryCounter(models.Model):
         verbose_name_plural = 'Bemor raqam hisoblagichi'
 
 
+def patient_attachment_path(instance, filename):
+    """
+    Saqlanadigan fayl nomi — tasodifiy.
+
+    Ilgari mijoz bergan nom saqlanardi (masalan `analiz.pdf`), ya'ni URL
+    taxmin qilinardi. Bemor tahlillari uchun bu qabul qilinmaydi.
+    Asl nom `name` maydonida qoladi.
+    """
+    import os
+    import uuid
+    ext = os.path.splitext(filename or '')[1][:10].lower()
+    return f"patient_attachments/{timezone.now():%Y/%m}/{uuid.uuid4().hex}{ext}"
+
+
 class PatientAttachment(models.Model):
     """Patient file attachments"""
     
@@ -105,7 +120,7 @@ class PatientAttachment(models.Model):
         related_name='attachments',
         verbose_name='Bemor'
     )
-    file = models.FileField(upload_to='patient_attachments/%Y/%m/%d/', verbose_name='Fayl')
+    file = models.FileField(upload_to=patient_attachment_path, verbose_name='Fayl')
     name = models.CharField(max_length=255, verbose_name='Fayl nomi')
     mime_type = models.CharField(max_length=100, verbose_name='MIME turi')
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='Yuklangan sana')

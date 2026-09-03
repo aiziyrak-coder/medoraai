@@ -5,7 +5,10 @@ Telefon: +9989178 + 5 xonali tartib (+998 dan keyin 9 raqam, masalan +9989178000
 from __future__ import annotations
 
 import hashlib
+import os
 import re
+import secrets
+import string
 
 REPUBLIC_ORG_ACCOUNTS: list[dict[str, str | int]] = [
     {"idx": 1, "code": "vahidov-hir", "name": "Академик В.Вахидов номидаги республика ихтисослаштирилган хирургия илмий-амалий тиббиёт маркази"},
@@ -93,10 +96,47 @@ def org_phone(idx: int) -> str:
     return f"+9989178{int(idx):05d}"
 
 
+ORG_PASSWORD_LENGTH = 16
+_ORG_PASSWORD_ALPHABET = string.ascii_letters + string.digits + '!@#$%^&*-_'
+
+
+def generate_org_password(length: int = ORG_PASSWORD_LENGTH) -> str:
+    """
+    Har bir tashkilot hisobi uchun kriptografik tasodifiy parol.
+
+    MUHIM (operator uchun): parol faqat yaratilgan paytda qaytariladi va CSV/konsolga
+    bir marta yoziladi. Keyinchalik uni qaytadan hisoblab bo'lmaydi — CSV faylni
+    saqlab qo'ying, yo'qolsa hisobni qayta provision qiling (yangi parol beriladi).
+    """
+    size = max(12, int(length))
+    # Har toifadan kamida bittasi bo'lishi uchun aralashtirib yig'amiz
+    required = [
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.digits),
+        secrets.choice('!@#$%^&*-_'),
+    ]
+    rest = [secrets.choice(_ORG_PASSWORD_ALPHABET) for _ in range(size - len(required))]
+    chars = required + rest
+    secrets.SystemRandom().shuffle(chars)
+    return ''.join(chars)
+
+
 def org_password(code: str, idx: int = 0) -> str:
-    """Har tashkilot uchun barqaror, kuchli parol (CSV da eksport qilinadi)."""
+    """
+    ESKIRGAN: allaqachon deploy qilingan migratsiya yo'li uchun deterministik parol.
+
+    Seed repoda saqlanmaydi — ORG_PASSWORD_SEED env orqali beriladi, default yo'q.
+    Yangi provisioning uchun ishlatilmaydi (generate_org_password ishlatiladi).
+    """
+    seed = (os.environ.get('ORG_PASSWORD_SEED') or '').strip()
+    if not seed:
+        raise RuntimeError(
+            "ORG_PASSWORD_SEED env o'rnatilmagan. Determinjstik tashkilot paroli "
+            "faqat eski migratsiya uchun; yangi hisoblarda generate_org_password() ishlatiladi."
+        )
     safe = "".join(ch for ch in str(code).lower() if ch.isalnum()).replace('-', '')[:12]
-    digest = hashlib.sha256(f"org:{code}:{idx}:aishifokor-2026".encode()).hexdigest()[:4]
+    digest = hashlib.sha256(f"org:{code}:{idx}:{seed}".encode()).hexdigest()[:4]
     return f"{safe}{int(idx):02d}Ai{digest}!"
 
 

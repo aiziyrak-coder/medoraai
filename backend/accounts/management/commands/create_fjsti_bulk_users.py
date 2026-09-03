@@ -1,16 +1,24 @@
 """
 Klinika guruhiga bulk foydalanuvchilar yaratish.
 
-  python manage.py create_fjsti_bulk_users
-  python manage.py create_fjsti_bulk_users --start 300 --end 315 --group-name "Oybek raddom" --password raddom123 --days 30
+Har bir foydalanuvchiga alohida tasodifiy parol beriladi va u FAQAT bir marta
+--password-file dagi CSV ga yoziladi. Umumiy (bitta) parol berish mumkin emas.
+
+  python manage.py create_fjsti_bulk_users --password-file /root/fjsti-parollar.csv
+  python manage.py create_fjsti_bulk_users --start 300 --end 315 --group-name "Oybek raddom" \
+      --days 30 --password-file /root/raddom-parollar.csv
   python manage.py create_fjsti_bulk_users --dry-run
 """
+import csv
+import os
 from datetime import timedelta
+from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from accounts.models import ClinicGroup, SubscriptionPlan, User
+from accounts.org_catalog import generate_org_password
 
 
 class Command(BaseCommand):
@@ -20,7 +28,12 @@ class Command(BaseCommand):
         parser.add_argument('--start', type=int, default=0, help='Raqam suffiksi boshlanishi (default 0)')
         parser.add_argument('--end', type=int, default=250, help='Raqam suffiksi tugashi (default 250)')
         parser.add_argument('--prefix', type=str, default='+998900000', help='Telefon prefiksi')
-        parser.add_argument('--password', type=str, default='fjsti123')
+        parser.add_argument(
+            '--password-file',
+            type=str,
+            default='',
+            help="Parollar yoziladigan CSV yo'li (majburiy). Har foydalanuvchiga tasodifiy parol.",
+        )
         parser.add_argument('--group-name', type=str, default='FJSTI', help='Klinika guruhi nomi')
         parser.add_argument('--days', type=int, default=365, help='Obuna davri (kun)')
         parser.add_argument('--user-prefix', type=str, default='', help='Foydalanuvchi ismi prefiksi (bo\'sh = guruh nomi)')
@@ -35,11 +48,27 @@ class Command(BaseCommand):
         )
         return group
 
+    def _open_password_file(self, path_str: str):
+        """Parol faylini ochadi — mavjud faylni ustidan yozmaydi, huquqni 0600 qiladi."""
+        path = Path(path_str)
+        if path.exists():
+            raise CommandError(
+                f"Parol fayli allaqachon mavjud: {path}. Boshqa nom bering yoki eskisini xavfsiz o'chiring."
+            )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handle = path.open('w', newline='', encoding='utf-8-sig')
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            # Windows/tarmoq FS da chmod ishlamasligi mumkin — fayl joyini operator himoya qiladi
+            pass
+        return path, handle
+
     def handle(self, *args, **options):
         start = options['start']
         end = options['end']
         prefix = options['prefix']
-        password = options['password']
+        password_file = (options['password_file'] or '').strip()
         group_name = options['group_name']
         days = max(1, int(options['days']))
         user_prefix = (options['user_prefix'] or group_name).strip()
@@ -49,59 +78,85 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR('start end dan katta bo\'lmasligi kerak'))
             return
 
+        if not dry and not password_file:
+            raise CommandError(
+                "--password-file majburiy. Umumiy (bitta) parol ishlatilmaydi: har bir foydalanuvchiga "
+                "tasodifiy parol beriladi va faqat shu faylga bir marta yoziladi."
+            )
+
         group = self._resolve_group(group_name)
         plan = SubscriptionPlan.objects.filter(slug='clinic').first()
         expiry = timezone.now() + timedelta(days=days)
 
         created = 0
         updated = 0
-        skipped = 0
 
-        for n in range(start, end + 1):
-            phone = f'{prefix}{n:03d}'
-            name = f'{user_prefix} {n:03d}'
-
-            if dry:
-                self.stdout.write(f'[dry-run] {phone} / {name}')
-                continue
-
-            user, is_new = User.objects.get_or_create(
-                phone=phone,
-                defaults={
-                    'name': name,
-                    'role': 'clinic',
-                    'clinic_group': group,
-                    'subscription_plan': plan,
-                    'subscription_status': 'active',
-                    'subscription_expiry': expiry,
-                    'is_active': True,
-                },
-            )
-
-            if is_new:
-                user.set_password(password)
-                user.save()
-                created += 1
-            else:
-                user.name = name
-                user.role = 'clinic'
-                user.clinic_group = group
-                user.subscription_plan = plan
-                user.subscription_status = 'active'
-                user.subscription_expiry = expiry
-                user.is_active = True
-                user.set_password(password)
-                user.save()
-                updated += 1
-
-        total = end - start + 1
         if dry:
-            self.stdout.write(self.style.WARNING(f'Dry-run: {total} ta foydalanuvchi yaratiladi edi'))
+            for n in range(start, end + 1):
+                self.stdout.write(f'[dry-run] {prefix}{n:03d} / {user_prefix} {n:03d}')
+            total = end - start + 1
+            self.stdout.write(self.style.WARNING(
+                f'Dry-run: {total} ta foydalanuvchi yaratiladi edi (parollar generatsiya qilinmadi)'
+            ))
             return
 
+        path, handle = self._open_password_file(password_file)
+        try:
+            writer = csv.DictWriter(handle, fieldnames=['telefon', 'ism', 'parol', 'guruh', 'obuna_tugash'])
+            writer.writeheader()
+
+            for n in range(start, end + 1):
+                phone = f'{prefix}{n:03d}'
+                name = f'{user_prefix} {n:03d}'
+                password = generate_org_password()
+
+                user, is_new = User.objects.get_or_create(
+                    phone=phone,
+                    defaults={
+                        'name': name,
+                        'role': 'clinic',
+                        'clinic_group': group,
+                        'subscription_plan': plan,
+                        'subscription_status': 'active',
+                        'subscription_expiry': expiry,
+                        'is_active': True,
+                    },
+                )
+
+                if is_new:
+                    user.set_password(password)
+                    user.save()
+                    created += 1
+                else:
+                    user.name = name
+                    user.role = 'clinic'
+                    user.clinic_group = group
+                    user.subscription_plan = plan
+                    user.subscription_status = 'active'
+                    user.subscription_expiry = expiry
+                    user.is_active = True
+                    user.set_password(password)
+                    user.save()
+                    updated += 1
+
+                writer.writerow({
+                    'telefon': phone,
+                    'ism': name,
+                    'parol': password,
+                    'guruh': group.name,
+                    'obuna_tugash': expiry.date().isoformat(),
+                })
+        finally:
+            handle.close()
+
+        total = end - start + 1
         self.stdout.write(
             self.style.SUCCESS(
                 f'Tayyor: {created} yangi, {updated} yangilandi, jami {total} ta. '
-                f'Guruh: {group.name}, obuna: {days} kun (gacha {expiry.date()}), parol: {password}'
+                f'Guruh: {group.name}, obuna: {days} kun (gacha {expiry.date()}).'
             )
         )
+        # Parollar konsolga chiqarilmaydi — faqat shu faylda, boshqa nusxasi yo'q
+        self.stdout.write(self.style.WARNING(
+            f'Parollar faqat shu faylda: {path}. Xavfsiz saqlang va tarqatgandan keyin o\'chiring.'
+        ))

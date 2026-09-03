@@ -2,7 +2,9 @@
 Telefon bo‘yicha Django admin superuser yaratish yoki parol/huquqlarni tiklash.
 Odatda admin paneldan akkaunt o‘chib ketganda serverda bir marta ishga tushiriladi.
 """
-from django.core.management.base import BaseCommand
+import os
+
+from django.core.management.base import BaseCommand, CommandError
 
 from accounts.models import User
 
@@ -14,30 +16,38 @@ class Command(BaseCommand):
         parser.add_argument(
             "--phone",
             type=str,
-            default="+998995751111",
-            help="USERNAME_FIELD (telefon), masalan +998995751111",
+            default="",
+            help="USERNAME_FIELD (telefon). Bo‘sh bo‘lsa ADMIN_PHONE env dan olinadi. Default yo‘q.",
         )
         parser.add_argument(
             "--password",
             type=str,
-            required=True,
-            help="Yangi parol (buyruq tarixida ko‘rinmasligi uchun env orqali berish tavsiya etiladi)",
+            default="",
+            help="ESKIRGAN: parolni ADMIN_PASSWORD env orqali bering (shell tarixida ko‘rinmasin). Default yo‘q.",
         )
         parser.add_argument(
             "--name",
             type=str,
-            default="FJSTI Admin",
+            default="Admin",
             help="To‘liq ism (majburiy model maydoni)",
         )
 
     def handle(self, *args, **options):
-        phone = (options["phone"] or "").strip()
-        password = options["password"]
+        # Parol uchun kodda default YO‘Q. Tavsiya: ADMIN_PASSWORD env
+        # (--password shell tarixi va process ro‘yxatida ko‘rinib qoladi).
+        phone = (options["phone"] or os.environ.get("ADMIN_PHONE") or "").strip()
+        password = os.environ.get("ADMIN_PASSWORD") or options["password"] or ""
         name = (options["name"] or "Admin").strip()
 
         if not phone:
-            self.stderr.write(self.style.ERROR("phone bo‘sh bo‘lmasligi kerak"))
-            return
+            raise CommandError("--phone yoki ADMIN_PHONE env berilishi shart (default yo‘q).")
+        if not password:
+            raise CommandError(
+                "Parol berilmadi (kodda default parol yo‘q). "
+                "Masalan: ADMIN_PASSWORD=... python manage.py ensure_superuser --phone +998..."
+            )
+        if len(password) < 12:
+            raise CommandError("ADMIN_PASSWORD kamida 12 ta belgidan iborat bo‘lishi kerak.")
 
         user = User.objects.filter(phone=phone).first()
         if user:

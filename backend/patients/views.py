@@ -1,6 +1,11 @@
 """
 Patient Views
 """
+import logging
+
+from django.core.cache import cache
+from django.http import FileResponse
+from django.utils.encoding import escape_uri_path
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -29,6 +34,13 @@ from .serializers import (
     PatientUpdateSerializer, PatientAttachmentSerializer,
     PatientPassportSerializer, PatientRegistryWriteSerializer,
 )
+
+logger = logging.getLogger(__name__)
+
+# Dosye (klinikalararo o'qish) uchun so'rov cheklovi — brute-force ni to'xtatadi.
+DOSSIER_RATE_LIMIT_MAX = 30
+DOSSIER_RATE_LIMIT_WINDOW = 3600  # 1 soat
+DOSSIER_RATE_LIMIT_KEY = 'dossier_lookup:{user_id}'
 
 
 class PatientViewSet(viewsets.ModelViewSet):
@@ -106,8 +118,15 @@ class PatientViewSet(viewsets.ModelViewSet):
     def _global_patient_queryset(self):
         return Patient.objects.select_related('created_by', 'home_clinic_group')
 
+    def _assert_can_modify(self, patient: Patient):
+        """Yozish faqat o'z klinika guruhi bemorlariga (superuser/staff — hammasi)."""
+        if not user_can_view_clinical(self.request.user, patient):
+            raise PermissionDenied(
+                "Boshqa klinika guruhining bemorini o'zgartirish mumkin emas.",
+            )
+
     def get_object(self):
-        """Pasport/konsilium: barcha klinikalardan topilgan bemorni yangilash mumkin."""
+        """Pasport/konsilium: bemor global topiladi, ammo yozish o'z guruhi bilan chegaralangan."""
         if self.action in ('list', 'create'):
             return super().get_object()
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
@@ -116,6 +135,8 @@ class PatientViewSet(viewsets.ModelViewSet):
             obj = self._global_patient_queryset().get(pk=pk)
         except (Patient.DoesNotExist, TypeError, ValueError):
             raise NotFound('Bemor topilmadi')
+        if self.action in ('update', 'partial_update', 'destroy'):
+            self._assert_can_modify(obj)
         if self.action == 'destroy':
             user = self.request.user
             if not (user.is_superuser or user.is_staff):
@@ -193,7 +214,8 @@ class PatientViewSet(viewsets.ModelViewSet):
         """Avval aholi bazasi, keyin bemorlar (pasport bo'yicha dublikat yo'q)."""
         seen_rn: set[str] = set()
         results: list[dict] = []
-        for rec in search_population(q):
+        # Aholi bazasi faqat o'z klinika guruhi doirasida (PopulationViewSet bilan bir xil).
+        for rec in search_population(q, user=request.user):
             rn = (rec.registry_number or '').upper()
             if rn in seen_rn:
                 continue
@@ -289,6 +311,8 @@ class PatientViewSet(viewsets.ModelViewSet):
                     'success': False,
                     'error': {'message': 'Bemor topilmadi'},
                 }, status=status.HTTP_404_NOT_FOUND)
+            # Mavjud bemorni yangilash — faqat o'z klinika guruhi doirasida.
+            self._assert_can_modify(patient)
             serializer = PatientRegistryWriteSerializer(
                 patient, data=request.data, partial=True, context={'request': request},
             )
@@ -340,30 +364,42 @@ class PatientViewSet(viewsets.ModelViewSet):
         bemorning barcha konsiliumlari, tasvir tahlillari, yuklangan fayllari va
         klinik ma'lumotlarini ko'ra oladi (klinika guruhi chegarasidan tashqari).
         """
-        import logging
+        # Faqat haqiqiy pasport/registr raqami bo'yicha — ketma-ket ID bilan yuklab
+        # olishning oldini olish uchun `?id=` qidiruvi olib tashlandi.
         registry = (
             request.query_params.get('registry')
             or request.query_params.get('patient_id')
             or request.query_params.get('q')
             or ''
         ).strip()
-        pk = (request.query_params.get('id') or '').strip()
+        if not registry:
+            return Response({
+                'success': False,
+                'error': {'message': 'Pasport ID (registry) kiritilishi shart'},
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Klinikalararo dosye — foydalanuvchi bo'yicha so'rov cheklovi.
+        rate_key = DOSSIER_RATE_LIMIT_KEY.format(user_id=getattr(request.user, 'id', 0))
+        lookups = cache.get(rate_key, 0)
+        if lookups >= DOSSIER_RATE_LIMIT_MAX:
+            return Response({
+                'success': False,
+                'error': {
+                    'code': 429,
+                    'message': "Juda ko'p dosye so'rovlari. Iltimos, keyinroq urinib ko'ring.",
+                },
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        cache.set(rate_key, lookups + 1, DOSSIER_RATE_LIMIT_WINDOW)
 
         patient = None
         qs = self._global_patient_queryset()
-        if pk:
-            try:
-                patient = qs.get(pk=int(pk))
-            except (Patient.DoesNotExist, TypeError, ValueError):
-                patient = None
-        if patient is None and registry:
-            lookup = registry_number_lookup_q(registry)
-            if lookup is not None:
-                patient = qs.filter(lookup).order_by('-updated_at').first()
-            if patient is None:
-                patient = qs.filter(
-                    Q(registry_number__iexact=registry) | Q(phone=registry),
-                ).order_by('-updated_at').first()
+        lookup = registry_number_lookup_q(registry)
+        if lookup is not None:
+            patient = qs.filter(lookup).order_by('-updated_at').first()
+        if patient is None:
+            patient = qs.filter(
+                Q(registry_number__iexact=registry) | Q(phone=registry),
+            ).order_by('-updated_at').first()
 
         if patient is None:
             return Response({
@@ -396,9 +432,9 @@ class PatientViewSet(viewsets.ModelViewSet):
 
         home_cg = getattr(patient, 'home_clinic_group', None)
 
-        # Klinika guruhlararo kirishni audit uchun jurnalga yozamiz (maxfiylik).
+        # Klinika guruhlararo kirishni audit uchun jurnalga yozamiz (klinik ma'lumotsiz).
         try:
-            logging.getLogger(__name__).info(
+            logger.info(
                 'DOSSIER access: user=%s (clinic=%s) -> patient=%s (registry=%s, home_clinic=%s)',
                 getattr(request.user, 'id', '?'),
                 getattr(request.user, 'clinic_group_id', None),
@@ -693,6 +729,41 @@ class PatientViewSet(viewsets.ModelViewSet):
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    @action(detail=True, methods=['get'], url_path='attachments/(?P<attachment_id>[^/.]+)/download')
+    def download_attachment(self, request, pk=None, attachment_id=None):
+        """
+        Bemor faylini himoyalangan holda berish.
+
+        `/media/` ni nginx to'g'ridan-to'g'ri bermasligi kerak: fayl URL'ini
+        bilgan har kim bemor tahlilini ocha olardi. Endi har yuklab olish
+        ruxsatdan o'tadi.
+        """
+        patient = self.get_object()
+        if not user_can_view_clinical(request.user, patient):
+            raise PermissionDenied("Klinik fayllar uchun ruxsat yo'q")
+        try:
+            attachment = PatientAttachment.objects.get(id=attachment_id, patient_id=patient.pk)
+        except (PatientAttachment.DoesNotExist, TypeError, ValueError):
+            raise NotFound('Fayl topilmadi')
+
+        try:
+            fh = attachment.file.open('rb')
+        except (FileNotFoundError, ValueError):
+            logger.warning('Attachment file missing on disk: id=%s', attachment_id)
+            raise NotFound('Fayl topilmadi')
+
+        response = FileResponse(
+            fh,
+            content_type=attachment.mime_type or 'application/octet-stream',
+        )
+        response['Content-Disposition'] = f'attachment; filename="{escape_uri_path(attachment.name)}"'
+        response['X-Content-Type-Options'] = 'nosniff'
+        logger.info(
+            'Attachment download: user=%s patient=%s attachment=%s',
+            request.user.id, patient.pk, attachment_id,
+        )
+        return response
+
     @action(detail=True, methods=['delete'], url_path='attachments/(?P<attachment_id>[^/.]+)')
     def delete_attachment(self, request, pk=None, attachment_id=None):
         """Delete patient attachment"""

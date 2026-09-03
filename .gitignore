@@ -78,3 +78,10 @@ backups/
 
 # Frontend build (production'da kerak, lekin development'da ignore qilish mumkin)
 # frontend/dist/
+
+# --- Hisob ma'lumotlari (HECH QACHON commit qilinmasin) ---
+# Tashkilot loginlari parol ustuni bilan CSV'da eksport qilinadi.
+docs/*_LOGINS.csv
+*_LOGINS.csv
+*credentials*.csv
+*parol*.csv

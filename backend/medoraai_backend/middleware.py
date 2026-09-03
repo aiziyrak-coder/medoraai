@@ -3,6 +3,7 @@ Custom Middleware for Security and Performance
 """
 import re
 import time
+import ipaddress
 import logging
 from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse, HttpResponse
@@ -10,6 +11,59 @@ from django.core.cache import cache
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_ip(raw):
+    """Bitta XFF bo'lagini tozalab, haqiqiy IP bo'lsa qaytaradi (aks holda None)."""
+    value = (raw or '').strip()
+    if not value:
+        return None
+    # "[2001:db8::1]:443" -> "2001:db8::1"
+    if value.startswith('['):
+        value = value[1:].split(']', 1)[0]
+    try:
+        return str(ipaddress.ip_address(value))
+    except ValueError:
+        pass
+    # "1.2.3.4:5678" -> "1.2.3.4"
+    if value.count(':') == 1:
+        head = value.split(':', 1)[0]
+        try:
+            return str(ipaddress.ip_address(head))
+        except ValueError:
+            return None
+    return None
+
+
+def get_trusted_client_ip(request):
+    """
+    Haqiqiy client IP (spoofing ga chidamli).
+
+    Nginx `$proxy_add_x_forwarded_for` ishlatadi: client yuborgan X-Forwarded-For
+    ning OXIRIGA haqiqiy IP qo'shiladi. Demak CHAPDAGI qiymatlar hujumchi
+    nazoratida — ularga ishonib bo'lmaydi (har so'rovda soxta IP => rate limit
+    aylanib o'tiladi). Shuning uchun O'NGDAN sanaymiz: settings.TRUSTED_PROXY_COUNT
+    ta ishonchli proxy yozuvini tashlab, birinchi ishonchsiz qiymatni olamiz.
+    Header bo'lmasa yoki buzuq bo'lsa — REMOTE_ADDR.
+    """
+    remote_addr = None
+    try:
+        remote_addr = _normalize_ip(request.META.get('REMOTE_ADDR'))
+        parts = [p for p in (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',') if p.strip()]
+        if parts:
+            try:
+                depth = int(getattr(settings, 'TRUSTED_PROXY_COUNT', 1) or 1)
+            except (TypeError, ValueError):
+                depth = 1
+            depth = max(1, depth)
+            idx = max(0, len(parts) - depth)
+            ip = _normalize_ip(parts[idx])
+            if ip:
+                return ip
+    except Exception as e:
+        logger.warning("get_trusted_client_ip: %s", e)
+    return remote_addr or '0.0.0.0'
+
 
 # Skaner / exploit urinishlari (path bo'yicha)
 _PROBE_PATTERNS = re.compile(
@@ -130,10 +184,7 @@ class AttackProbeBlockMiddleware(MiddlewareMixin):
 
     @staticmethod
     def _client_ip(request):
-        xff = request.META.get('HTTP_X_FORWARDED_FOR')
-        if xff:
-            return xff.split(',')[0].strip()
-        return request.META.get('REMOTE_ADDR', '0.0.0.0')
+        return get_trusted_client_ip(request)
 
 
 class SecurityHeadersMiddleware(MiddlewareMixin):
@@ -162,7 +213,9 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
 
 class RateLimitMiddleware(MiddlewareMixin):
     """IP bo'yicha tiered rate limiting (auth qattiq, AI o'rtacha)."""
-    _SKIP_PREFIXES = ('/static/', '/health', '/admin/')
+    # /admin/ ISTISNO EMAS: admin login formasi ham brute-force nishoni.
+    # Faqat statik fayllar va health-check tashlab ketiladi.
+    _SKIP_PREFIXES = ('/static/', '/health')
 
     def process_request(self, request):
         try:
@@ -173,8 +226,12 @@ class RateLimitMiddleware(MiddlewareMixin):
             user = getattr(request, 'user', None)
             is_auth = bool(user and getattr(user, 'is_authenticated', False))
 
-            if path.startswith('/api/auth/login') or path.startswith('/api/auth/register'):
+            if (path.startswith('/api/auth/login') or path.startswith('/api/auth/register')
+                    or path.startswith('/admin/login')):
+                # Admin login formasi ham shu qattiq limitda (credential stuffing ga qarshi)
                 bucket, limit, window = 'auth', 12, 60
+            elif path.startswith('/admin/'):
+                bucket, limit, window = 'admin', 300, 60
             elif path.startswith('/api/ai/') or '/consilium' in path:
                 bucket, limit, window = 'ai', 45 if not is_auth else 90, 60
             elif path.startswith('/api/'):
@@ -200,15 +257,7 @@ class RateLimitMiddleware(MiddlewareMixin):
         return None
     
     def get_client_ip(self, request):
-        try:
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                ip = x_forwarded_for.split(',')[0].strip()
-            else:
-                ip = request.META.get('REMOTE_ADDR', '0.0.0.0')
-            return ip or '0.0.0.0'
-        except Exception:
-            return '0.0.0.0'
+        return get_trusted_client_ip(request)
 
 
 class RequestLoggingMiddleware(MiddlewareMixin):

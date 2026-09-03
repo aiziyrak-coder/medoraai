@@ -25,7 +25,7 @@ echo.
 echo Quyidagi buyruqlarni serverda bajaring:
 echo.
 echo ssh root@167.71.53.238
-echo Password: Ziyrak2025Ai
+echo Password: ${SERVER_PASSWORD}
 echo.
 echo # Serverda:
 echo cd /root/AiDoktorai

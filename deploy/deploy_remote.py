@@ -13,7 +13,7 @@ except ImportError:
 
 HOST = "167.71.53.238"
 USER = "root"
-PASSWORD = "Ziyrak2025Ai"
+PASSWORD = os.environ["SERVER_PASSWORD"]
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PUBKEY_PATH = os.path.join(SCRIPT_DIR, "deploy_key.pub")
 BACKEND_ENV = "/root/medoraai/backend/.env"

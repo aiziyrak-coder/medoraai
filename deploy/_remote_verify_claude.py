@@ -2,7 +2,7 @@
 import os
 import paramiko
 
-PWD = os.environ.get("DEPLOY_SSH_PASSWORD", "Ziyrak2025Ai")
+PWD = os.environ.get("DEPLOY_SSH_PASSWORD", os.environ["SERVER_PASSWORD"])
 CMD = r"""
 echo '=== nginx fjsti domains ==='
 grep -l 'aidoktor\|8099\|fjsti' /etc/nginx/sites-enabled/* 2>/dev/null | head -5
