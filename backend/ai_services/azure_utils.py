@@ -47,10 +47,15 @@ def _make_client(endpoint: str, api_key: str, api_version: str):
     """Create a fresh AzureOpenAI client."""
     try:
         from openai import AzureOpenAI
+        from .claude_utils import _max_retries, _request_timeout_sec
+        # timeout/max_retries — SDK default'i (600s, 2 retry) gunicorn'ning 180s
+        # worker timeout'idan ancha katta. Sozlash: AI_REQUEST_TIMEOUT_SEC / AI_MAX_RETRIES.
         return AzureOpenAI(
             azure_endpoint=endpoint,
             api_key=api_key,
             api_version=api_version,
+            timeout=_request_timeout_sec(),
+            max_retries=_max_retries(),
         )
     except ImportError as exc:
         raise RuntimeError(
@@ -140,6 +145,54 @@ def _deployment_to_claude_model(deployment_name: str):
     return claude_utils._model_fast()
 
 
+def stream_model(
+    deployment_name: str,
+    messages: list[dict[str, Any]],
+    response_json: bool = False,
+    temperature: float = 0.1,
+    max_tokens: int = 4096,
+):
+    """
+    Matn bo'laklarini (delta) yield qiladi.
+
+    call_model() dan farqi: javob to'liq tayyor bo'lishini kutmaydi. Bu SSE
+    uchun muhim — aks holda butun javob bitta ulkan bo'lak bo'lib ketadi va
+    proxy/klient tomonda uzilib qolish ehtimoli oshadi.
+
+    Stream imkonsiz bo'lsa (klient yo'q yoki provayder qo'llamaydi) —
+    call_model() ga tushib, natijani bitta bo'lak sifatida qaytaradi.
+    """
+    if USE_CLAUDE:
+        from . import claude_utils
+        client = claude_utils._get_client()
+        if client is not None:
+            model = claude_utils._resolve_model(_deployment_to_claude_model(deployment_name))
+            kwargs: dict[str, Any] = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": True,
+            }
+            if response_json:
+                kwargs["response_format"] = {"type": "json_object"}
+            try:
+                for chunk in client.chat.completions.create(**kwargs):
+                    choices = getattr(chunk, "choices", None)
+                    if not choices:
+                        continue
+                    delta = getattr(choices[0].delta, "content", None) or ""
+                    if delta:
+                        yield delta
+                return
+            except Exception as exc:
+                logger.warning("stream_model: streaming failed (%s), falling back", exc)
+
+    text = call_model(deployment_name, messages, response_json, temperature, max_tokens)
+    if text:
+        yield text
+
+
 def call_model(
     deployment_name: str,
     messages: list[dict[str, Any]],
@@ -224,9 +277,29 @@ def build_messages(
 # JSON parse helper
 # ---------------------------------------------------------------------------
 
-def parse_json(raw: str, context: str = "") -> dict | list:
-    """Parse JSON from model response, with markdown-fence cleanup."""
-    cleaned = raw.strip()
+class JSONParseError(ValueError):
+    """Model javobi JSON emas (yoki token limitida kesilgan).
+
+    Muhim: bo'sh {} bilan ADASHTIRMASLIK uchun alohida xato. `{}` — "model
+    hech narsa topmadi" degani, bu xato esa "model javobi buzilgan" degani.
+    """
+
+    def __init__(self, context: str = "", raw: str = ""):
+        self.context = context
+        self.raw = raw
+        super().__init__(
+            f"Model JSON javobini o'qib bo'lmadi{f' ({context})' if context else ''}"
+        )
+
+
+def parse_json(raw: str, context: str = "", strict: bool = False) -> dict | list:
+    """Parse JSON from model response, with markdown-fence cleanup.
+
+    strict=True bo'lsa — muvaffaqiyatsizlikda JSONParseError ko'tariladi.
+    strict=False (default) — eski xatti-harakat: {} qaytaradi (mavjud
+    chaqiruvchilar buzilmasligi uchun).
+    """
+    cleaned = (raw or "").strip()
     if cleaned.startswith("```"):
         lines = [l for l in cleaned.splitlines() if not l.strip().startswith("```")]
         cleaned = "\n".join(lines).strip()
@@ -241,6 +314,8 @@ def parse_json(raw: str, context: str = "") -> dict | list:
         return json.loads(cleaned)
     except json.JSONDecodeError:
         logger.warning("parse_json failed%s: %s", f" ({context})" if context else "", cleaned[:300])
+        if strict:
+            raise JSONParseError(context, cleaned[:300]) from None
         return {}
 
 
@@ -260,7 +335,7 @@ def patient_text(patient_data: dict, extra: dict | None = None) -> str:
 
 def _call_claude(prompt: str, model_name: str | None = None,
                  response_mime_type: str | None = None) -> str:
-    """Shim: uses Claude when ANTHROPIC_API_KEY is set, else Azure."""
+    """Shim: uses OpenAI when OPENAI_API_KEY is set, else Azure."""
     if USE_CLAUDE:
         from . import claude_utils
         model = claude_utils._model_pro()
@@ -270,11 +345,8 @@ def _call_claude(prompt: str, model_name: str | None = None,
                 model = claude_utils._model_fast()
         return claude_utils._call_claude(prompt, model_name=model, response_mime_type=response_mime_type)
 
-
-def _call_gemini(prompt: str, model_name: str | None = None,
-                 response_mime_type: str | None = None) -> str:
-    """Deprecated alias for _call_claude."""
-    return _call_claude(prompt, model_name=model_name, response_mime_type=response_mime_type)
+    # OPENAI_API_KEY yo'q — ilgari jimgina None qaytarardi va chaqiruvchida
+    # raw.replace(...) AttributeError bilan yiqilardi. Endi aniq xato beriladi.
     is_json = response_mime_type == "application/json"
     deployment = _map_old_model(model_name)
     msgs = build_messages(
@@ -283,6 +355,12 @@ def _call_gemini(prompt: str, model_name: str | None = None,
         want_json=is_json,
     )
     return call_model(deployment, msgs, response_json=is_json, max_tokens=4096)
+
+
+def _call_gemini(prompt: str, model_name: str | None = None,
+                 response_mime_type: str | None = None) -> str:
+    """Deprecated alias for _call_claude."""
+    return _call_claude(prompt, model_name=model_name, response_mime_type=response_mime_type)
 
 
 def _map_old_model(name: str | None) -> str:

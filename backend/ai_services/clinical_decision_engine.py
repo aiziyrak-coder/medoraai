@@ -21,6 +21,15 @@ from .self_learning_system import self_learning_system
 logger = logging.getLogger(__name__)
 
 
+class ClinicalAIUnavailable(RuntimeError):
+    """AI xizmati javob bermadi — klinik qiymat TO'QIB CHIQARILMAYDI, xato yuqoriga uzatiladi."""
+
+    def __init__(self, stage: str, detail: str = ""):
+        self.stage = stage
+        self.detail = detail
+        super().__init__(f"Klinik AI xizmati javob bermadi ({stage})")
+
+
 class ClinicalDecisionEngine:
     """Advanced clinical decision engine for autonomous medical decisions"""
     
@@ -89,7 +98,10 @@ class ClinicalDecisionEngine:
             self._integrate_learning(final_decision, patient_data)
             
             return final_decision
-            
+
+        except ClinicalAIUnavailable:
+            # AI ishlamadi — soxta qaror o'rniga xato chaqiruvchiga uzatiladi (HTTP 503).
+            raise
         except Exception as e:
             logger.error(f"Error in autonomous decision making: {e}")
             return self._generate_emergency_fallback(patient_data, language)
@@ -124,15 +136,9 @@ Javobni faqat JSON formatida qaytaring."""
             raw = raw.replace("```json", "").replace("```", "").strip()
             return json.loads(raw)
         except Exception as e:
+            # Triaj natijasini to'qib chiqarish mumkin emas — xato yuqoriga uzatiladi.
             logger.error(f"Triage assessment failed: {e}")
-            return {
-                "triage_level": "yellow",
-                "urgency_score": 0.7,
-                "life_threatened": False,
-                "time_to_treatment": 30,
-                "emergency_actions": ["Shifokor tekshiruvi zarur"],
-                "vital_signs_critical": []
-            }
+            raise ClinicalAIUnavailable("triaj", str(e)) from e
     
     def _determine_clinical_pathway(self, patient_data: Dict, triage_result: Dict) -> str:
         """Determine the appropriate clinical pathway"""
@@ -198,7 +204,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Cardiovascular algorithm failed: {e}")
-            return {"algorithm_used": "cardiovascular", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("cardiovascular algoritmi", str(e)) from e
     
     def _respiratory_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Respiratory clinical decision algorithm"""
@@ -230,7 +236,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Respiratory algorithm failed: {e}")
-            return {"algorithm_used": "respiratory", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("respiratory algoritmi", str(e)) from e
     
     def _gastrointestinal_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Gastrointestinal clinical decision algorithm"""
@@ -262,7 +268,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Gastrointestinal algorithm failed: {e}")
-            return {"algorithm_used": "gastrointestinal", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("gastrointestinal algoritmi", str(e)) from e
     
     def _neurological_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Neurological clinical decision algorithm"""
@@ -294,7 +300,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Neurological algorithm failed: {e}")
-            return {"algorithm_used": "neurological", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("neurological algoritmi", str(e)) from e
     
     def _infectious_disease_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Infectious disease clinical decision algorithm"""
@@ -326,7 +332,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Infectious disease algorithm failed: {e}")
-            return {"algorithm_used": "infectious", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("infectious algoritmi", str(e)) from e
     
     def _musculoskeletal_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Musculoskeletal clinical decision algorithm"""
@@ -358,7 +364,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Musculoskeletal algorithm failed: {e}")
-            return {"algorithm_used": "musculoskeletal", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("musculoskeletal algoritmi", str(e)) from e
     
     def _pediatric_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Pediatric clinical decision algorithm"""
@@ -390,7 +396,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Pediatric algorithm failed: {e}")
-            return {"algorithm_used": "pediatric", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("pediatric algoritmi", str(e)) from e
     
     def _geriatric_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """Geriatric clinical decision algorithm"""
@@ -422,7 +428,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"Geriatric algorithm failed: {e}")
-            return {"algorithm_used": "geriatric", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("geriatric algoritmi", str(e)) from e
     
     def _general_clinical_algorithm(self, patient_data: Dict, language: str) -> Dict:
         """General clinical decision algorithm"""
@@ -454,7 +460,7 @@ Javobni faqat JSON formatida qaytaring."""
             return result
         except Exception as e:
             logger.error(f"General algorithm failed: {e}")
-            return {"algorithm_used": "general", "error": "Algorithm failed"}
+            raise ClinicalAIUnavailable("general algoritmi", str(e)) from e
     
     def _perform_risk_benefit_analysis(self, patient_data: Dict, algorithm_result: Dict, 
                                      triage_result: Dict) -> Dict:
@@ -483,16 +489,9 @@ Javobni faqat JSON formatida qaytaring."""
             raw = raw.replace("```json", "").replace("```", "").strip()
             return json.loads(raw)
         except Exception as e:
+            # Xavf-foyda ko'rsatkichlari to'qib chiqarilmaydi.
             logger.error(f"Risk-benefit analysis failed: {e}")
-            return {
-                "autonomous_risk": 0.3,
-                "human_intervention_benefit": 0.7,
-                "urgent_intervention": False,
-                "delay_risk": 0.2,
-                "complication_risk": 0.1,
-                "success_probability": 0.8,
-                "recommendation": "human"
-            }
+            raise ClinicalAIUnavailable("xavf-foyda tahlili", str(e)) from e
     
     def _generate_autonomous_treatment_plan(self, patient_data: Dict, algorithm_result: Dict, 
                                           risk_benefit: Dict, language: str) -> Dict:
@@ -537,16 +536,9 @@ Javobni faqat JSON formatida qaytaring."""
             raw = raw.replace("```json", "").replace("```", "").strip()
             return json.loads(raw)
         except Exception as e:
+            # Xavfsizlik bahosi to'qib chiqarilmaydi — tekshirilmagan reja qaytarilmaydi.
             logger.error(f"Safety validation failed: {e}")
-            return {
-                "safe": False,
-                "emergency_covered": False,
-                "dosage_safe": False,
-                "drug_interactions": True,
-                "allergy_risk": True,
-                "monitoring_adequate": False,
-                "safety_score": 0.3
-            }
+            raise ClinicalAIUnavailable("xavfsizlik validatsiyasi", str(e)) from e
     
     def _finalize_decision(self, triage_result: Dict, algorithm_result: Dict, 
                           risk_benefit: Dict, treatment_plan: Dict, safety_validation: Dict) -> Dict:

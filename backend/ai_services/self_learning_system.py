@@ -2,92 +2,47 @@
 Self-Learning System for Treatment Protocol Improvement
 Continuously learns from outcomes and improves protocols
 """
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
+# ProtocolOutcome endi models.py da (makemigrations faqat models.py ni ko'radi).
+# Eski `from .self_learning_system import ProtocolOutcome` importlari buzilmasin.
+from .models import ProtocolOutcome
+
 logger = logging.getLogger(__name__)
 
+# Agregatsiya uchun bir marta o'qiladigan qatorlar chegarasi (xotira uchun)
+_AGG_ROW_LIMIT = 2000
+# Bitta guruh (masalan bitta simptom) statistikaga kirishi uchun minimal holat soni
+_MIN_GROUP_CASES = 3
 
-class ProtocolOutcome(models.Model):
-    """Track outcomes of autonomous protocols for learning"""
-    
-    protocol_id = models.CharField(max_length=255, verbose_name='Protokol ID')
-    patient_data_hash = models.CharField(max_length=255, verbose_name='Bemor ma\'lumotlari xeshi')
-    
-    # Protocol details
-    protocol_details = models.JSONField(default=dict, verbose_name='Protokol tafsilotlari')
-    
-    # Outcome tracking
-    treatment_success = models.BooleanField(null=True, blank=True, verbose_name='Davolash muvaffaqiyati')
-    patient_satisfaction = models.IntegerField(null=True, blank=True, verbose_name='Bemor qoniqishi (1-10)')
-    complication_occurred = models.BooleanField(default=False, verbose_name='Asoratlar yuz bergan')
-    complication_details = models.TextField(blank=True, verbose_name='Asorat tafsilotlari')
-    
-    # Time tracking
-    recovery_time_days = models.IntegerField(null=True, blank=True, verbose_name='Tiklanish vaqti (kun)')
-    follow_up_required = models.BooleanField(default=True, verbose_name='Keyingi kuzatuv kerak')
-    
-    # Learning metrics
-    effectiveness_score = models.FloatField(default=0.0, verbose_name='Samaradorlik balli')
-    safety_score = models.FloatField(default=0.0, verbose_name='Xavfsizlik balli')
-    
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Yaratilgan sana')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Yangilangan sana')
-    
-    class Meta:
-        verbose_name = 'Protokol natijasi'
-        verbose_name_plural = 'Protokol natijalari'
-        indexes = [
-            models.Index(fields=['protocol_id'], name='po_protocol_id_idx'),
-            models.Index(fields=['treatment_success'], name='po_success_idx'),
-            models.Index(fields=['effectiveness_score'], name='po_effectiveness_idx'),
-            models.Index(fields=['created_at'], name='po_created_at_idx'),
-        ]
-    
-    def calculate_scores(self):
-        """Calculate effectiveness and safety scores"""
-        # Base scores
-        effectiveness = 0.5
-        safety = 0.5
-        
-        # Treatment success impact
-        if self.treatment_success is True:
-            effectiveness += 0.3
-            safety += 0.2
-        elif self.treatment_success is False:
-            effectiveness -= 0.3
-            safety -= 0.2
-        
-        # Complications impact
-        if self.complication_occurred:
-            effectiveness -= 0.2
-            safety -= 0.4
-        
-        # Patient satisfaction impact
-        if self.patient_satisfaction:
-            satisfaction_factor = (self.patient_satisfaction - 5) / 5  # -1 to 1
-            effectiveness += satisfaction_factor * 0.1
-            safety += satisfaction_factor * 0.05
-        
-        # Recovery time impact (faster is better)
-        if self.recovery_time_days:
-            if self.recovery_time_days <= 3:
-                effectiveness += 0.1
-            elif self.recovery_time_days <= 7:
-                effectiveness += 0.05
-            elif self.recovery_time_days > 14:
-                effectiveness -= 0.1
-        
-        # Normalize scores
-        self.effectiveness_score = max(0.0, min(1.0, effectiveness))
-        self.safety_score = max(0.0, min(1.0, safety))
-        
-        self.save()
+
+def stable_patient_hash(patient_data: Dict) -> str:
+    """Bemor ma'lumotlaridan BARQAROR kalit (sha256).
+
+    Python'ning hash(str) i har process'da tasodifiylashtiriladi (PYTHONHASHSEED),
+    shuning uchun u restart'dan keyin hech qachon mos kelmasdi. Kanonik JSON
+    (sort_keys) + sha256 esa har doim bir xil natija beradi.
+    """
+    try:
+        canonical = json.dumps(patient_data or {}, sort_keys=True,
+                               ensure_ascii=False, default=str)
+    except (TypeError, ValueError):
+        canonical = repr(patient_data)
+    return hashlib.sha256(canonical.encode('utf-8', errors='ignore')).hexdigest()
+
+
+def _rate(successes: int, cases: int) -> Dict:
+    return {
+        'cases': cases,
+        'successes': successes,
+        'success_rate': round(successes / cases, 3) if cases else 0.0,
+    }
 
 
 class SelfLearningSystem:
@@ -181,13 +136,15 @@ class SelfLearningSystem:
     def _store_outcome(self, protocol_id: str, patient_data: Dict, 
                       outcome_data: Dict) -> ProtocolOutcome:
         """Store outcome in database"""
-        patient_data_hash = hash(str(patient_data))
-        
+        # Barqaror kalit — process restart'idan keyin ham bir xil (hash() emas!)
+        patient_data_hash = stable_patient_hash(patient_data)
+
         outcome = ProtocolOutcome.objects.update_or_create(
             protocol_id=protocol_id,
             patient_data_hash=patient_data_hash,
             defaults={
                 'protocol_details': outcome_data.get('protocol_details', {}),
+                'patient_snapshot': self._patient_snapshot(patient_data),
                 'treatment_success': outcome_data.get('treatment_success'),
                 'patient_satisfaction': outcome_data.get('patient_satisfaction'),
                 'complication_occurred': outcome_data.get('complication_occurred', False),
@@ -202,125 +159,207 @@ class SelfLearningSystem:
         
         return outcome
     
-    def _analyze_patterns(self, patient_data: Dict, outcome_data: Dict) -> Dict:
-        """Analyze patterns in patient data and outcomes"""
-        patterns = {
-            'demographic_patterns': self._analyze_demographic_patterns(patient_data, outcome_data),
-            'symptom_patterns': self._analyze_symptom_patterns(patient_data, outcome_data),
-            'treatment_patterns': self._analyze_treatment_patterns(patient_data, outcome_data),
-            'outcome_patterns': self._analyze_outcome_patterns(patient_data, outcome_data)
+    def _patient_snapshot(self, patient_data: Dict) -> Dict:
+        """Agregatsiya uchun kerakli minimal kesim (shaxsni aniqlovchi maydonlarsiz)."""
+        try:
+            age = int(patient_data.get('age') or 0)
+        except (TypeError, ValueError):
+            age = 0
+        return {
+            'age_band': self._age_band(age),
+            'gender': str(patient_data.get('gender') or '').strip().lower(),
+            'symptoms': self._extract_key_symptoms(
+                str(patient_data.get('complaints') or '').lower()
+            ),
         }
-        
-        return patterns
-    
-    def _analyze_demographic_patterns(self, patient_data: Dict, outcome_data: Dict) -> Dict:
-        """Analyze demographic patterns"""
-        age = patient_data.get('age', 0)
-        gender = patient_data.get('gender', '')
-        success = outcome_data.get('treatment_success', False)
-        
-        patterns = {
-            'age_effectiveness': {},
-            'gender_effectiveness': {},
-            'demographic_risk_factors': []
-        }
-        
-        # Age-based patterns
+
+    @staticmethod
+    def _age_band(age: int) -> str:
+        if age <= 0:
+            return 'unknown'
         if age < 18:
-            patterns['age_effectiveness']['pediatric'] = success
-        elif age >= 65:
-            patterns['age_effectiveness']['geriatric'] = success
-        else:
-            patterns['age_effectiveness']['adult'] = success
-        
-        # Gender-based patterns
-        if gender:
-            patterns['gender_effectiveness'][gender] = success
-        
-        return patterns
-    
-    def _analyze_symptom_patterns(self, patient_data: Dict, outcome_data: Dict) -> Dict:
-        """Analyze symptom-based patterns"""
-        complaints = patient_data.get('complaints', '').lower()
-        success = outcome_data.get('treatment_success', False)
-        
-        # Extract key symptoms
-        key_symptoms = self._extract_key_symptoms(complaints)
-        
-        patterns = {
-            'symptom_effectiveness': {},
-            'symptom_combinations': [],
-            'high_success_symptoms': [],
-            'low_success_symptoms': []
+            return 'pediatric'
+        if age >= 65:
+            return 'geriatric'
+        return 'adult'
+
+    def _recent_outcomes(self) -> List[ProtocolOutcome]:
+        """Agregatsiya uchun oxirgi natijalar (cheklangan)."""
+        return list(
+            ProtocolOutcome.objects
+            .order_by('-created_at')[:_AGG_ROW_LIMIT]
+        )
+
+    def _analyze_patterns(self, patient_data: Dict, outcome_data: Dict) -> Dict:
+        """Saqlangan BARCHA natijalar bo'yicha haqiqiy agregatsiya.
+
+        Muhim: bu yerda joriy holatning bitta qiymati "statistika" ko'rinishida
+        qaytarilmaydi. Baza yetarli emas bo'lsa — status='insufficient_data'
+        ochiq belgilanadi va guruhlar bo'sh qoladi.
+        """
+        min_cases = self.learning_thresholds['min_cases_for_learning']
+        try:
+            rows = self._recent_outcomes()
+        except Exception as exc:
+            logger.warning("Pattern aggregation: DB unavailable: %s", exc)
+            return self._insufficient_patterns(0, min_cases,
+                                               reason='database_unavailable')
+
+        if len(rows) < min_cases:
+            return self._insufficient_patterns(len(rows), min_cases)
+
+        return {
+            'status': 'ok',
+            'cases_analyzed': len(rows),
+            'cases_required': min_cases,
+            'min_group_cases': _MIN_GROUP_CASES,
+            'demographic_patterns': self._aggregate_demographics(rows),
+            'symptom_patterns': self._aggregate_symptoms(rows),
+            'treatment_patterns': self._aggregate_treatments(rows),
+            'outcome_patterns': self._aggregate_outcomes(rows),
         }
-        
-        for symptom in key_symptoms:
-            patterns['symptom_effectiveness'][symptom] = success
-            
-            if success:
-                patterns['high_success_symptoms'].append(symptom)
-            else:
-                patterns['low_success_symptoms'].append(symptom)
-        
-        return patterns
-    
-    def _analyze_treatment_patterns(self, patient_data: Dict, outcome_data: Dict) -> Dict:
-        """Analyze treatment effectiveness patterns"""
-        protocol_details = outcome_data.get('protocol_details', {})
-        success = outcome_data.get('treatment_success', False)
-        
-        patterns = {
-            'medication_effectiveness': {},
-            'treatment_steps_effectiveness': {},
-            'dosage_patterns': {},
-            'timing_patterns': {}
+
+    @staticmethod
+    def _insufficient_patterns(seen: int, required: int,
+                               reason: str = 'not_enough_cases') -> Dict:
+        """Agregatsiya uchun ma'lumot yetarli emas — buni YASHIRMAYMIZ."""
+        return {
+            'status': 'insufficient_data',
+            'reason': reason,
+            'cases_analyzed': seen,
+            'cases_required': required,
+            'note': (
+                f"Statistik xulosa uchun kamida {required} ta yakunlangan holat "
+                f"kerak; hozir {seen} ta. Naqsh tahlili o'tkazilmadi."
+            ),
+            'demographic_patterns': {},
+            'symptom_patterns': {},
+            'treatment_patterns': {},
+            'outcome_patterns': {},
         }
-        
-        # Analyze medications
-        medications = protocol_details.get('medications', [])
-        for med in medications:
-            med_name = med.get('name', '')
-            patterns['medication_effectiveness'][med_name] = success
-        
-        # Analyze treatment steps
-        treatment_plan = protocol_details.get('treatmentPlan', [])
-        for i, step in enumerate(treatment_plan):
-            patterns['treatment_steps_effectiveness'][f'step_{i}'] = success
-        
-        return patterns
-    
-    def _analyze_outcome_patterns(self, patient_data: Dict, outcome_data: Dict) -> Dict:
-        """Analyze outcome patterns"""
-        recovery_time = outcome_data.get('recovery_time_days')
-        satisfaction = outcome_data.get('patient_satisfaction')
-        complications = outcome_data.get('complication_occurred', False)
-        
-        patterns = {
-            'recovery_time_patterns': {},
-            'satisfaction_patterns': {},
-            'complication_patterns': {}
+
+    @staticmethod
+    def _tally(buckets: Dict[str, List[int]], key: str, success: bool):
+        if not key:
+            return
+        slot = buckets.setdefault(key, [0, 0])   # [cases, successes]
+        slot[0] += 1
+        if success:
+            slot[1] += 1
+
+    @staticmethod
+    def _finalize(buckets: Dict[str, List[int]]) -> Dict:
+        """Shovqinni kesish: _MIN_GROUP_CASES dan kam guruhlar chiqarib tashlanadi."""
+        return {
+            key: _rate(succ, cases)
+            for key, (cases, succ) in buckets.items()
+            if cases >= _MIN_GROUP_CASES
         }
-        
-        if recovery_time:
-            if recovery_time <= 3:
-                patterns['recovery_time_patterns']['fast'] = True
-            elif recovery_time <= 7:
-                patterns['recovery_time_patterns']['normal'] = True
+
+    def _aggregate_demographics(self, rows: List[ProtocolOutcome]) -> Dict:
+        age_buckets: Dict[str, List[int]] = {}
+        gender_buckets: Dict[str, List[int]] = {}
+        for row in rows:
+            snap = row.patient_snapshot or {}
+            success = row.treatment_success is True
+            self._tally(age_buckets, str(snap.get('age_band') or 'unknown'), success)
+            self._tally(gender_buckets, str(snap.get('gender') or ''), success)
+
+        age_eff = self._finalize(age_buckets)
+        risk = [
+            f"{band}: muvaffaqiyat {stat['success_rate']:.0%} ({stat['cases']} holat)"
+            for band, stat in sorted(age_eff.items())
+            if stat['success_rate'] < self.learning_thresholds['success_rate_threshold']
+        ]
+        return {
+            'age_effectiveness': age_eff,
+            'gender_effectiveness': self._finalize(gender_buckets),
+            'demographic_risk_factors': risk,
+        }
+
+    def _aggregate_symptoms(self, rows: List[ProtocolOutcome]) -> Dict:
+        buckets: Dict[str, List[int]] = {}
+        combos: Dict[str, List[int]] = {}
+        for row in rows:
+            snap = row.patient_snapshot or {}
+            success = row.treatment_success is True
+            symptoms = [str(s) for s in (snap.get('symptoms') or []) if s]
+            for symptom in symptoms:
+                self._tally(buckets, symptom, success)
+            if len(symptoms) >= 2:
+                self._tally(combos, ' + '.join(sorted(symptoms)[:3]), success)
+
+        effectiveness = self._finalize(buckets)
+        threshold = self.learning_thresholds['success_rate_threshold']
+        return {
+            'symptom_effectiveness': effectiveness,
+            'symptom_combinations': self._finalize(combos),
+            'high_success_symptoms': sorted(
+                s for s, st in effectiveness.items() if st['success_rate'] >= threshold
+            ),
+            'low_success_symptoms': sorted(
+                s for s, st in effectiveness.items() if st['success_rate'] < threshold
+            ),
+        }
+
+    def _aggregate_treatments(self, rows: List[ProtocolOutcome]) -> Dict:
+        med_buckets: Dict[str, List[int]] = {}
+        step_buckets: Dict[str, List[int]] = {}
+        for row in rows:
+            details = row.protocol_details or {}
+            success = row.treatment_success is True
+            for med in (details.get('medications') or []):
+                if isinstance(med, dict):
+                    self._tally(med_buckets, str(med.get('name') or '').strip(), success)
+            plan = details.get('treatmentPlan') or details.get('treatment_plan') or []
+            for i, _step in enumerate(plan):
+                self._tally(step_buckets, f'step_{i}', success)
+
+        return {
+            'medication_effectiveness': self._finalize(med_buckets),
+            'treatment_steps_effectiveness': self._finalize(step_buckets),
+        }
+
+    @staticmethod
+    def _aggregate_outcomes(rows: List[ProtocolOutcome]) -> Dict:
+        recovery = {'fast': 0, 'normal': 0, 'slow': 0, 'unknown': 0}
+        satisfaction = {'high': 0, 'medium': 0, 'low': 0, 'unknown': 0}
+        complications = 0
+        for row in rows:
+            days = row.recovery_time_days
+            if days is None:
+                recovery['unknown'] += 1
+            elif days <= 3:
+                recovery['fast'] += 1
+            elif days <= 7:
+                recovery['normal'] += 1
             else:
-                patterns['recovery_time_patterns']['slow'] = True
-        
-        if satisfaction:
-            if satisfaction >= 8:
-                patterns['satisfaction_patterns']['high'] = True
-            elif satisfaction >= 6:
-                patterns['satisfaction_patterns']['medium'] = True
+                recovery['slow'] += 1
+
+            sat = row.patient_satisfaction
+            if sat is None:
+                satisfaction['unknown'] += 1
+            elif sat >= 8:
+                satisfaction['high'] += 1
+            elif sat >= 6:
+                satisfaction['medium'] += 1
             else:
-                patterns['satisfaction_patterns']['low'] = True
-        
-        patterns['complication_patterns']['occurred'] = complications
-        
-        return patterns
-    
+                satisfaction['low'] += 1
+
+            if row.complication_occurred:
+                complications += 1
+
+        total = len(rows)
+        return {
+            'recovery_time_patterns': recovery,
+            'satisfaction_patterns': satisfaction,
+            'complication_patterns': {
+                'cases': total,
+                'occurred': complications,
+                'rate': round(complications / total, 3) if total else 0.0,
+            },
+        }
+
     def _update_pattern_database(self, patient_data: Dict, outcome_data: Dict, 
                                 pattern_analysis: Dict):
         """Update pattern database with new insights"""
@@ -365,27 +404,41 @@ class SelfLearningSystem:
     def _generate_learning_insights(self, pattern_analysis: Dict) -> Dict:
         """Generate learning insights from pattern analysis"""
         insights = {
+            'status': pattern_analysis.get('status', 'insufficient_data'),
             'high_success_factors': [],
             'risk_factors': [],
             'optimization_opportunities': [],
             'confidence_level': 0.0
         }
-        
-        # Analyze demographic patterns
+
+        # Ma'lumot yetarli emas — hech qanday "xulosa" chiqarmaymiz
+        if pattern_analysis.get('status') != 'ok':
+            insights['note'] = pattern_analysis.get('note', '')
+            return insights
+
+        # Demografik xavf omillari (agregat)
         demo_patterns = pattern_analysis.get('demographic_patterns', {})
-        
-        # Analyze symptom patterns
+        insights['risk_factors'].extend(demo_patterns.get('demographic_risk_factors', []))
+
+        # Simptom bo'yicha agregat
         symptom_patterns = pattern_analysis.get('symptom_patterns', {})
-        high_success_symptoms = symptom_patterns.get('high_success_symptoms', [])
-        low_success_symptoms = symptom_patterns.get('low_success_symptoms', [])
-        
-        insights['high_success_factors'].extend(high_success_symptoms)
-        insights['risk_factors'].extend(low_success_symptoms)
-        
-        # Calculate confidence
-        total_patterns = sum(len(v) if isinstance(v, dict) else 1 for v in pattern_analysis.values())
-        insights['confidence_level'] = min(1.0, total_patterns / 20.0)
-        
+        insights['high_success_factors'].extend(symptom_patterns.get('high_success_symptoms', []))
+        insights['risk_factors'].extend(symptom_patterns.get('low_success_symptoms', []))
+
+        # Past samarali dorilar — optimallashtirish imkoniyati
+        med_eff = (pattern_analysis.get('treatment_patterns') or {}).get('medication_effectiveness', {})
+        threshold = self.learning_thresholds['success_rate_threshold']
+        insights['optimization_opportunities'].extend(
+            f"{name}: muvaffaqiyat {stat['success_rate']:.0%} ({stat['cases']} holat)"
+            for name, stat in sorted(med_eff.items())
+            if stat.get('success_rate', 0.0) < threshold
+        )
+
+        # Ishonch darajasi — tahlil qilingan holatlar soniga bog'liq (100 holat = 1.0)
+        cases = int(pattern_analysis.get('cases_analyzed') or 0)
+        insights['cases_analyzed'] = cases
+        insights['confidence_level'] = round(min(1.0, cases / 100.0), 3)
+
         return insights
     
     def _update_recommendations(self, insights: Dict) -> Dict:
@@ -442,10 +495,14 @@ class SelfLearningSystem:
         for case in similar_cases:
             patterns = case.get('patterns', {})
             
-            # Extract medication patterns
+            # Extract medication patterns — qiymat endi agregat: {cases, success_rate}
             med_patterns = patterns.get('treatment_patterns', {}).get('medication_effectiveness', {})
-            for med, effective in med_patterns.items():
-                if effective:
+            threshold = self.learning_thresholds['success_rate_threshold']
+            for med, stat in med_patterns.items():
+                if isinstance(stat, dict):
+                    if stat.get('success_rate', 0.0) >= threshold:
+                        improvements['medication_optimizations'].append(med)
+                elif stat:  # eski format (bool)
                     improvements['medication_optimizations'].append(med)
             
             # Extract success factors
@@ -483,17 +540,28 @@ class SelfLearningSystem:
         return improved_protocol
     
     def _calculate_learning_confidence(self) -> float:
-        """Calculate overall learning confidence"""
-        total_success_cases = sum(data['count'] for data in self.success_patterns.values())
-        total_failure_cases = sum(data['count'] for data in self.failure_patterns.values())
-        total_cases = total_success_cases + total_failure_cases
-        
+        """Ishonch darajasi — BAZADAGI yakunlangan holatlar bo'yicha.
+
+        Ilgari process xotirasidagi lug'atlardan hisoblanardi: har restart'da
+        nolga tushar va workerlar orasida turlicha bo'lardi.
+        """
+        try:
+            total_cases = ProtocolOutcome.objects.exclude(
+                treatment_success__isnull=True
+            ).count()
+            total_success_cases = ProtocolOutcome.objects.filter(
+                treatment_success=True
+            ).count()
+        except Exception as exc:
+            logger.warning("Learning confidence: DB unavailable: %s", exc)
+            return 0.0
+
         if total_cases < self.learning_thresholds['min_cases_for_learning']:
             return 0.0
-        
+
         success_rate = total_success_cases / total_cases if total_cases > 0 else 0.0
-        
-        return min(1.0, success_rate * (total_cases / 100.0))
+
+        return round(min(1.0, success_rate * (total_cases / 100.0)), 3)
     
     def _extract_key_symptoms(self, complaints: str) -> List[str]:
         """Extract key symptoms from complaints"""

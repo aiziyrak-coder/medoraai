@@ -26,7 +26,7 @@ from .doctor_support         import (
 )
 from .physiology_filter      import check as physiology_check
 from .autonomous_protocol_generator import autonomous_generator
-from .clinical_decision_engine      import clinical_decision_engine
+from .clinical_decision_engine      import clinical_decision_engine, ClinicalAIUnavailable
 from .self_learning_system          import self_learning_system
 from .azure_utils import recommend_specialists as azure_recommend
 
@@ -52,6 +52,14 @@ def _err(code: int, msg: str):
 
 def _ai_not_configured():
     return _err(503, "FJSTI Ziyrak AI xizmati sozlanmagan. Administrator bilan bog'laning.")
+
+
+def _ai_unavailable(msg: str = ""):
+    """AI javob bermadi — bo'sh natija emas, aniq xato qaytariladi (xato matni loglanadi)."""
+    return _err(
+        503,
+        msg or "FJSTI Ziyrak AI xizmati hozircha javob bermayapti. Birozdan so'ng qayta urinib ko'ring.",
+    )
 
 
 def _run_filter(patient_data: dict) -> Response | None:
@@ -153,8 +161,9 @@ def run_consilium_view(request):
             "clinical_completeness": completeness,
         })
     except Exception as exc:
+        # Xato tafsiloti faqat logga; mijozga umumiy xabar
         logger.exception("Consilium error: %s", exc)
-        return _err(500, f"Konsilium xatosi: {exc}")
+        return _err(500, "Konsilium xatosi. Iltimos, qayta urinib ko'ring.")
 
 
 # Backwards-compat alias
@@ -337,14 +346,14 @@ def generate_clarifying_questions(request):
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor shikoyatlari kiritilmagan")
     if not _claude_ok():
-        return Response({"success": True, "data": [], "warning": "AI backend da sozlanmagan."})
+        return _ai_not_configured()
     try:
         questions = claude_utils.generate_clarifying_questions(patient_data)
         return Response({"success": True, "data": questions})
     except Exception as exc:
+        # Bo'sh ro'yxat "savol kerak emas" degani emas — uzilish aniq ko'rinishi shart
         logger.exception("Clarifying questions error: %s", exc)
-        # Return 200 with empty list so flow continues; frontend can show fallback
-        return Response({"success": True, "data": [], "warning": str(exc)[:200]})
+        return _ai_unavailable("Aniqlashtiruvchi savollarni yaratib bo'lmadi: AI xizmati javob bermadi.")
 
 
 @api_view(["POST"])
@@ -354,7 +363,7 @@ def recommend_specialists(request):
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor ma'lumotlari kiritilmagan")
     if not _claude_ok():
-        return Response({"success": True, "data": {"recommendations": []}, "warning": "AI backend da sozlanmagan."})
+        return _ai_not_configured()
     try:
         dd = request.data.get("differential_diagnoses") or request.data.get("diagnoses")
         if dd is not None and not isinstance(dd, list):
@@ -362,8 +371,9 @@ def recommend_specialists(request):
         recs = azure_recommend(patient_data, differential_diagnoses=dd or None)
         return Response({"success": True, "data": {"recommendations": recs}})
     except Exception as exc:
+        # Bo'sh ro'yxat "mutaxassis kerak emas" degani emas
         logger.exception("Recommend specialists error: %s", exc)
-        return Response({"success": True, "data": {"recommendations": []}, "warning": str(exc)[:200]})
+        return _ai_unavailable("Mutaxassis tavsiyalarini olib bo'lmadi: AI xizmati javob bermadi.")
 
 
 @api_view(["POST"])
@@ -373,7 +383,7 @@ def generate_diagnoses(request):
     if not patient_data or not patient_data.get("complaints"):
         return _err(400, "Bemor ma'lumotlari kiritilmagan")
     if not _claude_ok():
-        return Response({"success": True, "data": [], "warning": "AI backend da sozlanmagan."})
+        return _ai_not_configured()
 
     blocked = _run_filter(patient_data)
     if blocked:
@@ -382,11 +392,13 @@ def generate_diagnoses(request):
     try:
         data = claude_utils.generate_diagnoses(patient_data)
         if not data:
-            return Response({"success": True, "data": [], "warning": "AI tashxis qaytarmadi."})
+            # Bo'sh natija "differensial tashxis yo'q" degani emas
+            logger.warning("Generate diagnoses: AI bo'sh natija qaytardi")
+            return _ai_unavailable("AI tashxis qaytarmadi. Natija bo'sh — bu 'tashxis yo'q' degani emas.")
         return Response({"success": True, "data": data})
     except Exception as exc:
         logger.exception("Generate diagnoses error: %s", exc)
-        return Response({"success": True, "data": [], "warning": str(exc)[:200]})
+        return _ai_unavailable("Tashxislarni yaratib bo'lmadi: AI xizmati javob bermadi.")
 
 
 # ---------------------------------------------------------------------------
@@ -420,6 +432,10 @@ def make_clinical_decision(request):
         return _ai_not_configured()
     try:
         return Response({"success": True, "data": clinical_decision_engine.make_autonomous_decision(patient_data, language)})
+    except ClinicalAIUnavailable as exc:
+        # AI javob bermadi — soxta triaj/xavf bahosi qaytarilmaydi
+        logger.exception("Clinical decision AI unavailable (%s): %s", exc.stage, exc.detail)
+        return _ai_unavailable(f"Klinik qaror qabul qilinmadi: AI bosqichi ishlamadi ({exc.stage}).")
     except Exception as exc:
         logger.exception("Clinical decision error: %s", exc)
         return _err(500, "Klinik qaror qabul qilishda xatolik")

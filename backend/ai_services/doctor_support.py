@@ -17,11 +17,13 @@ Prompt Engineering qatlamlari:
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Iterator
 
 from .azure_utils import (
     call_model,
+    stream_model,
     build_messages,
     parse_json,
     patient_text,
@@ -359,30 +361,15 @@ def doctor_consult_stream(
     msgs = build_messages(system, user, want_json=True)
 
     try:
-        if USE_CLAUDE:
-            full = call_model(
-                Deployments.gpt4o(),
-                msgs,
-                response_json=True,
-                temperature=0.1,
-                max_tokens=3000,
-            )
-            if full:
-                yield full
-        else:
-            client = gpt4o_client()
-            stream = client.chat.completions.create(
-                model=Deployments.gpt4o(),
-                messages=msgs,
-                temperature=0.1,
-                max_tokens=3000,
-                response_format={"type": "json_object"},
-                stream=True,
-            )
-            for chunk in stream:
-                delta = chunk.choices[0].delta.content or ""
-                if delta:
-                    yield delta
+        # stream_model() ikkala backendni ham qamrab oladi va stream imkonsiz
+        # bo'lsa o'zi bitta bo'lakka tushadi.
+        yield from stream_model(
+            Deployments.gpt4o(),
+            msgs,
+            response_json=True,
+            temperature=0.1,
+            max_tokens=3000,
+        )
     except Exception as exc:
         logger.error("DoctorSupport stream failed: %s", exc)
-        yield f'{{"error": "{exc}"}}'
+        yield json.dumps({"error": str(exc)}, ensure_ascii=False)

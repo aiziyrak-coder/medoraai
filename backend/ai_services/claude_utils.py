@@ -5,6 +5,7 @@ API key: settings.OPENAI_API_KEY
 import hashlib
 import json
 import logging
+import os
 import re
 
 from django.conf import settings
@@ -17,9 +18,45 @@ _client = None
 CLAUDE_FAST = "gpt-4o-mini"
 CLAUDE_PRO = "gpt-4o"
 
+# OpenAI SDK standart timeout'i 600s va max_retries=2 — ya'ni bitta chaqiruv
+# ~30 daqiqagacha osilib qolishi mumkin. gunicorn_config.py da worker timeout
+# 180s, shuning uchun worker o'lib, o'sha worker'dagi qolgan 3 thread'ning
+# so'rovlari ham birga yiqiladi. Quyidagilar buni oldini oladi:
+#   timeout * (max_retries + 1) < 180s bo'lishi SHART.
+# Env o'zgaruvchilari (settings.py da bo'lsa — o'sha ustun turadi):
+#   AI_REQUEST_TIMEOUT_SEC  - bitta HTTP chaqiruv timeout'i, sekundda (default 60)
+#   AI_MAX_RETRIES          - SDK ichki qayta urinishlari soni (default 1)
+_DEFAULT_REQUEST_TIMEOUT_SEC = 60.0
+_DEFAULT_MAX_RETRIES = 1
+
 
 def _api_key() -> str:
     return (getattr(settings, "OPENAI_API_KEY", None) or "").strip()
+
+
+def _request_timeout_sec() -> float:
+    """Bitta AI HTTP chaqiruvi uchun timeout (sekund)."""
+    raw = getattr(settings, "AI_REQUEST_TIMEOUT_SEC", None)
+    if raw in (None, ""):
+        raw = os.environ.get("AI_REQUEST_TIMEOUT_SEC")
+    try:
+        val = float(raw) if raw not in (None, "") else _DEFAULT_REQUEST_TIMEOUT_SEC
+    except (TypeError, ValueError):
+        val = _DEFAULT_REQUEST_TIMEOUT_SEC
+    # 5s dan kam ma'nosiz; 150s dan ko'p gunicorn timeout'iga sig'maydi
+    return max(5.0, min(150.0, val))
+
+
+def _max_retries() -> int:
+    """SDK ichki qayta urinishlari (0-2)."""
+    raw = getattr(settings, "AI_MAX_RETRIES", None)
+    if raw in (None, ""):
+        raw = os.environ.get("AI_MAX_RETRIES")
+    try:
+        val = int(raw) if raw not in (None, "") else _DEFAULT_MAX_RETRIES
+    except (TypeError, ValueError):
+        val = _DEFAULT_MAX_RETRIES
+    return max(0, min(2, val))
 
 
 def _ai_cost_mode():
@@ -108,7 +145,12 @@ def _get_client():
         from openai import OpenAI
 
         base_url = (getattr(settings, "OPENAI_BASE_URL", None) or "").strip()
-        kwargs: dict = {"api_key": key}
+        # timeout/max_retries MAJBURIY — vision_utils.py dagi kabi (qarang: 168-qator).
+        kwargs: dict = {
+            "api_key": key,
+            "timeout": _request_timeout_sec(),
+            "max_retries": _max_retries(),
+        }
         if base_url:
             kwargs["base_url"] = base_url
         _client = OpenAI(**kwargs)

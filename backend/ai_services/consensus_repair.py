@@ -3,7 +3,6 @@ Konsilium Phase 3 natijasi buzilsa yoki bo'sh qolsa — P1/P2 dan kuchli fallbac
 """
 from __future__ import annotations
 
-import re
 from typing import Any
 
 
@@ -617,49 +616,15 @@ def _normalize_med_dict(m: dict) -> dict:
     }
 
 
-def _parse_med_from_line(text: str) -> dict | None:
-    """Davolash rejasi yoki mutaxassis matnidan dori qatorini ajratadi."""
-    raw = _s(text)
-    if not raw:
-        return None
-    low = raw.lower()
-    if not any(w in low for w in ("farmakoterapiya", "dori", "mg", "mcg", "iu", "tablet", "kapsul", "ml")):
-        return None
+# DIQQAT: matndan (davolash rejasi, anamnez, munozara argumentlari) regex bilan
+# dori "ajratib olish" O'CHIRILDI. "bemor 500 mg paratsetamol qabul qilgan" kabi
+# gap retsept tavsiyasiga aylanib qolar edi. Faqat modelning strukturaviy
+# `medications` / `medication_recommendations` maydonlari ishlatiladi.
 
-    t = re.sub(r"^\d+-qadam:\s*", "", raw, flags=re.I).strip()
-    t = re.sub(
-        r"^(?:farmakoterapiya|dori[- ]?darmon)\s*[—\-:]\s*",
-        "",
-        t,
-        flags=re.I,
-    ).strip()
-
-    name = ""
-    dosage = ""
-    m = re.match(r"^(.+?)\s*[—\-]\s*(.+)$", t)
-    if m:
-        name, dosage = m.group(1).strip(), m.group(2).strip()
-    else:
-        m2 = re.match(
-            r"^([A-Za-zА-Яа-яЁёO'ʻG'g'\-\s]{2,40}?)\s+(\d[\d\s./\-–]*(mg|mcg|g|ml|IU|ME|tab).*)",
-            t,
-            flags=re.I,
-        )
-        if m2:
-            name, dosage = m2.group(1).strip().rstrip(","), m2.group(2).strip()
-        elif "(" in t and ")" in t:
-            name = t.split("(")[0].strip()
-            dosage = t[len(name):].strip(" -—:")
-        else:
-            parts = re.split(r"[.;]", t, maxsplit=1)
-            name = parts[0].strip()
-            dosage = parts[1].strip() if len(parts) > 1 else ""
-
-    if len(name) < 2 or name.lower() in _BAD_MED_NAMES:
-        return None
-    if not dosage and len(name) > 60:
-        return None
-    return _normalize_med_dict({"name": name, "dosage": dosage, "instructions": dosage})
+NO_MEDICATION_NOTE = (
+    "Konsilium dori-darmon tavsiyasini shakllantirmadi. "
+    "Bu \"dori kerak emas\" degani EMAS — farmakoterapiyani shifokor belgilaydi."
+)
 
 
 def _collect_medications(
@@ -667,6 +632,7 @@ def _collect_medications(
     p1: list[dict],
     p2: list[dict],
 ) -> list[dict]:
+    """Faqat strukturaviy dori maydonlaridan yig'adi; matndan hech narsa 'topilmaydi'."""
     seen: set[str] = set()
     out: list[dict] = []
 
@@ -683,59 +649,7 @@ def _collect_medications(
         if isinstance(m, dict):
             add(m)
 
-    for item in consensus.get("treatment_plan") or []:
-        text = _plan_item_to_str(item)
-        add(_parse_med_from_line(text))
-
-    for r in p1 or []:
-        for part in _split_treatment_text(_s(r.get("initial_treatment_notes"))):
-            add(_parse_med_from_line(part))
-
-    for r in p2 or []:
-        defense = r.get("defense") or {}
-        if isinstance(defense, dict):
-            for part in _split_treatment_text(_s(defense.get("argument"))):
-                add(_parse_med_from_line(part))
-        for part in _split_treatment_text(_s(r.get("key_argument"))):
-            add(_parse_med_from_line(part))
-
     return out[:8]
-
-
-def _synthesize_medications(primary: str, consensus: dict) -> list[dict]:
-    """Oxirgi zaxira: davolash rejasi qadamlaridan dori nomlarini ajratish."""
-    if _is_bad_name(primary):
-        primary = "asosiy klinik holat"
-    meds: list[dict] = []
-    for step in consensus.get("treatment_plan") or []:
-        text = _plan_item_to_str(step)
-        if not text:
-            continue
-        for chunk in re.split(r"[,;]| va ", text):
-            parsed = _parse_med_from_line(chunk)
-            if parsed:
-                meds.append(parsed)
-            elif re.search(r"\b(mg|mcg|IU|tablet)\b", chunk, re.I):
-                words = chunk.strip()
-                if 5 < len(words) < 120:
-                    meds.append(_normalize_med_dict({
-                        "name": words[:80],
-                        "dosage": "",
-                        "notes": f"{primary} bo'yicha konsilium tavsiyasi.",
-                    }))
-        if len(meds) >= 3:
-            break
-    if not meds:
-        meds.append(_normalize_med_dict({
-            "name": primary[:100],
-            "dosage": "SSV protokoliga muvofiq individual",
-            "notes": (
-                f"{primary} uchun O'zbekiston SSV klinik protokoliga muvofiq "
-                "farmakoterapiya belgilanadi. Aniq savdo nomi va doza — "
-                "tashxis tasdiqlangach shifokor tomonidan yoziladi."
-            ),
-        }))
-    return meds[:6]
 
 
 def ensure_medications(
@@ -744,8 +658,7 @@ def ensure_medications(
     p2: list[dict],
     primary: str = "",
 ) -> list[dict]:
-    """Mavjud dorilarni tekshiradi; bo'sh bo'lsa P1/P2/rejadan to'ldiradi."""
-    primary = primary or _s((consensus.get("consensus_diagnosis") or {}).get("name"))
+    """Mavjud strukturaviy dorilarni tekshiradi; bo'sh bo'lsa BO'SH qoladi (to'qib chiqarilmaydi)."""
     usable = [
         _normalize_med_dict(m)
         for m in (consensus.get("medications") or [])
@@ -753,10 +666,7 @@ def ensure_medications(
     ]
     if len(usable) >= 1:
         return usable[:8]
-    collected = _collect_medications(consensus, p1, p2)
-    if collected:
-        return collected
-    return _synthesize_medications(primary, consensus)
+    return _collect_medications(consensus, p1, p2)
 
 
 def ensure_treatment_plan(
@@ -832,6 +742,11 @@ def ensure_consensus_from_phases(
 
     consensus["treatment_plan"] = ensure_treatment_plan(consensus, p1, p2, primary)
     consensus["medications"] = ensure_medications(consensus, p1, p2, primary)
+    # Dori ro'yxati bo'sh bo'lsa — bu aniq ko'rsatiladi, to'ldirilmaydi
+    if consensus["medications"]:
+        consensus.pop("medications_note", None)
+    else:
+        consensus["medications_note"] = NO_MEDICATION_NOTE
 
     rejected = _collect_rejected_hypotheses(consensus, p1, p2, primary)
     if rejected:
@@ -866,12 +781,11 @@ def ensure_related_research(consensus: dict, language_hint: str = "uz-L") -> dic
 
 
 def ensure_nutrition_prevention(consensus: dict, language_hint: str = "uz-L") -> dict:
-    """Ovqatlanish va profilaktika bo'sh qolmasin — tashxisga mos fallback yoki to'ldirish."""
+    """Model bergan ovqatlanish/profilaktika bloki bo'sh bo'lsa — UMUMIY (tashxisga bog'liq
+    bo'lmagan) maslahat qo'shiladi. Hech qanday qo'llanma/protokolga havola qilinmaydi va
+    tashxis nomi bu maslahatlarga bog'lanmaydi."""
     if not isinstance(consensus, dict):
         return consensus
-
-    cd = consensus.get("consensus_diagnosis") or {}
-    diag = _s(cd.get("name") if isinstance(cd, dict) else "") or "asosiy tashxis"
 
     np = consensus.get("nutrition_prevention") or consensus.get("nutritionPrevention")
     existing_dietary: list[str] = []
@@ -893,100 +807,73 @@ def ensure_nutrition_prevention(consensus: dict, language_hint: str = "uz-L") ->
     lang = (language_hint or "uz-L").split("-")[0]
     if lang == "ru":
         intro = (
-            f"Рекомендации по питанию и профилактике для «{diag}» основаны на принципах "
-            f"ВОЗ, международных руководствах и национальных протоколах МЗ РУз."
+            "Ниже — ОБЩИЕ рекомендации по здоровому образу жизни. Они НЕ привязаны к "
+            "конкретному диагнозу и не заменяют назначения врача."
         )
         disclaimer = "Индивидуальная диета — только после консультации врача/диетолога."
         dietary = [
-            f"Сбалансированное питание с акцентом на овощи, цельнозерновые и нежирный белок ({diag})",
-            "Ограничение избытка соли (<5 г/сут) и добавленного сахара (ВОЗ)",
+            "Сбалансированное питание: овощи, цельнозерновые, нежирный белок",
+            "Ограничение избытка соли и добавленного сахара",
             "Достаточное потребление воды в течение дня",
             "Дробное питание, избегать переедания и поздних тяжёлых приёмов пищи",
             "Ограничить жареное, копчёное и ультрапереработанные продукты",
         ]
         prevention = [
-            "Регулярная умеренная физическая активность (150 мин/нед, ВОЗ)",
-            "Контроль веса, АД, глюкозы и липидов по показаниям",
+            "Регулярная умеренная физическая активность",
+            "Контроль веса, АД, глюкозы и липидов по назначению врача",
             "Своевременные скрининги и диспансерное наблюдение",
             "Отказ от курения и ограничение алкоголя",
             "Соблюдение режима сна и снижение хронического стресса",
         ]
     elif lang == "en":
         intro = (
-            f"Diet and prevention for «{diag}» align with WHO principles, international "
-            f"guidelines (ESC/ADA/NICE) and Uzbekistan national protocols."
+            "General healthy-lifestyle advice below. It is NOT diagnosis-specific and does "
+            "not replace your physician's instructions."
         )
         disclaimer = "Individual diet plans require physician/dietitian consultation."
         dietary = [
-            f"Balanced plate: vegetables, whole grains, lean protein for {diag}",
-            "Limit salt (<5 g/day) and added sugars (WHO)",
+            "Balanced plate: vegetables, whole grains, lean protein",
+            "Limit salt and added sugars",
             "Adequate daily hydration",
             "Regular meal timing; avoid late heavy meals",
             "Reduce fried, smoked and ultra-processed foods",
         ]
         prevention = [
-            "Moderate physical activity ≥150 min/week (WHO)",
-            "Monitor weight, BP, glucose and lipids as indicated",
+            "Regular moderate physical activity",
+            "Monitor weight, BP, glucose and lipids as your physician advises",
             "Scheduled screenings and follow-up visits",
             "Smoking cessation; limit alcohol",
             "Sleep hygiene and stress reduction",
         ]
     else:
         intro = (
-            f"«{diag}» uchun to'g'ri ovqatlanish va profilaktika tavsiyalari WHO, "
-            f"xalqaro qo'llanmalar (ESC/ADA/NICE) va O'zbekiston SSV protokollari "
-            f"asosida shakllantirildi."
+            "Quyida UMUMIY sog'lom turmush tarzi tavsiyalari keltirilgan. Ular aniq tashxisga "
+            "bog'lanmagan va shifokor tayinlovining o'rnini bosmaydi."
         )
         disclaimer = "Individual parhez va doimiy kuzatuv uchun shifokor/dietolog maslahati shart."
         dietary = [
-            f"Kunlik ratsion: sabzavot, to'liq don, oz yog'li oqsil ({diag} uchun mos)",
-            "Tuz va qo'shilgan shakarni cheklash — kuniga 5 g dan kam (WHO)",
+            "Muvozanatli ratsion: sabzavot, to'liq don, oz yog'li oqsil",
+            "Tuz va qo'shilgan shakarni cheklash",
             "Kun bo'yi yetarli suv ichish",
             "Muntazam ovqatlanish vaqti; kechki og'ir ovqatdan saqlanish",
-            "Qovurilgan, dymli va ultra-qayta ishlangan mahsulotlarni kamaytirish",
+            "Qovurilgan, dudlangan va ultra-qayta ishlangan mahsulotlarni kamaytirish",
         ]
         prevention = [
-            "Haftasiga kamida 150 daqiqa o'rtacha jismoniy faollik (WHO)",
-            "Vazn, qon bosimi, glyukoza va lipidlar nazorati (ko'rsatma bo'yicha)",
+            "Muntazam o'rtacha jismoniy faollik",
+            "Vazn, qon bosimi, glyukoza va lipidlar nazorati (shifokor ko'rsatmasi bo'yicha)",
             "Rejalashtirilgan skrining va dispanser kuzatuv",
             "Chekishni tashlash; alkogolni cheklash",
             "Uyqu rejimi va stressni kamaytirish",
         ]
 
-    individual = [{
-        "diagnosis": diag,
-        "allowed_foods": dietary[:3],
-        "restricted_foods": (
-            [
-                "Избыток соли и сладких напитков",
-                "Очень жирная и жареная пища",
-                "Алкоголь без разрешения врача",
-            ] if lang == "ru" else
-            [
-                "Excess salt and sugary drinks",
-                "Very fatty and fried foods",
-                "Alcohol without physician approval",
-            ] if lang == "en" else
-            [
-                "Ortiqcha tuz va shakarli ichimliklar",
-                "Juda yog'li va qovurilgan taomlar",
-                "Spirtli ichimliklar (shifokor ruxsatisiz)",
-            ]
-        ),
-        "meal_plan_notes": (
-            f"Ежедневное питание при «{diag}» адаптируется индивидуально."
-            if lang == "ru" else
-            f"Daily meals for «{diag}» should be individualized."
-            if lang == "en" else
-            f"«{diag}» uchun kunlik ovqatlanish individual holatga qarab moslashtiriladi."
-        ),
-    }]
-
-    consensus["nutrition_prevention"] = {
+    block = {
         "intro": existing_intro or intro,
         "disclaimer": existing_disclaimer or disclaimer,
         "dietary_guidelines": existing_dietary if len(existing_dietary) >= 3 else dietary,
         "prevention_measures": existing_prevention if len(existing_prevention) >= 3 else prevention,
-        "individual_diet_by_diagnosis": existing_individual if existing_individual else individual,
     }
+    # Tashxisga xos parhez faqat model bergan bo'lsa qoladi — o'zimiz to'qib chiqarmaymiz
+    if existing_individual:
+        block["individual_diet_by_diagnosis"] = existing_individual
+    consensus["nutrition_prevention"] = block
     return consensus

@@ -176,7 +176,7 @@ PROTOCOL_DB: list[dict] = [
         "keywords": ["gipertoniya", "yuqori qon bosim", "AGB", "РіРёРїРµСЂС‚РѕРЅРёСЏ", "hypertension", "qon bosimi"],
         "first_line": ["Amlodipin 5-10mg", "Enalapril 10-20mg", "Losartan 50-100mg"],
         "targets": "< 140/90 mmHg (60 yoshdan: < 150/90)",
-        "ref": "O'zbekiston SSV buyrug'i No. XX (2022)  -  Arterial Gipertoniya protokoli",
+        "ref": "O'zbekiston SSV  -  Arterial Gipertoniya protokoli (2022)",
         "monitoring": "3 oyda 1 marta qon bosimi, yiliga ECG, UZDG",
     },
     {
@@ -437,7 +437,7 @@ SURGERY_PROTOCOLS: list[dict] = [
             "To'liq ovqat iste'mol qilmaslik: kattalarda 6 soat, bolalarda 4 soat",
             "Antibiotik profilaktika: Sefazolin 1-2g operatsiyadan 30 daqiqa oldin",
         ],
-        "ref": "O'zR SSV buyrug'i No. 178  -  Preoperativ tayyorgarlik standarti (2022)",
+        "ref": "O'zR SSV  -  Preoperativ tayyorgarlik standarti (2022)",
     },
     {
         "id": "uz-ssv-anesthesia-2023",
@@ -466,7 +466,7 @@ SURGERY_PROTOCOLS: list[dict] = [
             "Infuzion terapiya: Ringer laktati yoki Natriy xlorid 0.9%",
             "Antibiotiklar: Qo'shimcha 24-48 soat (zarur bo'lsa)",
         ],
-        "ref": "O'zR SSV buyrug'i No. 201  -  Postoperativ parvarishlash standarti (2022)",
+        "ref": "O'zR SSV  -  Postoperativ parvarishlash standarti (2022)",
     },
     {
         "id": "uz-ssv-sterile-2021",
@@ -480,7 +480,7 @@ SURGERY_PROTOCOLS: list[dict] = [
             "Asboblar: Avtoklavda 134°C 3 daqiqa yoki ETO",
             "SSI oldini olish: WHO protokoli (checklist)",
         ],
-        "ref": "O'zR SSV buyrug'i No. 102  -  Infeksion nazorat standarti (2021)",
+        "ref": "O'zR SSV  -  Infeksion nazorat standarti (2021)",
     },
 ]
 

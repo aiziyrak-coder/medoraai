@@ -1,5 +1,7 @@
 """Farg'ona JSTI Ziyrak URL patterns  -  /api/ziyrak/*"""
 from django.urls import path
+
+from .emergency_views import emergency_triage_view
 from .views import (
     run_consilium_view,
     doctor_support_view,
@@ -59,4 +61,7 @@ urlpatterns = [
     path("recommend-specialists/",             recommend_specialists,         name="recommend_specialists"),
     path("generate-diagnoses/",                generate_diagnoses,            name="generate_diagnoses"),
     path("tools/<str:tool_name>/",             clinical_tool_view,            name="clinical_tool"),
+
+    # -- 103 Tezkor triaj ---------------------------------------------
+    path("emergency-triage/", emergency_triage_view, name="ziyrak_emergency_triage"),
 ]

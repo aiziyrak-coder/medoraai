@@ -2,6 +2,7 @@
 AI Services URLs  -  Azure AI Foundry
 """
 from django.urls import path
+from .emergency_views import emergency_triage_view
 from .views import (
     test_claude,
     clinical_tool_view,
@@ -46,4 +47,6 @@ urlpatterns = [
     path("learning/outcome/", record_treatment_outcome, name="record_treatment_outcome"),
     path("learning/improve/", get_improved_protocol,    name="get_improved_protocol"),
 
+    # -- 103 Tezkor triaj ------------------------------------------------
+    path("emergency-triage/", emergency_triage_view, name="emergency_triage"),
 ]

@@ -48,6 +48,7 @@ from .azure_utils import (
     parse_json,
     patient_text,
     Deployments,
+    JSONParseError,
 )
 from .debate_format import (
     CLINICAL_OUTPUT_RULES,
@@ -179,8 +180,11 @@ ORCHESTRATOR = Agent(
 _AGENT_ID_MAP: dict[str, Agent] = {a.id: a for a in AGENTS}
 _AGENT_ID_MAP[ORCHESTRATOR.id] = ORCHESTRATOR
 
-# Joriy konsilium uchun faol agentlar (run_consilium boshida o'rnatiladi)
-_active_consilium_agents: list[Agent] = list(AGENTS)
+# Faol agentlar ro'yxati SO'ROV DOIRASIDA bo'ladi (global emas!).
+# gunicorn gthread + threads=4 da global holat ikki shifokorning konsiliumini
+# aralashtirib yuboradi, shuning uchun ro'yxat chaqiruv zanjiri orqali
+# oshkora uzatiladi. Bu — faqat zaxira (fallback) qiymat.
+_DEFAULT_CONSILIUM_AGENTS: tuple[Agent, ...] = tuple(AGENTS)
 
 # Konsilium professor idlari (multi_agent_consilium bilan mos)
 _PROF_ID_ALIASES: dict[str, str] = {
@@ -202,14 +206,15 @@ def _agent_specialty_label(agent_id: str) -> str:
     return _specialty_from_agent_obj(agent, resolved)
 
 
-def _active_agents() -> list[Agent]:
-    """Joriy konsilium uchun tanlangan professor agentlari."""
-    return list(_active_consilium_agents)
+def _active_agents(agents: Optional[list[Agent]] = None) -> list[Agent]:
+    """Shu so'rov uchun tanlangan professor agentlari (berilmasa — zaxira ro'yxat)."""
+    if agents:
+        return list(agents)
+    return list(_DEFAULT_CONSILIUM_AGENTS)
 
 
 def _configure_consilium_agents(extra: Optional[dict] = None) -> list[Agent]:
-    """Bemor va tanlangan mutaxassislarga mos agentlar."""
-    global _active_consilium_agents
+    """Bemor va tanlangan mutaxassislarga mos agentlar (global holatga yozmaydi)."""
     from .specialist_routing import agent_ids_for_specialists
 
     extra = extra or {}
@@ -230,7 +235,6 @@ def _configure_consilium_agents(extra: Optional[dict] = None) -> list[Agent]:
     if len(picked) < 2:
         picked = list(AGENTS)[:limit]
 
-    _active_consilium_agents = picked
     logger.info("Consilium agents: %s", [a.id for a in picked])
     return picked
 
@@ -327,13 +331,14 @@ def run_orchestrator_opening(
     language: str = "uz-L",
     patient_data: Optional[dict] = None,
     extra: Optional[dict] = None,
+    agents: Optional[list[Agent]] = None,
 ) -> dict:
     """Rais konsiliumni ochadi — qisqa xulosa (to'liq karta mutaxassislarga alohida)."""
     from .consilium_cost import ai_cost_mode
 
     language = normalize_language(language)
     lang = _LANG_HINT.get(language, _LANG_HINT["uz-L"])
-    roster = format_specialist_roster(_active_agents())
+    roster = format_specialist_roster(_active_agents(agents))
     brief = build_opening_context(patient_data, extra, language=language) or patient_str[:800]
     t0 = time.monotonic()
 
@@ -444,7 +449,8 @@ def _phase1_single(agent: Agent, patient_str: str, language: str = "uz-L") -> di
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
                             response_json=True, temperature=0.4, max_tokens=phase1_max_tokens())
-        result = parse_json(raw, f"p1_{agent.id}")
+        # strict=True: kesilgan/buzilgan JSON endi bo'sh {} dan farqlanadi
+        result = parse_json(raw, f"p1_{agent.id}", strict=True)
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
         logger.error("Phase1[%s] failed: %s", agent.id, exc)
@@ -462,25 +468,33 @@ def _phase1_single(agent: Agent, patient_str: str, language: str = "uz-L") -> di
     return result
 
 
-def run_phase1(patient_str: str, language: str = "uz-L") -> list[dict]:
+def run_phase1(patient_str: str, language: str = "uz-L",
+               agents: Optional[list[Agent]] = None) -> list[dict]:
     """Mustaqil tahlil — faol agentlar parallel."""
     language = normalize_language(language)
-    agents = _active_agents()
+    agents = _active_agents(agents)
     order = {a.id: i for i, a in enumerate(agents)}
     timeout = phase_timeout_sec()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
+    # `with` bloki ishlatilmaydi: uning yashirin shutdown(wait=True) i osilib
+    # qolgan future tugaguncha bloklaydi va faza timeout'i ma'nosiz bo'lib qoladi.
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=len(agents))
+    try:
         futures = {pool.submit(_phase1_single, a, patient_str, language): a for a in agents}
         results = []
-        for fut in concurrent.futures.as_completed(futures):
-            agent = futures[fut]
+        deadline = time.monotonic() + timeout
+        for fut, agent in futures.items():
             try:
-                results.append(fut.result(timeout=timeout))
+                results.append(fut.result(timeout=max(0.0, deadline - time.monotonic())))
             except Exception as exc:
                 logger.error("Phase1 timeout[%s]: %s", agent.id, exc)
                 results.append({
                     "agent_id": agent.id, "agent_name": agent.name,
                     "primary_diagnosis": "Timeout", "error": str(exc),
                 })
+    finally:
+        # Tashlab ketilgan future'larni KUTMAYMIZ. Thread'lar oqib ketmaydi, chunki
+        # har bir AI chaqiruvi klient timeout'i bilan cheklangan (claude_utils).
+        pool.shutdown(wait=False, cancel_futures=True)
     results.sort(key=lambda x: order.get(x.get("agent_id", ""), 99))
     return results
 
@@ -678,7 +692,7 @@ def _phase2_single(agent: Agent, patient_str: str,
         raw    = call_model(agent.deployment,
                             build_messages(system, user, want_json=True),
                             response_json=True, temperature=0.42, max_tokens=phase2_max_tokens())
-        result = parse_json(raw, f"p2_{agent.id}")
+        result = parse_json(raw, f"p2_{agent.id}", strict=True)
         result = result if isinstance(result, dict) else {}
     except Exception as exc:
         logger.error("Phase2[%s] failed: %s", agent.id, exc)
@@ -691,31 +705,36 @@ def _phase2_single(agent: Agent, patient_str: str,
     return result
 
 
-def run_phase2(patient_str: str, p1: list[dict], language: str = "uz-L") -> list[dict]:
+def run_phase2(patient_str: str, p1: list[dict], language: str = "uz-L",
+               agents: Optional[list[Agent]] = None) -> list[dict]:
     """Bahslashuv — faol agentlar parallel (scale rejimida sintez)."""
     language = normalize_language(language)
     if skip_phase2_debate():
         logger.info("Phase 2 skipped (scale/economy) — synthesizing from Phase 1")
         return _synthesize_phase2_from_phase1(p1, language)
 
-    agents = _active_agents()
+    agents = _active_agents(agents)
     order      = {a.id: i for i, a in enumerate(agents)}
     id_to_p1   = {r.get("agent_id"): r for r in p1}
     timeout = phase_timeout_sec()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as pool:
+    # Phase 1 dagi kabi: osilib qolgan future'ni kutmaslik uchun `with` yo'q.
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=len(agents))
+    try:
         futures = {}
         for agent in agents:
             own    = id_to_p1.get(agent.id, {})
             others = [r for r in p1 if r.get("agent_id") != agent.id]
             futures[pool.submit(_phase2_single, agent, patient_str, own, others, language)] = agent
         results = []
-        for fut in concurrent.futures.as_completed(futures):
-            agent = futures[fut]
+        deadline = time.monotonic() + timeout
+        for fut, agent in futures.items():
             try:
-                results.append(fut.result(timeout=timeout))
+                results.append(fut.result(timeout=max(0.0, deadline - time.monotonic())))
             except Exception as exc:
                 logger.error("Phase2 timeout[%s]: %s", agent.id, exc)
                 results.append({"agent_id": agent.id, "error": str(exc)})
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
     results.sort(key=lambda x: order.get(x.get("agent_id", ""), 99))
     return results
 
@@ -724,13 +743,14 @@ def run_phase2(patient_str: str, p1: list[dict], language: str = "uz-L") -> list
 # Refutation Scoring  (Orchestrator komponent)
 # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 
-def _score_refutations(p2: list[dict]) -> dict[str, float]:
+def _score_refutations(p2: list[dict],
+                       agents: Optional[list[Agent]] = None) -> dict[str, float]:
     """
     Har bir agentga refutation kuchiga qarab WEIGHT hisoblash.
     STRONG refutation qilgan agent +0.3, WEAK в€’0.1 oladi.
     Kimning tashxisi ko'p inkor qilinsa, weight'i kamayadi.
     """
-    weights: dict[str, float] = {a.id: 1.0 for a in _active_agents()}
+    weights: dict[str, float] = {a.id: 1.0 for a in _active_agents(agents)}
 
     for resp in p2:
         agent_id   = resp.get("agent_id", "")
@@ -913,12 +933,22 @@ def run_phase3(patient_str: str, p1: list[dict],
         raw    = call_model(ORCHESTRATOR.deployment,
                             build_messages(system, user, want_json=True),
                             response_json=True, temperature=0.08, max_tokens=phase3_max_tokens())
-        result = parse_json(raw, "p3_consensus")
-        result = result if isinstance(result, dict) else {}
+        # strict=True — rais modeli javobi kesilgan bo'lsa, uni "bo'sh konsensus"
+        # deb qabul qilmaymiz; xato ochiq belgilanadi.
+        result = parse_json(raw, "p3_consensus", strict=True)
+        if not isinstance(result, dict):
+            raise JSONParseError("p3_consensus")
         result["agent_weights_used"] = weights
     except Exception as exc:
         logger.error("Phase3 consensus failed: %s", exc)
-        result = {"error": str(exc)}
+        result = {
+            "error": str(exc),
+            # Chaqiruvchi buni ko'radi: konsensus fragmentlardan qayta yig'ilgan,
+            # rais modeli o'z javobini bermagan.
+            "_chair_model_failed": True,
+            "_chair_model_error": str(exc),
+            "agent_weights_used": weights,
+        }
     result["_elapsed_ms"] = round((time.monotonic() - t0) * 1000)
     return result
 
@@ -1010,6 +1040,16 @@ def _chair_debate_entry(entry_id: str, phase: str, content: str) -> dict:
     }
 
 
+def _safe_probability(value, default: int) -> int:
+    """Model "94%" yoki bo'sh qiymat qaytarsa ham ValueError bermaydi."""
+    if value is None or value == "":
+        return default
+    try:
+        return int(float(str(value).strip().replace("%", "").replace(",", ".")))
+    except (TypeError, ValueError):
+        return default
+
+
 def _build_final_report(consensus: dict, p1: list[dict],
                         p2: list[dict], weights: dict[str, float],
                         orchestrator_opening: str = "",
@@ -1083,6 +1123,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
     ) or _nutrition_prevention_from_consensus(consensus)
 
     from .prognosis_builder import build_prognosis_report
+    # Model prognoz bermasa None — soxta prognoz ilinmaydi, maydon umuman qo'shilmaydi
     prognosis_report = build_prognosis_report(consensus, patient_data, language)
 
     report = {
@@ -1092,7 +1133,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
                 "icd10":              str(cd.get("icd10", "")),
                 "icd10Description":   str(cd.get("icd10_description") or cd.get("icd10Description") or ""),
                 "diagnosisRank":      1,
-                "probability":        int(cd.get("probability") or 70),
+                "probability":        _safe_probability(cd.get("probability"), 70),
                 "justification":      str(cd.get("justification", "")),
                 "evidenceLevel":      str(cd.get("evidence_level") or "Moderate"),
                 "reasoningChain":     cd.get("reasoning_chain") or [],
@@ -1104,7 +1145,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
                 "icd10":              str(d.get("icd10", "")),
                 "icd10Description":   str(d.get("icd10_description") or d.get("icd10Description") or ""),
                 "diagnosisRank":      idx + 2,
-                "probability":        int(d.get("probability") or 25),
+                "probability":        _safe_probability(d.get("probability"), 25),
                 "justification":      str(d.get("reason", "")),
                 "evidenceLevel":      "Moderate",
                 "reasoningChain":     [],
@@ -1124,6 +1165,9 @@ def _build_final_report(consensus: dict, p1: list[dict],
         ],
         "treatmentPlan":             consensus.get("treatment_plan") or [],
         "medicationRecommendations": meds,
+        # Dori tavsiyasi shakllanmagan bo'lsa — bu aniq ko'rsatiladi (bo'sh ro'yxat "kerak emas" emas)
+        **({"medicationsNote": str(consensus.get("medications_note"))}
+           if not meds and consensus.get("medications_note") else {}),
         "recommendedTests":          consensus.get("recommended_tests") or [],
         "unexpectedFindings":        (
             consensus.get("unexpected_findings")
@@ -1156,7 +1200,7 @@ def _build_final_report(consensus: dict, p1: list[dict],
             for a in AGENTS
         ],
         "generatedBy": "Farg'ona jamoat salomatligi tibbiyot instituti (FJSTI)  -  Multi-Agent Konsilium",
-        "prognosisReport": prognosis_report,
+        **({"prognosisReport": prognosis_report} if prognosis_report else {}),
         **({"folkMedicine": folk_medicine} if folk_medicine else {}),
         **({"nutritionPrevention": nutrition_prevention} if nutrition_prevention else {}),
     }
@@ -1310,26 +1354,34 @@ def run_consilium(
 
     # Orchestrator opening
     logger.info("[%s] Orchestrator: konsilium ochilmoqda", result.session_id)
-    opening = run_orchestrator_opening(ptext, language, patient_data=patient_data, extra=ctx_extra)
+    opening = run_orchestrator_opening(ptext, language, patient_data=patient_data,
+                                       extra=ctx_extra, agents=active)
     result.phases["orchestrator_opening"] = opening
 
     # Phase 1 — to'liq klinik kontekst
     logger.info("[%s] Phase 1: Independent analysis started (%d agents)", result.session_id, len(active))
-    p1 = run_phase1(ptext, language)
+    p1 = run_phase1(ptext, language, agents=active)
     result.phases["phase1_independent"] = p1
 
     # Phase 2 — scale rejimida sintez, aks holda bahslashuv
     logger.info("[%s] Phase 2: Cross-examination started", result.session_id)
-    p2 = run_phase2(ptext, p1, language)
+    p2 = run_phase2(ptext, p1, language, agents=active)
     result.phases["phase2_debate"] = p2
 
     # Refutation scoring
-    weights = _score_refutations(p2)
+    weights = _score_refutations(p2, agents=active)
     result.phases["refutation_weights"] = weights
 
     # Phase 3 — to'liq kontekst + boyitilgan P1/P2
     logger.info("[%s] Phase 3: Weighted consensus started", result.session_id)
     consensus = run_phase3(ptext, p1, p2, weights, language)
+    # Rais modeli javob bermagan bo'lsa — buni YASHIRMAYMIZ. Quyidagi
+    # ensure_consensus_from_phases() konsensusni fragmentlardan qayta yig'adi,
+    # shuning uchun natija "to'liq konsilium" ko'rinishida chiqmasligi kerak.
+    chair_failed = bool(consensus.get("_chair_model_failed"))
+    chair_error = str(consensus.get("_chair_model_error") or "")
+    if chair_failed:
+        logger.error("[%s] Chair model failed: %s", result.session_id, chair_error)
     from .consensus_repair import ensure_consensus_from_phases
     consensus = ensure_consensus_from_phases(consensus, p1, p2, weights, language)
     consensus = _merge_imaging_into_consensus(consensus, patient_data)
@@ -1375,6 +1427,17 @@ def run_consilium(
     )
     if pharma.get("warnings"):
         result.final_report["pharmacologyWarnings"] = pharma.get("warnings")
+    if chair_failed:
+        result.phases["chair_model_failed"] = {"failed": True, "error": chair_error}
+        result.final_report["chairModelFailed"] = {
+            "failed": True,
+            "error": chair_error,
+            "message": (
+                "Rais modeli yakuniy konsensusni qaytara olmadi. Quyidagi xulosa "
+                "mutaxassislar fikrlaridan avtomatik yig'ildi — shifokor tomonidan "
+                "qo'lda tekshirilishi shart."
+            ),
+        }
     if red_flags:
         result.final_report["clinicalRedFlags"] = red_flags
         critical = [f for f in red_flags if f.get("severity") == "critical"]
@@ -1393,4 +1456,5 @@ def run_consilium(
     out = result.to_dict()
     out["clinical_red_flags"] = red_flags
     out["clinical_completeness"] = completeness
+    out["chair_model_failed"] = chair_failed
     return out
