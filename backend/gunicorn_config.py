@@ -13,19 +13,24 @@ _LOGDIR = os.path.join(_BASE, "logs")
 os.makedirs(_LOGDIR, exist_ok=True)
 
 # --- Bind ---
-bind             = "127.0.0.1:8000"          # Nginx orqali proxy
+# Muhit o'zgaruvchisidan. Port serverga qarab farq qiladi (aishifokor 8100
+# da ishlaydi). Qotirib qo'yilsa, deploy paytida bu fayl almashtirilganda
+# xizmat boshqa portda ko'tariladi va nginx uni topolmay qoladi.
+bind             = os.environ.get("GUNICORN_BIND", "127.0.0.1:8000")
 backlog          = 2048
 
 # --- Workers ---
-# Azure B2s = 2 vCPU -> 2*2+1 = 5 worker; lekin AI zakodirovka uchun 4 qoldiring
-workers          = multiprocessing.cpu_count() * 2 + 1
-worker_class     = "gthread"                  # AI streaming uchun threaded
-threads          = 4                           # Har bir worker uchun thread soni
+# 2*CPU+1, lekin 16 tadan oshmasin: umumiy serverda 32 yadro bo'lganda
+# 65 ta worker ko'tariladi va har biri Django'ni preload qilib xotirani yeydi.
+_default_workers = min(multiprocessing.cpu_count() * 2 + 1, 16)
+workers          = int(os.environ.get("GUNICORN_WORKERS", _default_workers))
+worker_class     = os.environ.get("GUNICORN_WORKER_CLASS", "gthread")
+threads          = int(os.environ.get("GUNICORN_THREADS", 4))
 worker_connections = 1000
 
 # --- Timeout ---
 # AI Consilium so'rovlari 60-120s ga etadi; shuning uchun 180s
-timeout          = 180
+timeout          = int(os.environ.get("GUNICORN_TIMEOUT", 180))
 graceful_timeout = 30
 keepalive        = 5
 

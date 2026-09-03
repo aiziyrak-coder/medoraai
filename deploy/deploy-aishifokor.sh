@@ -96,7 +96,17 @@ rsync -a --delete \
   --exclude='staticfiles/' \
   --exclude='__pycache__/' \
   --exclude='*.pyc' \
+  --exclude='gunicorn_config.py' \
   "$TMP/src/backend/" "$APP/backend/"
+
+# gunicorn_config.py serverga moslangan (bu yerda port 8100, repo'da 8000).
+# Uni almashtirsak xizmat noto'g'ri portda ko'tariladi va nginx topolmaydi —
+# bir marta shunday bo'lgan. Shuning uchun tegilmaydi.
+# Port haqiqatan nginx kutgan port ekanini tekshiramiz:
+want_port=$(grep -o '127\.0\.0\.1:[0-9]*' /etc/nginx/sites-enabled/aishifokor.uz | head -1 | cut -d: -f2)
+have_port=$(cd "$APP/backend" && GUNICORN_BIND="${GUNICORN_BIND:-}" \
+  venv/bin/python -c "import runpy;print(runpy.run_path('gunicorn_config.py')['bind'])" 2>/dev/null | cut -d: -f2)
+echo "nginx kutmoqda: $want_port | gunicorn standarti: $have_port (systemd GUNICORN_BIND bilan bekor qiladi)"
 
 # ---------------------------------------------------------- 4. PAKETLAR
 say "4/7 Paketlar (Django 5.0.1 -> 5.2.14)"
