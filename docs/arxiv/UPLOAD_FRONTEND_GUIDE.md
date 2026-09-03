@@ -10,7 +10,7 @@ $remotePath = "/root/AiDoktorai/frontend/dist"
 
 # PSCP (PuTTY) yoki WinSCP ishlatish
 # Agar PSCP bo'lsa:
-pscp.exe -pw Ziyrak2025Ai -r "$distPath\*" "$server`:$remotePath"
+pscp.exe -pw ${SERVER_PASSWORD} -r "$distPath\*" "$server`:$remotePath"
 ```
 
 ---
@@ -41,14 +41,14 @@ python upload_frontend_to_server.py
 cd /mnt/e/medoraai/frontend
 scp -r dist/* root@167.71.53.238:/root/AiDoktorai/frontend/dist/
 ```
-Password: `Ziyrak2025Ai`
+Password: `${SERVER_PASSWORD}`
 
 ### 2. Yoki PowerShell + OpenSSH:
 ```powershell
 cd E:\medoraai\frontend
 scp -r dist\* root@167.71.53.238:/root/AiDoktorai/frontend/dist/
 ```
-Password: `Ziyrak2025Ai`
+Password: `${SERVER_PASSWORD}`
 
 ---
 
@@ -60,7 +60,7 @@ Password: `Ziyrak2025Ai`
 $distPath = "E:\medoraai\frontend\dist"
 $serverUser = "root"
 $serverHost = "167.71.53.238"
-$serverPass = "Ziyrak2025Ai"
+$serverPass = "${SERVER_PASSWORD}"
 $remotePath = "/root/AiDoktorai/frontend/dist"
 
 Write-Host "🚀 Frontend yuklash boshlandi..." -ForegroundColor Cyan

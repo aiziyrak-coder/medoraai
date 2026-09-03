@@ -24,12 +24,21 @@ jobs:
       - name: Django system check
         env:
           DEBUG: 'False'
-          SECRET_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
-        run: python manage.py check --deploy
+        run: |
+          export SECRET_KEY="$(python -c 'import secrets;print(secrets.token_urlsafe(64))')"
+          python manage.py check --deploy
       - name: Django check (DEBUG dev)
         env:
           DEBUG: 'True'
         run: python manage.py check
+      - name: Migratsiyalar modellarga mos
+        env:
+          DEBUG: 'True'
+        run: python manage.py makemigrations --check --dry-run
+      - name: Testlar
+        env:
+          DEBUG: 'True'
+        run: python manage.py test
 
   frontend:
     runs-on: ubuntu-latest
@@ -44,6 +53,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - name: Testlar
+        run: npm run test:sse
       - run: npm run build
-        env:
-          VITE_ANTHROPIC_API_KEY: ''
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Kodda sir yo'qligini tekshirish
+        run: python scripts/check_secrets.py

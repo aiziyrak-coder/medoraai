@@ -233,7 +233,7 @@ git push origin main
 ### Serverga deploy:
 ```bash
 ssh root@167.71.53.238
-# Password: Ziyrak2025Ai
+# Password: ${SERVER_PASSWORD}
 
 cd /root/AiDoktorai && git pull origin main
 ```

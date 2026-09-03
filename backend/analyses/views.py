@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsAuthenticatedWithSubscription
+from django.db import transaction
 from django.db.models import Count, Min, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from accounts.group_scope import clinic_peer_user_ids
@@ -59,6 +60,13 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         return queryset
 
     def _log_audit(self, analysis, action, extra=None):
+        """
+        Tibbiy audit izi — xatoni yutmaydi.
+        Yozuvni ochiq-oydin log qiladi va xatoni yuqoriga uzatadi: chaqiruvchilar buni
+        transaction.atomic() ichida bajaradi, shuning uchun audit yozilmasa asosiy yozuv
+        ham rollback bo'ladi. Qayd etilmagan o'zgarish — qayd etilgan xatolikdan yomonroq;
+        mijoz so'rovni qayta yuborishi mumkin, lekin "sassiz" audit teshigi qolmaydi.
+        """
         try:
             AnalysisAuditLog.objects.create(
                 analysis=analysis,
@@ -67,15 +75,23 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 extra=extra or {}
             )
         except Exception:
-            pass
+            logger.exception(
+                'AUDIT WRITE FAILED: analysis_id=%s action=%s user_id=%s',
+                getattr(analysis, 'id', None),
+                action,
+                getattr(getattr(self.request, 'user', None), 'id', None),
+            )
+            raise
 
     def perform_create(self, serializer):
-        super().perform_create(serializer)
-        self._log_audit(serializer.instance, 'created')
+        with transaction.atomic():
+            super().perform_create(serializer)
+            self._log_audit(serializer.instance, 'created')
 
     def perform_update(self, serializer):
-        super().perform_update(serializer)
-        self._log_audit(serializer.instance, 'updated')
+        with transaction.atomic():
+            super().perform_update(serializer)
+            self._log_audit(serializer.instance, 'updated')
 
     @action(detail=True, methods=['get'], url_path='audit')
     def audit_log(self, request, pk=None):
@@ -100,11 +116,12 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
         from django.utils import timezone as dj_tz
         analysis = self.get_object()
         note = (request.data.get('note') or '').strip()[:2000]
-        analysis.physician_signed_at = dj_tz.now()
-        analysis.physician_signed_by = request.user
-        analysis.physician_sign_note = note
-        analysis.save(update_fields=['physician_signed_at', 'physician_signed_by', 'physician_sign_note', 'updated_at'])
-        self._log_audit(analysis, 'updated', extra={'physician_sign': True, 'note': note[:200]})
+        with transaction.atomic():
+            analysis.physician_signed_at = dj_tz.now()
+            analysis.physician_signed_by = request.user
+            analysis.physician_sign_note = note
+            analysis.save(update_fields=['physician_signed_at', 'physician_signed_by', 'physician_sign_note', 'updated_at'])
+            self._log_audit(analysis, 'updated', extra={'physician_sign': True, 'note': note[:200]})
         return Response({
             'success': True,
             'message': 'Hisobot tasdiqlandi',
@@ -125,9 +142,11 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 'error': {'code': 400, 'message': "useful (true/false) majburiy"}
             }, status=status.HTTP_400_BAD_REQUEST)
         comment = (request.data.get('comment') or '').strip()[:2000]
+        # Har bir shifokor faqat o'z bahosini yangilaydi (boshqasinikini ustiga yozmaydi)
         obj, created = AnalysisUsefulnessFeedback.objects.update_or_create(
             analysis=analysis,
-            defaults={'user': request.user, 'useful': bool(useful), 'comment': comment}
+            user=request.user,
+            defaults={'useful': bool(useful), 'comment': comment}
         )
         return Response({
             'success': True,
@@ -285,10 +304,16 @@ class AnalysisRecordViewSet(viewsets.ModelViewSet):
                 )[:8]
             ]
 
+            # Har bir shifokorning alohida ovozi hisobga olinadi (bitta so'rovda)
             from .models import AnalysisUsefulnessFeedback
-            fb_qs = AnalysisUsefulnessFeedback.objects.filter(analysis__in=queryset)
-            fb_total = fb_qs.count()
-            fb_positive = fb_qs.filter(useful=True).count()
+            fb = AnalysisUsefulnessFeedback.objects.filter(
+                analysis__in=queryset.values('id'),
+            ).aggregate(
+                total=Count('id'),
+                positive=Count('id', filter=Q(useful=True)),
+            )
+            fb_total = fb['total'] or 0
+            fb_positive = fb['positive'] or 0
             feedback_accuracy = round(fb_positive / fb_total, 3) if fb_total > 0 else None
 
             data = {

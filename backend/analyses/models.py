@@ -107,11 +107,16 @@ class AnalysisAuditLog(models.Model):
 
 
 class AnalysisUsefulnessFeedback(models.Model):
-    """Shifokor fikri: konsilium natijasi foydali bo'ldimi?"""
-    analysis = models.OneToOneField(
+    """
+    Shifokor fikri: konsilium natijasi foydali bo'ldimi?
+    Har bir shifokor o'z bahosini beradi (tahlil + foydalanuvchi bo'yicha yagona):
+    ilgari OneToOneField edi va bir shifokor boshqasining bahosini ustiga yozib yuborardi,
+    natijada "AI aniqligi" foizi bitta o'zgaruvchan ovozdan hisoblanardi.
+    """
+    analysis = models.ForeignKey(
         AnalysisRecord,
         on_delete=models.CASCADE,
-        related_name='usefulness_feedback',
+        related_name='usefulness_feedbacks',
         verbose_name='Tahlil'
     )
     user = models.ForeignKey(
@@ -128,6 +133,10 @@ class AnalysisUsefulnessFeedback(models.Model):
     class Meta:
         verbose_name = 'Tahlil foydaliligi fikri'
         verbose_name_plural = 'Tahlil foydaliligi fikrlari'
+        unique_together = ['analysis', 'user']
+        indexes = [
+            models.Index(fields=['analysis'], name='an_useful_analysis_idx'),
+        ]
 
     def __str__(self):
         return f"Tahlil #{self.analysis_id} — {'Foydali' if self.useful else 'Foydali emas'}"
