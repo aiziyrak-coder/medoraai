@@ -87,16 +87,23 @@ venv/bin/python manage.py collectstatic --noinput >/dev/null
 venv/bin/python manage.py check --deploy 2>&1 | tail -5
 
 # ------------------------------------------------------------ 6. FRONTEND
-say "6/7 Frontend"
-if [ -d "/home/admin_root/aishifokor-dist-new" ]; then
-  rm -rf "$APP/frontend/dist.old"
-  [ -d "$APP/frontend/dist" ] && mv "$APP/frontend/dist" "$APP/frontend/dist.old"
-  cp -r /home/admin_root/aishifokor-dist-new "$APP/frontend/dist"
-  echo "yangi dist qo'yildi (eskisi: frontend/dist.old)"
-else
-  echo "OTKAZIB YUBORILDI: /home/admin_root/aishifokor-dist-new yo'q."
-  echo "  Frontend o'zgarishlari ko'rinmaydi. dist ni yuklab, skriptni qayta ishga tushiring."
+say "6/7 Frontend (serverda quriladi)"
+# Vaqtinchalik katalogda quramiz — dist tayyor bo'lgunicha eski sayt ishlab turadi.
+cd "$TMP/src/frontend"
+npm ci --silent
+VITE_API_BASE_URL="https://aishifokor.uz/api" npm run build >/dev/null
+[ -f dist/index.html ] || die "frontend qurilmadi"
+
+# Kalit bundle'ga tushib qolmaganini tekshiramiz (vite.config o'zgargan, lekin ishonch shart).
+if grep -rqE 'sk-ant-|AIza[0-9A-Za-z_-]{35}' dist/assets/*.js 2>/dev/null; then
+  die "dist ichida API kalit topildi — deploy to'xtatildi"
 fi
+
+rm -rf "$APP/frontend/dist.old"
+[ -d "$APP/frontend/dist" ] && mv "$APP/frontend/dist" "$APP/frontend/dist.old"
+cp -r dist "$APP/frontend/dist"
+cd "$APP/backend"
+echo "yangi dist qo'yildi (eskisi: frontend/dist.old)"
 
 # ------------------------------------------------------------- 7. RESTART
 say "7/7 Servislarni qayta ishga tushirish (sudo paroli so'raladi)"
