@@ -89,9 +89,14 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py assign_fjsti_group 2>/dev/null || true
 
-ADMIN_PHONE="${ADMIN_PHONE:-+998995751111}"
-ADMIN_PASS="${ADMIN_PASSWORD:-admin1234}"
-python manage.py ensure_superuser --phone "$ADMIN_PHONE" --password "$ADMIN_PASS" --name "AiShifokor Admin" 2>/dev/null || true
+# Superuser faqat ADMIN_PASSWORD berilgan bo'lsa yaratiladi/yangilanadi.
+# Ilgari bu yerda zaxira parol qotirilgan edi — server ochiq qolardi.
+if [ -n "${ADMIN_PASSWORD:-}" ] && [ -n "${ADMIN_PHONE:-}" ]; then
+  python manage.py ensure_superuser --phone "$ADMIN_PHONE" --password "$ADMIN_PASSWORD" --name "AiShifokor Admin"
+else
+  echo "OGOHLANTIRISH: ADMIN_PHONE/ADMIN_PASSWORD berilmadi — superuser o'tkazib yuborildi."
+  echo "  Kerak bo'lsa: ADMIN_PHONE=+998... ADMIN_PASSWORD=<12+ belgi> bash $0"
+fi 2>/dev/null || true
 
 install -m 644 "$ROOT/deploy/systemd/aishifokor-backend.service" /etc/systemd/system/aishifokor-backend.service
 systemctl daemon-reload

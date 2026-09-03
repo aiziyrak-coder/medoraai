@@ -89,9 +89,14 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
 # Django admin superuser (telefon + parol)
-ADMIN_PHONE="${ADMIN_PHONE:-+998995751111}"
-ADMIN_PASS="${ADMIN_PASSWORD:-admin1234}"
-python manage.py ensure_superuser --phone "$ADMIN_PHONE" --password "$ADMIN_PASS" --name "FJSTI Admin"
+# Superuser faqat ADMIN_PASSWORD berilgan bo'lsa yaratiladi/yangilanadi.
+# Ilgari bu yerda zaxira parol qotirilgan edi — server ochiq qolardi.
+if [ -n "${ADMIN_PASSWORD:-}" ] && [ -n "${ADMIN_PHONE:-}" ]; then
+  python manage.py ensure_superuser --phone "$ADMIN_PHONE" --password "$ADMIN_PASSWORD" --name "FJSTI Admin"
+else
+  echo "OGOHLANTIRISH: ADMIN_PHONE/ADMIN_PASSWORD berilmadi — superuser o'tkazib yuborildi."
+  echo "  Kerak bo'lsa: ADMIN_PHONE=+998... ADMIN_PASSWORD=<12+ belgi> bash $0"
+fi
 
 install -m 644 "$ROOT/deploy/systemd/aidoktorfjsti-backend.service" /etc/systemd/system/aidoktorfjsti-backend.service
 systemctl daemon-reload
