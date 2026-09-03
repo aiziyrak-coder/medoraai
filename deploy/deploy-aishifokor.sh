@@ -53,12 +53,29 @@ tar -czf "$BACKUPS/code-$TS.tar.gz" -C /root \
 ls -lh "$BACKUPS/db-$TS.sqlite3" "$BACKUPS/code-$TS.tar.gz"
 
 # ---------------------------------------------------- 2. YANGI KODNI OLISH
-say "2/7 Yangi kodni olish ($BRANCH)"
+say "2/7 Yangi kodni olish"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
-git clone --depth 1 --branch "$BRANCH" "$REPO" "$TMP/src" >/dev/null 2>&1 \
-  || die "klon bo'lmadi — $BRANCH mavjudmi?"
-echo "olingan commit: $(git -C "$TMP/src" rev-parse --short HEAD)"
+mkdir -p "$TMP/src"
+
+# Bu serverda GitHub uchun kalit ham, credential helper ham yo'q — yopiq
+# repozitoriyni klonlab bo'lmaydi. Shuning uchun manba tar arxivi orqali
+# keladi. Klon faqat kalit sozlangan bo'lsa ishlatiladi.
+SRC_TAR="${SRC_TAR:-/home/admin_root/aishifokor-src.tar.gz}"
+
+if [ -f "$SRC_TAR" ]; then
+  echo "manba: $SRC_TAR"
+  tar -xzf "$SRC_TAR" -C "$TMP/src"
+elif git ls-remote "$REPO" >/dev/null 2>&1; then
+  echo "manba: git ($BRANCH)"
+  git clone --depth 1 --branch "$BRANCH" "$REPO" "$TMP/src" >/dev/null 2>&1 \
+    || die "klon bo'lmadi"
+else
+  die "Manba topilmadi. $SRC_TAR ni serverga yuklang yoki GitHub kalitini sozlang."
+fi
+
+[ -d "$TMP/src/backend" ] && [ -d "$TMP/src/frontend" ] \
+  || die "arxiv ichida backend/ va frontend/ yo'q"
 
 # ------------------------------------------------------- 3. KODNI YOZISH
 say "3/7 Kodni joyiga qo'yish"
