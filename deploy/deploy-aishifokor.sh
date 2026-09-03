@@ -43,8 +43,14 @@ d.close(); s.close()
 print("baza zaxirasi tayyor")
 PY
 
-# Kod va .env — venv/media/db'siz
-tar -czf "$BACKUPS/code-$TS.tar.gz" -C /root \
+# Kod va .env — venv/media/db'siz.
+# deploy/.pg_pass va .db_secret root egaligida va admin_root ularni o'qiy
+# olmaydi; ular deploy davomida o'zgarmaydi, shuning uchun chiqarib tashlanadi.
+# --ignore-failed-read boshqa kutilmagan o'qilmas fayl butun zaxirani bekor
+# qilib yuborishiga yo'l qo'ymaydi (tar ogohlantirish chiqaradi).
+tar -czf "$BACKUPS/code-$TS.tar.gz" -C /root --ignore-failed-read \
+    --exclude='aishifokor/deploy/.pg_pass' \
+    --exclude='aishifokor/deploy/.db_secret' \
     --exclude='aishifokor/backend/venv' \
     --exclude='aishifokor/backend/db.sqlite3*' \
     --exclude='aishifokor/backend/media' \
@@ -88,6 +94,8 @@ rsync -a --delete \
   --exclude='logs/' \
   --exclude='venv/' \
   --exclude='staticfiles/' \
+  --exclude='__pycache__/' \
+  --exclude='*.pyc' \
   "$TMP/src/backend/" "$APP/backend/"
 
 # ---------------------------------------------------------- 4. PAKETLAR
@@ -98,7 +106,6 @@ say "4/7 Paketlar (Django 5.0.1 -> 5.2.14)"
 # --------------------------------------------------------- 5. MIGRATSIYA
 say "5/7 Migratsiya va statik fayllar"
 cd "$APP/backend"
-set -a; . ./.env; set +a
 venv/bin/python manage.py migrate --noinput
 venv/bin/python manage.py collectstatic --noinput >/dev/null
 venv/bin/python manage.py check --deploy 2>&1 | tail -5
